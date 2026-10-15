@@ -176,7 +176,7 @@ function Control({
     case "image":
       return (
         <div className="mb-[18px]">
-          <CoverField name={name} label={label} hint={hint ?? "PNG, JPG, GIF, WebP or SVG from the media library."}
+          <CoverField name={name} label={label} hint={hint} spec="body"
             defaultPath={typeof value === "string" ? value : null} defaultUrl={url} className="mb-0" />
           {error && <p className="mt-1 text-12-5 text-err">{error}</p>}
         </div>

@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\AnswerBlockKind;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkDeleteRequest;
 use App\Http\Requests\StoreIndustryRequest;
 use App\Http\Requests\UpdateIndustryRequest;
 use App\Http\Resources\Admin\IndustryResource;
 use App\Models\Industry;
 use App\Support\CustomFields\CustomFields;
+use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -25,6 +28,7 @@ use Illuminate\Support\Facades\DB;
  */
 class IndustryController extends Controller
 {
+    use HandlesBulk;
     use WritesCmsEntities;
 
     public function index(Request $request): AnonymousResourceCollection
@@ -60,6 +64,7 @@ class IndustryController extends Controller
         $industry = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $solutionIds = $attributes['solution_ids'] ?? null;
             unset($attributes['solution_ids']);
             $content = $this->pullAnswerContent($attributes);
@@ -84,6 +89,7 @@ class IndustryController extends Controller
         DB::transaction(function () use ($request, $industry) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $hasSolutions = array_key_exists('solution_ids', $attributes);
             $solutionIds = $attributes['solution_ids'] ?? [];
             unset($attributes['solution_ids']);
@@ -105,6 +111,20 @@ class IndustryController extends Controller
 
     public function destroy(Industry $industry): JsonResponse
     {
+        $this->remove($industry);
+
+        return response()->json(['message' => 'Industry deleted.']);
+    }
+
+    /** `POST /admin/industries/bulk` — delete the ticked industries. An industry has no status, so delete is the only action. */
+    public function bulk(BulkDeleteRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, Industry::query(), $this->remove(...));
+    }
+
+    /** What deleting an industry does, for `destroy()` and the bulk path alike. */
+    private function remove(Industry $industry): void
+    {
         DB::transaction(function () use ($industry) {
             // case_studies.industry_id is nullOnDelete, so studies survive
             // with no sector rather than disappearing with it.
@@ -114,7 +134,5 @@ class IndustryController extends Controller
             $industry->answerBlocks()->delete();
             $industry->delete();
         });
-
-        return response()->json(['message' => 'Industry deleted.']);
     }
 }

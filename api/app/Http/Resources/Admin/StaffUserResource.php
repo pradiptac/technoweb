@@ -30,6 +30,10 @@ class StaffUserResource extends JsonResource
                 'label' => $r->name,
             ])),
             'role_slugs' => $this->whenLoaded('roles', fn () => $this->roles->pluck('slug')),
+            'support_centres' => $this->whenLoaded('supportCentres', fn () => $this->supportCentres->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+            ])->values()),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

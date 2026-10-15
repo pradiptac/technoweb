@@ -6,15 +6,22 @@ use App\Enums\AnswerBlockKind;
 use App\Enums\ProductCondition;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\Store\ProductRequest;
 use App\Http\Resources\Admin\Store\ProductResource;
 use App\Models\StoreProduct;
+use App\Models\StoreTag;
 use App\Support\CustomFields\CustomFields;
+use App\Support\Money;
+use App\Support\PageSections\RecordSections;
 use App\Support\Store\ProductVideos;
 use App\Support\Store\SpecIndex;
 use App\Support\Store\StockLedger;
+use App\Support\Store\Tags;
+use App\Support\Store\Tax;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -30,9 +37,10 @@ use Illuminate\Support\Facades\DB;
  */
 class ProductController extends Controller
 {
+    use HandlesBulk;
     use WritesCmsEntities;
 
-    private const RELATIONS = ['variations', 'service_ids', 'faqs', 'answer_blocks'];
+    private const RELATIONS = ['variations', 'service_ids', 'faqs', 'answer_blocks', 'tags'];
 
     /**
      * The people waiting to hear a product is back, as a `withCount`. One
@@ -50,7 +58,7 @@ class ProductController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $products = StoreProduct::query()
-            ->with(['category', 'brand', 'variations'])
+            ->with(['category', 'brand', 'variations', 'tags'])
             ->withCount(self::noticesCount())
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->string('type')))
@@ -66,6 +74,12 @@ class ProductController extends Controller
              * the dashboard's figure read, so the tile and the list agree.
              */
             ->when($request->boolean('notices'), fn ($q) => $q->whereHas('stockNotices', fn ($n) => $n->waiting()))
+            // Products that carry a video (0.140.0) — the scope the "shop the
+            // videos" shelf and Store → Product videos' count both read.
+            ->when($request->boolean('video'), fn ($q) => $q->withVideos())
+            // Physical products weighed at the shop's default because nobody
+            // entered a weight (0.142.0) — the shipping screen's count.
+            ->when($request->boolean('no_weight'), fn ($q) => $q->withoutWeight())
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = $request->string('q')->value();
                 $q->where(fn ($w) => $w->where('name', 'like', "%{$term}%")
@@ -82,6 +96,17 @@ class ProductController extends Controller
             // Sent by the API, never listed in TypeScript — the rule
             // `schema_type_options` and `meta.locations` already follow.
             'conditions' => ProductCondition::options(),
+            /*
+             * Tax (0.176.0): the rates a product may be sold at, the shop's
+             * own, and how it prices. The form draws its select from this
+             * and states the shop's answer under the price field, so
+             * neither is a figure written into TypeScript.
+             */
+            'gst_rates' => array_map(static fn (string $r) => ['value' => $r, 'label' => $r.'%'], Tax::RATES),
+            'gst_rate' => Money::ratePercent(Tax::rate()),
+            'price_basis' => Tax::basis(),
+            // How the price field is typed (0.178.0): with GST, or before it.
+            'price_entry' => Tax::entry(),
             'statuses' => array_map(
                 fn (PublishStatus $s) => ['value' => $s->value, 'label' => $s->label()],
                 PublishStatus::cases(),
@@ -89,6 +114,8 @@ class ProductController extends Controller
             'answer_block_kinds' => AnswerBlockKind::options(),
             // The custom field groups that apply, for the console's Fields tab.
             'custom_field_groups' => CustomFields::definitions('store_product'),
+            // Every tag's name, for the form's suggestions as you type (0.141.0).
+            'tags' => StoreTag::query()->orderBy('name')->pluck('name')->values()->all(),
         ]]);
     }
 
@@ -102,12 +129,14 @@ class ProductController extends Controller
         $product = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $variations = $this->pull($attributes, self::RELATIONS);
             $attributes = ProductVideos::normaliseAttributes($attributes);
+            [$rate] = $this->storePrices($attributes, null);
 
             $product = StoreProduct::create($attributes);
 
-            $this->saveVariations($product, $variations['variations'] ?? null);
+            $this->saveVariations($product, $variations['variations'] ?? null, $rate, false);
             // The variation rows removed above go by a mass delete, which
             // fires no model event, so the spec index is asked for directly.
             // Deferred to the commit and deduplicated — see `SpecIndex`.
@@ -116,6 +145,7 @@ class ProductController extends Controller
             $this->saveAnswerContent($product, $variations);
             $this->saveSeo($product, $seo);
             $this->saveCustomFields($product, $custom);
+            $this->saveTags($product, $variations);
 
             // Opening stock, so the ledger's first entry for a product is the
             // level it arrived with rather than a gap that every later report
@@ -124,6 +154,9 @@ class ProductController extends Controller
 
             return $product;
         });
+
+        // Once, after the save is safe: the rule never fails a save (guarded).
+        $this->autoTag($request, $product);
 
         /*
          * `(new Resource(...))->response()`, never `response()->json($resource)`.
@@ -144,6 +177,7 @@ class ProductController extends Controller
         DB::transaction(function () use ($request, $storeProduct) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $variations = $this->pull($attributes, self::RELATIONS);
             $attributes = ProductVideos::normaliseAttributes($attributes);
 
@@ -157,23 +191,41 @@ class ProductController extends Controller
              */
             $stockBefore = (int) $storeProduct->stock;
             $variationsBefore = $storeProduct->variations()->pluck('stock', 'id')->all();
+            [$rate, $rateChanged] = $this->storePrices($attributes, $storeProduct);
 
             $storeProduct->update($attributes);
 
-            $this->saveVariations($storeProduct, $variations['variations'] ?? null);
+            $this->saveVariations($storeProduct, $variations['variations'] ?? null, $rate, $rateChanged);
             SpecIndex::queue((int) $storeProduct->id);
             $this->syncServices($storeProduct, $variations);
             $this->saveAnswerContent($storeProduct, $variations);
             $this->saveSeo($storeProduct, $seo);
             $this->saveCustomFields($storeProduct, $custom);
+            $this->saveTags($storeProduct, $variations);
 
             StockLedger::adjusted($storeProduct, $stockBefore, $variationsBefore);
         });
+
+        $this->autoTag($request, $storeProduct);
 
         return new ProductResource($storeProduct->fresh($this->detailRelations())->loadCount(self::noticesCount()));
     }
 
     public function destroy(StoreProduct $storeProduct): JsonResponse
+    {
+        $this->remove($storeProduct);
+
+        return response()->json(null, 204);
+    }
+
+    /** `POST /admin/store/products/bulk` — publish, draft, archive or delete the ticked shop products. */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, StoreProduct::query(), $this->remove(...));
+    }
+
+    /** What deleting a shop product does, for `destroy()` and the bulk path alike. */
+    private function remove(StoreProduct $storeProduct): void
     {
         DB::transaction(function () use ($storeProduct) {
             // Polymorphic rows have nothing to cascade them; the pivot does.
@@ -181,14 +233,32 @@ class ProductController extends Controller
             $storeProduct->answerBlocks()->delete();
             $storeProduct->delete();
         });
-
-        return response()->json(null, 204);
     }
 
     /** @return array<int, string> */
     private function detailRelations(): array
     {
-        return ['category', 'brand', 'variations', 'services', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group'];
+        return ['category', 'brand', 'variations', 'tags', 'services', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group'];
+    }
+
+    /**
+     * Tags are replaced wholesale: a request without the key leaves them alone,
+     * `[]` clears them, and sending the key at all stamps `tags_set_at` so the
+     * automatic rule never puts back what somebody removed.
+     */
+    private function saveTags(StoreProduct $product, array $pulled): void
+    {
+        if (array_key_exists('tags', $pulled)) {
+            Tags::sync($product, $pulled['tags'] ?? []);
+        }
+    }
+
+    /** The automatic rule, for a product whose request did not decide its tags. */
+    private function autoTag(Request $request, StoreProduct $product): void
+    {
+        if (! $request->has('tags')) {
+            Tags::autoTag($product);
+        }
     }
 
     /**
@@ -232,7 +302,34 @@ class ProductController extends Controller
      * array clears them, which has to be possible or the last variation could
      * never be removed.
      */
-    private function saveVariations(StoreProduct $product, ?array $variations): void
+    /**
+     * The prices as typed, as stored (0.178.0).
+     *
+     * `store_price_entry` may say they were typed before GST, and a stored
+     * price always includes it, so each is converted at the product's rate —
+     * the one this request sets, else the one it already has. A figure the
+     * form sends back exactly as it was given is kept as stored
+     * (`Tax::keep()`), or saving an untouched form could move a price by a
+     * paisa. The variations use the same rate, which is why it is returned.
+     *
+     * @return array{int, bool} the rate, and whether this save changes it
+     */
+    private function storePrices(array &$attributes, ?StoreProduct $existing): array
+    {
+        $rate = Tax::rateForPercent(array_key_exists('gst_percent', $attributes) ? $attributes['gst_percent'] : $existing?->gst_percent);
+        $changed = $existing !== null && Tax::rateFor($existing) !== $rate;
+
+        foreach (['price_paise', 'compare_at_paise'] as $key) {
+            if (isset($attributes[$key])) {
+                $was = $existing?->{$key};
+                $attributes[$key] = Tax::keep((int) $attributes[$key], $was === null ? null : (int) $was, $rate, $changed);
+            }
+        }
+
+        return [$rate, $changed];
+    }
+
+    private function saveVariations(StoreProduct $product, ?array $variations, int $rate, bool $rateChanged): void
     {
         if ($variations === null) {
             return;
@@ -261,7 +358,24 @@ class ProductController extends Controller
                 ? $product->variations()->whereKey($row['id'])->first()
                 : null;
 
+            // Typed in the console's basis, stored with GST — `storePrices()`.
+            if ($attributes['price_paise'] !== null) {
+                $was = $existing?->price_paise;
+                $attributes['price_paise'] = Tax::keep((int) $attributes['price_paise'], $was === null ? null : (int) $was, $rate, $rateChanged);
+            }
+
             if ($existing !== null) {
+                /*
+                 * A weight the editor did not send is a weight left alone
+                 * (0.142.0). The variations editor never posted one, so
+                 * every save wrote null over whatever was set — which a
+                 * delivery quote now reads. Sending the key, even blank,
+                 * still changes it.
+                 */
+                if (! array_key_exists('weight_grams', $row)) {
+                    unset($attributes['weight_grams']);
+                }
+
                 $existing->update($attributes);
                 $kept[] = $existing->id;
 

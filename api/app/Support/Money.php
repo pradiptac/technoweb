@@ -30,28 +30,95 @@ namespace App\Support;
 class Money
 {
     /**
-     * 18%, in basis points, and it is not configurable.
+     * 18%, in basis points — the default, not the law.
      *
-     * The brief states one rate for everything sold here. A settings row would
-     * be a promise this system cannot keep — a real multi-rate catalogue needs
-     * a rate *per product*, HSN codes and place-of-supply rules, which is the
-     * "complex tax engine" the brief rules out. One constant, named, is honest
-     * about that; a configurable single rate would not be.
+     * This was a constant and nothing else until 0.176.0, under a docblock
+     * arguing that a settings row "would be a promise this system cannot
+     * keep", because a real multi-rate catalogue needs a rate *per product*,
+     * HSN codes and place-of-supply rules.
+     *
+     * Half of that is still true and half of it was never the question. A
+     * single rate genuinely cannot serve a shop selling garments at 5%
+     * beside air conditioners at 28% — that remains the "complex tax engine"
+     * the brief rules out, and is still not built. What the constant also
+     * did, though, was hard-code **eighteen**: a shop selling nothing but
+     * garments is single-rate at 5% and a shop selling nothing but air
+     * conditioners is single-rate at 28%, and neither could be installed.
+     * One store-wide rate is exactly as honest as one fixed rate and serves
+     * every single-rate business rather than one of them.
+     *
+     * So this is the fallback, and it lives here rather than in `Tax`
+     * because this class must stay pure: `Money` is arithmetic over integers
+     * with no application behind it, which is what lets `MoneyTest` be a
+     * unit test and what makes the rounding provable. Reading the shop's
+     * chosen rate is `Tax::rate()`'s job, and every production caller passes
+     * the answer in.
      */
     public const GST_BASIS_POINTS = 1800;
 
-    /** The taxable value inside a GST-inclusive total. */
-    public static function taxable(int $inclusivePaise, int $basisPoints = self::GST_BASIS_POINTS): int
+    /**
+     * One of `Tax::RATES` as basis points: "18" → 1800, "0.25" → 25.
+     *
+     * The slabs are all quarters of a per cent, so a string of digits and at
+     * most two decimals maps across without touching a float — which is the
+     * whole reason this file exists.
+     */
+    public static function basisPointsOf(string $percent): int
     {
-        $divisor = 10000 + $basisPoints;
+        [$whole, $fraction] = array_pad(explode('.', $percent, 2), 2, '0');
+
+        return ((int) $whole) * 100 + ((int) str_pad($fraction, 2, '0'));
+    }
+
+    /**
+     * The rate an order was charged at, in basis points, from its own figures.
+     *
+     * Derived rather than stored, and that is the point: `gst ÷ taxable` is
+     * arithmetic over two columns every order has carried since the store
+     * shipped, so an invoice for an order placed under the old constant
+     * prints 18% without a backfill, and one placed after a rate change
+     * prints the rate it was actually charged. A stored `gst_rate` column
+     * would be a third figure free to disagree with the two that settle it.
+     *
+     * Snapped to the nearest quarter of a per cent, because every real slab
+     * is one and the division carries a paisa of rounding on small amounts.
+     * A taxable value of zero — an order of nothing, or a fully discounted
+     * one — has no rate to report and answers null.
+     */
+    public static function rateOf(int $taxablePaise, int $gstPaise): ?int
+    {
+        if ($taxablePaise <= 0) {
+            return null;
+        }
+
+        $exact = intdiv($gstPaise * 20000 + $taxablePaise, $taxablePaise * 2);
+
+        return intdiv($exact + 12, 25) * 25;
+    }
+
+    /** The taxable value inside a GST-inclusive total. */
+    public static function taxable(int $inclusivePaise, ?int $basisPoints = null): int
+    {
+        $divisor = 10000 + ($basisPoints ?? self::GST_BASIS_POINTS);
 
         return intdiv($inclusivePaise * 10000 + intdiv($divisor, 2), $divisor);
     }
 
     /** The GST inside a GST-inclusive total. */
-    public static function gst(int $inclusivePaise, int $basisPoints = self::GST_BASIS_POINTS): int
+    public static function gst(int $inclusivePaise, ?int $basisPoints = null): int
     {
         return $inclusivePaise - self::taxable($inclusivePaise, $basisPoints);
+    }
+
+    /**
+     * Basis points as a percentage for a person: 1800 → "18", 25 → "0.25".
+     *
+     * Trailing zeroes trimmed, because "18.00%" on an invoice line reads as a
+     * figure somebody calculated rather than a slab somebody chose.
+     */
+    public static function ratePercent(int $basisPoints): string
+    {
+        return rtrim(rtrim(number_format($basisPoints / 100, 2, '.', ''), '0'), '.');
     }
 
     /**

@@ -3,6 +3,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { ButtonLink } from "@/components/ui/button";
 import { Input, Select, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { IconUsers } from "@/components/icons";
 import { getNewsletterGroups, getNewsletterSubscribers } from "@/lib/admin";
@@ -166,7 +167,7 @@ export default async function SubscribersPage({
       </FilterBar>
 
       {rows.length === 0 ? (
-        <EmptyState icon={<IconUsers />} title={filtered ? "Nothing matches" : "No subscribers yet"}>
+        <EmptyState icon={<IconUsers />} title={filtered ? "Nothing matches those filters" : "No subscribers yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/newsletter/subscribers" noun="subscriber" />}>
           {filtered ? "Try a different term, or clear the filters." : (
             <>
               Several ways to add people:{" "}

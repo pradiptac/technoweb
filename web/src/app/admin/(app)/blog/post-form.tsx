@@ -14,11 +14,13 @@ import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, useRecordSections } from "../pages/builder/record-sections";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { CoverField } from "@/components/admin/cover-field";
 import { RelationPicker } from "@/components/admin/relation-picker";
 import { createPostAction, updatePostAction, deletePostAction, type PostFormState } from "./actions";
-import type { CustomFieldGroupDefinition, AdminBlogPost, StaffUser, AnswerBlockKindOption } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminBlogPost, StaffUser, AnswerBlockKindOption, PageBuilderOptions } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: PostFormState = {};
 
@@ -26,6 +28,8 @@ const initial: PostFormState = {};
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["title", "slug", "excerpt", "body", "status", "published_at", "author_id", "is_featured", "comments_enabled", "category_ids"] },
+  // Sections in place of the written body (0.130.0) — the choice and the builder.
+  SECTIONS_TAB,
   { id: "media", label: "Media", fields: ["cover_image_path"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
   // The AEO tab (docs/aeo-geo-contract.md §7). Last, so every tab above keeps its place.
@@ -46,7 +50,7 @@ function toLocalInput(iso: string | null): string {
  * so it is the shape the remaining CMS entities should follow.
  */
 export function PostForm({
-  post, staff, categories, saved, kinds, fieldGroups,
+  post, staff, categories, saved, kinds, fieldGroups, builder,
 }: {
   post?: AdminBlogPost;
   staff: StaffUser[];
@@ -57,6 +61,8 @@ export function PostForm({
   kinds: AnswerBlockKindOption[];
   /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
   fieldGroups?: CustomFieldGroupDefinition[];
+  /** `GET /admin/pages/builder` — the section builder's types and pickers, for the Sections tab. */
+  builder: PageBuilderOptions;
 }) {
   const editing = Boolean(post);
   const [state, formAction, pending] = useActionState(
@@ -70,6 +76,9 @@ export function PostForm({
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
   const defaults = post?.seo_defaults;
   const seo = post?.seo;
+
+  // The body area: the written body, or builder sections (0.130.0).
+  const body = useRecordSections(post);
 
   // Custom fields (docs/custom-content.md): the groups that apply, from the API.
   const customGroups = post?.custom_field_groups ?? fieldGroups ?? [];
@@ -112,6 +121,8 @@ export function PostForm({
                 maxLength={500} aria-invalid={Boolean(err("excerpt"))} />
             </Field>
 
+            <BodyReplacedNote state={body} />
+
             <EditorField name="body" defaultValue={post?.body ?? ""} error={err("body")} />
           </div>
 
@@ -137,21 +148,11 @@ export function PostForm({
               </Select>
             </Field>
 
-            <Field label="Featured" htmlFor="is_featured" error={err("is_featured")} variant="float-static"
-              hint="Featured posts fill the lead area at the top of the blog.">
-              <Select id="is_featured" name="is_featured" defaultValue={post?.is_featured ? "1" : "0"}>
-                <option value="0">No</option>
-                <option value="1">Yes</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="is_featured" defaultChecked={post?.is_featured ?? false} label="Featured"
+              hint="Featured posts fill the lead area at the top of the blog." />
 
-            <Field label="Comments on this post" htmlFor="comments_enabled" error={err("comments_enabled")} variant="float-static"
-              hint="Readers can comment only while comments are also switched on in Blog → Settings.">
-              <Select id="comments_enabled" name="comments_enabled" defaultValue={post?.comments_enabled === false ? "0" : "1"}>
-                <option value="1">Open</option>
-                <option value="0">Closed</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="comments_enabled" defaultChecked={post?.comments_enabled !== false} label="Comments open on this post"
+              hint="Readers can comment only while comments are also switched on in Blog → Settings." />
 
             <RelationPicker
               name="category_ids"
@@ -167,11 +168,24 @@ export function PostForm({
           </aside>
         </div>
 
+        {/* Sections in place of the written body. One child, always mounted. */}
+        <RecordSectionsPanel
+          state={body}
+          builder={builder}
+          media={post?.blocks_media ?? {}}
+          errors={state.fieldErrors ?? {}}
+          bodyField="body"
+          storedBody={post?.body ?? ""}
+          noun="post"
+          keeps="Its heading, cover picture, sidebar, FAQs, comments and related stories stay where they are."
+        />
+
         <div className="max-w-[420px]">
           <CoverField
             // The ratio the post page and og:image both use — see the
             // `aspect-[1200/630]` on the article template.
-            hint="PNG, JPG, GIF or WebP. 1200 x 630 px — the ratio the post and its share card both use."
+            spec="cover"
+            hint="The post and its share card both use this shape."
             defaultPath={post?.cover_image_path ?? null}
             defaultUrl={post?.cover_image ?? null}
           />

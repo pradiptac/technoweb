@@ -4,7 +4,6 @@ namespace App\Http\Requests\Concerns;
 
 use App\Support\CustomFields\CustomFields;
 use App\Support\HtmlSanitiser;
-use Illuminate\Support\Arr;
 
 /**
  * Cleans rich-text fields before validation, so nothing downstream — the
@@ -22,9 +21,9 @@ use Illuminate\Support\Arr;
  *
  * The part after the wildcard may itself be a dotted path —
  * `blocks.*.data.body`, a page-builder section's rich text (2026-09-26) —
- * read and written with `Arr::get`/`Arr::set`, so a row whose nested object
- * is missing the key is left alone rather than given one. Still one
- * wildcard: a repeater inside a repeater names its own sanitiser.
+ * and may cross a second list — `blocks.*.data.columns.*.body`, a columns
+ * section's bodies (0.111.0). `cleanAt()` walks it, a `*` standing for every
+ * row, so a row missing the key is left alone rather than given one.
  */
 trait SanitisesRichText
 {
@@ -52,22 +51,14 @@ trait SanitisesRichText
 
         foreach ($fields as $field) {
             if (str_contains($field, '.*.')) {
-                [$list, $column] = explode('.*.', $field, 2);
-                $rows = $this->input($list);
+                // Any number of lists deep — `blocks.*.data.columns.*.body` —
+                // and two fields under one list both reach the cleaned copy.
+                $segments = explode('.', $field);
+                $root = (string) array_shift($segments);
+                $rows = $clean[$root] ?? $this->input($root);
 
                 if (is_array($rows)) {
-                    foreach ($rows as $i => $row) {
-                        // A non-string is left for validation to refuse.
-                        if (! is_array($row) || ! Arr::has($row, $column)) {
-                            continue;
-                        }
-                        $value = Arr::get($row, $column);
-                        if (is_string($value) || $value === null) {
-                            Arr::set($rows[$i], $column, HtmlSanitiser::clean($value));
-                        }
-                    }
-
-                    $clean[$list] = $rows;
+                    $clean[$root] = self::cleanAt($rows, $segments);
                 }
 
                 continue;
@@ -88,5 +79,35 @@ trait SanitisesRichText
         if ($clean) {
             $this->merge($clean);
         }
+    }
+
+    /**
+     * The value at `$segments` under `$value` cleaned, a `*` standing for
+     * every row of a list. A non-string is left for validation to refuse.
+     *
+     * @param  list<string>  $segments
+     */
+    private static function cleanAt(mixed $value, array $segments): mixed
+    {
+        if ($segments === []) {
+            return is_string($value) || $value === null ? HtmlSanitiser::clean($value) : $value;
+        }
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        $head = array_shift($segments);
+        if ($head === '*') {
+            foreach ($value as $key => $row) {
+                $value[$key] = is_array($row) || $segments === [] ? self::cleanAt($row, $segments) : $row;
+            }
+
+            return $value;
+        }
+        if (array_key_exists($head, $value)) {
+            $value[$head] = self::cleanAt($value[$head], $segments);
+        }
+
+        return $value;
     }
 }

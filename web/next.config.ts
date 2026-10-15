@@ -205,8 +205,10 @@ const nextConfig: NextConfig = {
     /*
      * A year, because every upload is immutable at its address. Files are
      * stored under a hashed name and an in-place edit versions the URL with
-     * `?v=<updated_at>` (the `remotePatterns` above omit `search`, so the
-     * query is allowed through), so a resized copy can never go stale — and
+     * `?v=<revision>` (the `remotePatterns` above omit `search`, so the
+     * query is allowed through), so a resized copy can never go stale. That
+     * sentence was only true of the console's own URLs until 0.124.0, when
+     * every public media URL moved to `MediaUrl` (docs/cdn.md) — and
      * the default of 60s would have the optimiser re-fetch a 3MB original
      * from the API every minute per width to produce the same bytes.
      *
@@ -336,12 +338,14 @@ const nextConfig: NextConfig = {
         newsletter unsubscribe, a newsletter rejoin and a back-in-stock cancel,
         whose tokens are in the path, and a guest's online meeting (reached
         through `/meeting/{ref}/open?token=…`, the order's cookie swap). `no-referrer`, so nothing they link to or load — a courier's
-        tracking page, a payment gateway's script — is told the URL. Listed
+        tracking page, a payment gateway's script — is told the URL. An event
+        registration (`/events/registration/{token}`, docs/events-contract.md)
+        is the same shape as the unsubscribe: its token is in the path. Listed
         after the site-wide block on purpose: Next merges headers by key and the
         later entry wins, which is what replaces `strict-origin-when-cross-origin`
         here and leaves the rest of that block in force.
       */
-      ...["/order/:path*", "/newsletter/unsubscribe/:path*", "/newsletter/rejoin/:path*", "/store/notify/cancel/:path*", "/meeting/:path*", "/ticket-survey/:path*"].map((source) => ({
+      ...["/order/:path*", "/newsletter/unsubscribe/:path*", "/newsletter/rejoin/:path*", "/store/notify/cancel/:path*", "/meeting/:path*", "/ticket-survey/:path*", "/events/registration/:path*", "/preview/:path*"].map((source) => ({
         source,
         headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
       })),

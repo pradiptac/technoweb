@@ -33,6 +33,14 @@ export const IconSignOut = (p: P) => (
   </svg>
 );
 
+/** Sparkle: the "AI Powered" badge's mark (0.169.0). */
+export const IconSparkle = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M12 3.5 13.9 9a2 2 0 0 0 1.2 1.2l5.4 1.8-5.4 1.8a2 2 0 0 0-1.2 1.2L12 20.5 10.1 15a2 2 0 0 0-1.2-1.2L3.5 12l5.4-1.8A2 2 0 0 0 10.1 9z" />
+    <path d="M19 3v3M17.5 4.5h3" />
+  </svg>
+);
+
 export const IconCart = (p: P) => (
   <svg {...base} {...p}>
     <circle cx="9" cy="20" r="1.4" /><circle cx="18" cy="20" r="1.4" />
@@ -61,7 +69,7 @@ export const IconClose = (p: P) => (
   <svg {...base} strokeWidth={2} {...p}><path d="M6 6l12 12M18 6 6 18" /></svg>
 );
 export const IconArrowRight = (p: P) => (
-  <svg {...base} strokeWidth={2} {...p}><path d="M4.8 12h14.4M13.2 6l6 6-6 6" /></svg>
+  <svg {...base} strokeWidth={2} data-icon="arrow-right" {...p}><path d="M4.8 12h14.4M13.2 6l6 6-6 6" /></svg>
 );
 export const IconSearch = (p: P) => (
   <svg {...base} {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.4-4.4" /></svg>
@@ -118,9 +126,17 @@ export const IconMenu = (p: P) => (
 export const IconMail = (p: P) => (
   <svg {...base} {...p}><rect x="2.6" y="4.8" width="18.8" height="14.4" rx="2.2" /><path d="m2.6 7.4 9.4 6 9.4-6" /></svg>
 );
+/** A download: an arrow down onto a tray — the downloads section's button (0.111.0). */
+export const IconDownload = (p: P) => (
+  <svg {...base} {...p}><path d="M12 3.5v11.5" /><path d="m7 10.5 5 5 5-5" /><path d="M4 16.5v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></svg>
+);
 /** A map pin — the footer's address plate (Vantage). */
 export const IconMapPin = (p: P) => (
   <svg {...base} {...p}><path d="M12 21.5s-6.8-6.1-6.8-11.2a6.8 6.8 0 0 1 13.6 0c0 5.1-6.8 11.2-6.8 11.2z" /><circle cx="12" cy="10.2" r="2.5" /></svg>
+);
+/** Two sheets, one over the other — copy to the clipboard (the pricing table's email, 0.180.0). */
+export const IconCopy = (p: P) => (
+  <svg {...base} {...p}><rect x="8.5" y="8.5" width="12" height="12" rx="2" /><path d="M15.5 8.5V5.5a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3" /></svg>
 );
 export const IconLink = (p: P) => (
   <svg {...base} {...p}><path d="M10 14a4.4 4.4 0 0 0 6.2.3l2.6-2.6a4.4 4.4 0 0 0-6.2-6.2l-1.5 1.5" /><path d="M14 10a4.4 4.4 0 0 0-6.2-.3l-2.6 2.6a4.4 4.4 0 0 0 6.2 6.2l1.5-1.5" /></svg>

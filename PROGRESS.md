@@ -7,10 +7,42 @@ conventions and `API.md` for the endpoint reference; this file is just
 
 **In progress:** nothing — the last slice is committed and verified.
 
-**Latest (0.98.0, 2026-09-29):** online meetings — customers book a video
-call at a free slot, a Google Calendar event and Meet link per booking, the
-console diary, hosts and types — plus service categories on the Services
-section, and the customer portal switch made real. See the last section.
+**Latest (0.180.0, 2026-10-15):** a fourth pricing layout, Banded tiers —
+plans under coloured bars from the theme's palette, with the yearly deal
+(struck monthly price, per month, billed, saved, % off) worked out from the
+two prices — plus a promotion chip, a trust strip and a copy button for an
+email plan, on any pricing table. `docs/blocks.md`.
+
+Before it (0.179.0, 2026-10-15): Google Fonts and Google icons, both copied
+to this site so a visitor never contacts Google: any Google font (Noto left
+out, families over 60 pieces refused) for headings and body, Material Symbols
+Rounded in every icon picker and inside page text. `docs/theming.md`,
+`docs/icons.md` and `docs/editor.md` carry the rules.
+
+Before it (0.178.0, 2026-10-14): a stored shop price always includes GST,
+and two settings — how the console takes a price and how the website shows
+it — move no money, so a shop can switch between "prices include GST" and
+"GST added" with fifty products and nobody's total changes. `docs/store.md`
+says why a base price was rejected (a paisa off on one typed price in seven).
+The crop window before an upload now fits a laptop screen.
+
+Before it (0.177.0): **Ask ALTIS** — a question typed in the
+console, answered out of this install's own figures: "how many tickets are
+open", "what is waiting to be dispatched", "how much has the shop taken this
+month". The model's whole part is picking which of a fixed, role-scoped list
+of about twenty questions was asked; PHP builds every figure from the same
+scope the screen it links to uses, and it answers with no AI key at all.
+`docs/copilot.md` says why it is not the query-writing copilot.
+
+Before it (0.176.0): the shop makes its own GST invoice, and the
+tax behind it is configurable at last — a rate for the shop and a rate per
+product, prices that include the tax or have it added, and a tax invoice
+issued the moment an order is paid. It reverses a recorded scope decision at
+the client's request; `docs/store.md` says what that decision was protecting
+against and which two thirds of it were answered first.
+
+The releases between 0.99.0 and 0.176.0 are recorded in `VERSION.md` and
+`FEATURES.md` rather than here; the phase checklists below predate them.
 
 **Branch:** work lands on `phase-3-admin-cms`. `main` is still at the end of
 Phase 2, so Phase 3 is not merged yet.

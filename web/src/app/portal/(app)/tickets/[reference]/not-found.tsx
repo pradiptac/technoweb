@@ -4,6 +4,9 @@ import { IconTicket } from "@/components/icons";
 
 export default function TicketNotFound() {
   return (
+    <>
+    {/* The page's one h1 — the portal layout has no heading of its own. */}
+    <h1 className="sr-only">My tickets</h1>
     <EmptyState
       icon={<IconTicket />}
       title="Ticket not found"
@@ -19,5 +22,6 @@ export default function TicketNotFound() {
       This reference does not match any ticket on your account. Check the reference, or
       browse your tickets below.
     </EmptyState>
+    </>
   );
 }

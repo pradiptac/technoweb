@@ -39,6 +39,12 @@ class MediaMeta
     /** @var array<string, array{alt: string|null, focus: string|null}>|null */
     private static ?array $map = null;
 
+    /** @var array<string, string>|null */
+    private static ?array $blurs = null;
+
+    /** @var array<string, int>|null */
+    private static ?array $revisions = null;
+
     public static function alt(?string $path): ?string
     {
         return self::row($path)['alt'] ?? null;
@@ -72,6 +78,31 @@ class MediaMeta
     public static function focuses(?array $paths): array
     {
         return collect($paths ?? [])->map(fn ($p) => self::focus($p))->all();
+    }
+
+    /**
+     * The picture's blurred preview — a small `data:` URL (0.123.0,
+     * `App\Support\Media\Placeholder`) — or null when there is none: a
+     * vector, a file with no library row, a row the backfill has not reached.
+     * Published beside every `*_focus` as `*_blur`, and null rather than an
+     * empty string so the frontend sets no placeholder at all.
+     */
+    public static function blur(?string $path): ?string
+    {
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        return self::blurMap()[$path] ?? null;
+    }
+
+    /**
+     * @param  array<int,string>|null  $paths
+     * @return array<int,string|null>
+     */
+    public static function blurs(?array $paths): array
+    {
+        return collect($paths ?? [])->map(fn ($p) => self::blur($p))->all();
     }
 
     /**
@@ -118,9 +149,56 @@ class MediaMeta
         return self::$map;
     }
 
+    /**
+     * How many times this file's bytes have been changed in place, or null
+     * for a file nobody has edited (0.124.0). `MediaUrl` versions the public
+     * URL by it. Only edited files are loaded — nearly always a handful —
+     * and binned ones too, since a binned file still serves at its path.
+     */
+    public static function revision(?string $path): ?int
+    {
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        self::$revisions ??= Media::withTrashed()->toBase()
+            ->where('revision', '>', 0)
+            ->pluck('revision', 'path')
+            ->map(fn ($v) => (int) $v)
+            ->all();
+
+        return self::$revisions[$path] ?? null;
+    }
+
+    /**
+     * A map of its own, loaded the first time a preview is asked for.
+     *
+     * Nearly every picture has one, where few have an alt text or a point —
+     * folded into `map()` it would load the whole library on every request
+     * that reads an alt text, the console's included. Through the query
+     * builder, not the model: two columns for a few thousand rows, and
+     * hydrating a model for each is most of what such a read costs.
+     *
+     * @return array<string, string>
+     */
+    private static function blurMap(): array
+    {
+        if (self::$blurs === null) {
+            self::$blurs = Media::query()->toBase()
+                ->whereNull('deleted_at')
+                ->whereNotNull('blur')->where('blur', '!=', '')
+                ->pluck('blur', 'path')
+                ->all();
+        }
+
+        return self::$blurs;
+    }
+
     /** Tests build media inside a single process; the cache has to be droppable. */
     public static function forget(): void
     {
         self::$map = null;
+        self::$blurs = null;
+        self::$revisions = null;
     }
 }

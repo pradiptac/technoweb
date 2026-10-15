@@ -3,14 +3,18 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { OrderTimeline } from "@/components/store/order-timeline";
 import { Badge } from "@/components/ui/badge";
+import { RETURN_TONE } from "@/components/store/order-returns";
 import { ButtonLink } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { getStoreOrder } from "@/lib/admin";
 import { formatPaise } from "@/lib/money";
+import { DeliveryRow } from "@/components/store/delivery-row";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import {
-  FulfilPanel, InvoicePanel, NotePanel, RecordPaymentPanel, RecordRefundPanel, ShippingPanel, StatusPanel,
+  CourierPanel, FulfilPanel, InvoicePanel, NotePanel, RecordPaymentPanel, RecordRefundPanel, ShippingPanel, StatusPanel,
+  ZohoInvoicePanel,
+  ZohoPaymentLine,
 } from "./order-panels";
 import type { AdminOrder } from "@/types/api";
 import { Card } from "@/components/ui/card";
@@ -66,7 +70,10 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
       </PageHeader>
 
       {/* The same line the customer sees on their order, so the desk and the customer read one picture. */}
-      <OrderTimeline order={order} className="mb-5" />
+      <OrderTimeline
+        order={{ ...order, shipment_status: order.shipment && !order.shipment.problem ? order.shipment.status : null }}
+        className="mb-5"
+      />
 
       <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr] lg:items-start">
         <div className="grid gap-5">
@@ -78,6 +85,24 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
           */}
           <RecordPaymentPanel order={order} />
           <RecordRefundPanel order={order} />
+
+          {/* What the customer has asked to send back (docs/store.md "Returns"); each is worked on its own screen. */}
+          {(order.returns?.length ?? 0) > 0 && (
+            <Card as="section" interactive={false} padding="md">
+              <h2 className="mb-3 text-15 font-semibold">Returns</h2>
+              <ul className="grid gap-2">
+                {(order.returns ?? []).map((r) => (
+                  <li key={r.reference} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-14">
+                    <Link href={r.admin_path} className="font-mono font-semibold text-brand-ink hover:underline">{r.reference}</Link>
+                    <Badge tone={RETURN_TONE[r.status]}>{r.status_label}</Badge>
+                    <span className="text-13 text-muted">
+                      {r.items_count} item{r.items_count === 1 ? "" : "s"} · {r.reason_label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
 
           {order.awaiting_codes && <FulfilPanel order={order} />}
 
@@ -123,8 +148,11 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
             Only for an order with something to send. A courier form on a
             licence order asks a question that has no answer.
           */}
+          {order.needs_shipping ? <CourierPanel order={order} /> : null}
           {order.needs_shipping ? <ShippingPanel order={order} /> : null}
 
+          {/* Above the upload it replaces; renders nothing while Zoho Books is not in use. */}
+          <ZohoInvoicePanel order={order} />
           <InvoicePanel order={order} />
           <NotePanel order={order} />
         </div>
@@ -145,6 +173,8 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                   <dd className="tabular-nums text-ok">−{formatPaise(order.discount_paise)}</dd>
                 </div>
               )}
+
+              <DeliveryRow paise={order.shipping_paise} zone={order.shipping_zone} />
 
               <div className="flex justify-between gap-4 border-t border-line pt-2 font-semibold">
                 <dt>Total</dt>
@@ -224,6 +254,8 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                     )}
 
                     {p.failure_reason && <p className="mt-1 text-12 text-err">{p.failure_reason}</p>}
+
+                    <ZohoPaymentLine orderNumber={order.order_number} payment={p} />
                   </li>
                 ))}
               </ul>

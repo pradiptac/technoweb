@@ -270,6 +270,18 @@ ground — the typing dots, now `currentColor` — reads on it; every bubble
 is a card and keeps its own ink. The console draws it with the colour
 control by name, since the key does not end in `_colour`.
 
+## The header has a colour setting (2026-10-12)
+
+`chatbot_header`, the same shape and the same rules as the background:
+a hex or blank, public, checked and lower-cased by the API. Blank paints
+the header in the theme's brand fill (`--color-brand-600`) under
+`--color-brand-on`, the pair `npm run themes` checks for every palette.
+This changed the default look, at the client's request: the header had
+been the white card. A chosen colour lands as `--chat-head` with
+`--chat-head-ink` derived beside it. The name, the line under it and the
+close button all take that ink. The mark's disc inverts the pair, so it
+stays a disc on a header the colour of the launcher.
+
 ## The launcher's animation is a setting, and there are eleven (2026-09-17)
 
 `chatbot_animation`, public with the rest of the appearance, offered from
@@ -339,4 +351,63 @@ changes. And the retrieved **title** and labelled fields are editors' words as
 much as the excerpt: they sat on the numbered line at instruction level. Only
 the label, which is ours, stays outside; the title, excerpt and fields sit
 inside one fence per source.
+
+## The provider is OpenRouter, and a model is only as good as the account behind the key (0.116.0)
+
+`OpenRouterProvider` replaced `OpenAiProvider` behind the same `AiProvider`
+interface: one key (`openrouter_api_key`, `OPENROUTER_API_KEY` then
+`AI_API_KEY` in `.env`), one endpoint, and the maker as a prefix on the model
+id — `google/gemini-2.5-flash` is `AiModel::DEFAULT`. The client's own Google
+AI Studio and OpenAI keys are saved **at OpenRouter** (bring your own key) and
+never here. Full account in `docs/chatbot-architecture.md`, "The provider is
+OpenRouter"; the traps the move brought with it:
+
+**A model on the list can be one the key cannot call.** Whether a Gemini or a
+GPT model answers is a fact about somebody's OpenRouter account — which
+maker's key is saved there, or whether it has credit — and nothing on this
+side can read it. The failure would otherwise arrive on a visitor's first
+question, as the stock sentence with links. "Test this model" on Settings →
+API keys is the check, and it is the one place OpenRouter's words are shown.
+
+**A 200 is not a success.** OpenRouter reports a maker that failed after it
+accepted the request as a 200 with an `error` object, on the response or on
+the choice. Read as an answer that is an empty bubble. And its `message` is
+often just "Provider returned error" — the reason is in `error.metadata.raw`.
+
+**A rate limit is never retried on the spot**, and a free Google AI Studio
+key has one, per minute and per day. The visitor gets `withoutModel()` — the
+pages named and linked, `grounded: true`, a `provider_failed` event — which
+is the right answer to a transient limit and looks, on the overview, like any
+other provider failure. `chatbot_daily_reply_cap` bounds *our* spend and knows
+nothing of Google's allowance, which the SEO assistant's bulk runs draw on
+too.
+
+**A thinking model can spend a small cap before it writes a word.** The
+intake judge asks for ~120 tokens and a model test for five; Gemini 2.5 Flash
+and Pro draw their reasoning from the same `max_tokens`, so a cap sized for
+the answer alone comes back as an empty reply with `finish_reason: length`
+from a model working perfectly. `AiModel::thinks()` and
+`OpenRouterProvider::allowance()` add headroom above the caller's cap for
+those models only.
+
+**Gemini fences its JSON.** In JSON mode, with the object intact inside a
+```` ```json ```` block. A strict `json_decode` reads that as a malformed
+reply, and the intake judge's answer to a malformed reply is to return null
+and let the rules run — silently, by design — so under the default model the
+judge would have done nothing and nothing would have said so. It decodes
+through `App\Support\Chat\JsonReply`, as `SeoAssistant::decode()` does.
+
+**The old key is deleted, not carried over.** `MoveAiToOpenRouter` removes
+`openai_api_key` because an OpenAI key is refused at OpenRouter, and a refused
+key that looks configured reports a provider failure where a blank one says
+"No OpenRouter key is configured". A stored bare model id is *renamed*
+(`gpt-4o-mini` → `openai/gpt-4o-mini`), never swapped for the default — so an
+updated install keeps OpenAI's model and needs an OpenAI key or credit at
+OpenRouter, or its model changed to a Gemini one.
+
+**A visitor's words now pass through two companies**, OpenRouter and the
+model's maker, and on Google's free tier may be used to improve Google's
+products. `Retriever` is unchanged — nothing private can be retrieved — but
+the question itself travels, and the manual's assistant chapter tells the
+owner so.
 

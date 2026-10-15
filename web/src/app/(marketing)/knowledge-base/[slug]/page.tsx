@@ -5,6 +5,7 @@ import { withHeadingIds } from "@/lib/headings";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { Breadcrumbs } from "@/components/ui/page-hero";
+import { RecordSections, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ArticleMeta } from "@/components/ui/article-meta";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
@@ -82,21 +83,23 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
   const portal = portalEnabled(settings);
   const tags = article.tags ?? [];
   const { html: body, headings } = withHeadingIds(article.body ?? "");
+  // Builder sections in place of the written body (0.130.0): full-width bands
+  // under the article's heading, and the rest of the page after them.
+  const laidOut = laidOutAsSections(article);
+  const crumbs = [
+    { name: "Knowledge base", path: "/knowledge-base" },
+    ...(article.category
+      ? [{ name: article.category.name, path: `/knowledge-base?category=${article.category.slug}` }]
+      : []),
+    { name: article.title, path: `/knowledge-base/${article.slug}` },
+  ];
 
   return (
     <>
       <article id="article-body">
         <ReadingProgress target="article-body" />
         <Container className="pt-11 pb-8 lg:pt-14">
-          <Breadcrumbs
-            crumbs={[
-              { name: "Knowledge base", path: "/knowledge-base" },
-              ...(article.category
-                ? [{ name: article.category.name, path: `/knowledge-base?category=${article.category.slug}` }]
-                : []),
-              { name: article.title, path: `/knowledge-base/${article.slug}` },
-            ]}
-          />
+          <Breadcrumbs crumbs={crumbs} />
           <h1 className="display-2 mt-6">{article.title}</h1>
           {article.excerpt && <p className="lede mt-4">{article.excerpt}</p>}
           <ArticleMeta
@@ -106,10 +109,17 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           />
         </Container>
 
-        <Container data-aos="fade-up" className="pb-16">
+        {laidOut && <RecordSections sections={article.sections ?? []} crumbs={crumbs} />}
+
+        {/*
+          After sections this container opens the rest of the page rather
+          than continuing the heading's, so it takes a section's own space
+          and its first block gives up its top margin.
+        */}
+        <Container data-aos="fade-up" className={laidOut ? "section-y [&>*:first-child]:mt-0" : "pb-16"}>
           {/* One column here, so the map sits above the body rather than beside it. */}
-          <ArticleMap headings={headings} className="mb-8 rounded-xl border border-line bg-surface p-4" />
-          {body && <ProseWithShortcodes html={body} className="max-w-none" />}
+          {!laidOut && <ArticleMap headings={headings} className="mb-8 rounded-xl border border-line bg-surface p-4" />}
+          {!laidOut && body && <ProseWithShortcodes html={body} className="max-w-none" />}
 
           {/* The answer blocks and FAQs, then what the guide is about — after the body, before the vote. */}
           {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}

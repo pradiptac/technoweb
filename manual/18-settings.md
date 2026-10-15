@@ -9,9 +9,9 @@ under **Site → Settings**, the email templates and webhooks.
 
 | Screen | Tabs |
 |---|---|
-| **System → Settings** | General, Contact, Social profiles, Reference numbers · Sign-in screen, Sign-in · Outgoing mail, API keys · Data retention |
+| **System → Settings** | General, Contact, Social profiles, Reference numbers · Sign-in screen, Sign-in, Sign in with Google · Outgoing mail, API keys · Data retention |
 | **Site → Settings** | Homepage, Colour palette, Motion, Page banners, Embeds, Analytics, Cookie consent |
-| **Store → Settings** | Store, Basket reminders, Payments (chapter 07) |
+| **Store → Settings** | Store, Basket reminders, Payments, Zoho Books (chapter 07) |
 | **Campaign → Settings** | Newsletter (chapter 11) |
 | **SEO → Settings** | SEO defaults, IndexNow (chapter 13) |
 | **Assistant → Settings** | Website assistant (chapter 16) |
@@ -27,7 +27,11 @@ A few things are true on every settings screen:
   the clear button beside it.
 - A change saved here reaches the website **at once**. A setting changed any
   other way (directly in the database) can take up to ten minutes to show.
-- Switches that read "1 to enable, 0 to disable" mean exactly that.
+- Anything that is simply on or off is a small **switch**: press it (or tab
+  to it and press Space) and it slides across. Coloured means on. Where a
+  switch needs explaining, the line under it says what the state it is in
+  means, and changes when you press it. Nothing is saved until you press
+  **Save**.
 
 ## General
 
@@ -134,7 +138,9 @@ unsubscribe pages), so those links never reach a third party.
 ## Sign-in and Sign-in screen
 
 See chapter 17 for sign-in by code or password, and chapter 15 for the
-sign-in screen's background.
+sign-in screen's background. **Sign in with Google** — letting customers use
+their Google account on the portal — is set up here and explained in
+chapter 9.
 
 ## Outgoing mail
 
@@ -188,13 +194,123 @@ Keys for outside services used by several modules:
 
 | Key | Used by |
 |---|---|
-| OpenAI API key | Every AI feature: the website assistant — its answers, and reading visitors' answers while it asks who they are (chapter 16) — and the AI SEO assistant — on a record's form, in bulk from the SEO overview, alt text in the media library, and article drafts from the assistant's unanswered questions (chapter 13). Nothing is called until **Assistant → Settings** or **SEO → Settings** switches one on, and each keeps its own daily ceiling |
+| OpenRouter API key | Every AI feature: the website assistant — its answers, and reading visitors' answers while it asks who they are (chapter 16) — and the AI SEO assistant — on a record's form, in bulk from the SEO overview, alt text in the media library, article drafts from the assistant's unanswered questions and page drafts (chapter 13). Nothing is called until **Assistant → Settings** or **SEO → Settings** switches one on, and each keeps its own daily ceiling. See "The OpenRouter key" below |
 | Hunter.io API key | Newsletter address checking (chapter 11) |
 | Search Console service account and property | The SEO overview (chapter 13) |
 | Google Analytics 4 property ID | The SEO overview and the shop's overview (chapter 13) |
 
-Each Google and Hunter key has a test button that proves it works and reports
-any refusal in the provider's own words.
+Each key has a test button that proves it works and reports any refusal in
+the provider's own words. They test the **saved** value, so save first.
+
+### The OpenRouter key
+
+The site does not talk to an AI company directly. It sends every AI request
+to one service, **OpenRouter** (openrouter.ai), which passes it on to the
+company that makes the model you chose — Google for the *Gemini* models,
+OpenAI for the *GPT* ones. So there are two kinds of key, kept in two places:
+
+- the **OpenRouter key** goes here, in the console. It is the only AI key the
+  site ever holds;
+- **your own Google or OpenAI key** goes into your OpenRouter account, not
+  here. OpenRouter calls this "bring your own key".
+
+To set it up:
+
+1. Create an account at openrouter.ai, open **Keys**, create a key and copy
+   it.
+2. Still at OpenRouter, open **Settings → Integrations** and add your own
+   provider key:
+   - a **Google AI Studio** key for the Gemini models. It is free to create,
+     and it is all you need to start;
+   - an **OpenAI** key for the GPT models. Without one — or paid credit in
+     your OpenRouter account — a GPT model is refused.
+3. In the console, paste the OpenRouter key into **System → Settings → API
+   keys → OpenRouter API key** and **Save**.
+4. On the same tab, choose the two models — **Model for the website
+   assistant** and **Model for SEO, alt text and page drafts** — and
+   **Save**. Then pick each under **Model to test** and press **Test this
+   model**. It sends one very short request through the saved key.
+   - **The model answered** — that model works with your keys.
+   - **OpenRouter refused the request** — the words under it are OpenRouter's
+     own, and say what to fix: usually that the Google or OpenAI key has not
+     been added at OpenRouter, that the key is wrong, or that a free
+     allowance is used up for now.
+5. **Test every model you chose** — a model your account cannot use fails
+   every time it is called, and nothing warns you until a visitor or an
+   editor meets it. The key, both models and the test are all on this one
+   tab; the switches that turn each assistant on are in **Assistant →
+   Settings** (chapter 16) and **SEO → Settings** (chapter 13).
+
+The models offered:
+
+| Model | Works with |
+|---|---|
+| Gemini 2.5 Flash (Google) — used when you choose nothing | A free Google AI Studio key added at OpenRouter |
+| Gemini 2.5 Flash-Lite (Google) — the quickest and lightest | The same |
+| Gemini 2.5 Pro (Google) — the strongest and slowest; for content work, not for the chat assistant | The same |
+| Gemma 4 31B — free, Gemma 4 26B — free (Google) | Nothing extra: they are free on OpenRouter (see below) |
+| GPT-4o mini, GPT-4.1 mini, GPT-4o, GPT-4.1 (OpenAI) | An OpenAI key, or paid credit, in your OpenRouter account |
+| Claude Haiku, Sonnet, Opus 5.5 (Anthropic) | An Anthropic key, or paid credit, in your OpenRouter account |
+
+### Using a free model
+
+Choose **Gemma 4 31B — free** or **Gemma 4 26B — free** for either model
+choice, save, then press **Test this model**. They cost nothing, but they come
+with limits: OpenRouter allows only a small number of requests each minute and
+each day to a free model, and the companies that run free models may keep what
+you send to improve them — so do not paste customer details into a brief. A
+free model can also be withdrawn without notice; if answers stop, press
+**Test this model** and, if it fails, choose another.
+
+### Choosing any other model
+
+Every model OpenRouter offers can be used, not only the ones listed. At the
+foot of each model choice (and of **Model to test**) pick **Another OpenRouter
+model…** and paste the model's id exactly as openrouter.ai/models shows it —
+for example `google/gemma-4-31b-it:free`. Save, then press **Test this model**.
+If OpenRouter has no model with that id the save is refused and says so; if
+OpenRouter cannot be reached at that moment the id is saved as typed, so test
+it.
+
+A model from another maker (a free NVIDIA model, say) may be refused by your
+OpenRouter account's own guardrail if it allows only Google, Anthropic and
+OpenAI; this site also sends each request to the model's own maker only and
+never to a substitute. The refusal shows in OpenRouter's words when you press
+**Test this model**.
+
+**A free Google key has two costs.** Google limits how many requests it will
+take each minute and each day; when a limit is reached, the website assistant
+answers with links to the pages it found instead of a written answer, and the
+SEO assistant says the AI service did not answer — both recover by
+themselves when the limit resets. And Google may use requests made on a free
+key to improve its products, which includes whatever visitors type into the
+chat. A paid key has higher limits and avoids the second. Chapter 16 says
+more.
+
+### After updating to 0.116.0
+
+Before version 0.116.0 the site called OpenAI directly and this tab held an
+*OpenAI API key*. From 0.116.0 it uses OpenRouter, and the update makes two
+changes by itself:
+
+- **The saved OpenAI key is removed.** An OpenAI key does not work at
+  OpenRouter, so it is not carried over.
+- **A model you had chosen is kept**, under OpenRouter's name for it
+  (*GPT-4o mini* stays GPT-4o mini). If you had left the model blank, it
+  now means *Gemini 2.5 Flash (Google)*. Both model choices have moved to
+  **System → Settings → API keys**, beside the key.
+
+**Until you save an OpenRouter key, every AI feature is off**: the SEO
+assistant's buttons answer "No OpenRouter key is configured", and the website
+assistant answers every question with links to pages instead of a written
+answer. Nothing else on the site is affected. To put them back:
+
+1. Follow steps 1 to 4 of "The OpenRouter key" above.
+2. Look at the two models on **System → Settings → API keys**.
+   If it names an OpenAI model, either add your **OpenAI key at OpenRouter**
+   (Settings → Integrations), or — if you will use a free Google key instead
+   — change it to a Gemini model and save.
+3. Press **Test this model** for the model you ended up with.
 
 ## Data retention
 
@@ -206,7 +322,7 @@ you type, so a typo cannot wipe a trail.
 
 ## Email templates
 
-**System → Email templates** lists every email the site sends — around forty,
+**System → Email templates** lists every email the site sends — over sixty,
 from ticket acknowledgements to order receipts to sign-in codes. For each you
 can:
 
@@ -270,6 +386,9 @@ order still goes through.
 ## Things to know
 
 - Save secrets once; they are never shown again.
+- The AI features need an **OpenRouter** key — an OpenAI key pasted here does
+  not work. Your Google or OpenAI key belongs in your OpenRouter account.
+  Test the model you chose after saving.
 - Replace the invented homepage statistics before launch.
 - Test outgoing mail to an outside address after any change.
 - Code pasted into **Code before `</body>`** runs on every public page

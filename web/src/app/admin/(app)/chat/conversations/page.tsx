@@ -3,6 +3,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { getChatConversations } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -24,6 +25,7 @@ type SearchParams = { q?: string; with_lead?: string; unanswered?: string; page?
 export default async function ConversationsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q || params.with_lead === "1" || params.unanswered === "1");
 
   const list = await getChatConversations({
     q: params.q,
@@ -68,8 +70,10 @@ export default async function ConversationsPage({ searchParams }: { searchParams
       </FilterBar>
 
       {list.data.length === 0 ? (
-        <EmptyState title="No conversations">
-          Nobody has spoken to the assistant in this filter — or it is switched off in Settings.
+        <EmptyState title={filtered ? "No conversations match those filters" : "No conversations yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/chat/conversations" noun="conversation" />}>
+          {filtered
+            ? "Try a different term, or clear the filters."
+            : "Each chat a visitor starts with the website assistant appears here — or the assistant is switched off in Settings."}
         </EmptyState>
       ) : (
         <>

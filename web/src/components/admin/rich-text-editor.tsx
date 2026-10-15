@@ -5,8 +5,11 @@ import $ from "jquery";
 import "summernote/dist/summernote-lite";
 import "summernote/dist/summernote-lite.css";
 import { uploadMediaFile } from "@/lib/media-upload";
+import { useCropBeforeUpload } from "./crop-before-upload";
 import { MediaBrowser } from "./media-browser";
 import { LayoutPicker, type LayoutOption } from "./layout-picker";
+import { MaterialIconGrid } from "./material-icon-grid";
+import { Modal } from "@/components/ui/modal";
 
 /*
  * The eight layouts the Insert-layout dropdown writes.
@@ -124,15 +127,18 @@ function altFromFilename(name: string): string {
 }
 
 export function RichTextEditor({
-  value, onChange, id,
+  value, onChange, id, icons = true,
 }: {
   value: string;
   onChange: (html: string) => void;
   id?: string;
+  /** The Icon button. Off for a body that never renders through `Prose` (an email, the info bar), where the shortcode would arrive as literal text. */
+  icons?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const [browsing, setBrowsing] = useState(false);
   const [pickingLayout, setPickingLayout] = useState(false);
+  const [pickingIcon, setPickingIcon] = useState(false);
 
   /*
     The callback is held in a ref and the editor is built exactly once.
@@ -150,6 +156,10 @@ export function RichTextEditor({
   // dependency array — the point is that it tracks whatever the latest render
   // produced.
   useEffect(() => { onChangeRef.current = onChange; });
+  // The crop step before a picture goes into the body (0.169.0).
+  const { prepare } = useCropBeforeUpload();
+  const prepareRef = useRef(prepare);
+  useEffect(() => { prepareRef.current = prepare; });
 
   /*
     The initial body, likewise read once. This is `defaultValue` semantics: an
@@ -157,6 +167,7 @@ export function RichTextEditor({
     is what lets a rejected save leave what was typed on screen.
   */
   const initial = useRef(value);
+  const withIcons = useRef(icons);
 
   /*
     Summernote's own selection, saved before the picker opens.
@@ -180,6 +191,16 @@ export function RichTextEditor({
     if (!el) return;
     restoreRange.current();
     $(el).summernote("pasteHTML", html);
+  }, []);
+
+  // A Google icon at the cursor (0.179.0): written as `[icon name="ms:router"]`,
+  // which the public page turns into an inline svg (`expandInlineIcons`). Plain
+  // text through `insertText`, so nothing here can add markup.
+  const insertIcon = useCallback((name: string) => {
+    const el = host.current;
+    if (!el) return;
+    restoreRange.current();
+    $(el).summernote("insertText", `[icon name="ms:${name}"]`);
   }, []);
 
   useEffect(() => {
@@ -280,7 +301,7 @@ export function RichTextEditor({
         ["para", ["ul", "ol", "paragraph"]],
         ["height", ["height"]],
         ["table", ["table"]],
-        ["insert", ["link", "picture", "library", "layouts", "video", "hr"]],
+        ["insert", ["link", "picture", "library", ...(withIcons.current ? ["icon"] : []), "layouts", "video", "hr"]],
         ["view", ["fullscreen", "codeview", "help"]],
       ],
 
@@ -356,6 +377,21 @@ export function RichTextEditor({
           }).render();
         },
 
+        icon: (context: SummernoteContext) => {
+          restoreRange.current = () => context.invoke("editor.restoreRange");
+
+          return context.ui.button({
+            contents: '<i class="note-icon-magic"></i><span class="note-library-label">Icon</span>',
+            tooltip: "Insert a Google icon",
+            // Required, for the reason the Library button below gives.
+            container: context.options.container,
+            click: () => {
+              context.invoke("editor.saveRange");
+              setPickingIcon(true);
+            },
+          }).render();
+        },
+
         library: (context: SummernoteContext) => {
           restoreRange.current = () => context.invoke("editor.restoreRange");
 
@@ -396,7 +432,13 @@ export function RichTextEditor({
           become base64 inside the body. See `insertUploads` and `uploadMediaFile`.
         */
         onImageUpload(files: FileList) {
-          void insertUploads($el, el, Array.from(files));
+          void (async () => {
+            // The caret, kept across the crop dialog, which takes focus.
+            $el.summernote("saveRange");
+            const ready = await prepareRef.current(Array.from(files), "body");
+            $el.summernote("restoreRange");
+            if (ready?.length) await insertUploads($el, el, ready);
+          })();
         },
         /*
           Deleting an image from a body does **not** delete the file.
@@ -424,6 +466,9 @@ export function RichTextEditor({
     <div id={id} className="cms-editor">
       <div ref={host} />
       <MediaBrowser open={browsing} onClose={() => setBrowsing(false)} onPick={insertImage} />
+      <Modal open={pickingIcon} onClose={() => setPickingIcon(false)} title="Insert a Google icon" size="lg">
+        {pickingIcon && <MaterialIconGrid onPick={(name) => { insertIcon(name); setPickingIcon(false); }} />}
+      </Modal>
       <LayoutPicker
         open={pickingLayout}
         options={LAYOUTS}

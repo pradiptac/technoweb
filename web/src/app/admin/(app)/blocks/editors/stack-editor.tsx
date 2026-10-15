@@ -18,7 +18,7 @@ export function StackEditor({ layout }: { layout: string }) {
       <Text path={["kicker"]} label="Kicker (optional)" />
       <Text path={["heading"]} label="Heading (optional)" />
       <Text path={["lede"]} label="Line under the heading (optional)" multiline />
-      {orbit && <ImagePath path={["center", "image_path"]} label="Centre logo (optional)" hint="Blank uses the site logo." />}
+      {orbit && <ImagePath path={["center", "image_path"]} label="Centre logo (optional)" spec="logo" hint="Blank uses the site logo." />}
 
       <Repeater
         path={["groups"]}
@@ -84,7 +84,7 @@ function ItemFields({ path, layout }: { path: Path; layout: string }) {
       </div>
 
       {current === "icon" && <IconPick path={[...path, "icon"]} />}
-      {current === "image" && <ImagePath path={[...path, "image_path"]} label="Picture" hint="A logo on a transparent ground reads best." />}
+      {current === "image" && <ImagePath path={[...path, "image_path"]} label="Picture" spec="brand_logo" hint="A logo on a transparent ground reads best." />}
       {current === "brand" && (
         <div className="mb-[18px]">
           <label htmlFor={`${id}-brand`} className="mb-[7px] block text-13-5 font-semibold">Brand</label>

@@ -2,8 +2,15 @@
 
 namespace Technoware\Install;
 
+use App\Models\Setting;
+use App\Support\Media\BrandPalette;
+use App\Support\Media\LogoColours;
+use App\Support\Media\MediaUploader;
+use App\Support\SvgSanitiser;
+use Illuminate\Support\Facades\Storage;
 use App\Support\QueueHealth;
 use App\Support\System\Branding;
+use App\Support\System\LogoBrand;
 use App\Support\System\FirstAdmin;
 use App\Support\System\Requirements;
 use App\Support\System\SlicedMigrator;
@@ -101,7 +108,11 @@ final class Wizard
             }
 
             $this->authorise();
-            $input = json_decode((string) file_get_contents('php://input'), true);
+            // Every step but one posts JSON. The logo is a file, so its body
+            // is multipart and `php://input` is not JSON at all.
+            $input = $action === 'logo'
+                ? $_POST
+                : json_decode((string) file_get_contents('php://input'), true);
             $result = $this->dispatch($action, is_array($input) ? $input : []);
             echo json_encode(['ok' => true] + $result);
         } catch (Refusal $e) {
@@ -126,6 +137,8 @@ final class Wizard
             'config' => $this->writeConfig(),
             'migrate' => $this->migrate(),
             'seed' => $this->seed(),
+            'logo' => $this->logo(),
+            'brand' => $this->brand($in),
             'finalise' => $this->finaliseApi(),
             'website' => $this->website(),
             'warm' => $this->warm((int) ($in['from'] ?? 0)),
@@ -575,6 +588,133 @@ final class Wizard
         return ['demo' => ! empty($site['demo'])];
     }
 
+    /* ------------------------------------------- 6. the logo and its colours */
+
+    /**
+     * The company's logo, and the palettes it offers (0.173.0,
+     * `docs/theming.md` "Brand from a logo").
+     *
+     * **It runs after `seed`, not with the company's name**, which is where it
+     * belongs on screen but not in the order: the site step runs before the
+     * environment is written and before the tables exist, so there is no media
+     * library to put a file in and no settings row to point at it. Here
+     * Laravel is up, and the warm step that follows renders the pages with
+     * whatever palette was chosen.
+     *
+     * The file goes through `MediaUploader`, so it is held to the library's
+     * own limits and an SVG is sanitised, exactly as an upload in the console
+     * would be.
+     *
+     * @return array<string, mixed>
+     */
+    private function logo(): array
+    {
+        $this->need($this->state(), ['seed']);
+
+        $file = $_FILES['logo'] ?? null;
+
+        if (! is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            throw new Refusal('Choose your logo first.', 422, ['logo' => 'Choose your logo first.']);
+        }
+
+        if (($file['error'] ?? 0) !== UPLOAD_ERR_OK) {
+            // The two the host decides, which no amount of care here prevents.
+            $message = in_array($file['error'], [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)
+                ? 'That file is larger than this server accepts. Save it smaller, or raise upload_max_filesize.'
+                : 'That file did not finish uploading. Try again.';
+
+            throw new Refusal($message, 422, ['logo' => $message]);
+        }
+
+        $name = (string) ($file['name'] ?? 'logo');
+        $extension = strtolower((string) pathinfo($name, PATHINFO_EXTENSION));
+
+        if (! in_array($extension, ['png', 'jpg', 'jpeg', 'webp', 'svg'], true)) {
+            throw new Refusal('A logo is a PNG, JPG, WebP or SVG file.', 422, ['logo' => 'A logo is a PNG, JPG, WebP or SVG file.']);
+        }
+
+        if ((int) ($file['size'] ?? 0) > 2 * 1024 * 1024) {
+            throw new Refusal('A logo should be under 2 MB.', 422, ['logo' => 'A logo should be under 2 MB.']);
+        }
+
+        $temp = (string) ($file['tmp_name'] ?? '');
+
+        // Booted before the bytes are read, because the SVG check below is an
+        // `App\` class and this wizard is framework-free until here: the
+        // autoloader lives inside `laravel()`. Every check above it is PHP's
+        // own, so a file this host never accepted is still refused without
+        // paying to boot. Found by driving a real install: an SVG logo --
+        // which is what most logos are -- answered
+        // `Class "App\Support\SvgSanitiser" not found`.
+        $this->laravel();
+
+        // The extension is what a person typed; the bytes are what it is.
+        if ($extension === 'svg') {
+            if (SvgSanitiser::clean((string) @file_get_contents($temp)) === null) {
+                throw new Refusal('That file could not be read as an SVG drawing.', 422, ['logo' => 'That file could not be read as an SVG drawing.']);
+            }
+        } elseif (@getimagesize($temp) === false) {
+            throw new Refusal('That file is not a picture.', 422, ['logo' => 'That file is not a picture.']);
+        }
+
+        // No staff id: nobody is signed in during setup.
+        $medium = MediaUploader::storeFromPath($temp, $name, null);
+        Setting::query()->where('key', 'logo_path')->update(['value' => $medium->path]);
+        Setting::flushCache();
+
+        $palette = BrandPalette::from(LogoColours::read(
+            Storage::disk($medium->disk ?: 'public')->path($medium->path)
+        ));
+
+        $this->save(['steps' => ['logo' => true], 'logo' => ['path' => $medium->path]]);
+
+        return [
+            'path' => $medium->path,
+            'readings' => $palette['readings'],
+            'colours' => $palette['colours'],
+        ];
+    }
+
+    /**
+     * Use one of the logo's readings as the site's palette.
+     *
+     * A separate press from the upload, because taking the colours is a
+     * decision and uploading a logo is not — a company with a strict brand
+     * guide uploads the mark and types its own hexes in the console.
+     *
+     * @param  array<string, mixed>  $in
+     * @return array<string, mixed>
+     */
+    private function brand(array $in): array
+    {
+        $s = $this->state();
+        $this->need($s, ['logo']);
+        $this->laravel();
+
+        $path = (string) ($s['logo']['path'] ?? '');
+        $palette = BrandPalette::from(LogoColours::read(
+            Storage::disk('public')->path($path)
+        ));
+
+        $wanted = (string) ($in['reading'] ?? '');
+        $reading = null;
+
+        foreach ($palette['readings'] as $candidate) {
+            if ($candidate['key'] === $wanted) {
+                $reading = $candidate;
+            }
+        }
+
+        if ($reading === null) {
+            throw new Refusal('Those colours are no longer on offer. Upload the logo again.', 422, ['reading' => 'Choose one of the palettes shown.']);
+        }
+
+        LogoBrand::apply($reading);
+        $this->save(['steps' => ['brand' => true]]);
+
+        return ['applied' => $reading['key']];
+    }
+
     /* -------------------------------------------- 7. the API, finished */
 
     /** @return array<string, mixed> */
@@ -690,35 +830,15 @@ final class Wizard
         $this->laravel();
         $pulse = QueueHealth::scheduler();
 
+        // The same line System → Status shows afterwards: one definition
+        // (`SchedulerSetup`), so the wizard and the console cannot disagree
+        // about where this server keeps its command-line PHP.
+        $setup = \App\Support\System\SchedulerSetup::report();
+
         return [
             'running' => (bool) ($pulse['running'] ?? false),
-            'cron' => '* * * * * '.$this->phpCli().' '.$this->api.'/artisan schedule:run >> /dev/null 2>&1',
+            'cron' => $setup['cron'] ?? $setup['command'],
         ];
-    }
-
-    /**
-     * The command-line PHP on this host, as well as it can be guessed.
-     *
-     * `PHP_BINARY` in a web request is the FPM or CGI binary, not the CLI a
-     * cron line needs. Plesk and cPanel both keep a CLI beside each version
-     * at a predictable path; anything else gets plain `php`, and the manual
-     * says how to find the right one.
-     */
-    private function phpCli(): string
-    {
-        $bin = PHP_BINARY;
-
-        if (preg_match('#^(/opt/plesk/php/\d+\.\d+)/#', $bin, $m)) {
-            return $m[1].'/bin/php';
-        }
-        if (preg_match('#^(/opt/cpanel/ea-php\d+)/#', $bin, $m)) {
-            return $m[1].'/root/usr/bin/php';
-        }
-        if (preg_match('#^/opt/alt/php(\d+)/#', $bin, $m)) {
-            return '/opt/alt/php'.$m[1].'/usr/bin/php';
-        }
-
-        return 'php';
     }
 
     /* --------------------------------------------------------- 10. done */

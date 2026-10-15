@@ -5,10 +5,13 @@ namespace App\Http\Resources\Admin\Store;
 use App\Http\Resources\Admin\SeoOverrideArray;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Models\StoreProduct;
 use App\Support\Store\ActivationProcedure;
 use App\Support\Store\ProductFeed;
 use App\Support\Store\ProductVideos;
+use App\Support\Store\Tags;
+use App\Support\Store\Tax;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -26,11 +29,12 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin StoreProduct */
 class ProductResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSections;
 
     public function toArray(Request $request): array
     {
         $detail = $request->routeIs('*.show', '*.store', '*.update');
+        $rate = Tax::rateFor($this->resource);
 
         return [
             'id' => $this->id,
@@ -47,6 +51,11 @@ class ProductResource extends JsonResource
              */
             'gtin' => $this->gtin,
             'mpn' => $this->mpn,
+            // The invoice's two (0.176.0). `gst_percent` is null when the
+            // product takes the shop's own rate, which is not the same
+            // claim as zero per cent.
+            'hsn' => $this->hsn,
+            'gst_percent' => $this->gst_percent,
             'condition' => $this->condition?->value,
             'google_product_category' => $this->google_product_category,
             'weight_grams' => $this->weight_grams,
@@ -67,6 +76,9 @@ class ProductResource extends JsonResource
 
             'short_description' => $this->short_description,
             'description' => $this->when($detail, $this->description),
+            // Which of the two the page draws in its body area, and the builder's
+            // sections as stored (0.130.0) — see IncludesSections.
+            ...$this->adminSections($detail),
 
             /*
              * Detail only, like the description: these are two long fields
@@ -92,8 +104,12 @@ class ProductResource extends JsonResource
             'brand_id' => $this->brand_id,
             'brand_name' => $this->whenLoaded('brand', fn () => $this->brand?->name),
 
+            // Stored with GST. The `entry_` pair is the same price as the
+            // console's price field takes it (`store_price_entry`, 0.178.0).
             'price_paise' => $this->price_paise,
             'compare_at_paise' => $this->compare_at_paise,
+            'entry_price_paise' => Tax::entered((int) $this->price_paise, $rate),
+            'entry_compare_at_paise' => $this->compare_at_paise === null ? null : Tax::entered((int) $this->compare_at_paise, $rate),
             'track_stock' => (bool) $this->track_stock,
             /*
              * The raw column, because the form edits it — and for a product
@@ -135,6 +151,12 @@ class ProductResource extends JsonResource
             'services' => $this->whenLoaded('services', fn () => $this->services->map(fn ($s) => [
                 'id' => $s->id, 'title' => $s->title, 'slug' => $s->slug,
             ])->values()),
+            // The shop tags (0.141.0): the whole list for the form, and whether
+            // they are still the automatic ones, untouched.
+            'tags' => $this->whenLoaded('tags', fn () => $this->tags->map(fn ($t) => [
+                'id' => $t->id, 'name' => $t->name, 'slug' => $t->slug,
+            ])->values()),
+            'tags_auto' => $this->when($this->resource->relationLoaded('tags'), fn () => Tags::isAuto($this->resource)),
             'images' => $this->images ?? [],
             // Resolved for previewing; `images` stays the storable form.
             'image_urls' => collect($this->images ?? [])->map(fn ($p) => asset('storage/'.$p))->all(),
@@ -150,6 +172,7 @@ class ProductResource extends JsonResource
                 'mpn' => $v->mpn,
                 'options' => (object) ($v->options ?? []),
                 'price_paise' => $v->price_paise,
+                'entry_price_paise' => $v->price_paise === null ? null : Tax::entered((int) $v->price_paise, $rate),
                 'stock' => (int) $v->stock,
                 'allow_oversell' => (bool) $v->allow_oversell,
                 'weight_grams' => $v->weight_grams,

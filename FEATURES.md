@@ -64,6 +64,10 @@ The product and solution catalogue built for how B2B buyers actually research.
   `/products/cisco-cbs350-24t-4g`), the way buyers link and bookmark.
 - **Choose what is in the navigation** separately from what is published, so
   a growing catalogue does not become an unusable mega menu.
+- **A customer-zone menu in columns.** The top bar's dropdown can open as a
+  wide panel under a thin brand line — a small uppercase heading over each
+  column, bold titles beneath with a one- to three-line description — and any
+  menu entry can carry a small outlined badge (Live, Beta, Soon, New).
 - **Every catalogue edit reaches the homepage** — rename a solution and it
   changes everywhere, including navigation and structured data.
 
@@ -78,6 +82,22 @@ A full CMS for the people who write, without a developer in the loop.
 - **Case studies** with client, industry and a results table.
 - **Standalone pages** (privacy, terms, downloads and anything else) in two
   templates, with shortcodes to drop a slider, gallery or form into any body.
+- **Sections on every record with a written body**: solutions, services,
+  industries, case studies, blog posts, knowledge articles, products, shop
+  products, events, vacancies and your own content types. The body
+  of any of them can be laid out with the page builder's sections instead of
+  written text. Only the body changes — the page keeps its heading, related
+  lists, FAQs and closing band — and the written text is kept for switching
+  back.
+- **Detail templates**: how every page of one kind of record is laid out, built
+  once from sections and the parts of the page itself — its heading, body,
+  highlights, specification, pictures, answers, questions, related lists,
+  enquiry form, shop buy panel, downloads, reviews and comments. For solutions,
+  services, industries, case studies, catalogue products, shop products and blog
+  posts. Start from the layout the page has today, move a part, add a section of
+  your own, preview it on any record of that kind (a draft included), and switch
+  it on; switch it off and every page is back to the layout it had. One template
+  is on at a time for each kind of page.
 - **A section page builder**: a page laid out as a stack of ready sections —
   hero, text, picture or video with text, features, live lists from the
   catalogue, content blocks, sliders, galleries, forms, questions, logo
@@ -85,7 +105,49 @@ A full CMS for the people who write, without a developer in the loop.
   from a Landing, Service or About preset, then reordered, duplicated, hidden
   and given a background. Every section's fields are checked before it saves,
   a live preview shows the unsaved page under the active theme, and every
-  theme draws the sections in its own style.
+  theme draws the sections in its own style. A section can meet its
+  neighbour in a wave, slant, curve or peak, sit on a slow animated
+  background, list categories, vacancies or your own content types, and a
+  page can carry a menu of its own sections that follows the visitor down.
+  An assistant on each section writes its wording from a line about it, or
+  rewords, shortens or expands what it says — words only, with Undo.
+- **A custom code section**: paste the snippet a vendor supplies — a booking
+  tool, a calculator, a chat — and it is drawn in a sandboxed frame that
+  cannot read the page, its cookies or the site's API, and that sizes itself
+  to the code. Only an administrator can let it run on the page itself. The
+  console shows a labelled placeholder in its previews, and every save that
+  adds or changes one is written to the activity log.
+- **A page-template library**: save a page as a template, file it under a
+  category (landing page, about, services, product, contact, event, other),
+  and apply it to any page later — added after the sections already there or
+  replacing them all, after a confirmation that says how many go, and as one
+  Undo. Every template can be previewed, drawn by the real site, before it is
+  used. Five starters (landing, about, services, contact, event) come with every
+  install, written in bracketed placeholder words.
+- **A custom layout section**: rows of one to four columns filled with
+  headings, text, buttons, pictures, spaces, rules, icon boxes, questions that
+  open and lists — and, since 0.149.0, a video (a YouTube link or a library
+  file, played only on a press), a form, a slider and a gallery, and — since
+  0.154.0 — boxes, tabs, panels that open and columns inside a column that hold
+  widgets of their own — each widget optionally shown on some screens only and a
+  column optionally a card or a raised card, and — since 0.155.0 — rows and
+  widgets that can be dragged into place (between columns, tabs and boxes) as
+  well as moved with the arrows — a picture beside words, three
+  boxes in a row — without a new section type for each arrangement. Columns
+  stack on a phone; nothing is a free number or colour.
+  Headings, lines of text and button wording — including a layout's headings,
+  buttons, icon-box titles, list points and captions, even inside tabs and
+  boxes — can be edited directly on the live preview.
+  Every page, library item, blog post, article, case study, solution, service,
+  product, shop product, event, vacancy, custom entry and landing page keeps a
+  history: the last thirty saved versions, each to look at as the site would
+  draw it or to put back — into the form, to be saved or left.
+  A section can be given a minimum height and a heading colour, and its
+  spacing, alignment and height can differ on phones, tablets and computers —
+  chosen from fixed steps, so the page keeps passing its readability checks.
+  A section can also be given space above and below it (outside its
+  background, per screen too), a light, strong or brand-coloured rule along its
+  top and foot, and a soft, medium or large shadow.
 - **FAQs** managed in one place and attached to any solution, service, product
   or page — rendered on the page and as `FAQPage` structured data.
 - **Rich-text editor** with the full toolbar — headings, colour, tables,
@@ -102,8 +164,8 @@ A full CMS for the people who write, without a developer in the loop.
   a linked record, a list — grouped, attached from the console, validated
   against their own definitions and drawn as a Details section on the page,
   or kept as data for templates.
-- **Custom content types**: new kinds of record — events, downloads,
-  partners — with an address of their own (`/events`), an archive page, a page
+- **Custom content types**: new kinds of record — whitepapers, press releases,
+  partners — with an address of their own (`/partners`), an archive page, a page
   per entry with SEO, FAQs and answer blocks, their own custom fields, and a
   redirect for every address when a type or an entry is renamed. In the
   sitemap, site search, menus, the SEO overview and the website assistant from
@@ -139,6 +201,11 @@ The parts of the design a client changes after launch, without a designer.
 - **Galleries** with tabs, a lightbox and per-gallery transitions.
 - **Popups** targeted by section or path, sized and timed, shown once per
   visit or once per day, scheduled with a start and end.
+- **Header & footer parts** — per theme, switch the parts its header and footer draw
+  (top bar, phone, email, search, links, buttons, basket mark; logo, tagline,
+  address, social, columns, signup, policy links, credit, light / dark switch),
+  reorder the ones that share a row, and set the main button's words and link,
+  beside a live preview. Each theme still draws its own.
 - **Section banners** — one photograph behind each area's page heading, with
   contrast guaranteed whatever is uploaded.
 - **Logo, favicon, address, phone, map embed, social profiles** — all
@@ -152,11 +219,21 @@ first rupee.
 
 - **Separate shop catalogue** from the marketing one: what is sold is
   maintained apart from what is advertised, with no accidental Buy button.
+- **Shop the videos**: the YouTube (or Shorts) and library videos on shop
+  products become a row of vertical tiles with the product under each —
+  picture, name, code, price and an Add to basket button. On the shop front, a
+  small "Watch" row on each product page, optionally the homepage and a page
+  builder section. Plays on a press by default (nothing is requested from
+  YouTube before it); optionally plays silently while on screen, with a Pause
+  button, never under reduced motion, and only after the cookie banner is
+  accepted.
 - **Physical, digital and service products**, with variations (a 24-port and a
   48-port are two prices and two stock levels), compare-at pricing and
   featured placement.
-- **Prices in paise, GST extracted, never added** — the price shown is the
-  price paid, and the invoice always adds back up to the money taken.
+- **Prices in paise, always stored with GST** — typed in the console with
+  GST or before it, shown on the website with GST or before it with a GST
+  row at the checkout; neither setting changes what anybody pays, and the
+  invoice always adds back up to the money taken (0.178.0).
 - **Guest checkout** with an httpOnly basket cookie; a paying guest gets a
   portal account automatically.
 - **PIN-code-first address entry** that fills city and state from India Post's
@@ -166,6 +243,13 @@ first rupee.
   person who placed the order, and only until it is paid.
 - **Webhook-settled payments** that are idempotent under retries, verified over
   the raw body, and never fail an order because stock ran short after payment.
+- **Delivery charges** — one flat figure, or **zones**: groups of states, each
+  with rates by weight slab, a charge for every extra kilogram, optional free
+  delivery above a basket value and states you do not deliver to, with a
+  default "Rest of India". The figure on the basket and the checkout is the
+  figure charged, worked out on the server from the delivery state and the
+  weight; it appears on the order, its emails, the sales report and the Zoho
+  invoice.
 - **Coupons** — percentage or fixed, minimum spend, per-customer limits keyed
   on the address so signing out is not a loophole.
 - **Digital licence delivery**: codes encrypted at rest, assigned atomically,
@@ -178,8 +262,41 @@ first rupee.
   the account on sign-in — with a once-only back-in-stock email and a
   once-per-drop price-drop email, both held to 9am–9pm, and the most-wished
   products on the store dashboard.
+- **Shop tags**: a row of small coloured pills under the search bar — the
+  once a category is chosen, that category's own — each a filter, the
+  same colour on every page and in every palette. Tags are added on the product
+  form (with a **Suggest tags** button that uses the AI assistant when it is on,
+  and the product's brand, category and key specifications when it is not),
+  are added automatically **once** to a product that has none, and are tidied
+  on **Store → Tags**: hide, reorder, rename, merge two spellings, delete.
+  They travel in the shop's CSV and arrive from WooCommerce. Each tag also has a
+  **page of its own** (`/store/tags/…`) with a heading, an introduction and SEO
+  — listed by search engines from three products on sale.
 - **Order management**: status lifecycle, dispatch notice on status change,
   tracking, uploaded invoices, internal notes, manual payment recording.
+- **Courier booking with Shiprocket** (optional; tracking by hand stays the
+  default): book a parcel from the order page with its weight and size, get the
+  courier, the tracking number and the label, ask for the pickup, and cancel.
+  The courier's status comes back by itself — a pickup dispatches the order and
+  emails the customer, a delivery completes it and starts the returns window — a
+  parcel coming back is flagged for you, and the customer sees the live status.
+  You can also ask for couriers and their prices before booking and choose one,
+  make a manifest for a parcel or for many ticked orders at once, and have a
+  courier collect an approved return from the customer — its status shown on the
+  return, while marking the goods received stays yours.
+  Not yet tried against a real Shiprocket account.
+- **Invoices in Zoho Books** (optional): connect your Zoho Books and each
+  order's GST invoice is made there by itself — when dispatched, or when
+  paid — with CGST/SGST or IGST chosen from the delivery state, and the PDF
+  attached to the order for the customer. Payments are recorded against the
+  invoice and refunds become credit notes, each into the account you choose
+  for that way of paying. Refusals are retried and then
+  shown on the store overview.
+- **Returns (RMA)**: customers ask to send items back from their order page
+  or the portal, inside your return window, with a reason and photographs;
+  the desk approves or declines, marks goods received — restocking what is
+  fit to sell — and records the refund, with the customer emailed and shown
+  the progress at each step.
 - **Sales dashboard and reports** by day, week or month, with medians rather
   than means and refunds beside revenue rather than netted off it.
 - **Google Merchant Center ready**: `Product` structured data with price,
@@ -196,6 +313,10 @@ The support desk customers log into, and the queue the team works from.
   queue — or accounts issued by staff.
 - **Sign in with a one-time code** or a password; the code is bound to the
   portal so it can never open the console.
+- **Sign in or register with Google**, for customers: one button on the
+  sign-in and registration screens, switched on once you add your own Google
+  OAuth client. An existing account is found by its email address; a new
+  one still waits for approval if you require it.
 - **Tickets** with categories, priorities, attachments, an SLA clock, a full
   conversation thread, close and reopen.
 - **Knowledge-base deflection** before a ticket is raised.
@@ -235,8 +356,18 @@ Every enquiry from every form lands in one place.
 
 Build a form in the console, put it on any page — or on somebody else's site.
 
-- **Any field type**, required flags, select options validated as a whitelist,
-  a success message and a notification address per form.
+- **Sixteen field types** — text, email, phone, number, web address, date,
+  dropdown, single and multiple choice, tick box, five-star rating, file
+  upload, hidden value, plus headings and step breaks — with required flags
+  and options validated as a whitelist.
+- **Conditional fields**: show a field only when an earlier answer matches;
+  what stays hidden is neither required nor stored.
+- **Multi-step forms** with Back, Next and a progress bar, and a whole,
+  sendable form without JavaScript.
+- **File uploads** kept privately and downloaded from the console, never
+  emailed.
+- **A success message or a redirect** after sending, a notification address
+  per form, and a **CSV export** of submissions.
 - **Drop it into any page** with a shortcode.
 - **Embed on an external website** three ways: an iframe, a copy-paste snippet,
   or raw HTML the partner styles themselves. Submissions still land in the
@@ -291,6 +422,60 @@ A chatbot that answers from your own pages and never invents.
 - **Applications** with CV upload to private storage, streamed only to staff,
   with status tracking and automatic retention-based deletion.
 
+## 12a. Events
+
+- **A page per event** — seminar, webinar or trade show — with date and
+  place, agenda, speakers, FAQs, "Add to calendar" and `Event` structured
+  data, and an `/events` listing of what is coming up and what has passed.
+- **Free registration**, on the site or linked to an outside sign-up, with an
+  optional capacity, a **waiting list** promoted automatically when somebody
+  cancels, a closing time and a seats-per-booking limit.
+- **The join link of an online event is never public**: it goes only to
+  registrants, in the confirmation email and calendar file.
+- **Emails**: confirmation, waiting list, place opened, cancellation,
+  reminder, and an optional change notice — plus a private page where a
+  registrant can cancel.
+- **Registrations in the console**: status, add by hand, CSV export; every
+  registration files a lead.
+
+## 12b. Downloads centre
+
+- **Datasheets, drivers, firmware and guides**, each with a version, a
+  release date and a category, listed on a searchable `/downloads` page.
+- **Attached to products**: a file appears under Downloads on every
+  catalogue and shop product page it belongs to.
+- **Public or customers-only**: a customers-only file is listed with a lock
+  and handed over only after a portal sign-in; the portal has its own list.
+- **Private uploads** for firmware and installers, kept off the public disk
+  and always served as a download, with upload progress in the console.
+- **Download counts** per file, and a builder section that lists the
+  centre's files live.
+
+## 12c. Tenders
+
+- **A page per tender** — the tender number, the scope of work, the window it
+  is open for, the fees and the documents — and a `/tenders` list of what is
+  open, with a **Closed** archive of what has been.
+- **The dates decide the state**: Open, Closing soon, Closed or Opens soon,
+  worked out from the clock rather than switched over by hand, with "3 days
+  left" beside it. A page left open before the deadline brings itself up to
+  date.
+- **Everything in the site's own timezone**, for every reader — a deadline of
+  six in the evening is six in the evening whatever their computer says.
+- **Optional** pre-bid meeting with its place, bid opening date, tender
+  document fee and EMD. A blank fee is "not stated"; zero reads *Free*.
+- **The tender pack**: up to ten documents from the media library, in order,
+  public like the notice itself.
+- **A notice nobody can answer cannot be published** — an email address, a
+  portal link or a postal address, at least one of the three.
+- **Categories** filter the page; switching one off hides its tenders,
+  deleting one leaves them unfiled.
+- **Found by its number however it is punctuated**, in site search and in the
+  console's palette. Also a builder Cards section (open ones only), a menu
+  entry, a sitemap entry and something the website assistant can answer with.
+- **Nothing is submitted through the site**, by the client's decision: bids
+  go the way each notice says.
+
 ## 13. Company profile
 
 - **Team** — people with a designation, department, photo, bio, optional
@@ -317,10 +502,19 @@ Built in, measured, and never allowed to guess.
   FAQs, breadcrumbs, places, job postings and the organisation — with nothing
   invented and `<` escaped at the sink.
 - **Automatic 301s** whenever a slug changes, plus a manual redirect table.
+- **Missing pages**: a list of the addresses visitors asked for that do not
+  exist, with how often and where they came from, and a one-press redirect.
+  Private links, scanner noise and static files are never listed.
+- **Draft share links**: a private link, valid for 1, 7 or 30 days and
+  revocable, that shows a page, post, product, event, vacancy or any other
+  record as it will be published, without signing in. It renders the real
+  page, carries a "draft preview" banner and is kept out of search, analytics
+  and offline caches.
 - **Sitemap and robots** generated from the data, honouring per-record
   inclusion.
 - **Share images** for every page, generated when no photograph exists.
-- **AI SEO assistant** (OpenAI, off by default): generates titles,
+- **AI SEO assistant** (through OpenRouter — Google's Gemini models by
+  default, OpenAI's on the owner's own key; off by default): generates titles,
   descriptions, FAQs, internal links and schema suggestions — and can never
   write to a record; an editor applies each one through the same save as a
   typed value.
@@ -356,8 +550,49 @@ Built in, measured, and never allowed to guess.
 - **Activity log** by rule, not by list: every deletion, every creation, and
   everything under staff, customers, settings and sign-in — append-only,
   credential-free, pruned only by age.
+- **Bulk actions on the content lists**: tick rows (or a whole page) and
+  publish, move to draft, archive or delete them in one go — thirteen lists
+  with all four, five reference lists (industries, brands, the categories)
+  with delete only. Each row is handled on its own with the rules of its edit
+  screen, a row that cannot move stays put with the reason shown, and a bulk
+  delete is written to the activity log.
+- **Ask ALTIS**: type a question in the console — "how many tickets are
+  open", "what is waiting to be dispatched", "how much has the shop taken
+  this month" — and get the figure, a sentence and a link to the screen that
+  shows it. About twenty questions, scoped to what the account can open, read
+  from the same code as the list each one links to. It works with no AI key;
+  with one, an unusual wording is understood too, and all the model ever does
+  is pick which question was asked.
 - **Client-side error reporting** grouped by fingerprint, re-opening itself
   if a fix does not hold.
+- **Your own fonts**: upload the company's typeface and set headlines and
+  text in it, beside nineteen built in.
+- **Banded pricing tables** (0.180.0): plans under coloured bars in your
+  theme's colours, the yearly saving worked out from the two prices, a
+  promotion chip, a trust strip and a copy button for an email plan.
+- **Google Fonts and Google icons** (0.179.0): any of about 1,700 Google
+  fonts, copied to your own site so visitors never contact Google; about
+  3,900 Google icons in every icon picker and inside page text.
+- **Settings that read at a glance**: everything that is simply on or off is
+  a small sliding switch, with a line under it saying what that state means —
+  on the settings screens and, since 0.152.0, on every record form too
+  (Featured, Active, Show in the menu and the rest).
+- **Ready for a CDN**: an optional media CDN address for videos and
+  documents, a site that behaves behind Cloudflare, and a status check that
+  says when one is in front.
+- **Pictures that load from a blurred preview**, made automatically by the
+  media library for every photograph.
+- **A phone action bar**: Call, WhatsApp and a button of your own, pinned to
+  the bottom of the screen on phones.
+- **A coming-soon switch**: a holding page in front of the site until launch,
+  while staff go on seeing the real thing.
+- **A look in six presses**: ready-made looks, corners, spacing, five card
+  finishes and three heading sizes, previewed on the real site before saving.
+- **A dashboard each person arranges**: put a panel away, move one up, in
+  their own browser — and only the panels their role can see are offered.
+- **Table view** on every list: comfortable or compact rows, a column
+  chooser per screen and a header row that stays in view — each person's own
+  choice, kept in their browser.
 - **Staff management** with lockout guards: the last administrator cannot be
   removed.
 - **Settings** grouped into six sections, with secrets encrypted at rest and
@@ -379,6 +614,11 @@ Built in, measured, and never allowed to guess.
   regression, a heading jump, a horizontal overflow, a console error or a CSP
   violation.
 - **A mock API** so the frontend builds and CI runs without the backend.
+- **Speed suggestions** on System → Status: a Speed card that checks this
+  server's PHP, caching, queue, database and content for what slows the site
+  down and says, in plain words, how much each matters and exactly how to fix
+  it — with a line to copy where there is one, and an honest "could not check"
+  where the host does not let the site look.
 - **Versioned**, with a changelog line for every number the console shows.
 - **No secrets in the repository**, no third-party runtime dependency that
   can change under a customer's data, and no library where a vendored file

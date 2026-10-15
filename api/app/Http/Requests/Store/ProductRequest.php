@@ -8,9 +8,14 @@ use App\Enums\PublishStatus;
 use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
+use App\Http\Requests\Concerns\ValidatesRecordSections;
 use App\Http\Requests\SeoRules;
+use App\Support\PageSections\SectionRules;
 use App\Support\Store\ProductVideos;
+use App\Support\Store\Tags;
+use App\Support\Store\Tax;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
@@ -28,7 +33,7 @@ use Illuminate\Validation\Rule;
  */
 class ProductRequest extends FormRequest
 {
-    use AcceptsCustomFields, SanitisesRichText;
+    use AcceptsCustomFields, SanitisesRichText, ValidatesRecordSections;
 
     protected function customFieldTarget(): string
     {
@@ -46,7 +51,7 @@ class ProductRequest extends FormRequest
         // bypasses the sanitiser entirely — it is rendered into an email and,
         // through the order page, into a browser. `answer_blocks.*.detail` is
         // the explanation under each answer block, rich text like any body.
-        return ['description', 'activation_procedure', 'answer_blocks.*.detail'];
+        return ['description', 'activation_procedure', 'answer_blocks.*.detail', ...SectionRules::RICH_TEXT];
     }
 
     public function authorize(): bool
@@ -94,6 +99,20 @@ class ProductRequest extends FormRequest
              */
             'gtin' => ['sometimes', 'nullable', 'string', 'regex:/^\d{8}$|^\d{12,14}$/'],
             'mpn' => ['sometimes', 'nullable', 'string', 'max:70'],
+            /*
+             * The invoice's two (0.176.0).
+             *
+             * `hsn` is the Harmonised System code — four, six or eight
+             * digits for goods, six for a service's SAC — and a tax
+             * invoice is not compliant without one on each line. `gst_percent`
+             * is this product's own rate; blank means the shop's.
+             *
+             * Both on the product and not the variation: each classifies
+             * what the thing *is*, and two sizes of one switch are one
+             * classification.
+             */
+            'hsn' => ['sometimes', 'nullable', 'string', 'regex:/^[0-9]{4,8}$/'],
+            'gst_percent' => ['sometimes', 'nullable', 'string', Rule::in(Tax::RATES)],
             'condition' => ['sometimes', Rule::enum(ProductCondition::class)],
             'google_product_category' => ['sometimes', 'nullable', 'string', 'max:255'],
             'weight_grams' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:10000000'],
@@ -205,8 +224,24 @@ class ProductRequest extends FormRequest
             // The services that install or support it, replaced wholesale.
             ...CmsFieldRules::ids('service_ids', 'services'),
 
+            /*
+             * Shop tags, as names, replaced wholesale (0.141.0): absent leaves
+             * them alone, `[]` clears them. A name whose slug is empty
+             * ("!!!") is refused here rather than dropped quietly, so the
+             * editor sees which chip did not take.
+             */
+            'tags' => ['sometimes', 'nullable', 'array', 'max:'.Tags::MAX_PER_PRODUCT],
+            'tags.*' => [
+                'string', 'max:'.Tags::NAME_MAX,
+                fn ($attribute, $value, $fail) => is_string($value) && Str::slug($value) === ''
+                    ? $fail('A tag needs at least one letter or number.')
+                    : null,
+            ],
+
             ...CmsFieldRules::faqs(),
             ...CmsFieldRules::answerBlocks(),
+            // Builder sections in place of the written body (0.130.0, `RecordSections`).
+            ...$this->recordSectionRules(),
             ...SeoRules::rules(),
             ...$this->customFieldRules(),
         ];
@@ -216,14 +251,19 @@ class ProductRequest extends FormRequest
     public function messages(): array
     {
         return [
+            ...$this->recordSectionMessages(),
             'name.required' => 'Give the product a name.',
             'price_paise.required' => 'Everything in the store has a price. Set one.',
             'slug.unique' => 'Another store product already uses that slug.',
             'images.*.not_regex' => 'Store the image path, not a full URL.',
             'gtin.regex' => 'A GTIN is the barcode number — 8, 12, 13 or 14 digits and nothing else.',
+            'hsn.regex' => 'An HSN code is four to eight digits; a service\'s SAC is six. Leave it blank to use the shop\'s default.',
+            'gst_percent.in' => 'Choose one of the GST rates, or leave it blank to use the shop\'s own.',
             'variations.*.gtin.regex' => 'A GTIN is the barcode number — 8, 12, 13 or 14 digits and nothing else.',
             'variations.*.name.required' => 'Every variation needs a name — what the buyer picks from.',
             'variations.max' => 'A product can carry up to 50 variations.',
+            'tags.max' => 'A product can carry up to '.Tags::MAX_PER_PRODUCT.' tags.',
+            'tags.*.max' => 'A tag can be up to '.Tags::NAME_MAX.' characters.',
             'faqs.*.question.required' => 'Every FAQ needs a question.',
             'faqs.*.answer.required' => 'Every FAQ needs an answer.',
             'answer_blocks.*.kind.required' => 'Every answer block needs a kind.',

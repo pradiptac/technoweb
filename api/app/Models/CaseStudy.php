@@ -4,25 +4,30 @@ namespace App\Models;
 
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasCustomFields;
+use App\Models\Concerns\HasRevisions;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CaseStudy extends Model
 {
-    use HasCustomFields, HasSeo, Sluggable;
+    use HasCustomFields, HasRevisions, HasSeo, Sluggable;
 
     protected $fillable = [
         'industry_id', 'title', 'slug', 'client_name', 'summary',
-        'body', 'results', 'cover_image_path', 'status',
+        'body', 'results', 'cover_image_path', 'status', 'body_layout', 'blocks',
     ];
+
+    /** In memory as in the column: a new record's page draws its written body. */
+    protected $attributes = ['body_layout' => 'body'];
 
     protected function casts(): array
     {
-        return ['results' => 'array', 'status' => PublishStatus::class];
+        return ['results' => 'array', 'status' => PublishStatus::class, 'blocks' => 'array'];
     }
 
     public function urlPrefix(): string
@@ -51,7 +56,7 @@ class CaseStudy extends Model
             'title' => $this->title.' — case study',
             'description' => str(HtmlSanitiser::toText($this->summary ?? ''))->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/case-studies/'.$this->slug,
-            'og_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
+            'og_image' => $this->cover_image_path ? MediaUrl::for($this->cover_image_path) : null,
             'schema_type' => 'Article',
         ];
     }

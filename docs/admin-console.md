@@ -314,6 +314,17 @@ never sees it, so the input closes the palette on Escape itself; and the
 button's 30px at 320 was exactly the scheme toggle's margin, which is `sm:`
 now. `scripts/probes/command-palette.mjs` measures it.
 
+**A part of a screen is a row too, found by words its screen does not carry**
+(2026-10-08). The client searched "cron" and got nothing: the scheduler's
+command is a card on System status, and the palette matched a row's label
+and group only. `PALETTE_SECTIONS` in `nav-items.tsx` lists such parts —
+a label, the screen's path with the part's own id as the hash, and
+`keywords`, the other words somebody types for it — and a `PalettePage` may
+carry `keywords`, which the palette matches and never shows. Kept only for a
+role whose sidebar names the screen, the settings rows' rule. The part's
+heading needs a `scroll-mt-*`, or it lands under the sticky header. Add a
+row there when a screen gains something people will look for by name.
+
 **The sidebar says what arrived while the console was open, and so does the
 tab.** `admin/(app)/new-since.tsx`: a poller in the layout asks
 `/api/admin/new-since` (the API's staff-wide `GET /admin/new-since?since=`,
@@ -624,6 +635,52 @@ seven ad-hoc `en-GB` date formatters onto `lib/dates.ts` (`dateTimeShort` is
 new — a queue's timestamp without the year), eight `<section … bg-card>`
 panels onto `Card`, and three drifted helper copies into `lib/`
 (`format-bytes.ts`, `initials.ts`, `request-host.ts`).
+
+**It is a sliding switch since 0.135.0** (the client: "all settings 0/1
+should be replaced by animated sliding small switch. it can save the space
+of each settings page"). Three parts:
+
+- `components/ui/switch.tsx` is the drawing and nothing else: a real
+  `<input type="checkbox" role="switch">` laid over a 36×20 track at zero
+  opacity, the track its next sibling with a look keyed on `peer-checked` /
+  `peer-focus-visible` / `peer-disabled`. **Not `sr-only`**: clipped to a
+  pixel the control cannot be pressed where it is drawn, which a screen
+  reader's touch exploration and Playwright's `setChecked()` both need (two
+  existing probes tick a setting that way). The input is 24px tall, the
+  tap-target floor, and the track takes no pointer events. Still a checkbox, so a label's `htmlFor`, Space, a form's
+  own posting (the email templates post `name`/`value="1"` after a hidden
+  `0`) and every existing `checked` work unchanged. The thumb moves with the
+  CSS `translate` property — `peer-checked:after:translate-x-4` sets
+  `translate`, so the transition names `translate`; `transition-transform`
+  would animate nothing. The track at rest is `faint`, on it is `brand-600`,
+  and the thumb is `card` at rest and `brand-on` when on — both invert, since
+  in dark the resting track is light and the 600 fill bright, and a white
+  thumb would vanish into either.
+- `SettingSwitch` composes it beside the hidden `1`/`0` input, as before.
+  `SettingSwitchField` lost its bordered box — the box was most of the height
+  of a screen of switches.
+- **A row whose options are exactly `0` and `1` is a switch**
+  (`onOffNotes()` in `settings-fields.tsx`, called before the `ChoiceField`
+  branch). Those rows — the four backup switches, online meetings, "leave
+  out busy Google times", basket reminders — were dropdowns "because the
+  options' descriptions are the point"; the description now sits under the
+  label and follows the state. Decided by the options, never by a list of
+  keys, so a two-choice row with other values (`dispatched`/`paid`) stays a
+  dropdown and the next on/off row the API describes needs nothing here.
+
+Also moved onto it: the three ways of paying on the payments tab (a
+hand-written Offered/Not offered `<select>`), "This is a variable font", the
+theme's per-section Show, and the email templates' two switches. **Not
+moved, on purpose**: tick boxes on record forms (Featured, Show in menu, a
+custom field's checkbox) — those are a record's fields, and a grid of
+relation tick boxes is a list, not a set of switches.
+
+`scripts/probes/setting-switch.mjs` reads every screen's path out of
+`settings-copy.ts` and fails on an Off/On `<select>`, a bare tick box
+posting a `setting__` key, or a switch whose hidden value disagrees with it;
+it samples the thumb's `translate` part-way through the slide, toggles from
+the keyboard, and saves one setting over and back to prove the state
+survives React's form reset and a reload.
 ## The AEO tab (2026-09-21)
 
 Every entity form that carries answer blocks — pages, products, store
@@ -720,3 +777,367 @@ screen scrolled sideways by 8px — found by the phone audit on the ticket
 screens, and on every other route once looked for. The palette is still
 opened by Ctrl/⌘ K and the sidebar's own filter box is the way to find a
 screen on a phone; from 360px the row fits with room.
+
+## Table view: density, columns and the sticky header (0.119.0)
+
+`web/src/app/admin/(app)/table-view.tsx`, `web/src/lib/table-view.ts`, two
+blocks in `globals.css`. Measured by `scripts/probes/table-view.mjs`.
+
+**One control, and no list screen knows it exists.** There are about seventy
+hand-written `.admin-table`s. A chooser built into each would be seventy
+edits, and the seventy-first screen would forget — which is this project's
+most repeated bug in a new place. So the control lives in the console's
+header and works on whatever table the page happens to hold.
+
+**It reads the page and writes only CSS.** The headings come from the one
+`main table.admin-table` on the screen, read through a `MutationObserver`
+behind `useSyncExternalStore` — a DOM read is what that hook is for, and an
+effect that set state from one is what `react-hooks/set-state-in-effect`
+refuses. What goes back is a `<style>` of `nth-child` rules and nothing else.
+No attribute is stamped on any table and no node is inserted beside one, so
+there is nothing for React to disagree with when the list re-renders or
+streams in: `reveal.tsx` and `FullRows` both paid for stamping markup they did
+not own.
+
+**Hidden columns are remembered by heading, not by position.** A column
+inserted in a later release must not silently hide its neighbour. The stored
+value is a list of heading texts under `tw_table_cols:<screen>`, resolved to
+indexes against the live table on every render; a heading that is no longer
+there matches nothing. The screen key folds ids (`/admin/forms/7/submissions`
+→ `/admin/forms/:id/submissions`), because that is one table with different
+rows. A sort arrow is stripped from the heading before it is compared, or
+sorting a column would un-hide it.
+
+**Three columns are never offered**: the first (the row's identity, and the
+card's heading on a phone), one with no heading, and the actions column.
+**A screen with two tables gets density only** — they would share one set of
+`nth-child` rules and not one set of columns.
+
+**All of it starts at `md`.** Below that a row is a card of labelled lines
+with no header row, where a hidden column would be a detail missing with
+nothing to show that anything is. The rule's media query and the button's
+`hidden md:grid` say the same thing.
+
+**Compact is on `<html>` before first paint.** The root layout's blocking
+script already reads `localStorage` for the scheme; it sets
+`data-console-density="compact"` for console paths in the same pass, so a
+list never draws roomy and then tightens. The CSS is scoped to
+`[data-console]`, stamped by the admin layout alone, because the portal draws
+`.admin-table`s under a different header. It changes cell padding and half a
+pixel of type: measured on the SEO overview, 95px rows became 84px, and a row
+holding a 32px select is still as tall as its select.
+
+**The sticky header is measured, and the first cut was a breakpoint.** A
+sticky cell sticks to its nearest *scroll container*, and every list sits in
+an `overflow-x-auto` wrapper — which makes the wrapper that container, so the
+head scrolled away with the rows. `overflow-x: clip` clips without creating
+one, and the head then sticks to the viewport, under the bar (`h-13` plus its
+hairline). The price: a clipped wrapper cannot be scrolled sideways.
+
+The first cut paid that price by starting at 90rem, on the reasoning that the
+widest floor was 1040px and the content area at 1440 is 1142px. It was wrong:
+the SEO overview's floor is 1240px, and 1380px or 1500px with Search Console
+or Analytics connected. A sweep of all 95 sidebar screens at 1440 found that
+one table 98px wider than its wrapper — its last column cut off with no
+scrollbar to reach it, while `documentElement.scrollWidth` reported nothing,
+because clipped is contained. The probe had been run on that very screen and
+passed. So no breakpoint can make the promise. `TableView` already reads the
+table; it now also compares each table's `offsetWidth` with its wrapper's
+`clientWidth` (on mutations and on `resize`) and renders a hidden
+`<span data-table-fits>` while every table fits. The CSS is
+`[data-console]:has([data-table-fits])`, from `xl`. Without the marker —
+no JavaScript, a table too wide, the moment before the first read — the
+wrapper keeps its scrollbar and the head scrolls away as it always did.
+Neither measured width changes when the rule switches, so it cannot flicker.
+Measured after: SEO at 1280 and 1440 scrolls sideways, and is sticky at 1920
+where it fits; the activity log is sticky at all three.
+
+**Not built**: sorting on every list (each needs its own `ListSort`
+allowlist in the API), and saved views shared between staff — these
+preferences are one browser's.
+
+## Customising the dashboard (0.120.0)
+
+`web/src/lib/dashboard-view.ts`, `web/src/app/admin/(app)/dashboard-customise.tsx`,
+`dashboard-actions.ts`, and `page.tsx` / `metrics.tsx` beside them. Measured
+by `scripts/probes/dashboard-view.mjs`. No API change.
+
+**One list of panels.** `WIDGETS` names the seven — At a glance, Ticket
+figures, Ticket volume, When tickets arrive, Tickets by status, Sales
+pipeline, High priority — and the order it is written in *is* the default.
+The page builds a map of panels by key, the dialog draws its rows from the
+same list, and the Server Action cleans what it is sent against it. The four
+tile groups under At a glance can be hidden one at a time as
+`glance.<group>`.
+
+**The metrics section became three components.** `DashboardMetricsPanel` was
+one `<section>` holding the four figures, the volume chart with its two bar
+lists, and the heatmap, spaced by margins of its own. They are
+`TicketFigures`, `TicketVolume` and `TicketArrivals` now, and none carries a
+margin: the page spaces whatever order it draws.
+
+**A cookie, where the table view uses `localStorage`.** The table view only
+writes CSS over a table that is already on the page. The dashboard is
+different in three ways that all point the same way: it is rendered on the
+server from one API call, so a preference only the browser can read would
+draw the default and then rearrange it; a hidden panel should not be in the
+markup at all; and the order on screen has to be the order in the document,
+which a CSS `order` does not give a keyboard or a screen reader. So the
+arrangement is `tw_dashboard_<staff id>` — httpOnly, since only the server
+reads it; scoped to `/admin`; keyed by account so two people sharing a
+browser keep their own. It is a preference about one screen and never
+reaches the API.
+
+**The default is never stored.** Saving the default — or pressing Reset and
+Save — deletes the cookie. A stored copy of today's default would pin the
+order, and a panel added in a later release would land wherever an old cookie
+happened to leave room. For the same reason `cleanView()` is an allowlist
+both ways: an unknown key is dropped, and a panel the stored order does not
+mention is appended in its default place among the rest.
+
+**Only what this role can draw is offered.** The API sends `leads: null`,
+`visits: null` and `meetings: null` to a role without them, so
+`availableFor()` reads the dashboard's own answer and the dialog lists
+exactly those panels: a support engineer is offered six, with no Sales
+pipeline switch that could never show anything. A panel a role cannot see
+keeps its place at the end of the stored order.
+
+**The button needs the dashboard's answer, and the heading must not wait for
+it.** `PageHeader` renders at once and the body streams under a skeleton, so
+the button is its own `<Suspense>` in the header's row. Both ask
+`loadDashboard()`, which is `cache()`d — one request per render — and the
+fallback is a span of the button's height (32px, not the `sm` button's 44, so
+the dashboard's first row does not move down to make room for a control).
+
+**Spacing belongs to the pair of rows.** A panel that opens on a bare heading
+("Last 30 days", "High priority") wants air above it, and so does whatever
+follows the unboxed ticket list; two cards sit a card-gap apart. `gapAbove()`
+decides from the row and the one before it, and in the default order it
+yields 0, 32, 12, 12, 12, 36px — the dashboard's old margins exactly, which
+the probe asserts. Tickets by status and Sales pipeline are `half` panels:
+neighbours share a row from `lg`, and one alone keeps its half, because a
+ring and its legend stretched across the whole screen is a wide empty card.
+
+**The dialog closes with the page, not before it.** Save calls the Server
+Action inside a transition; the first cut then called `setOpen(false)`
+directly, which is an urgent update — the dialog closed at once and uncovered
+the *old* dashboard for as long as the re-rendered one took to stream
+(seconds on this machine), which reads as a Save that did nothing and failed
+the probe exactly that way. `startTransition(() => setOpen(false))` after the
+await commits the close together with the new page; the button reads
+"Saving…" until then.
+
+**Not built**: a per-account arrangement stored on the server (it would
+follow somebody to another computer; it needs a column and an endpoint),
+resizing a panel, and panels for the store or the newsletter, which have
+dashboards of their own.
+
+## Dashboard tiles are one height (0.121.0)
+
+The client asked why the tiles were not the same size. Only "New leads"
+carries a trend line, and `StatTile`'s compact layout drew it *under* the
+label: that tile was 102px, the grid row stretched its three neighbours to
+match, and every other group stayed at 66px. On a screen wide enough for two
+groups to share a row, the shorter group's panel was stretched to the taller
+one's height and left a blank strip under its tiles.
+
+Two changes. The trend line rides on the figure's own line, between the
+number and the glyph (`h-5 min-w-0 flex-1`), so it adds no height — every
+tile is 66px at 1920, 1440, 1280 and 768, and 65–66px two abreast at 390. And
+the tile list is `flex-1` inside a `flex-col` panel, so if a group ever is
+taller than its neighbour the tiles fill the panel rather than leaving a
+strip. The non-compact tile (the four ticket figures) keeps its line under
+the note, where all four are one row of one height.
+
+## Draft share links (0.138.0)
+
+A client or a colleague without an account cannot read a draft, and reviewing a
+page by screenshot loses everything that makes it a page. **Share preview**, on
+the edit screen of twelve kinds of record (pages, blog posts, knowledge-base
+articles, case studies, solutions, services, catalogue products, shop products,
+events, vacancies, custom content entries and landing pages), makes a private
+link that anyone holding it can open signed out, until it expires or is
+revoked.
+
+**The preview is the public detail read, not a second implementation of it.**
+Each public controller's `show()` used to load its relations and build its
+resource inline; the load-and-build half is now a public `present…()` method
+(`ContentController::presentPage()`, `presentPost()` and the rest,
+`CatalogueController::presentProduct()`, `StoreController::presentProduct()`,
+`EventController::present()`, `CareersController::present()`,
+`ContentTypeController::present()`, `LandingPageController::present()`), which
+`show()` calls after its own published check and `PreviewController` calls
+with none. A field added to a detail resource therefore reaches the preview
+with nobody remembering to, and everything the public read withholds (an
+event's `online_url`, a download's address) is withheld here for the same
+reason. `PreviewLinkTest` compares the preview's keys with the published
+record's for each of the twelve kinds, so a route that stopped using
+`present…()` fails by name. `schema` and `faq_schema` are removed: a preview
+emits no structured data. A knowledge-base preview is not a view (`show()`
+increments before it calls `present…()`).
+
+**`App\Support\PreviewLinks` is the one list**: alias → model → owning role,
+and the `present()` switch. Keys are morph-map aliases (`preview_link` is in
+the map, because the revoke route binds it), and the role is the one that owns
+the record's own screen — `content_manager` for ten kinds, `store_manager` for
+`store_product`, `seo_manager` for `landing_page`. The routes sit behind the
+union of the three and `PreviewLinkController` narrows to the kind's owner, so
+`role:` is not repeated per kind, and an administrator passes every one by the
+same rule `EnsureUserHasRole` applies.
+
+**One live link per record, replaced not added.** Making a link deletes the
+old one in the same transaction, so there is never a moment with none and
+never two. There is no unique index on the record: expiry, not absence, is what
+makes a row dead, and an index would turn "replace" into a conflict to resolve.
+
+**One 404 for every dead token.** Unknown, expired, revoked, replaced and a
+record deleted since all answer the same, the token is held to 64 lower-case
+hex characters by the route, and it is compared with `hash_equals`. The read is
+throttled 30 a minute and answers `Cache-Control: no-store`. A view is counted
+with a query-builder `increment`, so `updated_at` does not move.
+
+**The website renders the real page.** `/preview/[token]` (`force-dynamic`, no
+`generateStaticParams`) asks `publicApi.preview()`, files the record in the
+request's preview store (`lib/preview-store.ts` — a React `cache()`, the
+`forcePreviewTheme` pattern), and renders the detail route's own default
+export with the params it would have had at its own address. The twelve
+`publicApi` detail fetchers ask the store first and answer `{data: record}`
+from it; with an empty store, which is every ordinary request, they are the
+fetches they were. Landing pages are told apart by their stored path
+(`/brands/…` or `/locations/…`), an entry carries its type's slug, and a
+product skips the category lookup in `resolveProductSlug()`. No detail page
+was copied, so a new theme or a new section is previewed for free. `JsonLd`
+renders nothing while the store is filled, which also silences `Breadcrumbs`
+and the careers page's own `JobPosting` — the sitewide Organization block in
+the layout is not controlled by it, because a layout can render before the
+page has filled the store.
+
+**A page a secret addresses.** `/preview` is on every list that names
+`/ticket-survey`: Analytics' `SECRET_PATHS`, the `no-referrer` headers in
+`next.config.ts`, `robots.txt`, `PWA_NEVER_CACHE` in `lib/pwa.ts` **and**
+`NEVER_CACHE` in `public/sw.js` (change both), and the coming-soon curtain's
+`NEVER_CURTAINED` — a client reviewing a draft must reach it before launch.
+The page's metadata is `noindex, nofollow`, and `preview` is a reserved slug.
+`NotFoundHit` already skipped `/preview/`.
+
+**The console.** `components/admin/preview-link-panel.tsx` is a server component
+that reads the link (`getPreviewLink()`: a 403 or a 404 returns null and the
+panel draws nothing, so a content manager looking at a shop product's screen is
+not offered a button that would be refused) and hands it to
+`preview-link-dialog.tsx`, a client island: a `Modal` with one `<Form>` and two
+submit buttons, `intent=create` and `intent=revoke`. It sits in the
+`PageHeader` row — never inside the record's `<Form>`, where a form in a form
+is invalid markup, and never as a child of `<Tabs>`, which reads children by
+position. Three decisions worth knowing: **refusals render inside the dialog**
+(a toast raised behind a top-layer `<dialog>` is inert and unseen); **the
+address is built from the browser's origin** with `useSyncExternalStore`
+(server snapshot empty), because the API sends a path and `FRONTEND_URL` is
+production on every machine; and **the action returns the link as it is now**
+and calls no `revalidatePath`, because re-rendering the edit screen would throw
+away a half-written form (the reason the SEO overview's Recheck gives).
+
+**What the preview found.** `BlogPost::neighbours()` compared `published_at`
+with null for a draft and threw an illegal-operator exception, so a draft post
+had no page at all; it returns no neighbours when the post has no date. It was
+invisible until something rendered a draft.
+
+`scripts/probes/preview-link.mjs` makes a link for the first record of each of
+the twelve lists, opens it signed out at 360 and 1280, and revokes it.
+
+## Bulk actions (0.139.0)
+
+Tick boxes on the console's content lists and a bar over the ticked rows: **Publish**,
+**Move to draft**, **Archive**, **Delete**. Thirteen lists have all four (blog posts,
+knowledge articles, case studies, solutions, services, pages, catalogue products, shop
+products, events, vacancies, downloads, custom content entries, landing pages); five
+have no `status` and are delete-only (industries, brands, product categories, shop
+categories, service categories — a shop category has an on/off switch, not a status).
+
+**One route per list, 200 always.** `POST /admin/{list}/bulk` with `{ids: [1..100], action}`,
+declared above the list's `{id}` route in its role file and under the same role as its CRUD
+(entries: `/admin/content-types/{type-slug}/entries/bulk`, scoped to the type). It answers
+`{updated: [ids], refused: [{id, title, message}]}` whatever happened; an id that does not exist
+is in neither list. The body is `BulkActionRequest`, or `BulkDeleteRequest` (publish/draft/archive
+are a 422 on `action`) for a list without a status.
+
+**Each record is handled alone, through the single-record path.** `HandlesBulk::runBulk()` loads
+the ticked rows and takes them one at a time, each in its own transaction. A delete calls the
+controller's private `remove()`, which `destroy()` calls too; a status change is the model's
+ordinary `update()`. Never a mass `update()` or `delete()`: those skip model events, and the events
+are the work — a product's slug released, a category's children promoted to its parent, a redirect
+written, an IndexNow ping, a download's private file removed, `published_at` stamped. Asking for
+the status a record already has changes nothing and is not judged again.
+
+**A refusal is a sentence on that record, not a failed batch.** An `HttpException` or a
+`ValidationException` becomes `refused[].message` (the first message) and the batch goes on. Where
+a rule lived only in a FormRequest it was extracted so both paths read one definition:
+the event join link in `App\Support\Events\PublishCheck`, the download "a file first" rule in
+`DownloadFiles::publishRefusal()`, the landing page gate through `LandingPageQuality::candidate()`
+and `publishReasons()` (the request builds its candidate through the same method), and "publishing
+without a date means now" in `App\Support\PublishStamp` (`WritesCmsEntities` and the entries
+controller delegate to it). The delete refusal is `destroy()`'s own: an event with registrations.
+
+**The activity log.** A DELETE is recorded by rule; a POST named `bulk` is not, so `runBulk()`
+sets the count it deleted on the application's request (a form request is a copy, its attributes go
+nowhere) and `ActivityLogger` records action `destroy` with context `{action: delete, count}` —
+no ids, no titles. A status change, and a delete in which everything was refused, write nothing.
+
+**The console.** `components/admin/row-selection.tsx` is the one client module: a module-level
+store read with `useSyncExternalStore` and **keyed by a `scope` string per list**, so ticks on the
+blog never show on the tickets; `RowTick`, `TickAll` (indeterminate when part of a page is ticked)
+and `BulkBar`. The ticket queue and the review queue used to carry a private copy each and now share
+the store (their own bars keep their own controls). The bar is sticky, wraps, asks for confirmation
+on Delete in a real `<dialog>` that says how many, shows a toast for the count, lists the refusals in
+place (`title — message`) until dismissed, and clears the selection after any finished action and when
+the page's rows change. Each list page has a first column with an **unheaded** `<th>` holding `TickAll`
+and a `<td data-label="Select">` with the row's tick; `TableView` takes the first column **that has a
+heading** as the row's identity, so the title stays un-hideable. Each list's Server Action is a few
+lines over `runBulkAction()` (`lib/admin/bulk.ts`): `updateTag` for the tags that list's own saves
+purge, and `revalidatePath` of the list, **only when `updated` is not empty**.
+
+**Pre-existing, fixed on the way.** The delete actions for custom content entries, vacancies, shop
+products and shop categories purged and reported "deleted" whatever the API answered; they now follow
+the rule the twelve other lists do (refusal → `?done=not-deleted`, purge nothing).
+
+`scripts/probes/bulk-actions.mjs` drives it on throwaway blog posts at 1280 and 360.
+
+## Switches on record forms (0.152.0)
+
+Every boolean on a record form is the small sliding switch the settings screens
+got in 0.135.0. Before, a record form spent three styles on the same question: a
+tick box (`is_active`, `show_in_menu`), a Yes/No `<Select>` (`is_featured`,
+`comments_enabled`, `allow_oversell`, `feed_include`, `returnable`, `track_stock`,
+`is_active` on staff, webhooks, redirects, coupons and shop categories) and the
+block editors' `Toggle`.
+
+`RecordSwitch` (`components/admin/record-switch.tsx`) is a labelled `Switch` with a
+hint line, posting `1` or `0` under the field's own name. The checkbox is named,
+uncontrolled and `value="1"`; a hidden `0` of the same name follows it. Because
+`FormData.get()` returns the first entry, every Server Action keeps reading
+`=== "1"` (or `!== "0"`), and "off" is a real answer instead of a missing key.
+The checkbox being named is what makes it work inside the rest of the form
+machinery with nothing special: `<Form>` puts it back after a refused save (it
+snapshots a checkbox by name and value), `FormDraft` snapshots and restores it
+the same way, and `buildFormTabs` charges a 422 on the field to the tab that
+lists the name. The hidden `0` is skipped by `<Form>` (hidden inputs are set by
+code) and by `FormDraft` (`data-switch-off`). A switch that drives something else
+on the form (the shop product's Count stock, which hides Back-orders) is
+controlled with `checked`/`onChange`; the block editors' `Toggle` draws a plain
+`Switch` bound to its path in the content object.
+
+Left as tick boxes: the bulk-select ticks in tables, grids of choices that are a
+list rather than a yes/no (roles, groups, sections, qualifications), a repeater
+row's compact tick (field `required`, a menu item's "new tab", a variation's
+oversell), and one-press options on an action (`force`, `notify`,
+`notify_registrants`).
+
+**Fixed on the way.** The shop product form's Back-orders choice was never read
+by its action, so it could not be saved from the console; the action now sends
+`allow_oversell` whenever the control was drawn (a product counting stock with no
+variations). A client's Featured box posted `on` and its action read `"on"`, and
+a popup's "Open in a new tab" the same; both are `1` now, like the rest.
+
+`scripts/probes/record-switch.mjs` opens a handful of the forms, checks each
+boolean is a `role="switch"` with its hidden `0` and no Yes/No select remains,
+and round-trips a throwaway redirect's Active on and off (including a refused
+save keeping the typed state).

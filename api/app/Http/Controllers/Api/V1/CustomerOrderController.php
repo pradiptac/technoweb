@@ -46,6 +46,24 @@ class CustomerOrderController extends Controller
      * confirms the order number exists, and the numbers are sequential. Same
      * rule the guest link follows for a wrong token.
      */
+    /**
+     * Their own invoice (0.176.0).
+     *
+     * Scoped by `customer_id` like every other route here, so another
+     * customer's order is a 404 rather than a 403 — a 403 confirms it
+     * exists. The streaming and the "only for a paid order" rule are
+     * `CheckoutController::streamInvoice()`, shared so the guest's door and
+     * this one cannot drift apart on what they check.
+     */
+    public function invoice(Request $request, string $orderNumber)
+    {
+        $order = Order::where('order_number', $orderNumber)
+            ->where('customer_id', $request->user()->id)
+            ->firstOrFail();
+
+        return CheckoutController::streamInvoice($order);
+    }
+
     public function show(Request $request, string $orderNumber): JsonResource
     {
         $order = Order::where('order_number', $orderNumber)
@@ -57,6 +75,9 @@ class CustomerOrderController extends Controller
         $order->load([
             'items.product' => fn ($q) => $q->select('id', 'slug', 'status')->where('status', PublishStatus::Published),
             'payments',
+            // What has been asked to come back, and whether more may be.
+            'returns.items.orderItem',
+            'returns.photos',
         ]);
 
         /*

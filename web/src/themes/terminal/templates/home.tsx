@@ -21,6 +21,7 @@ import { stripColumns } from "@/lib/strip-columns";
 import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
+import { HeroTitle } from "@/lib/hero-heading";
 
 /**
  * Terminal's front page: a shell session.
@@ -69,7 +70,7 @@ export function Home({
             <div className="flex flex-1 flex-col justify-center p-6 font-mono lg:p-9">
               <p className="text-13 text-muted"><span className="text-brand-ink">$</span> technoware --status</p>
               <p className="mt-3 text-12-5 text-muted"><span aria-hidden>{"# "}</span>{kicker}</p>
-              <h1 className="display-1 mt-4 text-balance [overflow-wrap:anywhere]">{heading}</h1>
+              <HeroTitle className="display-1 mt-4 text-balance [overflow-wrap:anywhere]">{heading}</HeroTitle>
               <p className="mt-5 text-15 leading-relaxed text-ink-2"><span aria-hidden className="text-faint">{"> "}</span>{lede}</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <ButtonLink href="/contact">talk to an engineer <IconArrowRight /></ButtonLink>

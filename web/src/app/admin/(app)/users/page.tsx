@@ -3,6 +3,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconUsers } from "@/components/icons";
@@ -14,7 +15,7 @@ import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Staff", path: "/admin/users", seo: noIndex });
 
-type SearchParams = { q?: string; role?: string; page?: string; deleted?: string; per_page?: string;
+type SearchParams = { q?: string; role?: string; centre?: string; page?: string; deleted?: string; per_page?: string;
 };
 
 export default async function AdminStaffPage({
@@ -29,7 +30,7 @@ export default async function AdminStaffPage({
   let roles: RoleOption[] = [];
   try {
     [result, roles] = await Promise.all([
-      getStaffList({ q: params.q, role: params.role, page: Number(params.page) || 1,
+      getStaffList({ q: params.q, role: params.role, centre: params.centre, page: Number(params.page) || 1,
       per_page: Number(params.per_page) || undefined }),
       getStaffRoles(),
     ]);
@@ -43,7 +44,7 @@ export default async function AdminStaffPage({
   }
 
   const staff = result.data;
-  const filtered = Boolean(params.q || params.role);
+  const filtered = Boolean(params.q || params.role || params.centre);
 
   return (
     <>
@@ -56,6 +57,13 @@ export default async function AdminStaffPage({
       >
         <div className="ml-auto"><ButtonLink href="/admin/users/new" size="sm">New account</ButtonLink></div>
       </PageHeader>
+
+      {params.centre && (
+        <p className="mb-4 text-13 text-muted" data-centre-filter>
+          Showing the staff tagged to one support centre.{" "}
+          <Link href="/admin/users" className="font-semibold text-brand-ink hover:underline">Show everybody</Link>
+        </p>
+      )}
 
       {params.deleted && <Alert tone="ok" title="Account deleted">Their tickets stayed, and are now unassigned.</Alert>}
 
@@ -80,7 +88,7 @@ export default async function AdminStaffPage({
       </FilterBar>
 
       {staff.length === 0 ? (
-        <EmptyState icon={<IconUsers />} title={filtered ? "No accounts match those filters" : "No staff accounts"}>
+        <EmptyState icon={<IconUsers />} title={filtered ? "No accounts match those filters" : "No staff accounts"} action={<EmptyListAction filtered={filtered} clearHref="/admin/users" newHref="/admin/users/new" noun="staff account" />}>
           {filtered ? "Try a different term, or clear the filters." : "Add the first one to let somebody else in."}
         </EmptyState>
       ) : (
@@ -91,6 +99,7 @@ export default async function AdminStaffPage({
                 <th scope="col" className="px-3 py-1.5">Name</th>
                 <th scope="col" className="px-3 py-1.5">Mobile</th>
                 <th scope="col" className="px-3 py-1.5">Roles</th>
+                <th scope="col" className="px-3 py-1.5">Centre</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
               </tr>
             </thead>
@@ -122,6 +131,13 @@ export default async function AdminStaffPage({
                       ))}
                     </span>
                   </td>
+                  <td data-label="Centre" className="px-3 py-2 text-12-5">
+                    {(u.support_centres ?? []).length
+                      ? (u.support_centres ?? []).map((c, i) => (
+                          <span key={c.id}>{i > 0 && ", "}<Link href={`/admin/support-centres/${c.id}`} className="text-brand-ink hover:underline">{c.name}</Link></span>
+                        ))
+                      : <span className="text-faint">—</span>}
+                  </td>
                   <td data-label="Status" className="px-3 py-2">
                     <Badge tone={u.is_active ? "resolved" : "closed"}>{u.is_active ? "Active" : "Inactive"}</Badge>
                   </td>
@@ -132,7 +148,7 @@ export default async function AdminStaffPage({
         </div>
       )}
 
-      <Pagination meta={result.meta} basePath="/admin/users" params={{ q: params.q, role: params.role, per_page: params.per_page }} />
+      <Pagination meta={result.meta} basePath="/admin/users" params={{ q: params.q, role: params.role, centre: params.centre, per_page: params.per_page }} />
     </>
   );
 }

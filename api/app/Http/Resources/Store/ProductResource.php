@@ -6,12 +6,17 @@ use App\Http\Resources\BrandResource;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Http\Resources\Concerns\IncludesSections;
+use App\Http\Resources\DownloadResource;
 use App\Http\Resources\SeoResource;
 use App\Models\StoreProduct;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
+use App\Support\Money;
 use App\Support\Store\Fulfilment;
 use App\Support\Store\ProductVideos;
 use App\Support\Store\ReviewSummary;
+use App\Support\Store\Tax;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -31,7 +36,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin StoreProduct */
 class ProductResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSections;
 
     public function toArray(Request $request): array
     {
@@ -63,6 +68,12 @@ class ProductResource extends JsonResource
 
             // Full body only on the detail endpoint — keeps list payloads small.
             'description' => $this->when($detail, $this->description),
+            // The builder's sections in place of the written body (0.130.0): on
+            // this record's own page only, and only while it is laid out as
+            // sections. The body above is still sent.
+            'sections' => $this->publicSections($this->includeSchema),
+            // The kind's active detail template (0.161.0): on this record's own page only; absent when none is active.
+            'detail_template' => $this->publicDetailTemplate('store_product', $this->includeSchema),
             'specifications' => $this->when($detail, $this->specifications),
             'features' => $this->when($detail, $this->features),
             // Two buyer's questions, stated where they are asked. Detail
@@ -75,12 +86,17 @@ class ProductResource extends JsonResource
                 'id' => $s->id, 'title' => $s->title, 'slug' => $s->slug,
             ])->values()),
 
-            'images' => collect($this->images ?? [])->map(fn ($p) => asset('storage/'.$p))->all(),
+            // The downloads centre's files for this product (0.131.0) — the
+            // detail read loads them; a card carries no key.
+            'downloads' => $this->whenLoaded('publishedDownloads', fn () => DownloadResource::forRecord($this->publishedDownloads)),
+
+            'images' => collect($this->images ?? [])->map(fn ($p) => MediaUrl::for($p))->all(),
             // Parallel to `images`, index for index: a gallery needs the
             // description that belongs to the picture it is showing.
             'image_alts' => MediaMeta::alts($this->images),
             // Parallel to `image_alts`, same order and length: the focal point of each, or null.
             'image_focuses' => MediaMeta::focuses($this->images),
+            'image_blurs' => MediaMeta::blurs($this->images),
             /*
              * The product's videos, after the pictures in its gallery
              * (2026-09-26). A YouTube video is its id and never a thumbnail
@@ -89,11 +105,31 @@ class ProductResource extends JsonResource
              */
             'videos' => $this->when($detail, fn () => ProductVideos::forPublic($this->videos)),
 
-            'price_paise' => $this->price_paise,
+            /*
+             * The price as the website shows it (0.178.0): stored with GST,
+             * and shown either that way or before GST by
+             * `store_price_basis`. What is charged, declared to Google and
+             * sent to Zoho is read from the model, never from here.
+             * `price_includes_gst` is what lets a card print "+ GST".
+             */
+            'price_paise' => Tax::shown((int) $this->price_paise, Tax::rateFor($this->resource)),
             'compare_at_paise' => $this->when(
                 $this->compare_at_paise > $this->price_paise,
-                $this->compare_at_paise,
+                fn () => Tax::shown((int) $this->compare_at_paise, Tax::rateFor($this->resource)),
             ),
+            'price_includes_gst' => Tax::basis() === Tax::BASIS_INCLUSIVE,
+            // This product's rate as a person reads it, "18%": the product
+            // page said "Includes 18% GST" whatever the rate was.
+            'gst_rate' => Money::ratePercent(Tax::rateFor($this->resource)).'%',
+            /*
+             * The shop tags that are switched on for the shop front (0.141.0),
+             * `{name, slug}` each, in the Tags screen's order. A hidden tag is
+             * not sent: the Shown switch decides what the public sees.
+             */
+            'tags' => $this->whenLoaded('tags', fn () => $this->tags
+                ->filter(fn ($t) => $t->is_visible)
+                ->map(fn ($t) => ['name' => $t->name, 'slug' => $t->slug])
+                ->values()),
             'in_stock' => $this->inStock(),
             /*
              * The three-valued answer beside the boolean, so the page can say

@@ -7,13 +7,17 @@ import { CategorySidebar } from "@/components/store/category-sidebar";
 import { CategoryRail } from "@/components/store/category-rail";
 import { CompactProductCard } from "@/components/store/compact-product-card";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
+import { TagRow } from "@/components/store/tag-row";
 import { SpecFilterPanel } from "@/components/store/spec-filter-panel";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/settings";
+import { settingEnabled } from "@/lib/site-settings";
 import type { Paginated, StoreCategory, StoreProduct } from "@/types/api";
 import type { StoreFacet } from "@/types/store-merch";
+import type { StoreTagChip } from "@/types/store-tags";
 
 async function load(slug: string): Promise<StoreCategory | null> {
   try {
@@ -59,9 +63,11 @@ export default async function StoreCategoryPage({ params }: { params: Promise<{ 
   let categories: StoreCategory[] = [];
   let products: Paginated<StoreProduct> | null = null;
   let facets: StoreFacet[] = [];
+  let tags: StoreTagChip[] = [];
+  let tagsOn = false;
 
   try {
-    [categories, products, facets] = await Promise.all([
+    [categories, products, facets, tags, tagsOn] = await Promise.all([
       publicApi.storeCategories().then((r) => r.data),
       publicApi.storeProducts(`?category=${encodeURIComponent(slug)}`),
       /*
@@ -73,6 +79,13 @@ export default async function StoreCategoryPage({ params }: { params: Promise<{ 
       category.filter_specs?.length
         ? publicApi.storeFacets(slug).then((r) => r.data).catch(() => [] as StoreFacet[])
         : Promise.resolve([] as StoreFacet[]),
+      /*
+        This category's tags (0.141.0), cached like the rest of the page. A
+        chip opens `/store?category=…&tag=…`: this page is ISR and never reads
+        `searchParams`, so the filtering happens on the dynamic listing.
+      */
+      publicApi.storeTags(slug).then((r) => r.data).catch(() => [] as StoreTagChip[]),
+      getSiteSettings().then((s) => settingEnabled(s, "store_tags_enabled")).catch(() => false),
     ]);
   } catch {
     products = null;
@@ -150,6 +163,7 @@ export default async function StoreCategoryPage({ params }: { params: Promise<{ 
       */}
       <Container data-hero-gap="keep" className="section-y pt-3">
         <StoreFilterBar categories={categories} category={category.slug} />
+        {tagsOn && <TagRow tags={tags} category={category.slug} />}
 
         {/* Below `lg`, the vertical sidebar has no room — the same category
             data instead renders as the horizontal rail. */}

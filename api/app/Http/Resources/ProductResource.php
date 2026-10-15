@@ -5,9 +5,11 @@ namespace App\Http\Resources;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Product;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -15,7 +17,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Product */
 class ProductResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSections, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -30,21 +32,31 @@ class ProductResource extends JsonResource
             'short_description' => $this->short_description,
             // Full body only on the detail endpoint — keeps list payloads small.
             'description' => $this->when($request->routeIs('*.show'), $this->description),
+            // The builder's sections in place of the written body (0.130.0): on
+            // this record's own page only, and only while it is laid out as
+            // sections. The body above is still sent.
+            'sections' => $this->publicSections($this->includeSchema),
+            // The kind's active detail template (0.161.0): on this record's own page only; absent when none is active.
+            'detail_template' => $this->publicDetailTemplate('product', $this->includeSchema),
             'specifications' => $this->when($request->routeIs('*.show'), $this->specifications),
             'features' => $this->when($request->routeIs('*.show'), $this->features),
-            'images' => collect($this->images ?? [])->map(fn ($p) => asset('storage/'.$p))->all(),
+            'images' => collect($this->images ?? [])->map(fn ($p) => MediaUrl::for($p))->all(),
             // Parallel to `images`, index for index — a gallery needs the
             // description that belongs to the picture it is showing.
             'image_alts' => MediaMeta::alts($this->images),
             // Parallel to `image_alts`, same order and length: the focal point of each, or null.
             'image_focuses' => MediaMeta::focuses($this->images),
-            'datasheet_url' => $this->datasheet_path ? asset('storage/'.$this->datasheet_path) : null,
+            'image_blurs' => MediaMeta::blurs($this->images),
+            'datasheet_url' => $this->datasheet_path ? MediaUrl::for($this->datasheet_path) : null,
             'status' => $this->status?->value,
             'brand' => new BrandResource($this->whenLoaded('brand')),
             'category' => new ProductCategoryResource($this->whenLoaded('category')),
             'related_products' => self::collection($this->whenLoaded('relatedProducts')),
             'related_solutions' => SolutionResource::collection($this->whenLoaded('solutions')),
             'faqs' => FaqResource::collection($this->whenLoaded('faqs')),
+            // The downloads centre's files for this product — loaded by the
+            // detail read alone, so a listing row carries no key.
+            'downloads' => $this->whenLoaded('publishedDownloads', fn () => DownloadResource::forRecord($this->publishedDownloads)),
             // The published blocks, in order, with the heading each renders under.
             'answer_blocks' => $this->publicAnswerBlocks(),
             // What this record is connected to, on the page only (`EntityLinks`).

@@ -39,6 +39,11 @@ class CareersController extends Controller
         // applications from whoever has the link.
         abort_unless($job_opening->isOpen(), 404);
 
+        return $this->present($job_opening);
+    }
+
+    public function present(JobOpening $job_opening): JobOpeningResource
+    {
         $job_opening->load(['experienceLevel', 'qualifications', 'seo']);
 
         return new JobOpeningResource($job_opening);

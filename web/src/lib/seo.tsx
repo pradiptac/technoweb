@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { Seo } from "@/types/api";
 import { siteUrl } from "@/lib/site-url";
 import { brandName } from "@/lib/brand";
+import { isPreviewing } from "@/lib/preview-store";
 
 export const SITE = {
   // Getters for the same reason as `url`: the company is the runtime
@@ -332,6 +333,12 @@ export const jsonLd = {
  * data is unchanged. Escaping `<` alone is sufficient -- a breakout needs it.
  */
 export function JsonLd({ data }: { data: Json | Json[] }) {
+  // A draft opened from its share link (0.138.0) emits no structured data at
+  // all — the API strips `schema` and `faq_schema`, and this catches the
+  // blocks pages and `Breadcrumbs` build for themselves. The preview page sets
+  // the store before it renders its child, so everything under it sees it.
+  if (isPreviewing()) return null;
+
   return (
     <script
       type="application/ld+json"

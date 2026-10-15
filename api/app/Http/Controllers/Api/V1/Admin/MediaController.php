@@ -7,8 +7,11 @@ use App\Http\Requests\StoreMediaRequest;
 use App\Http\Resources\Admin\MediaResource;
 use App\Models\Media;
 use App\Support\ImageEditor;
+use App\Support\Import\MediaDownload;
 use App\Support\Media\MediaUploader;
+use App\Support\Media\MotionFiles;
 use App\Support\MediaHistory;
+use App\Support\Net\UnsafeUrl;
 use App\Support\Seo\Ai\AltText;
 use App\Support\UploadLimits;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,6 +22,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -62,6 +66,8 @@ class MediaController extends Controller
                 fn ($q) => $q->where('folder_id', $request->integer('folder')))
             ->when($request->input('kind') === 'image', fn ($q) => $q->where('mime', 'like', 'image/%'))
             ->when($request->input('kind') === 'file', fn ($q) => $q->where('mime', 'not like', 'image/%'))
+            ->when($request->input('kind') === 'lottie', fn ($q) => $q->where('mime', 'like', 'application/lottie%'))
+            ->when($request->input('kind') === 'model', fn ($q) => $q->where('mime', 'model/gltf-binary'))
             /*
              * The bin is a view of the same table, not a second screen.
              *
@@ -102,6 +108,8 @@ class MediaController extends Controller
                     'extensions' => self::ALLOWED_EXTENSIONS,
                     'max_kb' => UploadLimits::maxKb(),
                     'max_video_kb' => UploadLimits::maxKb(true),
+                    'max_lottie_kb' => MotionFiles::maxKb('json'),
+                    'max_model_kb' => MotionFiles::maxKb('glb'),
                     'php_ceiling_kb' => UploadLimits::phpCeilingKb(),
                     'max_megapixels' => UploadLimits::maxMegapixels(),
                 ],
@@ -482,6 +490,7 @@ class MediaController extends Controller
         }
 
         $target->update(['width' => $w, 'height' => $h, 'size' => $bytes]);
+        $target->markEdited();
 
         $created = [];
 
@@ -578,6 +587,7 @@ class MediaController extends Controller
         }
 
         $target->update(['width' => $w, 'height' => $h, 'size' => $bytes]);
+        $target->markEdited();
 
         return response()->json(['data' => new MediaResource($target->fresh('uploader'))]);
     }
@@ -646,6 +656,7 @@ class MediaController extends Controller
         }
 
         $target->update(['width' => $w, 'height' => $h, 'size' => $bytes]);
+        $target->markEdited();
 
         return response()->json(['data' => new MediaResource($target->fresh('uploader'))]);
     }
@@ -684,9 +695,54 @@ class MediaController extends Controller
         return response()->json(['data' => ['alt' => $result['alt']]]);
     }
 
+    /**
+     * A pasted link, copied into the library once (0.172.0).
+     *
+     * So no visitor's browser ever fetches from LottieFiles or Sketchfab: the
+     * file is downloaded here through `SafeHttp` (public hosts only, redirects
+     * checked hop by hop — private hosts are never allowed from this door),
+     * then stored through `storeFromPath()` and so meets every check an upload
+     * meets. Every refusal is a 422 on `url`.
+     */
+    public function importUrl(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'url' => ['required', 'string', 'max:2048'],
+            'folder_id' => ['nullable', 'integer', 'exists:media_folders,id'],
+        ]);
+
+        $name = basename(rawurldecode((string) parse_url($data['url'], PHP_URL_PATH)));
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+
+        if (! in_array($ext, MediaUploader::ALLOWED_EXTENSIONS, true)) {
+            throw ValidationException::withMessages(['url' => 'The library does not take that type of file.']);
+        }
+
+        $tmp = null;
+
+        try {
+            $tmp = MediaDownload::toTemp($data['url'], false, MediaUploader::maxKbFor($ext) * 1024);
+            $media = MediaUploader::storeFromPath($tmp, $name, $request->user()->id, ['folder_id' => $data['folder_id'] ?? null]);
+        } catch (ValidationException $e) {
+            throw ValidationException::withMessages(['url' => collect($e->errors())->flatten()->first()]);
+        } catch (UnsafeUrl $e) {
+            throw ValidationException::withMessages(['url' => $e->getMessage()]);
+        } catch (\Throwable) {
+            throw ValidationException::withMessages(['url' => 'That address could not be reached.']);
+        } finally {
+            if ($tmp !== null) {
+                @unlink($tmp);
+            }
+        }
+
+        return (new MediaResource($media))->response()->setStatusCode(201);
+    }
+
     public function replace(Request $request, Media $medium): JsonResponse
     {
-        $maxKb = UploadLimits::maxKb();
+        $ext = strtolower($request->file('file')?->getClientOriginalExtension() ?? '');
+        $motion = in_array($ext, MotionFiles::EXTENSIONS, true);
+        $maxKb = MediaUploader::maxKbFor($ext);
 
         /*
          * The upload's own content check, and the type read from the bytes.
@@ -699,14 +755,16 @@ class MediaController extends Controller
          * server detected.
          */
         $request->validate([
-            'file' => ['required', 'file', 'mimes:'.implode(',', MediaUploader::ALLOWED_EXTENSIONS), "max:{$maxKb}"],
+            'file' => array_filter(['required', 'file', $motion ? null : MediaUploader::mimesRule(), "max:{$maxKb}"]),
         ], [
-            'file.mimes' => 'Upload an image (PNG, JPG, GIF, WebP, SVG), a video (MP4, WebM) or a document (PDF, Word, Excel, CSV, TXT, ZIP).',
+            'file.mimes' => 'Upload an image (PNG, JPG, GIF, WebP, SVG), a video (MP4, WebM), a document (PDF, Word, Excel, CSV, TXT, ZIP), a Lottie animation (JSON, .lottie) or a 3D model (GLB).',
             'file.max' => 'That file is over the '.round($maxKb / 1024).' MB limit.',
         ]);
 
         $file = $request->file('file');
-        $mime = MediaUploader::isSvg($file) ? 'image/svg+xml' : (string) ($file->getMimeType() ?: 'application/octet-stream');
+        // A Lottie or 3D file is read by MotionFiles; its mime is the one it earns.
+        $checked = $motion ? MotionFiles::check($file->getRealPath(), $ext) : null;
+        $mime = $checked['mime'] ?? (MediaUploader::isSvg($file) ? 'image/svg+xml' : (string) ($file->getMimeType() ?: 'application/octet-stream'));
 
         $wasImage = $medium->isImage();
         $isImage = str_starts_with($mime, 'image/');
@@ -750,7 +808,9 @@ class MediaController extends Controller
             $disk->put($medium->path, (string) file_get_contents($file->getRealPath()));
         }
 
-        [$width, $height] = @getimagesize($disk->path($medium->path)) ?: [null, null];
+        [$width, $height] = $checked !== null
+            ? [$checked['width'], $checked['height']]
+            : (@getimagesize($disk->path($medium->path)) ?: [null, null]);
 
         $medium->update([
             'mime' => $mime,
@@ -758,6 +818,7 @@ class MediaController extends Controller
             'width' => $width,
             'height' => $height,
         ]);
+        $medium->markEdited();
 
         return response()->json(['data' => new MediaResource($medium->fresh('uploader'))]);
     }

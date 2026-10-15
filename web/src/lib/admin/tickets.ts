@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { token } from "./_shared";
 import type {
-  AdminDashboard, CannedReply, CannedReplyPlaceholder, Paginated, StaffUser, Ticket, TicketMessage, TicketPriority, TicketStatus,
+  AdminDashboard, CannedReply, CannedReplyPlaceholder, Onboarding, Paginated, StaffUser, Ticket, TicketMessage, TicketPriority, TicketStatus,
 } from "@/types/api";
 
 /**
@@ -14,6 +14,20 @@ export async function getDashboard(volume?: string): Promise<AdminDashboard> {
   const q = volume ? `?volume=${encodeURIComponent(volume)}` : "";
   const res = await apiFetch<{ data: AdminDashboard }>(`/admin/dashboard${q}`, { token: await token() });
   return res.data;
+}
+
+/**
+ * The "Getting started" checklist, or null for a role that may not ask
+ * (it is `role:admin`) or when the API is unreachable — the dashboard draws
+ * nothing rather than an error for a panel that is a convenience.
+ */
+export async function getOnboarding(): Promise<Onboarding | null> {
+  try {
+    const res = await apiFetch<{ data: Onboarding }>("/admin/onboarding", { token: await token() });
+    return res.data;
+  } catch {
+    return null;
+  }
 }
 
 export async function getStaff(): Promise<StaffUser[]> {

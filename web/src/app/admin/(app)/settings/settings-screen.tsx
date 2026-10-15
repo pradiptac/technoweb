@@ -1,9 +1,11 @@
 import { ErrorState } from "@/components/ui/empty";
 import { PageHeader } from "@/components/admin/page-header";
 import { ApiError } from "@/lib/api";
-import { getBackupDriveStatus, getInboundMailStatus, getMailStatus, getMeetingsGoogleStatus, getMessagingStatus, getSettings, type SettingsPayload } from "@/lib/admin";
+import { getBackupDriveStatus, getInboundMailStatus, getMailStatus, getMeetingsGoogleStatus, getMessagingStatus, getSettings, getShiprocketStatus, getZohoBooksStatus, type SettingsPayload } from "@/lib/admin";
 import type { BackupDriveStatus, InboundMailStatus, MailStatus, MessagingStatus } from "@/types/api";
 import type { MeetingsGoogleStatus } from "@/types/meetings";
+import type { ZohoBooksStatus } from "@/types/zoho";
+import type { ShiprocketStatus } from "@/types/courier";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { screenAt } from "./settings-copy";
@@ -37,8 +39,10 @@ export async function SettingsScreen({ path }: { path: string }) {
   let messaging: MessagingStatus | undefined;
   let drive: BackupDriveStatus | undefined;
   let meetingsGoogle: MeetingsGoogleStatus | undefined;
+  let zoho: ZohoBooksStatus | undefined;
+  let shiprocket: ShiprocketStatus | undefined;
   try {
-    [settings, mail, inbound, messaging, drive, meetingsGoogle] = await Promise.all([
+    [settings, mail, inbound, messaging, drive, meetingsGoogle, zoho, shiprocket] = await Promise.all([
       getSettings(),
       screen.needs?.includes("mail") ? getMailStatus() : undefined,
       screen.needs?.includes("inbound") ? getInboundMailStatus() : undefined,
@@ -46,6 +50,10 @@ export async function SettingsScreen({ path }: { path: string }) {
       screen.needs?.includes("backups") ? getBackupDriveStatus() : undefined,
       // The panel says what it can when the status read fails; the settings still draw.
       screen.needs?.includes("meetings") ? getMeetingsGoogleStatus().catch(() => undefined) : undefined,
+      // The same: it reads Zoho's own lists, and Zoho being down must not take Store settings with it.
+      screen.needs?.includes("zoho") ? getZohoBooksStatus().catch(() => undefined) : undefined,
+      // The same, and it makes no call to Shiprocket while the provider is "By hand".
+      screen.needs?.includes("shiprocket") ? getShiprocketStatus().catch(() => undefined) : undefined,
     ]);
   } catch (error) {
     // Settings are administrator-only, so a content manager landing here gets
@@ -80,6 +88,8 @@ export async function SettingsScreen({ path }: { path: string }) {
         messaging={messaging}
         drive={drive}
         meetingsGoogle={meetingsGoogle}
+        zoho={zoho}
+        shiprocket={shiprocket}
       />
     </>
   );

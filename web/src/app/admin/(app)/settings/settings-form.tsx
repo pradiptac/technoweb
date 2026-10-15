@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
+import { settingImageSpec } from "@/lib/image-specs";
 import { ClearSecretButton } from "./clear-secret-button";
 import { Tabs } from "@/components/admin/tabs";
 import { ThemePicker } from "./theme-picker";
@@ -20,24 +21,31 @@ import { EditorField } from "@/components/admin/editor-field";
 import { PaymentsPanel } from "./payments-panel";
 import { BannersPanel } from "./banners-panel";
 import { HunterTest } from "./hunter-test";
+import { OpenRouterTest } from "./openrouter-test";
 import { GscTest } from "./gsc-test";
 import { Ga4Test } from "./ga4-test";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
 import {
   GROUP_TITLES, HIDDEN, LABELS, STANDALONE_GROUPS, SYSTEM_SCREEN, orderFields, screenFor, sectionFor, type SettingsScreen,
 } from "./settings-copy";
-import { ChoiceField, ServerLimits, SettingColourField, SettingSwitchField } from "./settings-fields";
+import { ChoiceField, ModelField, onOffNotes, ServerLimits, SettingColourField, SettingSwitchField } from "./settings-fields";
 import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
 import type { BackupDriveStatus, InboundMailStatus, MailStatus, MessagingStatus } from "@/types/api";
 import { MessagingPanel } from "./messaging-panel";
+import { MediaCdnTest } from "./media-cdn-test";
 import { BackupDestinationPanel } from "./backup-destination-panel";
 import { MeetingsGooglePanel } from "./meetings-google-panel";
+import { GoogleLoginNote } from "./google-login-note";
 import type { MeetingsGoogleStatus } from "@/types/meetings";
+import { ZohoBooksPanel } from "./zoho-books-panel";
+import { ShiprocketPanel } from "./shiprocket-panel";
+import type { ShiprocketStatus } from "@/types/courier";
+import type { ZohoBooksStatus } from "@/types/zoho";
 
 const initial: SettingsFormState = {};
 
 export function SettingsForm({
-  screen, groups, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle,
+  screen, groups, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle, zoho, shiprocket,
 }: {
   screen: SettingsScreen;
   groups: SettingGroups;
@@ -53,6 +61,10 @@ export function SettingsForm({
   drive?: BackupDriveStatus;
   /** Only Meeting settings draws the Google Calendar connection. */
   meetingsGoogle?: MeetingsGoogleStatus;
+  /** Only Store settings draws the Zoho Books connection. */
+  zoho?: ZohoBooksStatus;
+  /** Only Store settings draws the Shiprocket connection. */
+  shiprocket?: ShiprocketStatus;
 }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
 
@@ -71,7 +83,7 @@ export function SettingsForm({
   }
 
   const panel = (group: string) => (
-    <GroupPanel key={group} group={group} rows={groups[group]} uploads={uploads} payments={payments} mail={mail} inbound={inbound} messaging={messaging} drive={drive} meetingsGoogle={meetingsGoogle} />
+    <GroupPanel key={group} group={group} rows={groups[group]} uploads={uploads} payments={payments} mail={mail} inbound={inbound} messaging={messaging} drive={drive} meetingsGoogle={meetingsGoogle} zoho={zoho} shiprocket={shiprocket} />
   );
 
   return (
@@ -129,7 +141,7 @@ export function SettingsForm({
  * can draw a group the same way.
  */
 function GroupPanel({
-  group, rows, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle,
+  group, rows, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle, zoho, shiprocket,
 }: {
   group: string;
   rows: SettingGroups[string];
@@ -140,6 +152,8 @@ function GroupPanel({
   messaging?: MessagingStatus;
   drive?: BackupDriveStatus;
   meetingsGoogle?: MeetingsGoogleStatus;
+  zoho?: ZohoBooksStatus;
+  shiprocket?: ShiprocketStatus;
 }) {
   const meta = GROUP_TITLES[group] ?? { title: group, blurb: "" };
 
@@ -215,6 +229,13 @@ function GroupPanel({
             return <ThemePicker key={row.key} name={id} rows={rows} />;
           }
           if (row.key.startsWith("theme_")) {
+            return null;
+          }
+          // A company's own fonts are files, written by their own panel
+          // inside the picker (`CustomFontsPanel`). Drawn here they would be
+          // bare text inputs holding storage paths — and posting them is
+          // refused by the API, which fails the whole tab's save.
+          if (row.key.startsWith("custom_font_")) {
             return null;
           }
           // The Motion tab is one picker for the same reason.
@@ -297,14 +318,26 @@ function GroupPanel({
           */
           // A colour with no fixed choices: the picker beside the hex.
           // `chatbot_background` is a colour under a name that does not say so.
-          if ((row.key.endsWith("_colour") || row.key === "chatbot_background") && !row.options?.length) {
+          if ((row.key.endsWith("_colour") || row.key === "chatbot_background" || row.key === "chatbot_header") && !row.options?.length) {
             return (
               <SettingColourField key={row.key} id={id} label={meta.label} hint={meta.hint} defaultValue={row.value ?? ""} />
             );
           }
 
-          if (row.options?.length) {
+          // An Off and an On, whatever the row is called: a switch, with the
+          // API's own sentence for the state it is in underneath.
+          const onOff = onOffNotes(row.options);
+          if (onOff) {
             return (
+              <SettingSwitchField key={row.key} id={id} label={meta.label} hint={meta.hint} defaultValue={row.value} notes={onOff} />
+            );
+          }
+
+          if (row.options?.length) {
+            const isModel = row.key === "seo_ai_model" || row.key === "chatbot_model";
+            const choice = isModel ? (
+              <ModelField key={row.key} id={id} label={meta.label} value={row.value} options={row.options} />
+            ) : (
               <ChoiceField
                 key={row.key}
                 id={id}
@@ -313,6 +346,12 @@ function GroupPanel({
                 options={row.options}
               />
             );
+
+            // "Test this model" stands directly under the second of the two
+            // model pickers, not at the foot of the tab under Search Console.
+            return row.key === "seo_ai_model"
+              ? [choice, <OpenRouterTest key="openrouter-test" configured={rows.some((r) => r.key === "openrouter_api_key" && Boolean(r.is_set))} />]
+              : choice;
           }
 
           // An on/off setting with no named choices: a switch, decided by
@@ -331,13 +370,14 @@ function GroupPanel({
             numbered list with a link in it, which is exactly what a
             plain textarea cannot express.
           */
-          if (row.key === "activation_procedure" || row.key === "login_message") {
+          if (row.key === "activation_procedure" || row.key === "login_message" || row.key === "coming_soon_message") {
             return (
               <div key={row.key} className="sm:col-span-2">
                 <EditorField
                   name={id}
                   label={meta.label}
                   defaultValue={row.value ?? ""}
+                  icons={row.key !== "activation_procedure"}
                 />
               </div>
             );
@@ -400,6 +440,7 @@ function GroupPanel({
                     picture, the drop zone and both action links.
                   */
                   description={meta.hint}
+                  spec={settingImageSpec(row.key)}
                   /*
                     `contain`, not `cover`. Each of these is a mark
                     rather than a photograph: cropping a 600x81 logo into
@@ -489,11 +530,29 @@ function GroupPanel({
           own: the generic rows draw a key correctly, and what was
           missing was a way to prove it works.
         */}
+        {/* The media CDN: prove the saved address before switching it on. */}
+        {group === "media_cdn" && <MediaCdnTest configured={Boolean(rows.find((r) => r.key === "media_cdn_url")?.value)} />}
+
         {/* A backup destination's test, last refusal and its own extras (Drive's consent, SFTP's key). */}
         {group.startsWith("backups_") && <BackupDestinationPanel group={group} rows={rows} drive={drive} />}
 
         {/* The Workspace calendar every meeting is organised on: its consent, a test, the last refusal. */}
         {group === "meetings_google" && <MeetingsGooglePanel status={meetingsGoogle} rows={rows} />}
+
+        {/* Zoho Books: its consent, the organisation and taxes only Zoho can list, a test, where things stand. */}
+        {group === "zoho_books" && <ZohoBooksPanel status={zoho} rows={rows} />}
+
+        {/* Shiprocket: the pickup location only it can list, the tracking address to paste into it, a test, where things stand. */}
+        {group === "shiprocket" && <ShiprocketPanel status={shiprocket} rows={rows} />}
+
+        {/* Customers' "Continue with Google": the redirect address to register with Google, and whether it is live. */}
+        {group === "google_login" && (
+          <GoogleLoginNote
+            enabled={["1", "true"].includes(String(rows.find((r) => r.key === "google_login_enabled")?.value ?? ""))}
+            hasId={Boolean(rows.find((r) => r.key === "google_login_client_id")?.value)}
+            hasSecret={rows.some((r) => r.key === "google_login_client_secret" && Boolean(r.is_set))}
+          />
+        )}
 
         {group === "integrations" && (
           <>

@@ -166,7 +166,8 @@ final class CartReminders
             [
                 'basket_url' => self::restoreUrl($restore),
                 'item_count' => $summary['item_count'],
-                'basket_total' => Money::format($summary['total_paise']),
+                // Goods less discount: see CartReminder::summary().
+                'basket_total' => Money::format($summary['subtotal_paise'] - $summary['discount_paise']),
                 'coupon_code' => $coupon !== null ? $coupon->code : '',
             ],
         );

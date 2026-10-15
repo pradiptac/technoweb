@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PaymentStatus;
+use App\Support\Store\Zoho\ZohoPayments;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -34,7 +35,20 @@ class Payment extends Model
             'status' => PaymentStatus::class,
             'amount_paise' => 'integer',
             'paid_at' => 'datetime',
+            'zoho_attempts' => 'integer',
+            'zoho_claimed_at' => 'datetime',
+            'zoho_next_attempt_at' => 'datetime',
+            'zoho_synced_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Money that moved is told to Zoho Books, once (0.136.0,
+        // docs/store.md). `consider()` never throws and does nothing unless
+        // the order already has its Zoho invoice — a payment that arrives
+        // first is picked up when the invoice is made.
+        static::created(fn (self $payment) => ZohoPayments::consider($payment));
     }
 
     /** @return BelongsTo<Order, $this> */

@@ -3,6 +3,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { IconMeeting } from "@/components/icons";
 import { getMyMeetings } from "@/lib/admin";
@@ -91,7 +92,7 @@ export default async function MyMeetingsPage({ searchParams }: { searchParams: P
       )}
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconMeeting />} title={filtered ? "Nothing matches those filters" : "No meetings yet"}>
+        <EmptyState icon={<IconMeeting />} title={filtered ? "Nothing matches those filters" : "No meetings yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/my-meetings" noun="meeting" />}>
           {filtered ? "Try a different term, or clear the filters." : "Meetings you are booked to host appear here."}
         </EmptyState>
       ) : (

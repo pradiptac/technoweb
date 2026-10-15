@@ -49,7 +49,7 @@ export default async function PortalVisitsPage() {
       ) : (
         <ul className="grid gap-3">
           {visits.data.map((visit) => (
-            <li key={visit.reference} className="rounded-lg border border-line-strong bg-card p-4">
+            <li key={visit.reference} className="rounded-xl border border-line-strong bg-card p-4 shadow-1">
               <div className="flex flex-wrap items-center gap-3">
                 <Link href={`/portal/visits/${visit.reference}`} className="font-mono text-13-5 font-medium hover:underline">
                   {visit.reference}

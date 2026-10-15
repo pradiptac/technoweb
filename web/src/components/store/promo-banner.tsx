@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { IconArrowRight } from "@/components/icons";
@@ -70,7 +71,7 @@ export function PromoBanner({ settings }: { settings: SiteSettings }) {
                 fill
                 sizes="(min-width: 1024px) 46vw, 100vw"
                 className="object-cover"
-                style={focalStyle(settings.store_promo_image_focus)}
+                style={focalStyle(settings.store_promo_image_focus)} {...blurProps(settings.store_promo_image_blur)}
               />
               {/*
                 A fade into the band so the photograph does not stop at a hard

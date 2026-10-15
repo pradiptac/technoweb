@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
+import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
+import { RevisionPanel } from "@/components/admin/revision-panel";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { Alert } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import { getAnswerBlockKinds, getPage, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -21,11 +24,18 @@ export default async function EditCmsPage({
   params, searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; dropped?: string }>;
 }) {
   await requireScreen();
   const { id } = await params;
-  const { saved } = await searchParams;
+  const { saved, dropped: droppedParam } = await searchParams;
+  /*
+    How many sections the AI page builder proposed and the page's rules
+    refused (`?dropped=N`, written by the draft action). Read as a number and
+    nothing else — the sentence is ours, never text from the URL — and capped,
+    so a hand-edited link cannot make the line claim thousands.
+  */
+  const droppedCount = /^\d{1,2}$/.test(droppedParam ?? "") ? Number(droppedParam) : 0;
 
   const numericId = Number(id);
   if (!Number.isInteger(numericId)) notFound();
@@ -47,17 +57,29 @@ export default async function EditCmsPage({
         title="Edit page"
       >
         <Badge tone={statusTone[page.status]}>{page.status_label}</Badge>
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          <RevisionPanel type="page" id={page.id} pageId={page.id} />
+          <PreviewLinkPanel type="page" id={page.id} />
+        </span>
         {page.template === "builder" && (
-          <Link href={`/admin/pages/${page.id}/preview`} className="ml-auto py-1 text-13-5 font-semibold text-brand-ink hover:underline">
+          <Link href={`/admin/pages/${page.id}/preview`} className="py-1 text-13-5 font-semibold text-brand-ink hover:underline">
             Preview
           </Link>
         )}
         {page.status === "published" && (
-          <Link href={`/${page.slug}`} className={`${page.template === "builder" ? "" : "ml-auto "}py-1 text-13-5 font-semibold text-brand-ink hover:underline`}>
+          <Link href={`/${page.slug}`} className="py-1 text-13-5 font-semibold text-brand-ink hover:underline">
             View on site ↗
           </Link>
         )}
       </PageHeader>
+
+      {droppedCount > 0 && (
+        <Alert tone="info" title="Some suggested sections were left out">
+          {droppedCount === 1
+            ? "1 section the assistant suggested did not pass the page's rules and was left out."
+            : `${droppedCount} sections the assistant suggested did not pass the page's rules and were left out.`}
+        </Alert>
+      )}
 
       <PageForm page={page} saved={Boolean(saved)} kinds={kinds} builder={builder} />
     </>

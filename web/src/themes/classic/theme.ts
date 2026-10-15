@@ -1,4 +1,5 @@
 import type { ThemeManifest } from "../contract.ts";
+import { CLASSIC_HEADER, BRAND_FOOTER } from "../chrome-parts.ts";
 
 /**
  * Classic: the site as it was before themes existed.
@@ -16,4 +17,5 @@ export const classicManifest: ThemeManifest = {
   name: "Classic",
   blurb: "The site as designed: the mega menu, the sectioned homepage, the banner heroes.",
   screenshot: "/themes/classic.jpg",
+  chrome: { header: CLASSIC_HEADER, footer: BRAND_FOOTER },
 };

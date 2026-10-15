@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Models\ProductCategory;
+use App\Support\IconKey;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -39,7 +40,7 @@ class UpdateProductCategoryRequest extends FormRequest
                 Rule::unique('product_categories', 'slug')->ignore($category),
             ],
             'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
-            'icon' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'icon' => ['sometimes', 'nullable', 'string', 'max:40', IconKey::RULE],
             'image_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'parent_id' => [
                 'sometimes', 'nullable', 'integer',

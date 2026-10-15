@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { Alert } from "@/components/ui/input";
-import { ErrorState } from "@/components/ui/empty";
+import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Badge } from "@/components/ui/badge";
 import { getNewsletterDashboard } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -173,7 +173,7 @@ export default async function NewsletterDashboardPage() {
           </h2>
 
           {data.recent_campaigns.length === 0 ? (
-            <p className="measure text-13 text-muted">Nothing sent yet.</p>
+            <EmptyState compact illustration="inbox" title="Nothing sent yet">A campaign’s opens and clicks appear here once it has gone out.</EmptyState>
           ) : (
             <ul className="grid gap-2">
               {data.recent_campaigns.map((c) => (

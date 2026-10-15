@@ -3,11 +3,13 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { CoverField } from "@/components/admin/cover-field";
 import { MediaBrowser } from "@/components/admin/media-browser";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";
 import { IconField } from "@/components/admin/icon-field-lazy";
 import { cn } from "@/lib/utils";
+import type { ImageSpecKey } from "@/lib/image-specs";
 
 /**
  * The pieces every block editor is made of.
@@ -63,6 +65,26 @@ type Ctx = {
    * `b`, which is every block form's id as it always was.
    */
   idPrefix?: string;
+  /**
+   * Whether any error sits at or under a path — the page builder's layout
+   * editor opens a card with one inside it, so a 422 is never behind a fold.
+   */
+  anyErr?: (path: Path) => boolean;
+  /**
+   * Bumped when the content is replaced from outside the fields — the page
+   * builder's Undo and Redo, and its assistant (0.127.0). Every plain field
+   * here is controlled and follows `content` by itself; a rich-text editor
+   * takes its value once, when it mounts, so it is keyed on this and mounts
+   * again on the new words.
+   */
+  epoch?: number;
+  /**
+   * `set` as an undo step of its own, never merged with typing in the same
+   * second. The page builder's layout editor moves, adds and removes widgets
+   * and rows through it: merged, an Undo right after a move also took back
+   * the words typed just before it. Absent, callers use `set`.
+   */
+  setStep?: (path: Path, value: Json | undefined) => void;
 };
 
 const BlockCtx = createContext<Ctx | null>(null);
@@ -132,8 +154,8 @@ export function Toggle({ path, label, hint }: { path: Path; label: string; hint?
   const id = idFor(path, idPrefix);
   return (
     <div className="mb-[18px]">
-      <label htmlFor={id} className="inline-flex min-h-6 cursor-pointer items-center gap-2 text-13-5">
-        <input id={id} type="checkbox" className="size-4 accent-brand-600" checked={getIn(content, path) === true} onChange={(e) => set(path, e.target.checked)} />
+      <label htmlFor={id} className="inline-flex min-h-6 cursor-pointer items-center gap-2.5 text-13-5">
+        <Switch id={id} checked={getIn(content, path) === true} onChange={(e) => set(path, e.target.checked)} />
         {label}
       </label>
       {hint && <p className="mt-1 text-12-5 text-faint">{hint}</p>}
@@ -156,7 +178,7 @@ export function Choice({ path, label, options, hint, fallback }: {
   );
 }
 
-export function ImagePath({ path, label, hint }: { path: Path; label: string; hint?: string }) {
+export function ImagePath({ path, label, hint, spec = "body" }: { path: Path; label: string; hint?: string; spec?: ImageSpecKey }) {
   const { content, set, err, media, idPrefix } = useBlock();
   const value = getIn(content, path);
   const stored = typeof value === "string" ? value : null;
@@ -167,6 +189,7 @@ export function ImagePath({ path, label, hint }: { path: Path; label: string; hi
         name={`_media_${idFor(path, idPrefix)}`}
         label={label}
         hint={hint}
+        spec={spec}
         defaultPath={stored}
         defaultUrl={stored ? media[stored] ?? null : null}
         onPathChange={(p) => set(path, p ?? undefined)}
@@ -176,8 +199,16 @@ export function ImagePath({ path, label, hint }: { path: Path; label: string; hi
   );
 }
 
-/** A document from the library's Files tab — the gated download's PDF. */
-export function FilePath({ path, label, hint }: { path: Path; label: string; hint?: string }) {
+/** A document from the library's Files tab — the gated download's PDF, a downloads section's file. */
+export function FilePath({ path, label, hint, accept = ".pdf", noun = "a PDF" }: {
+  path: Path;
+  label: string;
+  hint?: string;
+  /** The extensions offered; a PDF by default. */
+  accept?: string;
+  /** What the button chooses: "a PDF", "a file". */
+  noun?: string;
+}) {
   const { content, set, err } = useBlock();
   const [open, setOpen] = useState(false);
   const value = getIn(content, path);
@@ -190,12 +221,100 @@ export function FilePath({ path, label, hint }: { path: Path; label: string; hin
         <span className={cn("min-w-0 flex-1 truncate rounded border border-line-strong bg-card px-3 py-2.5 text-13", !stored && "text-faint")}>
           {stored ? stored.split("/").pop() : "No file chosen"}
         </span>
-        <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>Choose a PDF</Button>
+        <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>Choose {noun}</Button>
         {stored && <Button type="button" variant="ghost" size="sm" onClick={() => set(path, undefined)}>Clear</Button>}
       </div>
       {hint && <p className="mt-1.5 text-12-5 text-faint">{hint}</p>}
       {message && <p className="mt-1.5 text-12-5 text-err">{message}</p>}
-      <MediaBrowser open={open} onClose={() => setOpen(false)} kind="file" title="Choose a PDF" accept=".pdf" onPick={(f) => { set(path, f.path); setOpen(false); }} />
+      <MediaBrowser open={open} onClose={() => setOpen(false)} kind="file" title={`Choose ${noun}`} accept={accept} onPick={(f) => { set(path, f.path); setOpen(false); }} />
+    </div>
+  );
+}
+
+/**
+ * A select over a **number** — columns, and the id of a block, slider,
+ * gallery or form. The shared `Choice` reads strings only, and these are
+ * stored as integers (`SectionRules::normalise`), so through it a saved
+ * "four columns" or a chosen slider would show as the fallback.
+ */
+export function NumberChoice({ path, label, options, placeholder, hint }: {
+  path: Path;
+  label: string;
+  options: { value: string; label: string }[];
+  /** An empty first option — "Choose…" — for a reference nothing has picked yet. */
+  placeholder?: string;
+  hint?: string;
+}) {
+  const { content, set, err, idPrefix } = useBlock();
+  const value = getIn(content, path);
+  const id = `${idPrefix ?? "b"}-${path.join("-")}`;
+  const current = typeof value === "number" || typeof value === "string" ? String(value) : placeholder !== undefined ? "" : options[0]?.value ?? "";
+
+  return (
+    <Field label={label} htmlFor={id} hint={hint} error={err(path)} variant="float-static">
+      <Select id={id} value={current} onChange={(e) => set(path, e.target.value === "" ? undefined : Number(e.target.value))}>
+        {placeholder !== undefined && <option value="">{placeholder}</option>}
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </Select>
+    </Field>
+  );
+}
+
+/**
+ * A Lottie animation or a 3D model from the library (0.172.0) — `CoverField`
+ * browsing its own half of the library, with "Or paste a link".
+ */
+function MotionPath({ path, label, kind, hint }: { path: Path; label: string; kind: "lottie" | "model"; hint?: string }) {
+  const { content, set, err, media, idPrefix } = useBlock();
+  const value = getIn(content, path);
+  const stored = typeof value === "string" ? value : null;
+  const message = err(path);
+  return (
+    <div>
+      <CoverField
+        name={`_media_${idPrefix ?? "b"}-${path.join("-")}`}
+        label={label}
+        kind={kind}
+        accept={kind === "lottie" ? ".json,.lottie" : ".glb"}
+        hint={hint}
+        defaultPath={stored}
+        defaultUrl={stored ? media[stored] ?? null : null}
+        onPathChange={(p) => set(path, p ?? undefined)}
+      />
+      {message && <p className="-mt-3 mb-4 text-12-5 text-err">{message}</p>}
+    </div>
+  );
+}
+
+export function LottiePath({ path, label = "Animation", hint }: { path: Path; label?: string; hint?: string }) {
+  return <MotionPath path={path} label={label} kind="lottie" hint={hint} />;
+}
+
+export function ModelPath({ path, label = "3D model", hint }: { path: Path; label?: string; hint?: string }) {
+  return <MotionPath path={path} label={label} kind="model" hint={hint} />;
+}
+
+const VIDEO_HINT = "An MP4 from the media library. Keep it short and small — it loads when somebody presses play.";
+
+/** A video from the library — the slide repeater's picker, widened to MP4. */
+export function VideoPath({ path, label, hint = VIDEO_HINT }: { path: Path; label: string; hint?: string }) {
+  const { content, set, err, media, idPrefix } = useBlock();
+  const value = getIn(content, path);
+  const stored = typeof value === "string" ? value : null;
+  const message = err(path);
+
+  return (
+    <div>
+      <CoverField
+        name={`_media_${idPrefix ?? "b"}-${path.join("-")}`}
+        label={label}
+        accept=".mp4,.webm"
+        hint={hint}
+        defaultPath={stored}
+        defaultUrl={stored ? media[stored] ?? null : null}
+        onPathChange={(p) => set(path, p ?? undefined)}
+      />
+      {message && <p className="-mt-3 mb-4 text-12-5 text-err">{message}</p>}
     </div>
   );
 }

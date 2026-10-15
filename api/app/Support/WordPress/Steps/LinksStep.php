@@ -3,9 +3,11 @@
 namespace App\Support\WordPress\Steps;
 
 use App\Models\WordPressImportMapping;
+use App\Support\Import\LinkRewriter;
 use App\Support\WordPress\Context;
 use App\Support\WordPress\ImportMap;
 use App\Support\WordPress\Outcome;
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -18,6 +20,10 @@ use Illuminate\Database\Eloquent\Model;
  * each `href` in an imported body that names an old address, keeping any
  * `#fragment`. A link to a file in the old uploads directory (a PDF, say)
  * brings the file into the media library and points at it there.
+ *
+ * A page laid out as builder sections (0.109.0) carries its words in each
+ * section's `body` and its links in buttons' and features' `href`s as well
+ * as its own body, and those are rewritten the same way.
  *
  * It runs in the commit only, after the last record step; in the review it
  * has nothing to count.
@@ -71,14 +77,30 @@ class LinksStep extends Step
                 $model = ImportMap::resolve($row);
                 $column = self::BODIES[$row->target_type];
 
-                if ($model === null || ! is_string($html = $model->getAttribute($column)) || $html === '') {
+                if ($model === null) {
                     return;
                 }
 
-                $rewritten = $this->rewrite($ctx, $html, $paths, (string) $model->getAttribute('title') ?: (string) $model->getAttribute('name'));
+                $label = (string) $model->getAttribute('title') ?: (string) $model->getAttribute('name');
+                $changed = false;
 
-                if ($rewritten !== $html) {
-                    $model->setAttribute($column, $rewritten);
+                if (is_string($html = $model->getAttribute($column)) && $html !== '') {
+                    $rewritten = $this->rewrite($ctx, $html, $paths, $label);
+                    if ($rewritten !== $html) {
+                        $model->setAttribute($column, $rewritten);
+                        $changed = true;
+                    }
+                }
+
+                if ($row->target_type === 'page' && is_array($blocks = $model->getAttribute('blocks')) && $blocks !== []) {
+                    $rewritten = LinkRewriter::sections($blocks, $this->mapper($ctx, $paths, $label));
+                    if ($rewritten !== $blocks) {
+                        $model->setAttribute('blocks', $rewritten);
+                        $changed = true;
+                    }
+                }
+
+                if ($changed) {
                     $model->save();
                     $ctx->report->count($this->key(), 'update');
                 }
@@ -140,28 +162,35 @@ class LinksStep extends Step
     /** @param  array<string, string>  $paths */
     private function rewrite(Context $ctx, string $html, array $paths, string $label): string
     {
+        return LinkRewriter::html($html, $this->mapper($ctx, $paths, $label));
+    }
+
+    /**
+     * What an href in imported markup becomes: a file in the old uploads is
+     * brought into the library, a link to an imported page its new path.
+     *
+     * @param  array<string, string>  $paths
+     * @return Closure(string): ?string
+     */
+    private function mapper(Context $ctx, array $paths, string $label): Closure
+    {
         $site = preg_replace('/^www\./i', '', (string) parse_url((string) ($ctx->site()['url'] ?? $ctx->import->site_url), PHP_URL_HOST));
 
-        return (string) preg_replace_callback('/(\bhref=")([^"]+)(")/i', function (array $m) use ($ctx, $paths, $site, $label) {
-            $href = html_entity_decode($m[2], ENT_QUOTES);
+        return function (string $href) use ($ctx, $paths, $site, $label): ?string {
             $host = preg_replace('/^www\./i', '', (string) parse_url($href, PHP_URL_HOST));
 
             if ($host !== '' && strcasecmp($host, $site) !== 0) {
-                return $m[0];
+                return null;
             }
 
             if (self::isSiteUpload($ctx, $href) && ($path = $ctx->media($href, $label)) !== null) {
-                return $m[1].e(Context::mediaUrl($path)).$m[3];
+                return Context::mediaUrl($path);
             }
 
             $old = self::normalise($href);
             $fragment = (string) parse_url($href, PHP_URL_FRAGMENT);
 
-            if ($old !== null && isset($paths[$old])) {
-                return $m[1].e($paths[$old].($fragment !== '' ? '#'.$fragment : '')).$m[3];
-            }
-
-            return $m[0];
-        }, $html);
+            return $old !== null && isset($paths[$old]) ? $paths[$old].($fragment !== '' ? '#'.$fragment : '') : null;
+        };
     }
 }

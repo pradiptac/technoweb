@@ -99,6 +99,7 @@ export function BannersPanel({ rows }: { rows: SettingGroups[string] }) {
                   than an empty one.
                 */
                 hint=""
+                spec="banner"
                 /* The card supplies the spacing. */
                 className="mb-0"
               />

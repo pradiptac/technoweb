@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { expandInlineIcons } from "@/lib/shortcodes";
 
 /**
  * Renders rich text authored in the CMS.
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
 export function Prose({ html, className, onDark = false }: { html: string; className?: string; onDark?: boolean }) {
   return (
     <div
+      data-prose=""
       className={cn(
         // No width cap: the client asked for body copy to use the whole
         // container (2026-09-16). A column around it still bounds it.
@@ -107,7 +109,8 @@ export function Prose({ html, className, onDark = false }: { html: string; class
         "max-sm:[&_table:not(:has(th))_td]:py-2 max-sm:[&_table:not(:has(th))_td+td]:pl-0",
         className,
       )}
-      dangerouslySetInnerHTML={{ __html: html }}
+      // Google icons written into a sentence (0.179.0) — see `expandInlineIcons`.
+      dangerouslySetInnerHTML={{ __html: expandInlineIcons(html) }}
     />
   );
 }

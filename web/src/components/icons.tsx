@@ -7,7 +7,9 @@ import {
   Workflow,
   type LucideIcon,
 } from "lucide-react";
+import type { ComponentType } from "react";
 import { hueFor } from "@/lib/hues";
+import { MaterialIcon } from "./material-icon";
 import { base, type P } from "./icon-base";
 import { reiconMap } from "./reicon-icons";
 import { IconBook, IconMail } from "./icons-ui";
@@ -830,8 +832,42 @@ export function IdentityIcon({
   fallback?: IconName;
   className?: string;
 }) {
+  // A Google icon (0.179.0): `ms:<name>`, drawn from our own file, in the
+  // hue its own key gives it — so it is coloured the way an `iconMap` icon is.
+  const google = name ? MATERIAL.exec(name) : null;
+  if (google) return <MaterialIcon name={google[1]} className={className} style={{ color: hueFor(name!) }} />;
+
   const key = (name && name in iconMap ? name : fallback) as IconName;
   const Icon = iconMap[key];
 
   return <Icon className={className} style={{ color: hueFor(key) }} />;
+}
+
+const MATERIAL = /^ms:([a-z0-9_]{1,37})$/;
+
+/** Whether `key` is a well-formed Google icon key, `ms:router`. */
+export { MaterialIcon };
+
+export function isMaterialKey(key: string | null | undefined): boolean {
+  return Boolean(key && MATERIAL.test(key));
+}
+
+/** Whether `key` is something `IdentityIcon` can draw: an `iconMap` name or a Google icon. */
+export function isIdentityIcon(key: string | null | undefined): boolean {
+  return Boolean(key && (key in iconMap || MATERIAL.test(key)));
+}
+
+/**
+ * The plain (uncoloured) icon for a stored key — an `iconMap` name or a Google
+ * icon — for a screen that draws an icon inside its own tile. A component
+ * rather than a function that returns one: a component made during render is
+ * a new type on every render.
+ */
+export function IconByKey({ name, Fallback, className }: { name: string | null | undefined; Fallback: ComponentType<{ className?: string }>; className?: string }) {
+  const google = name ? MATERIAL.exec(name) : null;
+  if (google) return <MaterialIcon name={google[1]} className={className} />;
+
+  const Icon = name && name in iconMap ? iconMap[name as IconName] : Fallback;
+
+  return <Icon className={className} />;
 }

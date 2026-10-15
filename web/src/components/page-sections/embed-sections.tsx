@@ -11,10 +11,16 @@ import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
 import { SliderFor } from "@/components/ui/slider-for";
 import { publicApi } from "@/lib/api";
 import type { SectionRevealAttr } from "@/lib/motion-choices";
+import { VideoShelfTiles } from "@/components/store/video-shelf-tiles";
+import { getSiteSettings } from "@/lib/settings";
+import type { SiteSettings } from "@/lib/site-settings";
+import { videoShelfConfig } from "@/lib/store-videos";
 import type {
   CardsSectionData, ContentBlockSectionData, EmbedSectionData, FaqSectionData, LogosSectionData,
 } from "@/types/api";
+import type { ProductVideosSectionData } from "@/types/page-sections";
 import { SectionFrame, SectionHead } from "./section-parts";
+import { blurProps } from "@/lib/blur";
 
 /**
  * The sections that draw something that lives elsewhere: a live list, a
@@ -31,6 +37,9 @@ import { SectionFrame, SectionHead } from "./section-parts";
 const KIND: Record<string, string> = {
   solutions: "solutions", services: "services", industries: "industries", case_studies: "case-studies",
   blog: "posts", knowledge: "articles", products: "products", store_products: "products",
+  // Both lists the API offers that are not catalogue records; without an
+  // entry here a section of them falls back to the generic "related" idiom.
+  events: "events", tenders: "tenders",
 };
 
 /**
@@ -60,7 +69,7 @@ export function CardsSection({ data, eager, reveal }: { data: CardsSectionData; 
               hue={item.icon ? hueForIcon(item.icon) : undefined}
               focus={item.image_focus}
               media={item.image ? (
-                <Image
+                <Image {...blurProps(item.image_blur)}
                   src={item.image}
                   alt={item.image_alt ?? ""}
                   fill
@@ -81,6 +90,34 @@ export function CardsSection({ data, eager, reveal }: { data: CardsSectionData; 
   );
 }
 
+/**
+ * The shop's "shop the videos" row as a builder section (0.140.0). The API
+ * resolved `items` through `VideoShelf` — the list the shop front and the
+ * homepage draw — and dropped the section when there were none. The look
+ * (autoplay, SKU, consent) is Store → Product videos', read here from the
+ * cached settings; the section's own `shape` wins over the setting's.
+ */
+export async function ProductVideosSection({ data, reveal }: { data: ProductVideosSectionData; reveal?: SectionRevealAttr | null }) {
+  const settings = await getSiteSettings().catch(() => ({}) as SiteSettings);
+  const config = videoShelfConfig(settings);
+
+  return (
+    <SectionFrame type="product_videos" reveal={reveal}>
+      <Container>
+        <SectionHead kicker={data.kicker} heading={data.heading} lede={data.lede} />
+        <VideoShelfTiles
+          rows={data.items}
+          shape={data.shape ?? config.shape}
+          autoplay={config.autoplay}
+          showSku={config.showSku}
+          consentGated={config.consentGated}
+          titleAs={data.heading ? "h3" : "p"}
+        />
+      </Container>
+    </SectionFrame>
+  );
+}
+
 /** A published content block, drawn as a page section — `BlockView` brings its own band. */
 export function ContentBlockSection({ data, reveal }: { data: ContentBlockSectionData; reveal?: SectionRevealAttr | null }) {
   return <div data-page-section="content_block" data-aos={reveal ?? undefined}><BlockView block={data.block} /></div>;
@@ -94,7 +131,9 @@ export async function SliderSection({ data, reveal }: { data: EmbedSectionData; 
     <SectionFrame type="slider" reveal={reveal}>
       <Container>
         <SectionHead heading={data.heading} />
-        <SliderFor slider={slider} aspect="aspect-[16/9]" />
+        {/* Inside the container (90%, at most 1920px), never the whole screen: at the
+            default "100vw" the browser fetched a wider picture than it draws. */}
+        <SliderFor slider={slider} aspect="aspect-[16/9]" sizes="(min-width: 2134px) 1920px, 90vw" />
       </Container>
     </SectionFrame>
   );
@@ -123,7 +162,8 @@ export async function FormSection({ data, reveal }: { data: EmbedSectionData; re
       <Container>
         <div className="mx-auto max-w-3xl">
           <SectionHead heading={data.heading} lede={data.lede} />
-          <FormBlock form={form} />
+          {/* A form's own headings (a `heading` field, a step's title) sit one level under the section's — or at its level when it has none. */}
+          <FormBlock form={form} headingLevel={data.heading ? 3 : 2} />
         </div>
       </Container>
     </SectionFrame>

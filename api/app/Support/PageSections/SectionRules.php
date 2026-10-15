@@ -5,13 +5,19 @@ namespace App\Support\PageSections;
 use App\Enums\PageSectionType;
 use App\Enums\PublishStatus;
 use App\Models\ContentBlock;
+use App\Models\ContentType;
+use App\Models\DownloadCategory;
 use App\Models\Form;
 use App\Models\Gallery;
 use App\Models\Media;
 use App\Models\ProductCategory;
+use App\Models\SavedSection;
 use App\Models\Slider;
 use App\Models\StoreCategory;
 use App\Support\Blocks\BlockRules;
+use App\Support\Countries;
+use App\Support\IconKey;
+use App\Support\Store\VideoShelf;
 use App\Support\ThemeOptions;
 use App\Support\YouTube;
 use Illuminate\Database\Eloquent\Model;
@@ -50,7 +56,102 @@ final class SectionRules
     /** A page is a stack of sections, not a document of them. */
     public const MAX_SECTIONS = 40;
 
+    /**
+     * The rich text inside a list of sections, as `SanitisesRichText` paths:
+     * a `rich_text` or `media_text` body, and each body of a `columns`
+     * section. Every request that accepts `blocks` names these in its
+     * `richTextFields()`, or a section's markup is stored as typed.
+     */
+    public const RICH_TEXT = [
+        'blocks.*.data.body',
+        'blocks.*.data.columns.*.body',
+        // A layout section's text widgets (0.147.0): four levels of `*`.
+        'blocks.*.data.rows.*.columns.*.widgets.*.html',
+        // …and the one level a container widget (0.154.0) holds: a text widget in a slot.
+        'blocks.*.data.rows.*.columns.*.widgets.*.slots.*.widgets.*.html',
+    ];
+
+    /**
+     * A section's style (2026-10-05, docs/page-builder.md "Style"): how it
+     * sits on the page, beside what it says. Every key is optional and each
+     * value is a choice from its list — never a number or a colour, so
+     * whatever an editor picks still passes the audits. The first of each is
+     * what the section does on its own and is never stored.
+     */
+    public const STYLE = [
+        'pad_top' => ['default', 'none', 's', 'l', 'xl'],
+        'pad_bottom' => ['default', 'none', 's', 'l', 'xl'],
+        'width' => ['default', 'medium', 'narrow'],
+        'align' => ['default', 'center'],
+        'heading' => ['default', 's', 'l'],
+        // Motion (0.114.0): how the heading moves as the section scrolls into
+        // view, and an effect tied to the scroll itself. The frontend draws
+        // both inside the reduced-motion guard.
+        'headline' => ['default', 'rise', 'wipe', 'shimmer'],
+        'scroll' => ['default', 'parallax', 'zoom', 'fade'],
+        // A shaped edge (0.126.0): the section's own ground cut to a wave, a
+        // slant, a curve or a peak where it meets its neighbour. Drawn only
+        // on a section that has a background of its own; the frontend
+        // ignores it otherwise, and a top edge on the page's first section.
+        'edge_top' => ['default', 'wave', 'slant', 'curve', 'peak'],
+        'edge_bottom' => ['default', 'wave', 'slant', 'curve', 'peak'],
+        // A least height (0.146.0): a step on a fixed scale, `screen` being the
+        // visible window less the site header. Vertical only.
+        'min_h' => ['default', 's', 'm', 'l', 'screen'],
+        // The heading's ink (0.146.0): one of the three coloured inks, which
+        // the section's ground re-derives to pass AA — never a colour.
+        'heading_color' => ['default', 'brand', 'secondary', 'accent'],
+        // Space outside the section (0.153.0): above and below only, never the
+        // sides and never negative; `m` is a real step here as on a device.
+        'mt' => ['default', 'none', 's', 'm', 'l', 'xl'],
+        'mb' => ['default', 'none', 's', 'm', 'l', 'xl'],
+        // A rule round the section's ground and a shadow under it (0.153.0),
+        // both drawn from tokens; neither touches a text or background colour.
+        'border' => ['default', 'line', 'strong', 'brand'],
+        'shadow' => ['default', 's', 'm', 'l'],
+    ];
+
+    /**
+     * What a device may override (0.146.0, `style.responsive.{device}.{key}`).
+     * Unlike `STYLE` there is no "default" step: a missing key inherits the
+     * base, and `m` — the section's normal rhythm — is a real, stored step
+     * here, because an override needs a way to say "normal" that differs from
+     * "no override". Whatever an override says is stored, even when it equals
+     * the base.
+     */
+    public const RESPONSIVE = [
+        'pad_top' => ['none', 's', 'm', 'l', 'xl'],
+        'pad_bottom' => ['none', 's', 'm', 'l', 'xl'],
+        'align' => ['start', 'center', 'end'],
+        'min_h' => ['none', 's', 'm', 'l', 'screen'],
+        'mt' => ['none', 's', 'm', 'l', 'xl'],
+        'mb' => ['none', 's', 'm', 'l', 'xl'],
+    ];
+
+    /**
+     * Section types whose heading sits on a band of fixed colour. A heading
+     * colour on one is stored and ignored by the website; the console reads
+     * this list (`style_options.heading_color_except`) to disable the row.
+     */
+    public const HEADING_COLOR_EXCEPT = ['hero', 'cta', 'theme_section', 'subnav'];
+
+    /** Where a section may be shown; all three is the default. */
+    public const DEVICES = ['phone', 'tablet', 'desktop'];
+
+    /** Custom code (0.158.0): the longest paste, the frame's starting heights and where it runs. */
+    public const CUSTOM_CODE_MAX = 50000;
+
+    public const CUSTOM_CODE_HEIGHTS = ['auto', 's', 'm', 'l'];
+
+    public const CUSTOM_CODE_MODES = ['frame', 'page'];
+
+    /** An in-page link target: `#pricing`. */
+    public const ANCHOR = '/^[a-z][a-z0-9-]{0,47}$/';
+
     public const HERO_LAYOUTS = ['split', 'centered', 'cover'];
+
+    /** Where a downloads section's files come from: typed in (the default, not stored) or the centre. */
+    public const DOWNLOAD_SOURCES = ['custom', 'centre'];
 
     /** The live lists a `cards` section can draw; `SectionPresenter::cards()` reads each. */
     public const CARD_SOURCES = [
@@ -62,9 +163,40 @@ final class SectionRules
         'knowledge' => 'Knowledge base articles',
         'products' => 'Products (catalogue)',
         'store_products' => 'Products (shop)',
+        // What is coming up, soonest first (docs/events.md).
+        'events' => 'Upcoming events',
+        // Still taking bids, closing soonest first (docs/tenders.md).
+        'tenders' => 'Open tenders',
+        // 0.126.0: three more lists the site already keeps.
+        'product_categories' => 'Product categories (catalogue)',
+        'store_categories' => 'Shop categories',
+        'vacancies' => 'Open vacancies',
     ];
 
-    private const ICON = 'regex:/^[a-z0-9-]{1,40}$/';
+    /**
+     * Every list a `cards` section may draw: the fixed ones, and one per
+     * active custom content type as `entry:<type-slug>` (0.126.0) — the
+     * target key the custom-fields module already uses for a type. This is
+     * what the save is validated against and what the console's picker is
+     * sent; `CARD_SOURCES` alone stays the list the AI page draft may use.
+     *
+     * @return array<string, string>
+     */
+    public static function cardSources(): array
+    {
+        return once(fn () => self::CARD_SOURCES + ContentType::query()->active()
+            ->orderBy('sort_order')->orderBy('name')->get(['slug', 'name', 'plural'])
+            ->mapWithKeys(fn (ContentType $t) => ["entry:{$t->slug}" => (filled($t->plural) ? $t->plural : $t->name).' (your content)'])
+            ->all());
+    }
+
+    /** An icon's id, as the frontend's identity icons are keyed; `PageDraft` reads it too. */
+    public const ICON_PATTERN = IconKey::PATTERN;
+
+    private const ICON = 'regex:'.self::ICON_PATTERN;
+
+    /** How a `stats` section draws its figures; rings and bars need a percentage. */
+    public const STAT_DISPLAYS = ['figures', 'rings', 'bars'];
 
     /**
      * The rules for the whole list, generated per row from each row's type.
@@ -84,8 +216,37 @@ final class SectionRules
             // `SECTION_REVEALS`, checked for shape only — the rule every
             // `motion_*` id follows, since the list lives with the CSS.
             "{$prefix}.*.reveal" => ['nullable', 'string', 'regex:'.ThemeOptions::REVEAL],
+            "{$prefix}.*.style" => ['nullable', 'array'],
+            "{$prefix}.*.style.pad_top" => ['nullable', Rule::in(self::STYLE['pad_top'])],
+            "{$prefix}.*.style.pad_bottom" => ['nullable', Rule::in(self::STYLE['pad_bottom'])],
+            "{$prefix}.*.style.width" => ['nullable', Rule::in(self::STYLE['width'])],
+            "{$prefix}.*.style.align" => ['nullable', Rule::in(self::STYLE['align'])],
+            "{$prefix}.*.style.heading" => ['nullable', Rule::in(self::STYLE['heading'])],
+            "{$prefix}.*.style.headline" => ['nullable', Rule::in(self::STYLE['headline'])],
+            "{$prefix}.*.style.scroll" => ['nullable', Rule::in(self::STYLE['scroll'])],
+            "{$prefix}.*.style.edge_top" => ['nullable', Rule::in(self::STYLE['edge_top'])],
+            "{$prefix}.*.style.edge_bottom" => ['nullable', Rule::in(self::STYLE['edge_bottom'])],
+            "{$prefix}.*.style.min_h" => ['nullable', Rule::in(self::STYLE['min_h'])],
+            "{$prefix}.*.style.heading_color" => ['nullable', Rule::in(self::STYLE['heading_color'])],
+            "{$prefix}.*.style.mt" => ['nullable', Rule::in(self::STYLE['mt'])],
+            "{$prefix}.*.style.mb" => ['nullable', Rule::in(self::STYLE['mb'])],
+            "{$prefix}.*.style.border" => ['nullable', Rule::in(self::STYLE['border'])],
+            "{$prefix}.*.style.shadow" => ['nullable', Rule::in(self::STYLE['shadow'])],
+            "{$prefix}.*.style.responsive" => ['nullable', 'array'],
+            "{$prefix}.*.style.anchor" => ['nullable', 'string', 'regex:'.self::ANCHOR],
+            "{$prefix}.*.style.show_on" => ['nullable', 'array', 'min:1'],
+            "{$prefix}.*.style.show_on.*" => ['string', Rule::in(self::DEVICES)],
             "{$prefix}.*.data" => ['present', 'array'],
         ];
+
+        // The per-device overrides, generated so a device or a key cannot be
+        // forgotten in one place (0.146.0).
+        foreach (self::DEVICES as $device) {
+            $rules["{$prefix}.*.style.responsive.{$device}"] = ['nullable', 'array'];
+            foreach (self::RESPONSIVE as $key => $choices) {
+                $rules["{$prefix}.*.style.responsive.{$device}.{$key}"] = ['nullable', Rule::in($choices)];
+            }
+        }
 
         if (! is_array($blocks)) {
             return $rules;
@@ -98,6 +259,11 @@ final class SectionRules
             }
             foreach (self::for($type, "{$prefix}.{$i}.data") as $key => $rule) {
                 $rules["{$prefix}.{$i}.data.{$key}"] = $rule;
+            }
+            // A layout is a tree: its rows, columns and widgets are generated
+            // from what each one says it is, over a capped walk.
+            if ($type === PageSectionType::Layout && is_array($block['data'] ?? null)) {
+                $rules = [...$rules, ...LayoutRules::rules($block['data'], "{$prefix}.{$i}.data")];
             }
         }
 
@@ -122,6 +288,14 @@ final class SectionRules
                 'lede' => $lede,
                 'layout' => ['required', Rule::in(self::HERO_LAYOUTS)],
                 'image_path' => ['nullable', "required_if:{$at}.layout,split,cover", 'string', 'max:255'],
+                // A video playing behind a cover hero (0.115.0). The picture
+                // stays required: it is the poster, and what a visitor who
+                // asked for less motion sees. Cover only — `checkData` says so.
+                'video_path' => ['nullable', 'string', 'max:255'],
+                // The heading's effect (0.171.0): an id checked for shape — the
+                // list is motion-choices.ts's KINETIC — and the words it needs.
+                'kinetic' => ['nullable', 'string', 'regex:/^[a-z][a-z0-9-]{1,31}$/'],
+                'kinetic_words' => ['nullable', 'string', 'max:300'],
                 ...self::button('primary', $at),
                 ...self::button('secondary', $at),
             ],
@@ -157,7 +331,7 @@ final class SectionRules
                 'kicker' => ['nullable', 'string', 'max:80'],
                 'heading' => $heading,
                 'lede' => $lede,
-                'source' => ['required', Rule::in(array_keys(self::CARD_SOURCES))],
+                'source' => ['required', Rule::in(array_keys(self::cardSources()))],
                 'category' => ['nullable', 'string', 'max:160'],
                 'limit' => ['nullable', 'integer', 'min:1', 'max:12'],
                 'columns' => ['nullable', 'integer', Rule::in([2, 3, 4])],
@@ -202,11 +376,410 @@ final class SectionRules
                 'video_path' => ['nullable', "required_if:{$at}.source,mp4", 'string', 'max:255'],
                 'caption' => ['nullable', 'string', 'max:300'],
             ],
+            // Lottie and 3D (0.172.0): a library file, a few choices. `alt` is
+            // optional for an animation (blank = decorative) and required for a
+            // model, which model-viewer needs described.
+            PageSectionType::Lottie => [
+                'heading' => $heading,
+                'lede' => ['nullable', 'string', 'max:300'],
+                'file_path' => ['required', 'string', 'max:255'],
+                'alt' => ['nullable', 'string', 'max:200'],
+                'loop' => ['nullable', 'boolean'],
+                'size' => ['nullable', Rule::in(['s', 'm', 'l'])],
+                'align' => ['nullable', Rule::in(['center', 'start'])],
+            ],
+            PageSectionType::Model => [
+                'heading' => $heading,
+                'lede' => ['nullable', 'string', 'max:300'],
+                'file_path' => ['required', 'string', 'max:255'],
+                'alt' => ['required', 'string', 'max:200'],
+                'poster_path' => ['nullable', 'string', 'max:255'],
+                'rotate' => ['nullable', 'boolean'],
+                'height' => ['nullable', Rule::in(['s', 'm', 'l'])],
+            ],
             PageSectionType::Divider => [
                 'size' => ['nullable', Rule::in(['small', 'medium', 'large'])],
                 'rule' => ['nullable', 'boolean'],
             ],
+            PageSectionType::Stats => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'display' => ['required', Rule::in(self::STAT_DISPLAYS)],
+                'columns' => ['nullable', 'integer', Rule::in([2, 3, 4])],
+                'items' => ['required', 'array', 'min:1', 'max:8'],
+                'items.*.value' => ['required', 'string', 'max:24'],
+                'items.*.label' => ['required', 'string', 'max:80'],
+                'items.*.icon' => ['nullable', 'string', self::ICON],
+                'items.*.percent' => ['nullable', "required_if:{$at}.display,rings,bars", 'integer', 'min:0', 'max:100'],
+            ],
+            PageSectionType::Steps => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'layout' => ['required', Rule::in(['vertical', 'horizontal'])],
+                'items' => ['required', 'array', 'min:2', 'max:8'],
+                'items.*.title' => ['required', 'string', 'max:80'],
+                'items.*.body' => ['nullable', 'string', 'max:400'],
+                'items.*.icon' => ['nullable', 'string', self::ICON],
+            ],
+            PageSectionType::Tabs => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'items' => ['required', 'array', 'min:2', 'max:8'],
+                'items.*.label' => ['required', 'string', 'max:40'],
+                'items.*.heading' => ['nullable', 'string', 'max:120'],
+                'items.*.body' => ['required', 'string', 'max:2000'],
+                'items.*.image_path' => ['nullable', 'string', 'max:255'],
+            ],
+            PageSectionType::Checklist => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'columns' => ['nullable', 'integer', Rule::in([1, 2, 3])],
+                'items' => ['required', 'array', 'min:1', 'max:24'],
+                'items.*.text' => ['required', 'string', 'max:200'],
+                'items.*.icon' => ['nullable', 'string', self::ICON],
+                ...self::button('primary', $at),
+                ...self::button('secondary', $at),
+            ],
+            PageSectionType::Cta => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => ['required', 'string', 'max:160'],
+                'lede' => $lede,
+                'tone' => ['nullable', Rule::in(['brand', 'accent'])],
+                'call' => ['nullable', 'boolean'],
+                ...self::button('primary', $at),
+                ...self::button('secondary', $at),
+            ],
+            // Plans across, features down. A cell is "yes", "no", a few words
+            // or blank, by position under the plan it belongs to.
+            PageSectionType::Comparison => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'plans' => ['required', 'array', 'min:2', 'max:4'],
+                'plans.*.name' => ['required', 'string', 'max:40'],
+                'plans.*.note' => ['nullable', 'string', 'max:60'],
+                'highlight' => ['nullable', 'integer', 'min:0', 'max:3'],
+                'rows' => ['required', 'array', 'min:1', 'max:20'],
+                'rows.*.label' => ['required', 'string', 'max:120'],
+                'rows.*.cells' => ['nullable', 'array', 'max:4'],
+                'rows.*.cells.*' => ['nullable', 'string', 'max:60'],
+                ...self::button('primary', $at),
+            ],
+            PageSectionType::Timeline => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'items' => ['required', 'array', 'min:2', 'max:12'],
+                'items.*.date' => ['required', 'string', 'max:24'],
+                'items.*.title' => ['required', 'string', 'max:120'],
+                'items.*.body' => ['nullable', 'string', 'max:400'],
+            ],
+            PageSectionType::BeforeAfter => [
+                'heading' => $heading,
+                'lede' => $lede,
+                'before_path' => ['required', 'string', 'max:255'],
+                'after_path' => ['required', 'string', 'max:255'],
+                'before_label' => ['nullable', 'string', 'max:24'],
+                'after_label' => ['nullable', 'string', 'max:24'],
+                'start' => ['nullable', 'integer', 'min:10', 'max:90'],
+                'caption' => ['nullable', 'string', 'max:300'],
+            ],
+            PageSectionType::Testimonials => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'items' => ['required', 'array', 'min:2', 'max:9'],
+                'items.*.quote' => ['required', 'string', 'max:600'],
+                'items.*.name' => ['required', 'string', 'max:120'],
+                'items.*.role' => ['nullable', 'string', 'max:160'],
+                'items.*.photo_path' => ['nullable', 'string', 'max:255'],
+            ],
+            // The team as a live list: everybody, or one department.
+            PageSectionType::Team => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'department' => ['nullable', 'string', 'max:80'],
+                'limit' => ['nullable', 'integer', 'min:1', 'max:48'],
+                'group' => ['nullable', 'boolean'],
+            ],
+            // Its files are typed in here, or — since 0.131.0 — read live
+            // from the downloads centre (`source: centre`), optionally one
+            // shelf of it. Nothing is stored for the typed list's default.
+            PageSectionType::Downloads => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'source' => ['nullable', Rule::in(self::DOWNLOAD_SOURCES)],
+                'category_id' => ['nullable', 'integer'],
+                'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+                // A typed list needs its files; a section reading the centre
+                // needs none, and whatever a switched editor left behind is
+                // neither required nor kept (`normalise()` drops it).
+                'items' => ["required_unless:{$at}.source,centre", 'array', 'max:20'],
+                'items.*.title' => ["required_unless:{$at}.source,centre", 'nullable', 'string', 'max:120'],
+                'items.*.file_path' => ["required_unless:{$at}.source,centre", 'nullable', 'string', 'max:255'],
+                'items.*.note' => ['nullable', 'string', 'max:200'],
+            ],
+            // A wall-clock time, read in the site's timezone.
+            PageSectionType::Countdown => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => ['required', 'string', 'max:160'],
+                'lede' => $lede,
+                'ends_at' => ['required', 'string', 'date_format:Y-m-d\TH:i'],
+                'done_text' => ['nullable', 'string', 'max:160'],
+                ...self::button('primary', $at),
+                ...self::button('secondary', $at),
+            ],
+            // Each column's body is rich text, cleaned on write
+            // (`blocks.*.data.columns.*.body` in the page requests).
+            PageSectionType::Columns => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'columns' => ['required', 'array', 'min:2', 'max:3'],
+                'columns.*.heading' => ['nullable', 'string', 'max:120'],
+                'columns.*.body' => ['required', 'string', 'max:20000'],
+            ],
+            PageSectionType::Map => [
+                'heading' => $heading,
+                'lede' => $lede,
+                'url' => ['required', 'string', 'max:2048', 'starts_with:https://www.google.com/maps/embed'],
+                'address' => ['nullable', 'string', 'max:300'],
+            ],
+            // Steps that scroll past a picture held in place; each step's
+            // picture replaces the held one as it passes. Plain text only.
+            PageSectionType::Story => [
+                'kicker' => ['nullable', 'string', 'max:60'],
+                'heading' => ['nullable', 'string', 'max:120'],
+                'lede' => ['nullable', 'string', 'max:300'],
+                'items' => ['required', 'array', 'min:2', 'max:6'],
+                'items.*.title' => ['required', 'string', 'max:100'],
+                'items.*.body' => ['required', 'string', 'max:600'],
+                'items.*.image_path' => ['required', 'string', 'max:255'],
+            ],
+            // A row of connected steps whose joining lines draw themselves as
+            // the page scrolls (0.115.0). Plain text; an icon by id.
+            PageSectionType::Flow => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => ['nullable', 'string', 'max:120'],
+                'lede' => ['nullable', 'string', 'max:300'],
+                'items' => ['required', 'array', 'min:2', 'max:6'],
+                'items.*.icon' => ['nullable', 'string', self::ICON],
+                'items.*.title' => ['required', 'string', 'max:60'],
+                'items.*.note' => ['nullable', 'string', 'max:160'],
+                'caption' => ['nullable', 'string', 'max:200'],
+            ],
+            // A menu of the page's own anchored sections (0.126.0). It
+            // stores a label and nothing else: the links are derived when
+            // the page is presented.
+            PageSectionType::Subnav => [
+                'label' => ['nullable', 'string', 'max:40'],
+            ],
+            // The shop's product videos as a live list (0.140.0): which
+            // shelf, how many, what shape. `VideoShelf` reads the rest.
+            PageSectionType::ProductVideos => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'category_id' => ['nullable', 'integer'],
+                'limit' => ['nullable', 'integer', 'min:1', 'max:24'],
+                'shape' => ['nullable', Rule::in(VideoShelf::SHAPES)],
+            ],
+            // The support network, live (0.170.0): optionally opened on a country.
+            PageSectionType::SupportNetwork => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'country' => ['nullable', 'string', 'size:2', Rule::in(array_keys(Countries::ALL))],
+            ],
+            // One of the active theme's homepage sections, by id. Checked for
+            // the shape of an id only, the rule `site_theme` and the section
+            // order follow: the list is the frontend's (`HOME_SECTIONS`), and
+            // an id the active theme does not draw renders nothing.
+            PageSectionType::ThemeSection => [
+                'section' => ['required', 'string', 'regex:/^[a-z][a-z0-9_-]{0,31}$/'],
+            ],
+            // Rows and columns of widgets (0.147.0). Only the head and the list
+            // of rows are named here — the head is free text, so the live
+            // preview edits it in place; everything below a row is generated
+            // by `LayoutRules::rules()`, which reads each widget's own type.
+            PageSectionType::Layout => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'rows' => ['required', 'array', 'min:1', 'max:'.LayoutRules::MAX_ROWS],
+            ],
+            // Code as pasted (0.158.0). `html` is the one field in the builder
+            // that is stored raw: it is deliberately in no sanitiser path
+            // (`RICH_TEXT`), and the website draws it in a sandboxed frame.
+            // `mode` and `height` default and are not stored; who may choose
+            // `page` is `CustomCodeGuard`'s.
+            PageSectionType::CustomCode => [
+                'label' => ['required', 'string', 'max:80'],
+                'html' => ['required', 'string', 'max:'.self::CUSTOM_CODE_MAX],
+                'height' => ['nullable', Rule::in(self::CUSTOM_CODE_HEIGHTS)],
+                'mode' => ['nullable', Rule::in(self::CUSTOM_CODE_MODES)],
+            ],
+            // A linked library section: only which one. That it exists and is
+            // a section (not a template) is checked in `checkData`.
+            PageSectionType::Saved => [
+                'saved_id' => ['required', 'integer'],
+            ],
+            // Record blocks (0.161.0): parts of a record's own page. They hold
+            // no content of their own — the website draws each from the record
+            // — only a heading to override where the block draws one, and a
+            // count where it lists. `DetailTemplates::FIELDS` says which block
+            // honours which on which kind; the rules are the same for all fourteen.
+            PageSectionType::RecordHero,
+            PageSectionType::RecordBody,
+            PageSectionType::RecordHighlights,
+            PageSectionType::RecordSpecs,
+            PageSectionType::RecordGallery,
+            PageSectionType::RecordCustomFields,
+            PageSectionType::RecordAnswerBlocks,
+            PageSectionType::RecordFaqs,
+            PageSectionType::RecordRelated,
+            PageSectionType::RecordEnquiry,
+            PageSectionType::RecordBuy,
+            PageSectionType::RecordDownloads,
+            PageSectionType::RecordReviews,
+            PageSectionType::RecordComments => [
+                'heading' => ['nullable', 'string', 'max:160'],
+                'limit' => ['nullable', 'integer', 'min:1', 'max:12'],
+            ],
         };
+    }
+
+    /**
+     * Text a type stores that is still not for editing on the page: a filter
+     * (it chooses what is listed, and is drawn nowhere), a link that is
+     * reduced to an id, and the rich-text bodies, which keep their editor.
+     */
+    private const NOT_INLINE = ['youtube', 'category', 'department', 'body', 'columns.*.body', 'html', 'kinetic_words', 'alt'];
+
+    /**
+     * The plain-text fields an editor may change on the page itself, in the
+     * builder's live preview (0.128.0, docs/page-builder.md "Edit on the
+     * page"), with the length each is held to.
+     *
+     * **Derived from `for()`, never listed**: a field is free text when its
+     * rules are `string`, a `max:` and presence rules and nothing else — so
+     * a choice (`Rule::in`), a link, an icon id, a date and a number are out
+     * by what they are, and a field added to a type tomorrow is in or out by
+     * its own rules. A stored path is text by its rules and not by its
+     * meaning, hence the `_path` suffix and `NOT_INLINE`.
+     *
+     * The layout section's head comes from `for()` like any other type; its
+     * widgets' words are read from `LayoutRules::widgets()` (0.156.0, see
+     * `layoutInlineFields()`), each carrying the `widget` type it applies to.
+     *
+     * @return array<string, list<array{path: string, max: int, widget?: string}>>
+     */
+    public static function inlineFields(): array
+    {
+        $out = [];
+
+        foreach (PageSectionType::cases() as $type) {
+            // A record block's heading is an override the template screen sets; there is no page to edit it on.
+            if ($type->isRecordBlock()) {
+                continue;
+            }
+
+            $fields = [];
+
+            foreach (self::for($type) as $key => $rules) {
+                if (! is_array($rules) || in_array($key, self::NOT_INLINE, true) || str_ends_with($key, '_path')) {
+                    continue;
+                }
+
+                $max = self::freeTextMax($rules);
+
+                if ($max !== null) {
+                    $fields[] = ['path' => $key, 'max' => $max];
+                }
+            }
+
+            if ($type === PageSectionType::Layout) {
+                $fields = [...$fields, ...self::layoutInlineFields()];
+            }
+
+            if ($fields !== []) {
+                $out[$type->value] = $fields;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * The single-line text of the layout's widgets (0.156.0): every `text`-kind
+     * field the widget table declares that is not multiline — never `html`, a
+     * choice, a link or a picture. The `text` key means different things on a
+     * heading and on a list item, so each spec names the `widget` it belongs
+     * to. A container's own slot fields (a tab's name) are offered at the top
+     * level only, and a slot's widgets under `slots.*.widgets.*` — one level,
+     * as the widgets themselves allow.
+     *
+     * @return list<array{path: string, max: int, widget: string}>
+     */
+    private static function layoutInlineFields(): array
+    {
+        $words = fn (array $fields) => array_filter($fields, fn ($f, $k) => $k !== 'alt' && $f['kind'] === 'text' && ! $f['multiline'] && ($f['max'] ?? 0) > 0, ARRAY_FILTER_USE_BOTH);
+        $out = [];
+        $top = 'rows.*.columns.*.widgets.*';
+
+        foreach (LayoutRules::widgets() as $type => $spec) {
+            $bases = [$top];
+            if (in_array($type, LayoutRules::childTypes(), true)) {
+                $bases[] = "{$top}.slots.*.widgets.*";
+            }
+
+            foreach ($bases as $base) {
+                foreach ($words($spec['fields']) as $key => $field) {
+                    $out[] = ['path' => "{$base}.{$key}", 'max' => $field['max'], 'widget' => $type];
+                }
+                foreach ($words($spec['list']['fields'] ?? []) as $key => $field) {
+                    $out[] = ['path' => "{$base}.{$spec['list']['key']}.*.{$key}", 'max' => $field['max'], 'widget' => $type];
+                }
+            }
+
+            foreach ($words($spec['container']['fields'] ?? []) as $key => $field) {
+                $out[] = ['path' => "{$top}.{$spec['container']['key']}.*.{$key}", 'max' => $field['max'], 'widget' => $type];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * The `max:` of a field whose rules make it free text, or null.
+     *
+     * @param  array<int, mixed>  $rules
+     */
+    private static function freeTextMax(array $rules): ?int
+    {
+        $max = null;
+
+        foreach ($rules as $rule) {
+            if (! is_string($rule)) {
+                return null;
+            }
+
+            if (str_starts_with($rule, 'max:')) {
+                $max = (int) substr($rule, 4);
+            } elseif (! in_array($rule, ['nullable', 'required', 'string'], true)
+                && ! str_starts_with($rule, 'required_with:')
+                && ! str_starts_with($rule, 'required_if:')) {
+                return null;
+            }
+        }
+
+        return in_array('string', $rules, true) ? $max : null;
     }
 
     /** A button: a label and a link, both or neither. @return array<string, mixed> */
@@ -220,15 +793,74 @@ final class SectionRules
     }
 
     /**
+     * Messages for one type, where the shared wording would be wrong for it —
+     * a story's step is not a tab. Keyed relative to the row's `data`.
+     *
+     * @var array<string, array<string, string>>
+     */
+    private const TYPE_MESSAGES = [
+        'lottie' => [
+            'file_path.required' => 'Choose an animation from the media library.',
+        ],
+        'model' => [
+            'file_path.required' => 'Choose a 3D model (.glb) from the media library.',
+            'alt.required' => 'Describe the model in a few words, for people who cannot see it.',
+        ],
+        'downloads' => [
+            'items.required_unless' => 'Add at least one file, or list the files from the downloads centre.',
+            'items.*.title.required_unless' => 'Give the file a title.',
+            'items.*.file_path.required_unless' => 'Choose the file from the media library.',
+            'limit.max' => 'A section lists at most 50 downloads.',
+        ],
+        'story' => [
+            'items.required' => 'A story needs at least two steps.',
+            'items.min' => 'A story needs at least two steps.',
+            'items.max' => 'A story holds at most six steps.',
+            'items.*.title.required' => 'Give the step a title.',
+            'items.*.title.max' => 'Keep a step’s title to 100 characters.',
+            'items.*.body.required' => 'Write the words for this step.',
+            'items.*.body.max' => 'Keep a step’s words to 600 characters.',
+            'items.*.image_path.required' => 'Choose a picture for this step.',
+        ],
+        'flow' => [
+            'items.required' => 'A diagram needs at least two steps.',
+            'items.min' => 'A diagram needs at least two steps.',
+            'items.max' => 'A diagram holds at most six steps.',
+            'items.*.title.required' => 'Name this step.',
+            'items.*.title.max' => 'Keep a step’s name to 60 characters.',
+            'items.*.note.max' => 'Keep a step’s note to 160 characters.',
+            'items.*.icon.regex' => 'That is not an icon this site has.',
+            'caption.max' => 'Keep the caption to 200 characters.',
+        ],
+    ];
+
+    /**
      * Messages a person can act on, for the keys every section shares.
      *
      * @return array<string, string>
      */
-    public static function messages(string $prefix = 'blocks'): array
+    public static function messages(string $prefix = 'blocks', mixed $blocks = null): array
     {
         $d = "{$prefix}.*.data";
 
+        // A type whose words differ from the shared ones gets them for its own
+        // rows, keyed by position and listed first: the validator takes the
+        // first message whose key matches, so these win over the wildcards.
+        $own = [];
+        if (is_array($blocks)) {
+            foreach ($blocks as $i => $block) {
+                $type = is_array($block) ? PageSectionType::tryFrom((string) ($block['type'] ?? '')) : null;
+                foreach ($type ? (self::TYPE_MESSAGES[$type->value] ?? []) : [] as $key => $message) {
+                    $own["{$prefix}.{$i}.data.{$key}"] = $message;
+                }
+                if ($type === PageSectionType::Layout) {
+                    $own = [...$own, ...LayoutRules::messages("{$prefix}.{$i}.data")];
+                }
+            }
+        }
+
         return [
+            ...$own,
             "{$prefix}.max" => 'A page holds at most '.self::MAX_SECTIONS.' sections.',
             "{$prefix}.*.type.required" => 'Every section needs a type.',
             "{$prefix}.*.type.enum" => 'That is not a kind of section this site can draw.',
@@ -241,6 +873,24 @@ final class SectionRules
             "{$d}.items.required" => 'Add at least one item.',
             "{$d}.items.required_if" => 'Add at least one question, or use this page’s FAQs.',
             "{$d}.items.*.title.required" => 'Every item needs a title.',
+            "{$d}.items.*.value.required" => 'Every figure needs its number.',
+            "{$d}.items.*.label.required" => 'Every item needs a label.',
+            "{$d}.items.*.percent.required_if" => 'Rings and bars need a percentage, 0 to 100.',
+            "{$d}.items.*.text.required" => 'Every point needs its words.',
+            "{$d}.items.*.body.required" => 'Every tab needs its words.',
+            "{$d}.items.*.date.required" => 'Every milestone needs its date.',
+            "{$d}.items.*.quote.required" => 'Every quotation needs its words.',
+            "{$d}.items.*.name.required" => 'Say who said it.',
+            "{$d}.plans.required" => 'Add the plans to compare.',
+            "{$d}.plans.min" => 'Compare at least two plans.',
+            "{$d}.plans.*.name.required" => 'Every plan needs a name.',
+            "{$d}.rows.required" => 'Add at least one row.',
+            "{$d}.rows.*.label.required" => 'Every row needs its feature.',
+            "{$d}.before_path.required" => 'Choose the “before” picture.',
+            "{$d}.after_path.required" => 'Choose the “after” picture.',
+            "{$d}.items.min" => 'Add at least two.',
+            "{$d}.display.required" => 'Choose how the figures are drawn.',
+            "{$d}.layout.required" => 'Choose a layout.',
             "{$d}.items.*.question.required" => 'Every question needs its question.',
             "{$d}.items.*.answer.required" => 'Every question needs an answer.',
             "{$d}.quote.required" => 'Write the quotation.',
@@ -257,6 +907,19 @@ final class SectionRules
             "{$d}.gallery_id.required" => 'Choose a gallery.',
             "{$d}.form_id.required" => 'Choose a form.',
             "{$d}.source.required" => 'Choose what this section shows.',
+            "{$d}.items.*.file_path.required" => 'Choose the file from the media library.',
+            "{$d}.ends_at.required" => 'Say when the countdown ends.',
+            "{$d}.ends_at.date_format" => 'Give the end as a date and a time.',
+            "{$d}.columns.required" => 'Add the columns.',
+            "{$d}.columns.min" => 'Two columns at least.',
+            "{$d}.columns.*.body.required" => 'Write the text for this column.',
+            "{$d}.html.required" => 'Paste the code.',
+            "{$d}.html.max" => 'The code is too long: '.self::CUSTOM_CODE_MAX.' characters at most.',
+            "{$d}.label.required" => 'Say what this code is, so you can find it again.',
+            "{$d}.url.required" => 'Paste the Google Maps embed address.',
+            "{$d}.section.required" => 'Choose one of the theme’s sections.',
+            "{$d}.section.regex" => 'Choose one of the theme’s sections.',
+            "{$d}.url.starts_with" => 'Use a Google Maps embed address: Share, then "Embed a map", then the src from the iframe.',
         ];
     }
 
@@ -264,19 +927,29 @@ final class SectionRules
      * Checks no rule can express: files that exist, references that are
      * published, a background that means something, ids that are unique.
      */
-    public static function after(Validator $validator, mixed $blocks, string $prefix = 'blocks'): void
+    public static function after(Validator $validator, mixed $blocks, string $prefix = 'blocks', bool $allowRecordBlocks = false): void
     {
         if (! is_array($blocks)) {
             return;
         }
 
         $seen = [];
+        $anchors = [];
 
         foreach ($blocks as $i => $block) {
             if (! is_array($block)) {
                 continue;
             }
             $at = "{$prefix}.{$i}";
+
+            // An anchor is a link target, so two sections cannot share one.
+            $anchor = is_array($block['style'] ?? null) ? ($block['style']['anchor'] ?? null) : null;
+            if (is_string($anchor) && $anchor !== '') {
+                if (isset($anchors[$anchor])) {
+                    $validator->errors()->add("{$at}.style.anchor", 'Another section already uses this link name.');
+                }
+                $anchors[$anchor] = true;
+            }
 
             $id = $block['id'] ?? null;
             if (is_string($id)) {
@@ -303,14 +976,50 @@ final class SectionRules
                 continue;
             }
 
+            // Parts of a record's own page mean something only inside a detail
+            // template (`DetailTemplates`); a page, a record's body area and
+            // the library have no record to draw them from.
+            if ($type->isRecordBlock() && ! $allowRecordBlocks) {
+                $validator->errors()->add("{$at}.type", 'This part of a record’s page can only be placed in a detail template.');
+
+                continue;
+            }
+
             self::checkData($validator, $type, $data, "{$at}.data");
+
+            // The theme's hero carries the page's title (its h1), so it opens
+            // the page and appears once — anywhere else it is a second title.
+            if ($type === PageSectionType::ThemeSection && ($data['section'] ?? null) === self::THEME_HERO) {
+                if ($i !== array_key_first($blocks)) {
+                    $validator->errors()->add("{$at}.data.section", 'The theme’s hero opens the page: move it to the top.');
+                }
+            }
         }
+    }
+
+    /** The theme section that is the page's title: its hero. */
+    public const THEME_HERO = 'hero';
+
+    /**
+     * Why a record a section points at cannot be shown, or null when it can:
+     * it has gone, or it is not published. One definition, shared with the
+     * layout section's form, slider and gallery widgets (`LayoutRules`).
+     */
+    public static function referenceProblem(?Model $record, string $noun): ?string
+    {
+        if (! $record) {
+            return "That {$noun} no longer exists.";
+        }
+
+        return $record->getAttribute('status') !== PublishStatus::Published
+            ? "Publish the {$noun} first — a page cannot show a draft."
+            : null;
     }
 
     /** @param  array<string, mixed>  $data */
     private static function checkData(Validator $validator, PageSectionType $type, array $data, string $at): void
     {
-        $media = function (string $key, ?string $mimePrefix = null, string $message = 'Choose a file from the media library.') use ($validator, $data, $at) {
+        $media = function (string $key, ?string $mimePrefix = null, string $message = 'Choose a file from the media library.', ?string $wrongKind = null) use ($validator, $data, $at) {
             $path = $data[$key] ?? null;
             if (! is_string($path) || $path === '') {
                 return;
@@ -319,7 +1028,7 @@ final class SectionRules
             if (! $row) {
                 $validator->errors()->add("{$at}.{$key}", $message);
             } elseif ($mimePrefix && ! str_starts_with((string) $row->mime, $mimePrefix)) {
-                $validator->errors()->add("{$at}.{$key}", $mimePrefix === 'video/' ? 'That file is not a video.' : 'That file is not a picture.');
+                $validator->errors()->add("{$at}.{$key}", $wrongKind ?? ($mimePrefix === 'video/' ? 'That file is not a video.' : 'That file is not a picture.'));
             }
         };
 
@@ -329,11 +1038,9 @@ final class SectionRules
                 return;
             }
             /** @var class-string<Model> $model */
-            $record = $model::query()->find((int) $id);
-            if (! $record) {
-                $validator->errors()->add("{$at}.{$key}", "That {$noun} no longer exists.");
-            } elseif ($record->getAttribute('status') !== PublishStatus::Published) {
-                $validator->errors()->add("{$at}.{$key}", "Publish the {$noun} first — a page cannot show a draft.");
+            $problem = self::referenceProblem($model::query()->find((int) $id), $noun);
+            if ($problem !== null) {
+                $validator->errors()->add("{$at}.{$key}", $problem);
             }
         };
 
@@ -344,12 +1051,41 @@ final class SectionRules
             }
         };
 
+        // A picture on each item of a list: a tab's, a quotation's photo.
+        $itemPictures = function (string $key) use ($validator, $data, $at) {
+            foreach ((array) ($data['items'] ?? []) as $n => $item) {
+                $path = is_array($item) ? ($item[$key] ?? null) : null;
+                if (! is_string($path) || $path === '') {
+                    continue;
+                }
+                $row = Media::query()->where('path', $path)->first();
+                if (! $row || ! str_starts_with((string) $row->mime, 'image/')) {
+                    $validator->errors()->add("{$at}.items.{$n}.{$key}", 'Choose a picture from the media library.');
+                }
+            }
+        };
+
         $mediaKind = $data['media'] ?? null;
         $source = $data['source'] ?? null;
 
         switch ($type) {
             case PageSectionType::Hero:
                 $media('image_path', 'image/');
+                $video = $data['video_path'] ?? null;
+                if (is_string($video) && $video !== '') {
+                    if (($data['layout'] ?? null) !== 'cover') {
+                        $validator->errors()->add("{$at}.video_path", 'A background video plays behind a cover hero only — choose the Cover layout.');
+                    } else {
+                        $media('video_path', 'video/');
+                    }
+                }
+                $words = $data['kinetic_words'] ?? null;
+                if (is_string($words) && $words !== '') {
+                    $lines = array_values(array_filter(array_map('trim', preg_split('/\R/', $words) ?: []), fn ($l) => $l !== ''));
+                    if (count($lines) > 6 || collect($lines)->contains(fn ($l) => mb_strlen($l) > 40)) {
+                        $validator->errors()->add("{$at}.kinetic_words", 'Up to six words or short phrases, one per line.');
+                    }
+                }
                 break;
             case PageSectionType::MediaText:
                 if ($mediaKind === 'image') {
@@ -363,12 +1099,47 @@ final class SectionRules
             case PageSectionType::Testimonial:
                 $media('photo_path', 'image/');
                 break;
+            case PageSectionType::Tabs:
+            case PageSectionType::Story:
+                $itemPictures('image_path');
+                break;
+            case PageSectionType::Testimonials:
+                $itemPictures('photo_path');
+                break;
+            case PageSectionType::Downloads:
+                if (($data['source'] ?? null) === 'centre') {
+                    $category = $data['category_id'] ?? null;
+                    if (filled($category) && ! DownloadCategory::query()->whereKey((int) $category)->exists()) {
+                        $validator->errors()->add("{$at}.category_id", 'That download category no longer exists. Choose another.');
+                    }
+                    break;
+                }
+                foreach ((array) ($data['items'] ?? []) as $n => $item) {
+                    $path = is_array($item) ? ($item['file_path'] ?? null) : null;
+                    if (is_string($path) && $path !== '' && ! self::mediaExists($path)) {
+                        $validator->errors()->add("{$at}.items.{$n}.file_path", 'Choose the file from the media library.');
+                    }
+                }
+                break;
+            case PageSectionType::BeforeAfter:
+                $media('before_path', 'image/');
+                $media('after_path', 'image/');
+                break;
             case PageSectionType::Video:
                 if ($source === 'mp4') {
                     $media('video_path', 'video/');
                 } elseif ($source === 'youtube') {
                     $youtube('youtube');
                 }
+                break;
+            case PageSectionType::Lottie:
+                $animation = 'Choose an animation from the media library.';
+                $media('file_path', 'application/lottie', $animation, $animation);
+                break;
+            case PageSectionType::Model:
+                $model = 'Choose a 3D model (.glb) from the media library.';
+                $media('file_path', 'model/', $model, $model);
+                $media('poster_path', 'image/');
                 break;
             case PageSectionType::ContentBlock:
                 $reference('block_id', ContentBlock::class, 'content block');
@@ -384,6 +1155,21 @@ final class SectionRules
                 break;
             case PageSectionType::Cards:
                 self::checkCategory($validator, $data, $at);
+                break;
+            case PageSectionType::ProductVideos:
+                $category = $data['category_id'] ?? null;
+                if (filled($category) && ! StoreCategory::query()->whereKey((int) $category)->exists()) {
+                    $validator->errors()->add("{$at}.category_id", 'That shop category no longer exists. Choose another.');
+                }
+                break;
+            case PageSectionType::Layout:
+                LayoutRules::check($validator, $data, $at);
+                break;
+            case PageSectionType::Saved:
+                $id = $data['saved_id'] ?? null;
+                if (is_numeric($id) && ! SavedSection::query()->whereKey((int) $id)->where('kind', SavedSection::KIND_SECTION)->exists()) {
+                    $validator->errors()->add("{$at}.saved_id", 'That saved section is no longer in the library.');
+                }
                 break;
             default:
                 break;
@@ -431,21 +1217,85 @@ final class SectionRules
 
         $out = [];
 
+        // Validated input comes back keyed by position but not in position
+        // order: `validated()` rebuilds the list rule by rule, and a section
+        // whose first validated key is under a wildcard (a features section
+        // with only its points, a tabs section) is rebuilt after the ones
+        // behind it. Sorting by key puts the page back the way it was sent.
+        ksort($blocks, SORT_NUMERIC);
+
         foreach (array_values($blocks) as $block) {
             $type = is_array($block) ? PageSectionType::tryFrom((string) ($block['type'] ?? '')) : null;
             if (! $type) {
                 continue;
             }
 
-            $data = self::keep(is_array($block['data'] ?? null) ? $block['data'] : [], array_keys(self::for($type)));
+            $given = is_array($block['data'] ?? null) ? $block['data'] : [];
+            // A layout's rows are a tree `keep()` cannot walk by name: only
+            // its head goes through it, the rows through their own table.
+            $data = self::keep($given, $type === PageSectionType::Layout ? LayoutRules::HEAD : array_keys(self::for($type)));
+            if ($type === PageSectionType::Layout) {
+                $data['rows'] = LayoutRules::normalise($given['rows'] ?? null);
+            }
 
-            foreach (['block_id', 'slider_id', 'gallery_id', 'form_id', 'limit', 'columns'] as $int) {
+            foreach (['block_id', 'slider_id', 'gallery_id', 'form_id', 'saved_id', 'category_id', 'limit', 'columns', 'highlight', 'start'] as $int) {
                 if (isset($data[$int]) && is_numeric($data[$int])) {
                     $data[$int] = (int) $data[$int];
                 }
             }
-            if (isset($data['rule'])) {
-                $data['rule'] = filter_var($data['rule'], FILTER_VALIDATE_BOOLEAN);
+            foreach (['rule', 'call', 'group', 'loop', 'rotate'] as $bool) {
+                if (isset($data[$bool])) {
+                    $data[$bool] = filter_var($data[$bool], FILTER_VALIDATE_BOOLEAN);
+                }
+            }
+            // Lottie and 3D: a default is never stored.
+            if ($type === PageSectionType::Lottie || $type === PageSectionType::Model) {
+                foreach (['loop' => false, 'rotate' => true, 'size' => 'm', 'height' => 'm', 'align' => 'center'] as $key => $default) {
+                    if (array_key_exists($key, $data) && $data[$key] === $default) {
+                        unset($data[$key]);
+                    }
+                }
+            }
+            // A hero's heading effect: following the site is never stored.
+            if ($type === PageSectionType::Hero) {
+                if (array_key_exists('kinetic', $data) && in_array($data['kinetic'], [null, '', 'default'], true)) {
+                    unset($data['kinetic']);
+                }
+                if (array_key_exists('kinetic_words', $data) && in_array($data['kinetic_words'], [null, ''], true)) {
+                    unset($data['kinetic_words']);
+                }
+            }
+            // The defaults are never stored: a frame, sized by its content.
+            if ($type === PageSectionType::CustomCode) {
+                if (($data['mode'] ?? null) === 'frame') {
+                    unset($data['mode']);
+                }
+                if (($data['height'] ?? null) === 'auto') {
+                    unset($data['height']);
+                }
+            }
+            // A downloads section is one kind of list or the other: read
+            // from the centre it keeps no typed files, and typed in it keeps
+            // nothing of the centre's — the default is never stored.
+            if ($type === PageSectionType::Downloads) {
+                if (($data['source'] ?? null) === 'centre') {
+                    unset($data['items']);
+                } else {
+                    unset($data['source'], $data['category_id'], $data['limit']);
+                }
+            }
+            // A percentage belongs to rings and bars, and is a number.
+            if ($type === PageSectionType::Stats && is_array($data['items'] ?? null)) {
+                $measured = in_array($data['display'] ?? null, ['rings', 'bars'], true);
+                $data['items'] = array_map(function (array $item) use ($measured) {
+                    if ($measured && isset($item['percent']) && is_numeric($item['percent'])) {
+                        $item['percent'] = (int) $item['percent'];
+                    } else {
+                        unset($item['percent']);
+                    }
+
+                    return $item;
+                }, $data['items']);
             }
             if (isset($data['youtube']) && is_string($data['youtube'])) {
                 $data['youtube'] = YouTube::id($data['youtube']);
@@ -466,6 +1316,22 @@ final class SectionRules
                 unset($background['enabled']);
             }
 
+            // A record block is drawn by the record's own page, which brings its
+            // own ground and spacing: none of the section chrome is stored for it.
+            if ($type->isRecordBlock()) {
+                $out[] = [
+                    'id' => (string) $block['id'],
+                    'type' => $type->value,
+                    'hidden' => filter_var($block['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'background' => null,
+                    'reveal' => null,
+                    'style' => null,
+                    'data' => (object) $data,
+                ];
+
+                continue;
+            }
+
             $out[] = [
                 'id' => (string) $block['id'],
                 'type' => $type->value,
@@ -474,11 +1340,66 @@ final class SectionRules
                 // `default` is what the section does on its own, so it is
                 // never stored: absent and `default` are one answer.
                 'reveal' => self::reveal($block['reveal'] ?? null),
+                'style' => self::style($block['style'] ?? null),
                 'data' => (object) $data,
             ];
         }
 
         return $out;
+    }
+
+    /**
+     * The style as stored: only the keys that differ from what the section
+     * does on its own, or null when nothing does — so a section nobody styled
+     * stores and renders exactly as before.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function style(mixed $style): ?array
+    {
+        if (! is_array($style)) {
+            return null;
+        }
+        $out = [];
+        foreach (self::STYLE as $key => $choices) {
+            $value = $style[$key] ?? null;
+            if (is_string($value) && $value !== $choices[0] && in_array($value, $choices, true)) {
+                $out[$key] = $value;
+            }
+        }
+        if (is_string($style['anchor'] ?? null) && preg_match(self::ANCHOR, $style['anchor'])) {
+            $out['anchor'] = $style['anchor'];
+        }
+        if (is_array($style['show_on'] ?? null)) {
+            $devices = array_values(array_intersect(self::DEVICES, $style['show_on']));
+            if ($devices !== [] && count($devices) < count(self::DEVICES)) {
+                $out['show_on'] = $devices;
+            }
+        }
+        if (is_array($style['responsive'] ?? null)) {
+            $responsive = [];
+            foreach (self::DEVICES as $device) {
+                $given = $style['responsive'][$device] ?? null;
+                if (! is_array($given)) {
+                    continue;
+                }
+                $kept = [];
+                foreach (self::RESPONSIVE as $key => $choices) {
+                    $value = $given[$key] ?? null;
+                    if (is_string($value) && in_array($value, $choices, true)) {
+                        $kept[$key] = $value;
+                    }
+                }
+                if ($kept !== []) {
+                    $responsive[$device] = $kept;
+                }
+            }
+            if ($responsive !== []) {
+                $out['responsive'] = $responsive;
+            }
+        }
+
+        return $out === [] ? null : $out;
     }
 
     /** A stored reveal id, or null for the section's own default. */
@@ -516,6 +1437,20 @@ final class SectionRules
             }
             $value = $data[$key];
 
+            // A list of plain values — a comparison row's cells — kept by
+            // position, a blank one as null, so each stays under its column.
+            if ($children === ['*']) {
+                if (is_array($value)) {
+                    ksort($value, SORT_NUMERIC);
+                    $out[$key] = array_map(
+                        fn ($v) => is_string($v) ? (trim($v) === '' ? null : trim($v)) : (is_scalar($v) ? $v : null),
+                        array_values($value),
+                    );
+                }
+
+                continue;
+            }
+
             if ($children === []) {
                 // A leaf: scalars only. An object where a string belongs is dropped.
                 if (is_scalar($value)) {
@@ -531,6 +1466,8 @@ final class SectionRules
 
             $wild = array_values(array_map(fn ($c) => substr($c, 2), array_filter($children, fn ($c) => str_starts_with($c, '*.'))));
             if ($wild !== []) {
+                // The same reordering `normalise()` undoes for sections, one level in.
+                ksort($value, SORT_NUMERIC);
                 $out[$key] = array_map(
                     fn ($row) => is_array($row) ? self::keep($row, $wild) : [],
                     array_values($value),

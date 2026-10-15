@@ -1,199 +1,179 @@
 import Link from "next/link";
-import { Badge, StatusBadge } from "@/components/ui/badge";
-import { EmptyState, ErrorState } from "@/components/ui/empty";
-import {
-  IconArrowRight, IconBox, IconCheck, IconClock, IconHeadset, IconTicket,
-} from "@/components/icons";
-import { getMyOrders, getTicketSummary, getTickets } from "@/lib/portal";
-import { cn } from "@/lib/utils";
+import type { CSSProperties } from "react";
+import { EmptyState } from "@/components/ui/empty";
+import { Card } from "@/components/ui/card";
+import { HERO_ACTION, HERO_ACTION_PRIMARY, HERO_ACTION_SECONDARY, HeroBand } from "@/components/app-shell/hero-band";
+import { Entrance } from "@/components/app-shell/entrance";
+import { ActivityFeed, type ActivityItem } from "@/components/app-shell/activity-feed";
+import { IconBox, IconHeart, IconMeeting, IconTicket } from "@/components/icons";
+import { getMyOrders, getMyVisits, getTicketSummary, getTickets } from "@/lib/portal";
+import { getMyMeetings } from "@/lib/meetings";
+import { getWishlist } from "@/lib/wishlist";
+import { getCurrentCustomer } from "@/lib/auth";
+import { getSiteSettings } from "@/lib/settings";
+import { settingEnabled } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import { NewTicketButton } from "./portal-links";
-import type { Ticket, TicketSummary } from "@/types/api";
+import { cn } from "@/lib/utils";
 
-export const metadata = buildMetadata({
-  title: "Dashboard",
-  path: "/portal",
-  seo: noIndex,
-});
+export const metadata = buildMetadata({ title: "Dashboard", path: "/portal", seo: noIndex });
+
+/** The soonest of `items` still ahead of now, by the instant `at` gives — the server's clock, at render. */
+function soonest<T>(items: T[], at: (item: T) => string | null): T | undefined {
+  const now = Date.now();
+  return items
+    .filter((i) => { const t = at(i); return t !== null && Date.parse(t) > now; })
+    .sort((a, b) => Date.parse(at(a)!) - Date.parse(at(b)!))[0];
+}
+
+type Tile = { key: string; value: string; label: string; href: string; icon: typeof IconTicket; tone: string };
 
 /**
- * The five figures, each with its own tone.
+ * The portal's home (Portal 2.0, 0.167.0): a brand-lit hello with what to do
+ * next, a tile for each thing that is actually happening, one timeline of
+ * what changed, and a way into the knowledge base.
  *
- * Tones are the status tokens the badges already use, so "open" is the same
- * blue on this card as it is on the badge next to a ticket in the list below
- * — one vocabulary, not two. Orders takes the brand rather than a status
- * colour, because it is not a state: it is a different kind of thing being
- * counted, which is exactly what its own colour should say.
- *
- * `from-*-soft` gradients rather than flat fills: soft tokens invert with the
- * scheme, so this reads in dark without a second palette. Nothing here is a
- * literal hex — the rule the whole design system is built on.
+ * Every read fails on its own — a `.catch()` inside the `Promise.all`, not
+ * after it — so a figure that cannot be fetched drops one tile and never the
+ * page; somebody in trouble came here for the support half. A tile with
+ * nothing to show is left out rather than drawn as a zero, and a customer
+ * with nothing at all gets one composed "here's what you can do" instead.
  */
-const cards: {
-  key: keyof TicketSummary | "orders";
-  label: string;
-  href: string;
-  icon: typeof IconTicket;
-  skin: string;
-  ink: string;
-}[] = [
-  {
-    key: "open", label: "Open", href: "/portal/tickets?status=open",
-    icon: IconTicket, skin: "from-info-soft border-info/25", ink: "text-info",
-  },
-  {
-    key: "in_progress", label: "In progress", href: "/portal/tickets?status=in_progress",
-    icon: IconClock, skin: "from-warn-soft border-warn/25", ink: "text-warn",
-  },
-  {
-    key: "pending", label: "Awaiting your reply", href: "/portal/tickets?status=pending_customer",
-    icon: IconHeadset, skin: "from-err-soft border-err/25", ink: "text-err",
-  },
-  {
-    key: "resolved", label: "Resolved", href: "/portal/tickets?status=resolved",
-    icon: IconCheck, skin: "from-ok-soft border-ok/25", ink: "text-ok",
-  },
-  {
-    key: "orders", label: "Orders", href: "/portal/orders",
-    icon: IconBox, skin: "from-brand-50 border-brand-200", ink: "text-brand-ink",
-  },
-];
+export default async function PortalHome() {
+  const [customer, settings, summary, tickets, orders, visits, meetings, wishlist] = await Promise.all([
+    getCurrentCustomer().catch(() => null),
+    getSiteSettings(),
+    getTicketSummary().catch(() => null),
+    getTickets().then((r) => r.data).catch(() => []),
+    getMyOrders().then((r) => r.data).catch(() => []),
+    getMyVisits().then((r) => r.data).catch(() => []),
+    getMyMeetings().then((r) => r.data).catch(() => []),
+    getWishlist().catch(() => null),
+  ]);
 
-export default async function PortalDashboard() {
-  let summary: TicketSummary | null = null;
-  let recent: Ticket[] = [];
-  let orderCount = 0;
-  let failed = false;
+  const visitsOn = settingEnabled(settings, "visits_enabled", false);
+  const meetingsOn = settingEnabled(settings, "meetings_enabled", false);
 
-  /*
-    All three at once, and the orders call allowed to fail on its own.
+  const open = summary ? summary.open + summary.in_progress + summary.pending : 0;
+  const onTheWay = orders.filter((o) => o.status === "dispatched");
+  const nextVisit = soonest(visits.filter((v) => v.status === "confirmed"), (v) => v.scheduled_start_at);
+  const nextMeeting = soonest(meetings.filter((m) => m.status === "scheduled"), (m) => m.starts_at);
+  const drops = wishlist?.items.filter((i) => (i.saving_paise ?? 0) > 0) ?? [];
 
-    Its `.catch()` is inside the `Promise.all`, not after it: awaited
-    separately the shop call would run only once the ticket calls had
-    finished, which is a second round trip's latency on the first screen
-    behind the login for a figure that has nothing to do with them. Failing
-    on its own matters too — an order count is not worth taking the ticket
-    dashboard down for, and the support half is what somebody in trouble came
-    here for.
+  const meetingFirst = nextMeeting && (!nextVisit || Date.parse(nextMeeting.starts_at) < Date.parse(nextVisit.scheduled_start_at!));
+  const next = meetingFirst
+    ? { value: nextMeeting.date_label, label: nextMeeting.time_label, href: `/portal/meetings/${nextMeeting.reference}`, line: `Your next meeting is ${nextMeeting.date_label}, ${nextMeeting.time_label}.` }
+    : nextVisit
+      ? { value: nextVisit.visit_date, label: nextVisit.visit_time, href: `/portal/visits/${nextVisit.reference}`, line: `Your engineer visit is ${nextVisit.visit_date}, ${nextVisit.visit_time}.` }
+      : null;
 
-    `meta.total` rather than `data.length`: the endpoint paginates, so the
-    length of page one is a count of at most one page.
-  */
-  try {
-    const [s, list, orders] = await Promise.all([
-      getTicketSummary(),
-      getTickets(),
-      getMyOrders().then((r) => r.meta.total).catch(() => 0),
-    ]);
+  const line = next?.line
+    ?? (orders[0] ? `Order ${orders[0].order_number} is ${orders[0].status_label.toLowerCase()}.` : "How can we help today?");
 
-    summary = s;
-    recent = list.data.slice(0, 5);
-    orderCount = orders;
-  } catch {
-    failed = true;
-  }
+  const tiles = ([
+    open > 0 && {
+      key: "tickets", value: String(open), href: "/portal/tickets", icon: IconTicket, tone: "text-info",
+      label: summary && summary.pending > 0 ? `open · ${summary.pending} awaiting you` : open === 1 ? "open ticket" : "open tickets",
+    },
+    onTheWay.length > 0 && {
+      key: "orders", value: String(onTheWay.length), href: "/portal/orders", icon: IconBox, tone: "text-brand-ink",
+      label: onTheWay.length === 1 ? `on the way · ${onTheWay[0].order_number}` : "orders on the way",
+    },
+    next && { key: "next", value: next.value, label: next.label, href: next.href, icon: IconMeeting, tone: "text-ok" },
+    drops.length > 0 && {
+      key: "drops", value: String(drops.length), href: "/portal/wishlist", icon: IconHeart, tone: "text-err",
+      label: drops.length === 1 ? "saved item is cheaper now" : "saved items are cheaper now",
+    },
+  ] as (Tile | false | null)[]).filter((t): t is Tile => Boolean(t));
 
-  if (failed) {
-    return (
-      <ErrorState title="We could not load your tickets">
-        The support system is not responding right now. Try again in a few minutes — if it
-        persists, call the support line and we will raise the ticket for you.
-      </ErrorState>
-    );
-  }
+  const activity: ActivityItem[] = [
+    ...tickets.map((t): ActivityItem => ({ id: `t${t.id}`, at: t.updated_at, tone: "info", href: `/portal/tickets/${t.reference}`, text: <>{t.reference} · {t.status_label}</> })),
+    ...orders.map((o): ActivityItem => ({ id: `o${o.order_number}`, at: o.dispatched_at ?? o.placed_at ?? "", tone: "brand", href: `/portal/orders/${o.order_number}`, text: <>{o.order_number} · {o.status_label}</> })),
+    ...visits.map((v): ActivityItem => ({ id: `v${v.reference}`, at: v.created_at ?? "", tone: "ok", href: `/portal/visits/${v.reference}`, text: <>Visit {v.reference} · {v.status_label}</> })),
+    ...meetings.map((m): ActivityItem => ({ id: `m${m.reference}`, at: m.created_at ?? m.starts_at, tone: "warn", href: `/portal/meetings/${m.reference}`, text: <>Meeting {m.reference} · {m.status_label}</> })),
+  ].filter((a) => a.at).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 10);
 
-  const totalOpen = (summary?.open ?? 0) + (summary?.in_progress ?? 0) + (summary?.pending ?? 0);
+  const actions = [
+    <Link key="ticket" href="/portal/tickets/new" data-press className={cn(HERO_ACTION, HERO_ACTION_PRIMARY)}>Raise a ticket</Link>,
+    visitsOn && <Link key="visit" href="/book-a-visit" data-press className={cn(HERO_ACTION, HERO_ACTION_SECONDARY)}>Book a visit</Link>,
+    meetingsOn && <Link key="meeting" href="/book-a-meeting" data-press className={cn(HERO_ACTION, HERO_ACTION_SECONDARY)}>Book a meeting</Link>,
+  ];
+
+  const first = customer?.name.trim().split(/\s+/)[0];
+  const hello = `Hello${first ? ` ${first}` : ""}${customer?.company ? ` · ${customer.company}` : ""}`;
 
   return (
     <>
-      <div className="mb-7 flex flex-wrap items-center gap-3">
-        <div>
-          <h2 className="display-3">
-            {totalOpen === 0 ? "Nothing outstanding" : `${totalOpen} ticket${totalOpen === 1 ? "" : "s"} in progress`}
-          </h2>
-          <p className="mt-1 text-14-5 text-muted">
-            {totalOpen === 0
-              ? "Everything raised so far has been dealt with."
-              : "Here is where each one stands."}
-          </p>
-        </div>
-        <div className="ml-auto"><NewTicketButton /></div>
-      </div>
+      {/* The page's one h1; the visible greeting is the band's. */}
+      <h1 className="sr-only">Dashboard</h1>
+      <HeroBand className="mb-6" title={hello} summary={line} actions={actions} />
+      <Entrance scope="portal" />
 
-      <dl className="mb-9 grid grid-cols-2 gap-3 lg:grid-cols-5">
-        {cards.map((c) => {
-          const value = c.key === "orders" ? orderCount : (summary?.[c.key] ?? 0);
-
-          return (
-            <Link
-              key={c.key}
-              href={c.href}
-              className={cn(
-                // The gradient runs from the tone's own soft wash to the card
-                // colour, so the tint sits at the top where the icon is and
-                // fades out under the figure rather than washing the number.
-                "group rounded-xl border bg-linear-to-b to-card p-4.5 transition-all duration-(--duration-base)",
-                "hover:-translate-y-px hover:shadow-2 motion-reduce:hover:translate-y-0",
-                c.skin,
-              )}
-            >
-              <span
-                className={cn(
-                  "mb-3 grid size-11 place-items-center rounded-lg bg-card/70 transition-[scale] duration-(--duration-base)",
-                  "group-hover:scale-105 motion-reduce:group-hover:scale-100",
-                  c.ink,
-                )}
-              >
-                <c.icon className="size-6" />
-              </span>
-              <dd className="font-display text-[30px] font-bold leading-none tracking-[-.03em]">
-                {value}
-              </dd>
-              <dt className="mt-1.5 text-13 text-muted">{c.label}</dt>
-            </Link>
-          );
-        })}
-      </dl>
-
-      <div className="mb-4 flex items-center gap-3">
-        <h3 className="text-17">Recent tickets</h3>
-        {recent.length > 0 && (
-          <Link href="/portal/tickets" className="ml-auto inline-flex items-center gap-1.5 py-1 text-13-5 font-semibold text-brand-ink hover:underline">
-            View all <IconArrowRight className="size-3.5" />
-          </Link>
-        )}
-      </div>
-
-      {recent.length === 0 ? (
+      {tiles.length === 0 && activity.length === 0 ? (
         <EmptyState
-          icon={<IconTicket />}
-          title="No tickets yet"
-          action={<NewTicketButton />}
+          illustration="inbox"
+          title="Here's what you can do"
+          action={<Link href="/portal/tickets/new" className="inline-flex min-h-10 items-center rounded-full bg-brand-600 px-5 text-13-5 font-semibold text-brand-on">Raise a ticket</Link>}
         >
-          When something breaks — or you need a change made — raise it here and it lands
-          straight on the support desk with an SLA clock attached.
+          Raise a ticket when something needs fixing, follow every order you place
+          here, and book an engineer when you need one on site.
         </EmptyState>
       ) : (
-        <ul className="grid gap-2.5">
-          {recent.map((t) => (
-            <li key={t.id} className="min-w-0">
-              <Link
-                href={`/portal/tickets/${t.reference}`}
-                className="flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-lg border border-line-strong bg-card px-4.5 py-4 transition-colors duration-(--duration-base) hover:border-brand-300 hover:bg-brand-50"
-              >
-                <span className="shrink-0 font-mono text-xs text-muted">{t.reference}</span>
-                {t.is_overdue && <Badge tone="urgent">Overdue</Badge>}
-                <span className="shrink-0 sm:ml-auto"><StatusBadge status={t.status} /></span>
-                {/* Subject drops to its own line on narrow screens rather than
-                    forcing the row wider than the viewport. */}
-                <span className="w-full min-w-0 truncate text-14-5 font-medium sm:order-first sm:w-auto sm:flex-1">
-                  {t.subject}
-                </span>
+        <>
+          {tiles.length > 0 && (
+            /* As many columns as there are tiles, never a half-empty row (the
+               proportion rule); one or two tiles lie on their side, the icon
+               beside the figure, rather than stretching a tall card wide. */
+            <ul
+              data-tour="portal-tiles"
+              className="mb-7 grid grid-cols-2 gap-3 max-lg:[&>li:last-child:nth-child(odd)]:col-span-2 lg:grid-cols-[repeat(var(--tiles),minmax(0,1fr))]"
+              style={{ "--tiles": tiles.length } as CSSProperties}
+            >
+              {tiles.map((t, i) => (
+                <li key={t.key} data-entrance-item style={{ "--i": i } as CSSProperties} className="min-w-0">
+                  <Link
+                    href={t.href}
+                    data-portal-tile
+                    className={cn(
+                      "flex h-full flex-col rounded-xl border border-line-strong bg-card p-4 shadow-2 transition-[translate,box-shadow] duration-(--duration-base) hover:shadow-3 motion-safe:hover:-translate-y-px",
+                      tiles.length <= 2 && "lg:flex-row lg:items-center lg:gap-4",
+                    )}
+                  >
+                    <span aria-hidden className={cn("mb-3 grid size-10 shrink-0 place-items-center rounded-lg bg-surface-2 [&_svg]:size-5", tiles.length <= 2 && "lg:mb-0", t.tone)}>
+                      <t.icon />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-display text-[26px] leading-none font-bold tracking-[-.03em]">{t.value}</span>
+                      <span className="mt-1.5 block text-13 text-muted">{t.label}</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <Card as="section" interactive={false} padding="sm" className="rounded-xl shadow-2">
+              <h2 className="mb-3 text-15 font-semibold">Recent activity</h2>
+              <div data-activity>
+                <ActivityFeed items={activity} empty="Nothing yet. Updates on your tickets, orders and bookings appear here." />
+              </div>
+            </Card>
+            <Card as="section" id="portal-help" interactive={false} padding="sm" className="rounded-xl shadow-2">
+              <h2 className="text-15 font-semibold">Need help?</h2>
+              <form action="/knowledge-base" method="get" className="mt-3">
+                <label htmlFor="kb-q" className="sr-only">Search the knowledge base</label>
+                <input
+                  id="kb-q" name="q" type="search" placeholder="Search the knowledge base"
+                  className="w-full rounded-lg border border-line-strong bg-card px-3 py-2.5 text-14 focus:border-brand-400 focus:ring-3 focus:ring-brand-100 focus:outline-none"
+                />
+              </form>
+              <Link href="/knowledge-base" className="mt-3 inline-block py-1 text-13 font-semibold text-brand-ink hover:underline">
+                Browse all articles
               </Link>
-            </li>
-          ))}
-        </ul>
+            </Card>
+          </div>
+        </>
       )}
     </>
   );

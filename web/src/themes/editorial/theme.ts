@@ -1,4 +1,5 @@
 import type { ThemeManifest } from "../contract.ts";
+import { BRAND_FOOTER } from "../chrome-parts.ts";
 
 /**
  * Editorial: the site set like a paper.
@@ -22,4 +23,5 @@ export const editorialManifest: ThemeManifest = {
   // A paper opens on a headline; the section banner is never drawn.
   ignores: ["hero_style"],
   defaults: { menu_style: "simple" },
+  chrome: { header: { parts: ["topbar", "phone", "email", "search", "utility", "cta", "cart", "scheme"], groups: [["phone", "email"], ["search", "utility"]], off: ["scheme"] }, footer: BRAND_FOOTER },
 };

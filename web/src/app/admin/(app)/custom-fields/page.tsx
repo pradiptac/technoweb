@@ -3,6 +3,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconLayers } from "@/components/icons";
@@ -20,6 +21,7 @@ export default async function CustomFieldsPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q || params.target);
 
   let result: Awaited<ReturnType<typeof getCustomFieldGroupList>>;
   try {
@@ -64,7 +66,7 @@ export default async function CustomFieldsPage({
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconLayers />} title="No field groups yet">
+        <EmptyState icon={<IconLayers />} title={filtered ? "No field groups match those filters" : "No field groups yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/custom-fields" newHref="/admin/custom-fields/new" noun="field group" />}>
           Create one, choose which kinds of record it belongs to, and add its fields.
         </EmptyState>
       ) : (

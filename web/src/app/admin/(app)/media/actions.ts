@@ -158,6 +158,7 @@ export async function resizeMediaAction(_prev: ResizeState, formData: FormData):
   try {
     await resizeMedia(id, { width, height, thumbnails, as_copy: asCopy });
     revalidatePath("/admin/media");
+    if (!asCopy) publicPagesChanged();
     return { ok: true };
   } catch (error) {
     return { error: reason(error, "That resize failed.") };
@@ -180,6 +181,7 @@ export async function cropMediaAction(_prev: CropState, formData: FormData): Pro
   try {
     await cropMedia(id, { x, y, width, height, as_copy: formData.get("as_copy") === "1" });
     revalidatePath("/admin/media");
+    if (formData.get("as_copy") !== "1") publicPagesChanged();
     return { ok: true };
   } catch (error) {
     return { error: reason(error, "That crop failed.") };
@@ -279,6 +281,7 @@ export async function transformMediaAction(
   try {
     const item = await transformMedia(id, body);
     revalidatePath("/admin/media");
+    publicPagesChanged();
     return { item };
   } catch (error) {
     return { error: reason(error, "That edit could not be applied.") };
@@ -326,6 +329,7 @@ export async function restoreVersionAction(id: number, versionId: number): Promi
   try {
     const item = await restoreMediaVersion(id, versionId);
     revalidatePath("/admin/media");
+    publicPagesChanged();
     return { item };
   } catch (error) {
     return { error: reason(error, "That version could not be restored.") };
@@ -352,6 +356,21 @@ export async function loadVersionsAction(id: number): Promise<MediaVersionRow[]>
 }
 
 export type ReplaceState = { error?: string; ok?: boolean };
+
+/**
+ * A library file's bytes changed in place (0.124.0, docs/cdn.md).
+ *
+ * The API has given the file a new public address (`?v=N`, `MediaUrl`), and
+ * the old one is cached for a year wherever it was fetched — so the pages
+ * that name it have to be rebuilt to pick the new address up. Nothing
+ * records which pages use a file, so it is all of them: the purge the menu
+ * and backup actions already make. An edit is rare, and without this the
+ * edited picture reached each page only as its own cache ran out, five to
+ * ten minutes later, while the library showed it changed.
+ */
+function publicPagesChanged(): void {
+  revalidatePath("/", "layout");
+}
 
 // `replaceMediaAction` is gone: the Replace dialog uploads through
 // `/api/admin/media/{id}/replace` so the bar can show a percentage.

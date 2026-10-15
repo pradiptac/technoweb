@@ -22,6 +22,7 @@ import { stripColumns } from "@/lib/strip-columns";
 import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
+import { HeroTitle } from "@/lib/hero-heading";
 
 /**
  * Horizon's front page: the hosting company's sequence.
@@ -57,7 +58,7 @@ export function Home({
       <Container className="grid items-center gap-6 py-8 lg:grid-cols-[1.4fr_auto] lg:py-10">
         <div>
           <span className="text-12 font-semibold uppercase tracking-[.13em] text-secondary-ink">{kicker}</span>
-          <h1 className="display-2 mt-2 text-balance">{heading}</h1>
+          <HeroTitle className="display-2 mt-2 text-balance">{heading}</HeroTitle>
           <p className="lede mt-3">{lede}</p>
         </div>
         <div className="flex flex-wrap gap-3 lg:justify-end">
@@ -72,7 +73,7 @@ export function Home({
       <Container className="relative py-12 lg:py-20">
         <div className="max-w-[640px] rounded-lg border border-line-strong bg-card p-7 shadow-3 lg:p-10">
           <span className="text-12 font-semibold uppercase tracking-[.13em] text-secondary-ink">{kicker}</span>
-          <h1 className="display-1 mt-3 text-balance">{heading}</h1>
+          <HeroTitle className="display-1 mt-3 text-balance">{heading}</HeroTitle>
           <p className="lede mt-4">{lede}</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <ButtonLink href="/contact" size="lg">Book a demo <IconArrowRight /></ButtonLink>
@@ -119,9 +120,12 @@ export function Home({
     </section>
   );
 
+  // From `xl` the words take seven parts to the picture's five: half and half,
+  // a 4:3 photograph ran 830px wide beside a short list and a quotation
+  // (the client's proportion review, 2026-10-05).
   const why = (
     <section className="section-y bg-surface">
-      <Container className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16 [&>*]:min-w-0">
+      <Container className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] [&>*]:min-w-0">
         <div>
           <SectionHeader kicker="Why choose us" title="Skill, scale and someone who answers" className="mb-6" />
           <ul className="grid gap-3 sm:grid-cols-2">

@@ -1,4 +1,5 @@
 import type { ThemeManifest } from "../contract.ts";
+import { oneRowHeader, BRAND_FOOTER } from "../chrome-parts.ts";
 
 /**
  * Terminal: the site as a command line.
@@ -25,4 +26,5 @@ export const terminalManifest: ThemeManifest = {
   // Every page opens on the prompt line; the section banner is never drawn.
   ignores: ["hero_style"],
   defaults: { menu_style: "simple" },
+  chrome: { header: oneRowHeader(["utility", "search", "phone", "cta"]), footer: BRAND_FOOTER },
 };

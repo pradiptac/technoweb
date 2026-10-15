@@ -9,6 +9,7 @@ use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
 use App\Support\Mail\MailBrand;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -77,7 +78,7 @@ class StoreCategory extends Model implements Answerable, Faqable
             'description' => str(HtmlSanitiser::toText($this->description ?? ''))->limit(155)->value()
                 ?: "Browse {$this->name} in the ".MailBrand::name().' shop.',
             'canonical_url' => rtrim((string) config('app.frontend_url'), '/').'/store/categories/'.$this->slug,
-            'og_image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
+            'og_image' => $this->image_path ? MediaUrl::for($this->image_path) : null,
             'schema_type' => 'CollectionPage',
         ];
     }

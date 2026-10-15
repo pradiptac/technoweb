@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkIndustriesAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
-import { iconMap, IconBuilding, type IconName } from "@/components/icons";
+import { IconByKey, IconBuilding } from "@/components/icons";
 import { getIndustryList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -15,9 +18,8 @@ import { requireScreen } from "@/lib/admin-screen";
 export const metadata = buildMetadata({ title: "Industries", path: "/admin/industries", seo: noIndex });
 
 function RowIcon({ name }: { name: string | null | undefined }) {
-  const Icon = name && name in iconMap ? iconMap[name as IconName] : IconBuilding;
   return (
-    <IconTile size="sm"><Icon /></IconTile>
+    <IconTile size="sm"><IconByKey name={name} Fallback={IconBuilding} /></IconTile>
   );
 }
 
@@ -31,6 +33,7 @@ export default async function AdminIndustriesPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q);
 
   let result: Paginated<AdminIndustry> | null = null;
   try {
@@ -67,16 +70,19 @@ export default async function AdminIndustriesPage({
       </FilterBar>
 
       {industries.length === 0 ? (
-        <EmptyState icon={<IconBuilding />} title={params.q ? "No industries match that search" : "No industries yet"}>
+        <EmptyState icon={<IconBuilding />} title={filtered ? "No industries match that search" : "No industries yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/industries" newHref="/admin/industries/new" noun="industry" />}>
           {params.q
             ? "Try a different term, or clear the search."
             : "Sectors the site speaks to. Case studies and solutions both reference them."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="industries" ids={industries.map((i) => i.id)} noun={{ one: "industry", many: "industries" }} actions={["delete"]} action={bulkIndustriesAction} deleteNote="Case studies stay, with no sector." />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[680px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="industries" ids={industries.map((i) => i.id)} noun="industry" /></th>
                 <th scope="col" className="px-3 py-1.5">Industry</th>
                 <th scope="col" className="px-3 py-1.5">Case studies</th>
                 <th scope="col" className="px-3 py-1.5">Order</th>
@@ -85,6 +91,7 @@ export default async function AdminIndustriesPage({
             <tbody>
               {industries.map((i) => (
                 <tr key={i.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="industries" id={i.id} label={i.name} /></td>
                   <td data-label="Industry" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <RowIcon name={i.icon} />
@@ -103,6 +110,7 @@ export default async function AdminIndustriesPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/industries" params={{ q: params.q, per_page: params.per_page }} />

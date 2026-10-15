@@ -61,6 +61,13 @@
   position: relative;
   border-radius: 14px;
 }
+
+/* Top bar, columns (0.150.0): the three-hue rule is the top edge, so the border's own is dropped. */
+[data-theme="horizon"] [data-panel="topbar"][data-topbar-style="columns"] {
+  border-radius: 0 0 14px 14px;
+  border-top-width: 0;
+  padding-top: 3px;
+}
 [data-theme="horizon"] [data-panel="topbar"]::before {
   content: "";
   position: absolute;

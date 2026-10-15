@@ -21,6 +21,2240 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.180.0 — 2026-10-15
+
+**Banded pricing tables** — a fourth pricing layout, after a design the
+client supplied.
+
+- **Banded tiers**: each plan under a coloured bar with its badge and number,
+  in the theme's own colours (brand, secondary, accent, then a fourth), so
+  every palette passes contrast in both schemes. Terminal draws it in mono
+  with square edges.
+- **The yearly deal is worked out, not typed**: with a monthly and a yearly
+  price, Yearly shows the monthly price struck through, the price per month,
+  "billed yearly · save …" and the percentage off.
+- **On every pricing table**: a promotion chip beside the switch, a trust
+  strip of up to six lines under the plans, and — banded — a copy button
+  beside an email button.
+
+## 0.179.0 — 2026-10-15
+
+**Google Fonts and Google icons** — copied to this site, so a visitor's
+browser never contacts Google.
+
+- **Any Google font** for headlines or body text: Settings → Colour palette →
+  **Browse Google Fonts…**, search, see a sample, **Install and use**. The
+  font is copied to this server once and served from it — no consent
+  question, nothing breaks when Google is unreachable. Noto is not offered,
+  and a font in over 60 pieces (Japanese, Chinese) is refused before
+  anything downloads.
+- **Google icons** (Material Symbols, Rounded): a **Google icons** tab in
+  every icon picker — solutions, services, industries, categories, menus,
+  page sections — about 3,900 of them, drawn in each icon's own colour like
+  the site's own set.
+- **Icons in text**: an **Icon** button in the page and blog editor puts a
+  Google icon inside a sentence, the size and colour of the words.
+- **The site import** offers the old site's Google font by name and copies it
+  when the brand is accepted.
+
+## 0.178.0 — 2026-10-14
+
+**Switching between "prices include GST" and "GST added" no longer changes
+what anybody pays.** In 0.176.0 that setting decided what every stored price
+*meant*, so switching it re-read the whole shop — ₹1,180 became ₹1,392.40.
+
+- **The shop keeps every price with GST in it**, whatever the settings say.
+- **Two settings, neither of which moves money**, on Store → Tax and
+  invoicing:
+  - **Prices in the console**: type them with GST, or before GST. Before
+    GST, each product's rate is added on save.
+  - **Prices on the website**: show them with GST, or before GST with the
+    GST as a row at the checkout. Product pages and cards then say "+ GST",
+    and the basket's column adds up to the same total.
+- **The product form labels its price field** "with GST" or "before GST" and
+  shows the other figure as you type.
+- **Saving an untouched form never moves a price by a paisa**, even where
+  the before-GST figure would not convert back exactly.
+- **The catalogue spreadsheet** is written and read the way the console
+  types prices.
+- **An upgrade step** converts a shop that was set to "GST added" in 0.176.0
+  once, so its customers pay what they paid before.
+- **The product page said "Includes 18% GST" whatever the rate.** It now
+  names the product's own rate.
+- **The basket page printed "Includes GST at" with no rate** for a basket of
+  two rates. It now leaves the rate out.
+- **The crop window before an upload** fits the screen: the size line and
+  the keyboard hint no longer sit under the buttons on a laptop.
+
+Why the price with GST rather than a base price: a base kept in paise comes
+back a paisa off for about one typed price in seven (₹999 → ₹999.01).
+
+## 0.177.0 — 2026-10-14
+
+**Ask ALTIS**: a question typed in the console, answered out of this
+install's own figures. The **✦** beside the **?** in the top bar — the help
+drawer says how a screen works, this one says what is happening now.
+
+- **"How many tickets are open?"** comes back with the figure, a sentence,
+  and a link to the queue filtered the way it was counted. About twenty
+  questions, covering the support queue, leads, orders, stock, what the shop
+  has taken, content still in draft, customers waiting for approval and
+  whether email is going out.
+- **What a person is shown depends on their account.** A support engineer is
+  offered questions about tickets, a store manager questions about orders and
+  stock; a question a role cannot ask does not exist for it, so there is no
+  wording that gets the figure out of it.
+- **It needs no AI key.** The words are matched first and that is enough
+  almost always, so the feature works, costs nothing and answers in
+  milliseconds on an install with nothing configured.
+- **With the AI assistant on, all the model does is pick which question was
+  asked.** It is shown the list of question labels and answers with one
+  number; it never sees a figure, a record or a word of anybody's data,
+  cannot compose a query, and nothing it returns is executed or rendered.
+  Every figure and every sentence is built from an existing scope — the same
+  expression the screen the answer links to uses, so the two cannot drift.
+  The question it answered is printed above the figure, which is what makes a
+  misclassification something a person sees.
+## 0.176.0 — 2026-10-14
+
+**The shop makes its own GST invoice**, and the tax behind it is yours to
+set. Store → **Tax and invoicing**.
+
+- **A GST rate for the shop**, and a different one on any product that needs
+  it. It was 18% in the code and nowhere else, so a shop selling only
+  garments at 5% or only air conditioners at 28% could not be run here at
+  all. Choose from the real slabs; a product's own rate beats the shop's.
+- **Prices that include GST, or have it added at the checkout.** Inclusive
+  is what the shop has always done and stays the default, so nothing moves
+  unless you change it. Exclusive shows the tax as a row of its own in the
+  basket.
+- **A tax invoice, made the moment an order is paid** — the seller's
+  details, the buyer's, the place of supply, every line with its HSN code,
+  CGST and SGST or IGST depending on the states, the amount in words. A PDF
+  on the order, and a **print preview** in the console.
+- **Customers can finally download it.** The order page has claimed an
+  invoice existed since the shop opened and there was no way to open one.
+  There is now, on the guest's order page and in the portal.
+- **An invoice you upload by hand always wins**, and nothing generated
+  replaces it. While Zoho Books is connected it goes on making the
+  invoices and nothing is generated here — two systems numbering one series
+  is two series.
+- Invoice numbers are their own series by financial year — `INV/2026-27/00001`,
+  starting again each April — and nothing to do with order numbers.
+
+**Console text runs the full width of its screen.** The paragraph under a
+heading was capped at 92 characters, which on a wide settings screen wrapped
+at about half the width of the grid of fields beneath it and read as ragged.
+The public site lost the same cap in September; the console has now lost it
+too.
+
+Under it, the tax moved from one figure on the order to one per line, which
+is what a rate per product requires; the order's totals are now the sum of
+the lines, so they add up by construction. Nothing already sold changed: an
+order keeps the tax it was charged, and an invoice for one placed before
+this prints the rate it was charged at. `docs/store.md`, "Tax, and the
+shop's own GST invoice".
+
+---
+
+## 0.175.0 — 2026-10-14
+
+**Two more site themes: Aurora and Atelier.** Fourteen to choose from in
+Site → Themes.
+
+- **Aurora** is soft light. A wide colour wash sits behind the heading on
+  every page, pictures sit in frames whose edges catch the light, corners
+  are round and buttons are pills, and a card is lifted by a shadow rather
+  than boxed in by a line. The wash is drawn in **your own colours** — change
+  the palette and the wash changes with it — and the dark scheme washes over
+  the dark page.
+- **Atelier** is a studio's printed page. Warm paper, a serif for the
+  headings set at its ordinary weight, hairline rules where other themes
+  draw boxes, and a front page whose photograph runs off the edge beside the
+  words. The paper takes its warmth from your brand colour, so it is your
+  paper rather than a fixed cream.
+- **Two new ways for the logo strips to move**, so no two themes animate
+  theirs alike: logos that breathe gently, and logos that land stamped one
+  after another.
+- Neither theme ships a stock photograph: both draw your own slider, and
+  fall back to the network panel where no slider is set.
+
+## 0.174.0 — 2026-10-14
+
+**Tenders.** A notice board for the work you invite bids on.
+
+- **A page per tender** at `/tenders/<name>`: the tender number, what you are buying, the dates, the fees and the documents to download. Bidders submit the way the notice says — by email, by post or on a portal you name — and nothing is submitted through your site.
+- **The dates do the work.** Enter when it opens and the last date for submission, and the page says **Open**, **Closing soon**, **Closed** or **Opens soon** by itself, with "3 days left" beside it. There is nothing to switch over when a tender closes, and a page somebody left open beforehand brings itself up to date.
+- **Everything in your own timezone**, for every reader whatever their computer is set to — a deadline of six in the evening is six in the evening for everybody.
+- **Optional:** a pre-bid meeting with its place, a bid opening date, the tender document fee and the EMD. A fee left blank shows nothing; a fee of 0 reads *Free*.
+- **The tender pack:** up to ten documents from your media library, in the order a bidder should read them. They are public, like the notice.
+- **A notice nobody can answer cannot be published** — an email address, a bidding portal link or a postal address, at least one.
+- **A closed tender stays on your site** as a record of what you have tendered for, under the **Closed** filter.
+- **Categories** (Tenders → Categories) are what the filter on the page offers. Switch one off and its tenders come off the site; delete one and they stay, filed under none.
+- **Search finds a tender by its number however it is punctuated** — `TW/2026/014`, `TW 2026 014` and `tw2026014` all find it.
+- **Duplicate** gives you next year's tender as a draft, with the number marked so you change it.
+- Also available as a **Cards** section in the page builder (open ones only) and as a menu entry, in search, in the sitemap and to the website assistant.
+
+## 0.173.0 — 2026-10-13
+
+**Your colours, from your logo.** Release A6 of the 2.0 roadmap.
+
+- **One button on Site → Themes:** *Take our colours from the logo*. We read the logo you uploaded and offer up to three palettes made from its colours — the colour there is most of, the boldest, and the darkest. Press one and the colours drop into the fields; nothing changes on the site until you save.
+- **It fills Primary, Secondary, Accent and the top bar.** Your Background and Text are left alone, because a logo says nothing about the colour of the page behind it.
+- **A one-colour logo still works:** that colour becomes Primary and the other two are worked out from it, and the screen says so. A black, white or grey logo has no colour to take, and it says that rather than making the site grey.
+- **Every colour is still adjusted to stay readable**, exactly as a colour you type in is.
+- **From any picture, too:** open it in Content → Media, press Edit, and use *Make the site's colours from this* (administrators).
+- **The setup wizard now takes your logo**, on a new optional step after the install, and offers the same palettes — so a fresh install can be your colours before anybody signs in.
+
+## 0.172.0 — 2026-10-13
+
+**Animations and 3D models.** Release A3 of the 2.0 roadmap.
+
+- **Two new page-builder sections**, also available as widgets in a custom layout:
+  - **Animation:** a Lottie animation that plays when it comes into view, once or looping (a looping one has a pause button).
+  - **3D model:** a .glb model visitors can turn with a finger or the mouse; it turns slowly by itself unless you switch that off, with an optional poster picture until it loads.
+- **The media library takes the files:** Lottie (.json, .lottie) up to 5 MB and glTF binary (.glb) up to 25 MB, each checked on upload — an animation must have its pictures built in, and a model must not be compressed in a way that needs code from another site.
+- **Paste a link.** On an animation or model field, paste a LottieFiles or Sketchfab link and press Add: the file is copied into your library once, so visitors never load anything from that site.
+- **Motion rules:** visitors who ask for less motion see the animation's first frame and a model that stays still (they can still turn it).
+- Nothing is loaded on a page without one of these sections, and no request leaves your own site.
+
+## 0.171.0 — 2026-10-13
+
+**Headings that move, and small touches that answer.** Release A4 of the 2.0 roadmap.
+
+- **Moving hero headings.** A hero's heading can arrive in one of four ways:
+  - **Typewriter:** it types itself in.
+  - **Decode:** each letter flickers and settles.
+  - **Highlight:** a marker stroke draws under a word.
+  - **Rotating words:** its last word turns into each word you list, once, then rests. A small pause button sits beside it while it moves.
+- **Where you set it:**
+  - The site-wide choice is **Site → Settings → Motion → Hero heading**.
+  - The homepage hero has its own under **Site → Settings → Homepage**.
+  - Every page-builder hero has one on its card.
+- **Who sees what.** The words are always on the page as plain text, for search engines and screen readers. Visitors who asked for less motion see the heading still.
+- **Small interactions,** on by default (**Site → Settings → Motion → Small interactions**):
+  - arrows in buttons nudge forward;
+  - links in text thicken their underline;
+  - switches spring and tick boxes pop;
+  - Copy buttons confirm;
+  - a card's icon lifts;
+  - a field the server refused rings once.
+- **In the console:**
+  - the Save button turns into "Saved ✓" for a moment after a save;
+  - a queue's "new" count pops when something arrives;
+  - your account's Subtle motion turns the movement off.
+- **Fixed:**
+  - At tablet width (768px) the console's top bar ran past the screen. The "AI Powered" badge now shows from laptop width up.
+  - A guided tour could trip a code check (a fix to 0.168.0).
+
+On a checkout, run `php artisan db:seed --class=SettingsSeeder` for the new settings. The updater does it on its own. Module notes: `docs/motion.md` ("Kinetic headings", "Small interactions") and `docs/console-portal.md`.
+
+---
+
+## 0.170.0 — 2026-10-13
+
+**The support network.** A client request: service centres on a map.
+
+- **Site → Support network** lists your service centres, offices and
+  service partners — address, telephones, email, opening hours — and the
+  staff who work at each, with a title and whether their name is shown.
+- **The `/support-network` page** shows them on a map drawn by the website
+  itself (no map tiles, nothing from Google, no cookie; India's boundary as
+  India shows it) and in a list grouped by country and city. Choose a
+  country to zoom in; press a pin to find its card. Each card has a
+  Directions link. A network in one country opens zoomed to it.
+- **Place a pin** by pressing the map in the console, typing coordinates, or
+  pasting a Google Maps link (read on your computer, nothing sent).
+- **Staff** screen: a Centre column, and a filter by centre.
+- The same map as a **page-builder section**, a **menu item** (hidden while
+  no centre is shown), and in the sitemap and `llms.txt`.
+
+Run `php artisan migrate`. Module note: `docs/support-network.md`.
+
+---
+
+## 0.169.0 — 2026-10-12
+
+**Every picture the right size, and "AI Powered".** Two client requests.
+
+- **Crop before upload.** Choosing a JPG, PNG or WebP for any image field —
+  a cover, a logo, a slide, a team photo, a product gallery, a picture in a
+  body, the media library itself — opens a crop window first, on the shape
+  the field needs (locked where it must be one shape: favicon, app icon, QR
+  code, share image), with zoom (slider, Ctrl + scroll, pinch) and drag.
+  **Crop & upload** stores only the cropped picture, already sized for the
+  field and never enlarged; **Use whole image** uploads it as it is;
+  **Cancel** uploads nothing. Several pictures are shown one after another.
+  SVG, GIF and other files go straight up. The media library's own Crop
+  gained the same zoom.
+- **Every image field says what to upload**: "Best at 1200 × 630 px
+  (1.91 : 1) · JPG, PNG or WebP · up to 5 MB", the size taken from one list
+  of what each picture is drawn as (`web/src/lib/image-specs.ts`) and the
+  limit from the library's settings. Several stale hints were corrected on
+  the way — a team photo is drawn 4:5, not 4:3.
+- **"AI Powered"** in the console's version chip, with a sparkle and one
+  light sweep when the console loads (none under reduced motion).
+
+No API change. `docs/media.md` "Crop before upload", `docs/console-portal.md`.
+
+---
+
+## 0.168.0 — 2026-10-12
+
+**Simple to use.** The second release of the 2.0 roadmap: the console explains
+itself. Module note: `docs/help-and-tours.md`.
+
+- **Help on every screen.** A "?" button in the console bar (or press `?`;
+  on a phone it is "Help for this screen" in your account menu) opens this
+  screen's part of the manual in a panel at the side: search the whole manual,
+  follow its links without leaving the panel, open the whole chapter. It is
+  the same manual that ships in the zip, so the two always agree.
+- **Guided tours** on the screens people meet first — the dashboard, the
+  ticket queue, the page builder, the media library, Settings and the
+  customer portal's home: a few steps, once per browser, skippable, and
+  replayable from the help panel ("Take the tour"). Not on phones.
+- **Simple view.** A switch beside an edit form's tabs hides SEO, AEO and
+  custom fields for people who never touch them — remembered per browser,
+  and a tab is never hidden while it holds a mistake to fix. Nothing is lost
+  on save.
+- **Every empty list says what to do next**: "Add the first …", or "Clear
+  filters" when your filters hid everything.
+- **Also since 0.167.0:** the Themes screen lays each homepage section's
+  settings side by side across the row; the assistant's panel header takes
+  the theme's colour, or one you choose under Assistant → Settings. "Your
+  account" is in the account menu only — it was in the sidebar too.
+- For whoever builds releases: `release/build.mjs` now refuses to build while
+  `web/src/content/help.json` is out of date with `manual/` — run
+  `npm run help` from `web/` after editing the manual.
+
+## 0.167.0 — 2026-10-12
+
+**Portal 2.0: a customer portal that looks like the product.** The second
+release of the 2.0 roadmap. Module note: `docs/console-portal.md`.
+
+- **The console's glass bar, in the portal**, carrying the website's own logo
+  (the portal had none, only a heading saying "Support portal"), the
+  browser-notifications bell, and the account menu with My profile, Back to
+  site and Sign out. The "View as" banner still sits above it.
+- **A brand-lit home.** "Hello Neel · Meridian Foods", one line about what
+  comes next (the next visit or meeting, else the latest order), and buttons
+  to raise a ticket and — when those features are switched on — to book a
+  visit or a meeting. Below it:
+  - a tile for each thing that is actually happening (open tickets and how
+    many await the customer, orders on the way, the next appointment, saved
+    items that got cheaper)
+  - one timeline of recent activity across tickets, orders, visits and
+    meetings
+  - a knowledge-base search
+
+  A tile with nothing to show is left out, never shown as a zero, and the
+  tiles always fill their row. A new customer sees one "Here's what you can
+  do" panel instead.
+- **The sidebar slides** like the console's, and **My tickets carries a count**
+  of what is open.
+- **Each page names itself** with its own heading, and the list rows lift
+  under the pointer instead of tinting.
+- **Icons on the account menu's items** in both the console and the portal.
+- **The audit now checks the portal** when given a customer to sign in as
+  (`PORTAL_LOGIN_EMAIL`/`PORTAL_LOGIN_PASSWORD`). It found two heading jumps,
+  fixed here.
+
+## 0.166.0 — 2026-10-12
+
+**Console 2.0: a brand-lit console that moves.** The first release of the
+2.0 roadmap (look and feel first). Spec:
+`docs/superpowers/specs/2026-10-12-console-portal-2-design.md`; module note:
+`docs/console-portal.md`.
+
+- **Glass top bar.** Translucent over the page, with a hairline only once
+  the page has scrolled. Your name, "Your account", "View site" (still a new
+  tab) and Sign out are in one **account menu** behind an initials disc, which
+  frees the bar at 320px.
+- **The sidebar redrawn.** The active row is a pill that **slides** to the
+  page you open. A **Fold** button at the bottom shrinks it to a 64px icon
+  rail, remembered in this browser and applied before the page paints, so it
+  never flashes open. Pointing at or tabbing to a folded icon opens that
+  section's flyout; Escape closes it.
+- **The dashboard opens on a hero band** in the theme's own colours: "Good
+  evening, Priya", one line of what is waiting (overdue tickets, open
+  tickets, new leads, visits to confirm, meetings today, only what your role
+  can see), and up to three buttons. The tiles are raised cards with a
+  coloured icon disc and a figure that counts up; the panels share one raised
+  surface. On the first visit of a session the band fades in, the tiles rise
+  one after another and the figures count; after that the dashboard simply
+  appears.
+- **Activity panel** on the dashboard: the activity log for administrators,
+  the newest tickets for the support desk. Hide or reorder it under Customise,
+  like the other panels.
+- **Quick, quiet motion throughout the console**: buttons press in, pages
+  cross-fade in 160ms, list rows ease in once. The command palette and
+  keyboard shortcuts stay instant.
+- **Motion: Full / Subtle** on Your account, per browser. Subtle keeps the
+  fades and drops all movement; somebody whose system asks for less motion
+  gets that whatever is chosen.
+
+## 0.165.0 — 2026-10-11
+
+**Free OpenRouter models, and any OpenRouter model by its id.**
+
+- **Two free models in the list** (Settings → API keys, all three model
+  pickers): Gemma 4 31B and Gemma 4 26B, both `:free` at OpenRouter, after
+  Google's Gemini and before OpenAI. Both read pictures and take
+  `response_format`. Their descriptions say plainly that they are free with
+  tight per-minute and per-day limits, that free providers may keep prompts
+  for training, and that a free model can disappear — press Test this model.
+  The default is still Gemini 2.5 Flash.
+- **"Another OpenRouter model…"** is the last option of the SEO model, the
+  website assistant's model and the "Model to test" picker. It reveals a box
+  for any id on openrouter.ai/models. The API accepts a typed id when it has
+  the shape `maker/model` (up to 100 characters) **and** OpenRouter's public
+  list has it (`GET /api/v1/models`, no key, 10 s timeout, held an hour,
+  `App\Support\Chat\OpenRouterModels`); an id not on the list is a 422 on the
+  row, and a list that cannot be fetched accepts the id on its shape alone, so
+  OpenRouter being down never blocks a save. `test-model` applies the same
+  rule before it spends a call. A saved id from outside the list shows as the
+  custom option with its id in the box.
+- **Requests are pinned to the maker's own provider** (`google/*` to Google AI
+  Studio, `anthropic/*`, `openai/*`; `allow_fallbacks: false`; other makers
+  unpinned), after OpenRouter routed a request away from the client's own key
+  and charged its wallet. A typed id from a maker the account's guardrail does
+  not allow is refused at OpenRouter.
+- `seo_suggestions.model` widened from 64 to 100 characters.
+  `GET /admin/seo/ai/models` gains `meta.custom`.
+
+## 0.164.0 — 2026-10-11
+
+**Site import, part 2: posts and products, the AI fallback, and the site's
+colours and fonts.**
+
+- **Pages are sorted.** Each page the import reads is a page, a **blog post**
+  or a **catalogue product** — found from what it says about itself (its
+  structured data, `og:type`, an article with a date and an author, a `/blog/…`
+  or `/news/…` address, a SKU beside a specification table) and changeable in the
+  review with a select on every row (which also says whether the rules, the AI or
+  you decided; **Leave out** is one of the choices, and the old "leave out" list
+  still works). A post arrives as a draft blog post with the same sections, its
+  publication date, cover picture and excerpt; a product as a draft catalogue
+  product with no price, its spec table as the specification sheet, its pictures
+  and summary. Menus, links and redirects follow wherever each page landed; a
+  `.html` post address now redirects even though `/blog` is a route.
+- **An AI fallback for what the rules cannot place.** A block with enough words
+  and shape that would stay plain text is shown to the AI assistant **as text,
+  never markup**, and placed in a section — but only if the section uses the
+  block's own words (anything reworded or invented is refused). It shares the
+  SEO assistant's switch, key, model and daily limit, counts one run per block
+  used, and is off with no key or when you turn it off in the review. The
+  review's counts are the import's: every answer is kept, so importing asks
+  nothing more. The page table shows how many sections the AI placed on each
+  page, with a badge. Pages the rules find ambiguous are put to it too.
+- **The site's colours and fonts.** The import reads the stylesheets and shows
+  six swatches and the two typefaces, with a preview of your site wearing them.
+  **Nothing changes unless you tick "Use this look for this site"**; then Import
+  sets the Appearance colours and fonts through the settings screen's own rules,
+  and installs a font file the old site served into a free custom font slot
+  (never over a font you uploaded).
+- **Three part-1 gaps closed.** A banner with no `<h1>` (classed hero, masthead,
+  banner, jumbotron…) with a headline and a button is a hero; a set of cards that
+  have pictures keeps them, as a layout section with a card to a column; a Vimeo
+  player is kept in a text section.
+- Internally: `AiSections`, `AiLedger`, `Outline`, `PageKind`, `Specs`, `Brand`,
+  `StyleSheets` (the crawl now reads the site's own CSS, phase `assets`),
+  `Steps\{Posts,Products,Brand}Step` (the first two extend `PagesStep`),
+  `Recognisers\{HeroBlock,VimeoEmbed}`; `PageDraft::guide()` / `data()` are
+  public; `Redirects::write()` takes a `live` check; the decisions gain `kinds`,
+  `ai_assist` and `brand`. Docs: `docs/site-import.md`, `API.md`, manual
+  chapter 27.
+
+**Also in this release.**
+
+- Claude models in the AI model lists (Settings → API keys): Claude Haiku 5.5,
+  Sonnet 5.5 and Opus 5.5, as OpenRouter ids. Like the OpenAI models, they
+  answer only with an Anthropic key, or credit, in the OpenRouter account —
+  press "Test this model" after choosing one.
+- Uploading a ZIP in pieces never finished, on Site import and on System →
+  Updates: a browser sends every multipart field as text, and the upload
+  compared "0" with 0. Both now read the piece numbers as numbers; a test
+  for each posts them as text, the way a browser does.
+
+---
+
+## 0.163.0 — 2026-10-11
+
+**Import a website that is not WordPress.**
+
+- **System → Site import.** Give it a live web address or a ZIP of a site's
+  files and it reads the site, shows what would come across and what would not
+  (and why), and — only when you press Import — brings every page in as a
+  **draft** laid out in sections you can rearrange in the page builder. The
+  site's header, menu and footer are recognised by what repeats across its
+  pages and left out of them; the pictures a page shows and the PDFs it links
+  to are copied into the media library; titles, descriptions, share pictures and
+  "do not index" become the page's search-engine settings; the header and
+  footer menus come across as **unassigned** menus; links between pages are
+  pointed at the new addresses; and each old address gets a redirect, never over
+  an address the new site serves itself.
+- **It reads structure, not class names**, so it works on Bootstrap, Tailwind,
+  Webflow and plain hand-written HTML: a heading over a picture, a row of cards,
+  a picture beside words, a row of figures, questions and answers, a quotation,
+  a call-to-action band, a strip of logos (a gallery), a Google map, an MP4 and a
+  contact form (a form of its own). Anything it cannot place stays text, and it
+  will not make a section that would lose a word.
+- **A live address is read politely** — through the safe fetcher, obeying
+  `robots.txt`, staying on one site, about two pages a second at most, up to
+  1,000 pages. **A ZIP is checked before it is trusted**: a path that tries to
+  leave its folder, a script or PHP file, a file over its size cap or a ZIP that
+  unpacks to too much is refused or named, and nothing in it is ever run or
+  served.
+- **Importing again updates what it made** and never changes a page's address;
+  a page you have edited here since is left alone. The home page becomes the
+  site's only if you tick it.
+- Not in this release (done in 0.164.0): an AI fallback for blocks the rules
+  cannot place, classifying pages as posts or products, and reading the site's
+  brand colours and fonts.
+- Internally: the WordPress import's reusable parts moved to
+  `App\Support\Import` (`PartsHost`, `LinkRewriter`, `Redirects`,
+  `MediaDownload`) and `Harvest` takes either import — its tests pass unchanged.
+  New: `SiteImport` model and `site_imports` table, `RunSiteImport`,
+  `technoware:prune-site-imports`, ten generic recognisers beside the
+  WordPress ones, `lib/chunk-upload.ts` (shared with System → Updates),
+  `docs/site-import.md`, manual chapter 27.
+
+---
+
+## 0.162.0 — 2026-10-11
+
+**A better page-template library.**
+
+- **Apply a template to any page.** Above the builder's sections, **Apply a
+  template** opens the list of page templates. On a page that already has
+  sections you can **Add at the end** or **Replace all sections** — which asks
+  first and says how many would go. The sections are copied in, the whole thing
+  is one Undo, and nothing is saved until you press Save. An empty page uses the
+  same list ("Choose a template").
+- **Categories and previews.** A template can be filed under a category
+  (landing page, about, services, product, contact, event, other) when it is
+  saved or later; the library screen filters by it. **Preview** on any template
+  shows it drawn by the real site in your theme, in the picker and on the
+  library screen. No thumbnails — a preview is drawn when asked for.
+- **Five starter templates** — landing page, about, services, contact and event
+  — come with every install and are added to existing ones on update, written
+  in bracketed placeholder words. They are made only when missing, so one you
+  have edited is never overwritten.
+- API: `saved_sections.category` (migration), `?category=` filter,
+  `meta.categories`; `StarterTemplateSeeder`, upgrade step
+  `SeedStarterTemplates`. Probe `template-library.mjs`.
+- **Fixed: one Undo now takes back the whole insert.** Adding, pasting,
+  applying a preset, a library copy or a template opens a card whose editor
+  tidies its data as it mounts, and that tidy was a second history step — the
+  first Undo only undid it. It now joins the insert's step.
+
+---
+
+## 0.161.0 — 2026-10-11
+
+**Detail templates: lay out every page of one kind once.**
+
+- **Content → Detail templates.** For solutions, services, industries, case
+  studies, catalogue products, shop products and blog posts, an editor builds
+  how the page is arranged in the section builder, mixing ordinary sections
+  with the parts of the page itself — heading, body, highlights, specification,
+  pictures, details, answers, questions, related lists, enquiry form, the shop's
+  buy panel, downloads, reviews and comments — and switches it on. Start from
+  the layout a page has today, preview on any record of the kind, switch off and
+  every page is back to what it was. One template is on per kind.
+- Content managers own six kinds; store managers the shop's. The parts a kind
+  does not have are never offered, and the API refuses them.
+- The public detail reads carry `detail_template` only on the record's own page
+  and only while a template is on. With none, every page renders exactly as it
+  did: the routes' pieces were moved unchanged into shared components.
+- Verified by a before/after production build: 36 routes' HTML (a catalogue
+  product added to `html-snapshot.mjs` for this) differ only in the CSS hash
+  and one post's modified time.
+
+## 0.160.0 — 2026-10-10
+
+**Arrange a theme's header and footer.**
+
+- **Site → Header & footer.** For each theme, choose which parts of its header
+  and footer show — the top bar, phone, email, search, the top-bar links, the
+  main and second buttons, the basket mark on Store; and in the footer the
+  logo, tagline, address, phone, social links, menu columns, newsletter signup,
+  policy links, credit line and the light / dark switch. Where a theme allows,
+  the parts that share a row or a block can swap places, and the header's main
+  button takes its own words (30 characters) and link. A live frame of the
+  theme sits beside the list.
+- **Not a free builder, by choice.** Each theme still draws its own header and
+  footer; the screen only offers the parts that theme has. With nothing chosen
+  every theme looks exactly as before. A light / dark switch in the header is
+  new, off unless switched on, and appears from 1600px wide.
+- Stored in the theme options (`header` and `footer` per theme, only what
+  differs from the theme's own); the API checks the part ids, the switches, the
+  order and the link. Nothing to migrate.
+  `scripts/probes/chrome-builder.mjs` drives the screen and reads the preview
+  at 1280 and 360, now for all twelve themes, and names what sticks out when a
+  page scrolls sideways.
+- Merge review: run across every theme, a button's own words ("Book a survey")
+  pushed the phone header 3–24px past a 360px screen in seven themes, so an
+  editor's words are cut shorter below 420px (4rem, Terminal's bracketed label
+  6rem). The default output was proved unchanged by building before and after
+  and diffing 35 routes' HTML (`html-snapshot.mjs`): only the stylesheet's
+  hash differs. The webpack build that needed found `careers/[slug]` exporting
+  a helper a page module may not export (since 0.82); it is no longer exported.
+
+---
+
+## 0.159.0 — 2026-10-10
+
+**Shiprocket: courier quotes, manifests, and the courier collecting a return.**
+
+- **Couriers and prices.** On a parcel with no courier yet, "See couriers and
+  prices" asks Shiprocket's serviceability for the pickup location's PIN to the
+  delivery PIN and lists each courier with its charge, delivery days, rating and
+  Shiprocket's recommendation; the choice goes with Book or Assign as
+  `courier_id`. Money is turned into paise through a two-place string, never
+  multiplied. A quote for the desk only: the checkout's delivery charge is still
+  the zones'.
+- **Manifests.** `POST /manifests/generate` then `/manifests/print`, only after
+  a courier is assigned and a pickup requested; "already generated" (a 400 that
+  lists the shipments) is success. The PDF's address is kept on the order
+  (`shipment_manifest_url`). One order from its panel, or many from the orders
+  list: tick them and "Make a manifest" gives one sheet for the ready ones and
+  names the rest with the reason (`POST /admin/store/orders/manifest`).
+- **Return pickups.** An approved return can have the courier collect it:
+  `ReturnPickups::book()` creates Shiprocket's return order (`pickup_*` the
+  customer, `shipping_*` your pickup location), assigns the AWB with
+  `is_return: 1` and requests the pickup, behind a conditional claim so a
+  double press makes one order, and carrying on from the step that failed.
+  Scans with `is_return: 1` (the webhook, and `technoware:track-shipments`)
+  update the pickup's status only — never the return's own status (Receive
+  stays a person's tick) and never the order. The customer's return shows the
+  courier's label.
+- **API**: `POST …/shipment/rates`, `…/shipment/manifest`,
+  `/admin/store/orders/manifest`, `/admin/store/returns/{ref}/pickup/{rates,
+  book,cancel}`; the order's `shipment` block gains `manifest_url`,
+  `manifest_at`, `can_manifest`, `can_rates`; the return gains `pickup`;
+  `meta.courier_active` on the orders list. The mock refuses them all (the
+  provider is manual there).
+- Needs `php artisan migrate` (two columns on `orders`, thirteen on
+  `order_returns`). `ShiprocketMoreTest` (27 tests) on a faked Shiprocket;
+  `scripts/probes/shiprocket-more.mjs` presses no button that reaches the real
+  one. **Not driven against a real account** — the unverified assumptions are
+  listed in `docs/store.md`.
+- The two migrations are timestamped `2026_10_15_120000` and `…130000`: the
+  branch had `…100000`, the same moment as 0.157.0's tag columns.
+
+---
+
+## 0.158.0 — 2026-10-10
+
+**Custom code: paste a vendor's snippet into a page, safely.**
+
+- **A new builder section, "Custom code".** A name, the code (HTML, CSS and
+  script, up to 50,000 characters, stored exactly as pasted), and a starting
+  height. Available on pages, in the section library and in the body area of
+  every record that takes sections; content managers may use it.
+- **It runs in a sandboxed frame.** The code is drawn in an `iframe srcdoc` with
+  `sandbox="allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox"`
+  and no `allow-same-origin`, so it cannot read the page's cookies, storage or
+  DOM or call the API as the visitor — the console and the site are one origin,
+  so script in the page itself would have acted as any administrator who viewed
+  it. The frame sizes itself by `postMessage` (answered only from its own
+  `contentWindow`, clamped 40–4,000 px).
+- **Running on the page itself is an administrator's.** `mode: "page"` is
+  refused from anyone else with a 422 on `blocks.N.data.mode`, unless the block
+  is already stored unchanged; one place, `CustomCodeGuard`, for the page,
+  library and record doors.
+- **The console never runs it.** The saved, draft, live and theme previews show
+  "Custom code — {name} — shown on the published page"; only the public page and
+  record routes opt in to executing code (`PageSections runCode`, off by
+  default).
+- **Logged.** A save that adds or changes custom code is written to the activity
+  log with `{custom_code: true}`.
+- The Content-Security-Policy needed no change (a `srcdoc` frame is not fetched)
+  and is documented in `security-headers.ts`: the frame inherits the policy,
+  enforced `form-action 'self'` included.
+- Retired from "offered and not wanted": a custom code section.
+- Tests: `CustomCodeSectionTest`. Probe: `scripts/probes/custom-code.mjs` (23
+  checks).
+- Merge review fixed two things the probe found, neither visible without a
+  browser: the "Where it runs" choice was never offered, because
+  `custom_code.page_mode` had gone onto the pages index's `meta` and not onto
+  `GET /admin/pages/builder`, where the editor reads it (a test now pins it
+  for both roles); and the frame never resized, because a server-rendered
+  frame reports its height before React hydrates and attaches the listener —
+  the parent now asks the frame to measure once it is listening.
+
+---
+
+## 0.157.0 — 2026-10-10
+
+**Every shop tag is a page.**
+
+- **`/store/tags/{slug}`.** A tag gains a heading, an introduction (rich text,
+  sanitised on write) and the SEO panel every indexable record has; the page
+  shows the tag's first products under the shop's own bar, with a link to the
+  filtered shop for the rest. A tag nothing published carries still answers,
+  as a stub. A hidden tag, an unknown one, or the tags row being switched off
+  is a 404.
+- **Thin pages stay out of search.** Under three published products the page
+  is `noindex, follow` and out of the sitemap (`indexable` on the API's
+  answer); it joins them when a third product is published.
+- **A rename or a merge leaves a 301** from the tag's old address — tags were
+  deliberately not `Sluggable`, and now that the slug is an address the
+  redirect is written by the Tags controller.
+- **Product pages link to it.** The tag chips on a product open the tag's
+  page; the row under the shop's search bar keeps filtering.
+- **Console.** Store → Tags has an **Edit page** link per tag: Content
+  (heading, introduction) and SEO tabs, **View page**, and the tag is on the
+  SEO overview as "Store tags".
+- `GET /store/tags/{slug}`, `GET /store/tags?all=1`, `GET /admin/store/tags/{id}`;
+  `PATCH /admin/store/tags/{id}` takes `heading`, `intro`, `seo`. Mock in
+  parity; `StoreTagPageTest`; probe `scripts/probes/store-tag-page.mjs`
+  (18 checks; merge review taught it that the hidden tag's page and the old
+  address before its redirect lands are deliberate 404s, whose dev-only React
+  warning it now ignores for those steps alone).
+
+---
+
+## 0.156.0 — 2026-10-10
+
+**Edit the custom layout's words on the live preview.**
+
+- In the preview, a layout section's **headings, button wording, icon-box
+  titles and link text, list points and picture or video captions** are now
+  changed where they stand, like a hero's heading — also inside a box, a tab,
+  a panel or a column inside a column. Two headings that say the same thing in
+  different columns are two separate edits.
+- Still in the card: text widgets (formatted text), the multi-line words (an
+  icon box's text, an accordion's answers), and the names of tabs and panels,
+  which are buttons on the page.
+- Behind it: the API's `inline_fields` lists the layout's widget words, read
+  from the widget table (never rich text), each tied to the widget type it
+  belongs to; the preview looks for a widget's words inside that widget only.
+  No change to how an edit is sent. The probe grew a layout part.
+- Merge review finished the console half, which the branch had left undone
+  (it did not type-check): a layout field is offered only when the widget it
+  sits in is of the spec's type, and an edit coming back is checked the same
+  way, so a forged message cannot put a heading's `text` onto a rich-text
+  widget (the probe's forged-message check failed on exactly that); and the
+  preview's search for a widget's words now includes the widget's own element,
+  since a heading widget is the element that holds them.
+
+---
+
+## 0.155.0 — 2026-10-10
+
+**Drag and drop in the custom layout.**
+
+- **Drag a row or a widget by its grip** (⠿, on a computer) and drop it where
+  the line shows: a widget to another place in its column, to any other column,
+  or into and out of a box, a tab, a panel or an inner column; a row above or
+  below another. The arrows and **Move to** stay, for the keyboard and for a
+  phone.
+- **What cannot go where is not offered.** A box, tabs, panels or inner columns
+  never go into one another, a tab takes only the widgets the API allows (no
+  form, slider or gallery), and a column already full takes no more —
+  there is no line to drop on, and nothing moves.
+- **One drop is one Undo step.**
+- Behind it: the section builder's own drag was lifted into one small hook
+  (`use-drag-reorder.ts`), and the list of sections now uses it with exactly
+  the lines and behaviour it had. No library, no API change. The probe
+  `layout-section.mjs` drags a widget between columns and back, refuses a
+  container in a tab, takes a video into one and back out with Undo, moves a
+  heading between tabs, reorders rows and a section. Merge review fixed the
+  probe, which had never run: its drags reached past the window.
+
+---
+
+## 0.154.0 — 2026-10-10
+
+**Boxes, tabs, panels and columns inside a column of the custom layout.**
+
+- **Four widgets that hold other widgets.** A **box** (a card, a raised card or
+  a tinted card), **tabs** (two to six), **panels that open** (one to eight,
+  each can start open) and **columns inside** (two to four side by side). Each
+  tab, panel or column has its own list of widgets with the same **+ Heading**,
+  **+ Text**, **Move to**, copy and remove controls a column has.
+- **One level deep.** A container cannot hold another container, and a form,
+  slider or gallery stays in a column (each has its own play/pause or steps).
+  The widgets inside count toward the layout's 40 widgets and its text limit.
+- **On the page** every tab's text is in the page for search engines and a
+  reader without scripts; the inactive tabs are hidden, not removed. A tab's
+  or panel's name is a button, never a heading, so the page outline is the same
+  as without it.
+- API: `LayoutRules` gains a `container` description per widget and
+  `childTypes()`; `SectionRules::RICH_TEXT` names the text widget inside a
+  slot. Tests: eleven new cases in `LayoutSectionTest`; the probe
+  `layout-section.mjs` builds a tabs container and switches its tabs at 360
+  and 1280.
+
+---
+
+## 0.153.0 — 2026-10-10
+
+**Sections can have space around them, a border and a shadow.**
+
+- **Space above and below, outside the background.** `style.mt` / `mb` (None, S,
+  Normal, L, XL) and the same per screen under "Different on phone / tablet /
+  computer". Never the sides and never negative. Put on the section's
+  background shell, so it is room around the section and not more ground. A
+  shaped edge keeps its overlap: the space adds to it.
+- **A border and a shadow.** `style.border` (Light, Strong, Brand) draws a rule
+  along the top and foot from theme tokens; `style.shadow` (Soft, Medium, Large)
+  uses the site's shadow tokens. Neither changes a text or background colour.
+- The Style panel's old "Space above/below" rows are now "Padding above/below"
+  (inside the section); the manual says which is which.
+- Every door that takes sections shares the rules, so all accept the new keys.
+  Tests in `SectionStyleResponsiveTest`; probe `section-style.mjs` extended
+  (24 checks).
+- The wrapper's marker is `data-section-frame`: the first cut named it
+  `data-frame`, which the picture and parallax rules already use for a clipped
+  picture frame.
+
+---
+
+## 0.152.0 — 2026-10-10
+
+**Every on/off choice on a record form is the sliding switch.**
+
+- The Yes/No dropdowns and tick boxes on record forms (Featured, Show in the
+  main menu, Active, Returnable, Count stock, In the shopping feed, comments
+  on a post, an embedded form, a slider's autoplay and the rest — thirty-odd
+  across brands, blog, clients, events, locations, redirects, staff,
+  webhooks, coupons, content types, the shop and more) are now the same small
+  switch the settings screens use. What the form saves is unchanged.
+- The block editors' on/off options draw the switch too.
+- **Fixed on the way:** a shop product's **Back-orders** choice was never saved
+  from its form; it is now. A client's **Featured** and a popup's **Open in a
+  new tab** are read as the other switches are.
+
+---
+
+## 0.151.0 — 2026-10-10
+
+**A new install loads the sample content unless told not to.**
+
+- The setup wizard's **Load sample content** box (step 4, "Your company and
+  your first administrator") now starts ticked, at the client's request, so
+  a first install shows the site working: sample posts, products, team,
+  events, downloads and tickets. Unticking it still gives an empty site, and
+  everything sample is still named in CLAUDE.md's "Known risks and
+  placeholders" and must be deleted before launch. Nothing changes for an
+  installed site or an update.
+
+---
+
+## 0.150.0 — 2026-10-10
+
+**The top bar's dropdown can open in columns, and a menu entry can carry a badge.**
+
+- **A "columns" panel for the top bar.** The client pointed at a customer-zone
+  menu with a thin brand line along the top of a wide dark panel, a small
+  uppercase heading over each column, and bold titles with a one- to three-line
+  description under them. It is the fifth shape the top bar's panel can take,
+  chosen on **Site → Themes → Top bar panel → Columns**; every theme draws the
+  top edge in its own idiom, and nothing changes for an install that does not
+  choose it (stored as `topbar_style`, a theme option of its own, so the header's
+  mega menu keeps its own style).
+- **Menu badges.** Each menu item takes a short badge (twelve characters) and a
+  tone — Live, Beta, Soon, New — drawn as a small outlined chip beside the label
+  in the columns panel, the other top-bar panels, the mega menu and the phone
+  drawer. The tones are theme tokens; on the top bar they are derived per bar
+  colour so the text always clears 4.5:1.
+- Needs `php artisan migrate` (two nullable/defaulted columns on `menu_items`).
+  `scripts/probes/topbar-columns.mjs` drives the panel at 1280 and 360.
+
+---
+
+## 0.149.0 — 2026-10-10
+
+**A custom layout can hold a video, a form, a slider and a gallery.**
+
+- **Video.** A YouTube link or a video file from the library, with an optional
+  cover picture, a shape (wide, 4 : 3, square or tall) and a caption. It is the
+  site's own click-to-play: nothing is loaded from YouTube until somebody
+  presses play, and a file loads only when played.
+- **Form, slider and gallery.** Choose one of your published ones; the column
+  draws it exactly as the page sections of the same name do. One slider and one
+  gallery to a layout section, because each carries its own autoplay and Pause
+  control. A record unpublished or deleted later simply disappears from the page.
+- **API**: four more widgets in `LayoutRules` (so the console, the rules and the
+  limits come from the API as before), field kinds `youtube`, `video` and
+  `ref` and a `when` condition on a field; `SectionRules::referenceProblem()` is
+  shared with the builder's own form, slider and gallery sections. The sample
+  builder page gains a video row; `LayoutSectionTest` grows by eight; the probe
+  checks that the video widget requests nothing from YouTube before a press.
+
+---
+
+## 0.148.0 — 2026-10-10
+
+**Every kind of record remembers its last thirty versions, not just pages.**
+
+- **History on eleven more edit screens.** Blog posts, knowledge-base articles,
+  case studies, solutions, services, catalogue products, shop products, events,
+  vacancies, custom content entries and landing pages get the History button
+  beside Share preview that pages and the section library had from 0.145.0:
+  the saved versions newest first, each to Preview as the site draws it or to
+  Restore into the form (nothing is saved until Save, and Save runs today's
+  rules). Each kind keeps its title or name, address, written body
+  (`body`, a solution's `overview`, `description` on products and vacancies, a
+  landing page's `heading`/`intro`/`body`) and, where it has them, `body_layout`
+  and `blocks` — never a status or a date. Owners follow the share links: a
+  store manager reads a shop product's history and gets a 403 on a post's, a
+  content manager the reverse, the SEO manager owns landing pages.
+- **API.** `App\Support\Revisions` registers the eleven (`DEFERRED` is now `[]`,
+  and `ContentRevisionTest` still fails on a share-link kind in neither list);
+  the models opt in with `HasRevisions`. `meta` on the revision endpoints gains
+  `fields`, `body_columns` and `restorable` so the console lists none of it. Every
+  form already posts each column under its own name, so `fields` is empty, and
+  no kind is preview-only.
+- **Console.** `snapshotValues()` replaces the page-only mapping in `FormDraft`'s
+  restore; the preview draws a version's sections when its record laid its body
+  out as sections and its written body otherwise. `RevisionPanel` sits beside
+  `PreviewLinkPanel` on the eleven screens.
+- Mock: three versions of solution 1. Probe: `revisions.mjs` takes `TYPE` and
+  `ID` (and `ENTRY_TYPE`) for another kind.
+- Not in a version: SEO fields, FAQs, answer blocks, custom fields, relations,
+  prices, stock, pictures. Deleting a catalogue product (soft delete) takes its
+  history with it.
+
+---
+
+## 0.147.0 — 2026-10-10
+
+**A section can be laid out by hand: rows, columns and widgets.**
+
+- **Custom layout.** A new builder section, `layout`: up to 8 rows of 1–4
+  columns, each column up to 8 widgets — heading, text (the editor), button,
+  picture, space, rule, icon box, questions that open and list. A row says how
+  its two columns split (equal, first or second wider), the space between, how
+  the columns line up, where they stack on a smaller screen and whether the
+  second comes first when stacked; a column can be a card or a raised card.
+  Each widget can be shown on only some screens. A phone is always one column.
+- **Not a free canvas.** Nothing is positioned and nothing is a number or a
+  colour; every choice is a step on a fixed scale, a box is the site's own
+  card, and widgets cannot hold widgets.
+- **Safe by construction.** Rules are generated per index over a capped walk
+  (a 5,000-row payload is refused without being walked); a widget stores only
+  the fields its own type declares; text widgets are sanitised in the page
+  save, the live preview and the library. The live preview and the library
+  save were found to carry hard-coded copies of the rich-text list and now
+  use the one constant.
+- **API**: `PageSectionType::Layout`, `LayoutRules`, `LayoutPresenter`,
+  `layout` on `GET /admin/pages/builder`; the console draws its controls from
+  that, so the API alone says what a widget is. The sample builder page gains
+  a layout; `LayoutSectionTest`, a `SanitisesRichTextTest` case, a
+  `RecordSectionsTest` row; the probe `layout-section.mjs`.
+
+---
+
+## 0.146.0 — 2026-10-10
+
+**A section can be a different shape on a phone, a tablet and a computer.**
+
+- **Per-device design.** A builder section's Style panel gains a
+  "Different on phone / tablet / computer" disclosure: space above, space
+  below, alignment and minimum height can each be set for one screen, with
+  "Same as other screens" for the rest. Stored as `style.responsive`, drawn by
+  one media-query rule per choice in `globals.css`, every value a step on the
+  existing scale times the site's spacing setting.
+- **Minimum height and heading colour.** A section can be at least small,
+  medium, large or full-screen tall (content centred), and its heading can take
+  the brand, secondary or accent ink — the same readable inks the section's
+  background already derives, never a colour of its own. A hero, a call to
+  action and a theme's own sections keep theirs.
+- Not built, by decision: section borders, radius, shadow and margin, and
+  per-device heading size or column counts.
+- API: `SectionRules` `min_h`, `heading_color`, `responsive` and
+  `style_options.heading_color_except` on `GET /admin/pages/builder`; tests in
+  `SectionStyleResponsiveTest`; the probe `section-style.mjs` reads computed
+  padding and height at three widths.
+
+---
+
+## 0.145.0 — 2026-10-10
+
+**Pages and the section library remember their last thirty versions.**
+
+- **History, beside Share preview.** Each saved version of a page or a library
+  item with when, by whom and what changed (title, address, written text,
+  sections, template). Preview draws it as the site would; Restore loads it into
+  the form and a bar says nothing is saved until Save is pressed — and Save runs
+  today's rules, so a version pointing at something since unpublished is refused
+  naming the field. Status and publish date are never part of a version.
+- **Recorded on save, by one list.** `content_revisions`, the `Revisions`
+  registry and a `HasRevisions` trait on `Page` and `SavedSection`: the import,
+  the AI page draft and the library save are covered without touching them.
+  Identical content adds nothing; the same person saving again within five
+  minutes folds into the previous version; the newest thirty are kept;
+  `technoware:prune-revisions` removes history whose record is gone.
+- The other eleven record kinds that carry share links are named as deferred and
+  a test fails if one is in neither list. Read-only API (`/admin/revisions`);
+  mock parity (three versions of the sample page); `scripts/probes/revisions.mjs`;
+  `ContentRevisionTest`.
+
+---
+
+## 0.144.0 — 2026-10-10
+
+**System → Status says what is slowing the site down, and how to fix it.**
+
+- **A Speed card.** Seventeen checks answered from the server itself, high
+  impact first: OPcache (installed, on, hit rate, memory, file slots), the
+  Xdebug debugger, whether configuration and routes are cached, debug mode,
+  where the cache is kept, whether mail waits for the visitor or the
+  scheduler, the log level, the class loader, how long the database takes to
+  answer, PHP's file-location memory, the PHP version, the media CDN, oversized
+  library pictures (counted, with the three largest named), third-party scripts
+  and the first-visit splash. The website adds two of its own: whether it is a
+  production build and whether a CDN is in front.
+- **Plain words, a figure and a fix.** Each row says what was found with the
+  number ("OPcache is switched off, so PHP reads the whole application on every
+  request"), how much it matters, where to change it (Plesk or cPanel where the
+  panel is known) and, where it helps, a line to copy.
+- **Honest where it cannot look.** A host that disables a PHP function gets
+  "Could not check" for that row, never an error page. A fact with nothing to fix
+  is "For information" and is not counted against the site.
+- **Three measured figures** — how long PHP took to reach the page, one database
+  question, and the website's answer — and a summary line such as "9 of 14
+  checks are good — 3 need attention".
+- Ctrl+K finds it with "speed", "slow" or "opcache".
+
+---
+
+## 0.143.0 — 2026-10-10
+
+**Parcels can be booked with Shiprocket from the order page, and the courier's
+status comes back by itself. Not yet tried against a real Shiprocket account.**
+
+- **A choice, and "By hand" is still the default.** Under **Store → Settings →
+  Shiprocket courier**, *How parcels are booked* is *By hand* — the courier and
+  tracking boxes on each order, exactly as before — or *Shiprocket*. On *By hand*
+  (or with the sign-in unfinished) nothing is drawn, nothing is asked of
+  Shiprocket and no order behaves differently.
+- **Book from the order.** With Shiprocket on, a paid order — or a cash-on-delivery
+  one — shows a **Courier booking** panel: the weight (from the basket) and the
+  parcel's size, filled in and editable, then **Book with Shiprocket**. It makes
+  the order there, asks Shiprocket for a courier, and writes the courier, the
+  tracking number and the tracking link into the boxes the order already has — so
+  the emails, the timeline and the customer's pages need no change. Then **Make
+  the label**, **Request pickup**, **Where is it now?** and **Cancel shipment**.
+  A cash-on-delivery parcel is booked as cash on delivery for the amount due.
+  A press books once however often it is made. An unpaid online order, a
+  licence-only order and a cancelled one cannot be booked, and the sentence says
+  why.
+- **The status comes back.** Shiprocket tells the site when a parcel is picked
+  up, moves, and is delivered (a **tracking address** shown on the settings
+  screen, and a **token**, to paste into Shiprocket's webhook settings), and
+  every half hour the site asks about parcels it has not heard of for a while.
+  *Picked up* or *in transit* moves the order to **Dispatched** and sends the
+  customer the same dispatch email a manual dispatch sends, once. *Delivered*
+  stamps the delivery time and completes the order — which is also where the
+  returns window starts counting. A parcel coming back to you, or cancelled by
+  the courier, changes no status: it leaves a line in the order's history and a
+  figure on the Store overview, and **Orders → ?shipment=problem** lists them. A
+  late or repeated message never moves an order backwards.
+- **The customer** sees the courier's own word ("Out for delivery") under
+  Dispatched, and a fifth **Delivered** step, but only for a parcel Shiprocket
+  is following.
+- **What it does not do.** Shiprocket's own rate quotes (the delivery charge is
+  still the shop's), return pickups, manifests, several parcels for one order.
+- **Not tried against a real Shiprocket account.** Shiprocket has no test mode
+  — everything it is asked acts on the live account — so every check here ran
+  against a stand-in built from Shiprocket's published documentation. On the
+  first real order, enter the API user and pickup location, use **Test the
+  connection** (it only signs in and lists locations), then book **one** parcel
+  and look at it in Shiprocket's panel before booking more. Check three things:
+  that a cash-on-delivery parcel there collects the order's total (the site
+  sends the goods less the discount, plus delivery, and has to assume how
+  Shiprocket adds them); that the courier it picked is the one you expected
+  (with no choice made it uses your account's default); and that the first
+  `picked up` message really dispatches the order. The manual lists the
+  smaller assumptions.
+- Developers: `App\Support\Store\Shipping\*` (`Shiprocket` the client,
+  `Shipments` the booking, `ShipmentStatus` the one place a courier status
+  becomes an order change, `CourierSettings`), `POST /store/shipping/webhooks/courier`,
+  `technoware:track-shipments`, migration `add_shipment_to_orders`; docs/store.md
+  "Shiprocket".
+
+---
+
+## 0.142.0 — 2026-10-09
+
+**The delivery charge shown is now the delivery charge taken. Delivery can be
+charged by zone and weight.**
+
+- **A change to agree to.** Until now the shop *displayed* a delivery charge
+  (Settings → Store → "Delivery charge", on every product page and in the
+  Google feed) and never added it to anything: no basket, order, payment or
+  invoice included it. From this version the charge is added to any order that
+  ships something. A shop whose charge is 0 — the default, and what every
+  install had — is unchanged to the paisa. A shop that had typed a figure there
+  will, from the first basket after the update, charge it.
+- **One flat charge, or zones and weight slabs.** Under **Store → Shipping**
+  choose how delivery is charged. *Flat* is the single figure above. *By zone*
+  is groups of states, each with rates by weight: "up to 500 g ₹60, up to 1 kg
+  ₹90…", an amount for every started kilogram above the top slab, and optional
+  free delivery from a basket value. A **default zone** — "Rest of India" —
+  answers for every state no other zone claims, and a zone can be one you do
+  not deliver to. "By zone" cannot be chosen until a default zone with a rate
+  exists, and the zone it stands on cannot be deleted from under it.
+- **Weight.** A basket weighs the sum of its physical lines — quantity × the
+  option's weight, else the product's, else the shop's default (500 g, set on
+  the same screen). The screen counts the shop products that have no weight and
+  links to them (**Products → Weight → No weight entered**). The variations
+  editor now shows a weight per option; before, it silently wiped one on every
+  save.
+- **The customer sees it, and it is worked out on the server.** A Delivery row
+  appears on the basket, the checkout, the order page, the portal's, the
+  console's order, the order emails, the sales CSV and the sales report (as its
+  own figure), and on the Zoho Books invoice as a "Delivery" line. In zones
+  mode the checkout's state is a list of states (the PIN code still fills it),
+  and the figure updates as it changes. Coupons never discount delivery, free
+  delivery is judged on the goods after the discount, and delivery counts toward
+  the cash-on-delivery limit. An address in a zone you do not deliver to is
+  refused with a sentence saying so. If the address changes after the basket
+  was priced, the order is refused once with the new total, so nobody pays a
+  figure they did not see.
+- **Google.** In zones mode the shopping feed and the product markup state no
+  delivery price (it depends on where the parcel goes); set shipping rules in
+  Merchant Center. Product pages and the trust strip say delivery is worked out
+  at checkout.
+- **Two PIN-code fixes.** Telangana and Ladakh addresses were filed under Andhra
+  Pradesh and Jammu & Kashmir; they are their own states now, and the directory's
+  old spellings (Pondicherry, Chattisgarh…) match the shop's state list.
+- Not changed: orders imported from WooCommerce keep delivery as a service line;
+  basket reminders quote the goods, not a half-typed destination.
+- Developers: `App\Support\Store\ShippingQuote`, tables `shipping_zones` and
+  `shipping_rates`, `orders.shipping_*` and `carts.ship_state`;
+  `PATCH /cart/destination`; `/admin/store/shipping`; `IndianStates` moved to
+  `App\Support`. Run `php artisan migrate` and the settings seeder.
+  `ShippingZonesTest`, `scripts/probes/shipping-zones.mjs`.
+
+---
+
+## 0.141.0 — 2026-10-09
+
+**Shop tags: a row of small coloured pills under the shop's search bar.**
+
+- **The tag row.** Once a category is chosen, directly under the
+  search strip: small centred pills, each on its own colour. Pressing one shows
+  only the products that carry it; the chosen one is ringed and pressing it
+  again clears it. The row appears once a category is chosen — on a category
+  page, or `/store?category=…` — with that category's tags; the bare shop
+  front has none. On a phone it is one line
+  that scrolls sideways, so it never pushes the products down. Nothing is drawn
+  when there are no tags or the row is switched off.
+- **A tag is the same colour everywhere**, on every page and every visit, and
+  matches the blog's category colours, so it reads well in light and dark and
+  in every palette.
+- **A product's own tags** appear under its short description, each opening the
+  shop filtered to it. The shop's search also finds a product by its tags.
+- **Tags on the product form.** A Tags field on the Content tab: type a tag and
+  press Enter or a comma, press × to remove one, and the shop's existing tags
+  are offered as you type. **Suggest tags** proposes some to press — from the AI
+  assistant when it is switched on and has a key and a day's allowance left,
+  otherwise from the product's brand, category and key specifications. Nothing
+  is added until you press it.
+- **Tagged automatically, once.** A product with no tags gets some the first
+  time it is saved (or imported): its brand, its category, *Digital* for a
+  licence or download, and the values of the specifications its category offers
+  as filters ("24 Ports"; yes/no values are left out). **Once only** — a tag
+  you remove never comes back. Switch it off with *Tag new products
+  automatically*.
+- **Store → Tags.** The row's three settings, a button that tags every product
+  that has none, a box for a new tag, and the list: each tag in its colour with
+  how many products carry it, a **Shown** switch, order arrows, **Rename**,
+  **Merge into…** (two spellings become one; a product holding both keeps one)
+  and **Delete** (asks first, saying how many products lose it).
+- **Up to 12 tags a product, 32 characters each.** "Wi-Fi 6" and "wi-fi  6"
+  are one tag. A tag that is switched off is still on its products, only left
+  out of the row.
+- **Spreadsheets and WordPress.** The shop export and import have a `tags`
+  column (separated by `;`; a blank cell leaves a product's tags alone).
+  WooCommerce product tags come across as shop tags.
+- Behind it: `App\Support\Store\Tags` is the one implementation;
+  `GET /store/tags`, `?tag=` on `/store/products`, and the Tags screen's own
+  endpoints under `role:store_manager`. See `docs/store.md` "Tags".
+
+---
+
+## 0.140.0 — 2026-10-09
+
+**Shop the videos: a row of product videos, each with its product under it.**
+
+- **A row of vertical videos** on the shop front, after Top Picks. Each tile is
+  a video with the product beneath it — picture, name, code, price and an Add
+  to basket button — and the video's title under that. Pressing the video plays
+  it; pressing the name goes to the product. The videos are the ones already on
+  each product's Media tab; there is no second list, and a YouTube Shorts link
+  works.
+- **A small "Watch" row on each product page**: that product's own videos
+  first, then other products' (one switch turns the second part off).
+- **The homepage and the page builder** can carry it too: a "Product videos"
+  section on the Themes screen (off until switched on), and a section in the
+  page builder for the whole shop or one category.
+- **Store → Product videos** is the new screen: a switch for each place, the
+  heading, shape, how many, order, and whether to show the product code. It
+  says how many products have a video.
+- **Plays on a press by default.** Nothing is requested from YouTube until a
+  visitor presses play, and only one tile plays at a time. A switch turns on
+  silent playback while a tile is on screen — at most four at once, with a Pause
+  button, never for visitors who asked for less motion or are saving data, and
+  only after the cookie banner is accepted where one is in use.
+- **An install that already has product videos gains the row** on the shop
+  front and the product pages. One switch each on the new screen turns it off.
+- **Demo installs** get a placeholder video on their first three shop products
+  (listed under what to delete before launch).
+- **The top bar's email address has an envelope icon**, as the phone number has
+  its own.
+- **The Enterprise theme's top-bar dropdown has rounded corners** (it was
+  square on purpose, to match that theme's cards); the open tab is marked with
+  a brand bar on its edge.
+
+---
+
+## 0.139.0 — 2026-10-09
+
+**Tick several rows and publish, archive or delete them in one go.**
+
+- **Tick boxes on the content lists.** Blog posts, knowledge-base articles,
+  case studies, solutions, services, pages, catalogue products, events,
+  vacancies, shop products, downloads, custom content entries and landing
+  pages each have a tick box on every row and one in the header that ticks the
+  whole page. Once anything is ticked a bar appears above the list: **Publish**,
+  **Move to draft**, **Archive** and **Delete**.
+- **Delete-only lists.** Industries, brands, product categories, shop
+  categories and service categories have no draft or published state, so their
+  bar offers only **Delete**.
+- **Delete asks first**, naming how many, and can be cancelled.
+- **A row that cannot be moved is left alone, and you are told why.** Each row
+  is handled on its own, exactly as if you had edited it: a landing page that
+  has not earned publishing, a download with no file, an online event with no
+  join link, or an event people have registered for is skipped with the reason
+  shown in the bar until you close it, and the rest still go through.
+- **Nothing is skipped silently and nothing half-happens.** A message says how
+  many were done; the ticks clear afterwards, and also when you change page or
+  filter, so you never act on rows you can no longer see.
+- **Deleting several at once is written to the activity log** with how many.
+- **The title column still cannot be hidden** in Table view: the tick column
+  sits in front of it, and the ticket queue — which already had one — had been
+  offering its title column to hide.
+- **Catalogue products sit four to a row** from a 1280px screen and five on a
+  wide one (three before), on `/products`, each category's listing and the
+  landing pages, so more of the range is in view and the pictures are smaller.
+- **A failed delete no longer says "deleted".** Deleting a custom content entry,
+  a vacancy, a shop product or a shop category when the server refused it used
+  to refresh the site and report success. It now reports that nothing was deleted.
+
+## 0.138.0 — 2026-10-09
+
+**Share a draft: a private link anyone can open to review it before it is published.**
+
+- **A new "Share preview" button** on the edit screen of a page, blog post,
+  knowledge-base article, case study, solution, service, catalogue product,
+  shop product, event, vacancy, custom content entry and landing page. It opens
+  a small window where you choose how long the link lasts — 1, 7 (the default) or
+  30 days — and press *Create link*. Copy the address and send it to a client or
+  a colleague; they read the page exactly as it will look once published, in
+  your chosen theme, without signing in.
+- **One link per record.** *Make a new link* stops the old one working at once;
+  *Revoke link* stops it without making another. The window shows when the link
+  expires and how many times it has been opened.
+- **It is the real page, not a picture of it.** The preview draws the same
+  page the public sees, from the same data, so a section you add to a page
+  appears in the preview without anything else being done. A banner across the
+  top says it is a draft preview and when the link stops working.
+- **Private by design.** The address is a long random code; search engines are
+  told to ignore it; it is not counted by analytics, sends no referrer and is never
+  stored for offline use. A link that is wrong, expired, revoked or replaced shows
+  the same "page not found". The preview adds no structured data to the page.
+- **Who can share what.** The same people who can edit the record: content
+  managers for pages and the catalogue, store managers for shop products, SEO
+  managers for landing pages. Administrators can share anything.
+- **A draft blog post no longer breaks its own page.** Rendering a post with no
+  publication date asked the database to compare nothing; found by the preview
+  and fixed.
+- **A product with no picture no longer breaks its own page.** A catalogue or
+  shop product saved without a picture or a video answered "something went
+  wrong" instead of its page, published or not, since product videos arrived.
+  It draws the empty picture well again.
+
+## 0.137.0 — 2026-10-09
+
+**Missing pages: see which addresses visitors could not find.**
+
+- **A new screen, SEO → Missing pages.** Whenever a visitor lands on the "page
+  not found" screen, the address they asked for is added to a list, with how
+  many times it was asked for, when it was last asked for, and the page that
+  linked to it. The ones asked for most come first.
+- **Turn one into a redirect in a press.** *Make a redirect* opens the new
+  redirect form with that address already filled in; you only choose where it
+  should go. A redirect takes up to a minute to start working, and the address
+  leaves the list by itself once it does. If you later switch that redirect off,
+  the address comes back.
+- **Ignore the ones that are not worth it.** *Ignore* moves an address to the
+  *Ignored* view, where it stays even if it keeps being asked for. *Stop
+  ignoring* brings it back.
+- **What is not listed.** Console and portal addresses, pages that are reached by
+  a private link (orders, visits, meetings, unsubscribe links and the like),
+  the things automated scanners ask every website for (`wp-login.php`, `.env`
+  and so on) and missing images, scripts and other files. Addresses nobody has
+  asked for in 90 days are deleted.
+- **Redirect destinations are checked.** A redirect can now only go to a page on
+  this site or a full `http://` / `https://` address; `javascript:` and
+  `//other-site` forms are refused with a message.
+
+For developers: `not_found_hits` (unique `path_hash`) and `App\Models\NotFoundHit`,
+whose `report()` is an upsert that never throws and holds the never-recorded
+rules; `live()` is "not ignored and no active redirect starts here", a
+subquery, so a row leaves the list through the redirect table rather than a
+flag. The browser reports it (`lib/report-not-found.ts`, from
+`NotFoundSuggestions`, through `/api/not-found` to the public `POST /not-found`,
+204 always, 30 a minute); the console side is `GET /admin/not-found` and
+`POST /admin/not-found/{hit}/ignore|restore`, `role:seo_manager`.
+`technoware:prune-not-found` runs daily at 03:40. `StoreRedirectRequest` holds
+`to_path` to `LinkPattern::PAGE_RULE`, and no longer rewrites `//host` or
+`javascript:x` into a path before checking it. `NotFoundMonitorTest` (56);
+probe `scripts/probes/not-found-monitor.mjs`.
+
+---
+
+## 0.136.0 — 2026-10-09
+
+**Payments and credit notes go to Zoho Books; the menus open more gently.**
+
+- **Payments.** Each payment recorded on an order — a card payment, cash on
+  delivery, a bank transfer, UPI — is recorded against that order's invoice
+  in Zoho Books, so the invoice shows as paid there without anybody entering
+  it. It does not matter which comes first: a payment waits for its invoice.
+- **Refunds become credit notes.** Each refund recorded on an order makes a
+  credit note against its invoice. A whole refund lists the invoice's own
+  items; a refund from a return lists what came back; any other refund is one
+  line for the amount. The money is shown paid back from the account it went
+  into.
+- **Setting it up.** Store → Settings → Zoho Books has a new switch,
+  *Record payments and refunds in Zoho Books*, and one **account** to choose
+  for each way of paying — where that money is deposited. A way of paying
+  with no account chosen is simply left for you to enter in Zoho. **If Zoho
+  was already connected, disconnect and connect it once more**: recording
+  payments needs a wider permission, and the tab says so until it is done.
+- **On each order**, every payment and refund says where it stands in Zoho
+  Books, with Zoho's own words and **Try again now** if one was refused.
+  Refused ones are counted on the store overview with the refused invoices.
+- If the invoice is already marked paid in Zoho — because somebody entered
+  the payment there by hand — the site does not record it a second time.
+- Gateway fees are not recorded; enter those in Zoho Books.
+- **Menus.** The dropdown menus on the website now fade in and out more
+  slowly (about a third of a second in, a quarter out).
+
+For developers: `App\Support\Store\Zoho\ZohoPayments` mirrors `ZohoInvoices`
+on the `payments` row (`zoho_status`, conditional claim, the same backoff),
+called from `Payment::created` and from the end of invoice creation;
+references `{order}-P{id}` / `{order}-R{id}` are how a retry adopts what an
+earlier attempt made. `ZohoSettings::SCOPE_VERSION` records which consent a
+connection holds. `ZohoPaymentsTest` (17) on the shared `FakesZohoBooks`.
+The dropdown timing is two tokens of its own, `--duration-menu` and
+`--duration-menu-exit`. **Not driven against a real Zoho account.**
+
+---
+
+## 0.135.0 — 2026-10-08
+
+**On/off settings are small sliding switches.**
+
+- Every setting that is simply on or off — on all sixteen settings screens,
+  the promo banner, the info bar, the email-to-ticket mailbox, the email
+  templates and the theme's section list — is now a small switch that slides
+  when you press it, instead of a tick box or an **Off / On** drop-down.
+- The settings that used to be a drop-down (backups, online meetings, basket
+  reminders, the ways of paying) keep their explanation: the line under the
+  switch says what the state it is in means, and changes as you press it.
+- A screen of switches is shorter than it was: the box around each one is
+  gone and a switch takes one line where a drop-down took a field.
+- Nothing about what is saved has changed. Works from the keyboard (Tab to
+  it, Space to change it) and does not animate for a visitor who has asked
+  for less motion.
+
+For developers: `components/ui/switch.tsx` is the drawing — a real
+`<input type="checkbox" role="switch">` laid over its track at zero opacity
+(not `sr-only`, so it is pressable where it is drawn), the track after it
+keyed on `peer-*`; the thumb moves with `translate`, never
+`transition-transform`. `SettingSwitch` composes it beside the same hidden
+`1`/`0` input. `onOffNotes()` in `settings-fields.tsx` turns a row whose
+options are exactly `0` and `1` into a switch — decided by the options, not
+by a list of keys. `scripts/probes/setting-switch.mjs` reads the screen
+paths from `settings-copy.ts` and fails on any Off/On drop-down or bare tick
+box posting a `setting__` key.
+
+Fixed on the way: Messaging → Settings was the one settings screen neither
+audit list named, and its section headings skipped a level (`h1` → `h3`);
+they are `h2` and the screen is in both lists now.
+
+---
+
+## 0.134.0 — 2026-10-08
+
+**Invoices made in Zoho Books by themselves.**
+
+- Connect your **Zoho Books** under Store → Settings → **Zoho Books** and
+  each order's GST invoice is made there for you: when the order is
+  dispatched, or — for an order with nothing to ship, or if you prefer it for
+  every order — when it is paid.
+- The invoice carries the prices the customer paid (GST included), any
+  discount code, and CGST + SGST or IGST according to where the order is
+  delivered. Its number, date and PDF appear on the order, and the customer
+  downloads it from their order page as before.
+- The customer is matched to a Zoho Books contact by email address, or
+  created there if new. An order never gets two invoices, and one you have
+  already uploaded an invoice to is left alone.
+- If Zoho refuses an invoice the site retries over the next day, then shows
+  **Zoho invoices refused** on the store overview. The order shows Zoho's
+  reason and a **Try again now** button. Any order has **Create the Zoho
+  invoice now**.
+- **Off until you set it up**, and uploading invoices by hand works exactly
+  as it did. The manual's Store chapter has the steps (a Server-based
+  Application in the Zoho API Console).
+- **Not done by this release:** payments are not recorded in Zoho Books (an
+  invoice shows as unpaid there until you record it), and no credit note is
+  made for a refund or cancellation.
+- **Not yet tried against a real Zoho Books account.** It is tested against
+  Zoho's published API. Connect a test organisation first and make one
+  invoice before relying on it.
+
+## 0.133.0 — 2026-10-08
+
+**Customers can sign in and register with Google.**
+
+- A **Continue with Google** button on the customer sign-in screen, and
+  **Sign up with Google** on the registration screen.
+- If an account already uses the customer's Google email address, they are
+  signed in to it. If none does, an account is created with their name from
+  Google — while registration is open, and waiting in your approval queue if
+  you require approval. The other ways to sign in still work.
+- **Off until you set it up.** Under System → Settings → Sign-in → **Sign in
+  with Google**, paste a client ID and secret from Google Cloud and tick the
+  switch. The screen shows the exact redirect address to give Google, with a
+  Copy button. The manual's Customers chapter has the steps.
+- A customer's screen in the console shows when their account is linked to
+  Google.
+- Staff sign-in to the console is unchanged.
+
+For developers: `docs/auth.md` "Signing in with Google"; `GoogleSignInTest`;
+`scripts/probes/google-signin.mjs`. Run `php artisan migrate` and
+`php artisan db:seed --class=SettingsSeeder` on a checkout (the updater does
+both).
+
+## 0.132.0 — 2026-10-08
+
+**Returns: customers ask to send items back, and you work each one to a refund.**
+
+- **A "Returns" section on every delivered order** — on the page a customer
+  reaches from their order email, and under Orders in the customer portal.
+  They choose the items and how many, give a reason, and can add up to four
+  photographs.
+- **Your return window decides who can ask.** It is the *Return window, in days*
+  already under Store → Settings (the figure your product pages show),
+  counted from the day the order was completed. Licence keys, services and
+  products marked non-returnable cannot come back.
+- **Store → Returns** is new: the requests waiting for you first, and a
+  screen for each one with the photographs. **Approve** or **decline** (with
+  a reason), mark the goods **received** — ticking the items that go back
+  into stock — and **record the refund**. The store overview counts what is
+  waiting, and each order lists its returns.
+- **The customer is emailed at every step** and sees the progress on their
+  order: Requested, Approved, Items received, Refunded. You are emailed when
+  a request arrives. All six emails can be reworded under Email templates.
+- Stock that comes back is recorded in the stock report as **Customer return**.
+- Two new settings under Store → Settings: **Let customers ask for a return
+  online** (on) and **How to send goods back**, which is added to every
+  approval email. Return numbers look like `RMA-2026-00001`; the prefix is
+  under Reference numbers.
+- Nothing is refunded automatically: send the money back through your
+  gateway or bank, then record it. A new webhook event, `return.requested`,
+  is available.
+- The registration screen is now headed **Create a customer account**
+  (it said "support account"), and the approval email says "customer
+  account" to match.
+
+For developers: `docs/store.md` "Returns"; `ReturnsTest`;
+`scripts/probes/returns.mjs`. Run `php artisan migrate` and
+`php artisan db:seed --class=SettingsSeeder` on a checkout (the updater does
+both).
+
+## 0.131.0 — 2026-10-08
+
+**A downloads centre: datasheets, drivers and firmware.**
+
+- **Content → Downloads** is new. Add a file with a title, a summary, a
+  version and a release date, and file it under a **category** (Datasheets,
+  Drivers, Firmware — yours to name).
+- Every published file is listed on your website's **Downloads** page
+  (`/downloads`), which visitors can search and filter by category.
+- **Attach a file to products.** Tick the catalogue and shop products it
+  belongs to, and it appears under **Downloads** on each of those pages.
+- **Open to everybody, or customers only.** A customers-only file is still
+  listed, with a lock; downloading it needs a sign-in to the customer
+  portal. Signed-in customers also find these files under **Downloads** in
+  the portal.
+- **Two ways to keep a file.** Choose one from the media library, or upload
+  it to the download itself — kept off the public part of the server, which
+  is what firmware, installers and customers-only files need. A large upload
+  shows its progress.
+- The console counts how often each file is downloaded.
+- The page builder's **Downloads** section can now list files **from the
+  downloads centre**, so a page always shows what is published.
+- The **Downloads** link appears in your menus once a file is published, and
+  search finds files by name.
+- **If you had a page called Downloads:** `/downloads` is now this new page.
+  Your old page was kept as a draft (at `/downloads-page`, under Content →
+  Pages), and menu links to it now point at the new page.
+- **If you made your own content type called "downloads":** its list page is
+  replaced by the new Downloads page; its entries still open. Rename the
+  type to bring its list back.
+- Not included: access per company or per contract, and a history of earlier
+  versions of a file.
+- Fixed: in the customer portal, the **orders, wishlist, visits and
+  meetings** pages each had two main headings, which confuses screen
+  readers. Each now has one.
+- Fixed: on an order's **GST invoice** panel in the console, the "Invoice
+  PDF" label sat on top of the upload box. It now sits above it.
+
+## 0.130.0 — 2026-10-08
+
+**Sections on the rest of your records.**
+
+- The **Sections** tab is now also on **blog posts, knowledge articles,
+  products, shop products, events, vacancies** and entries of **your own
+  content types**. Set **The page's body shows** to **Sections** and lay the
+  body out with the same sections a builder page uses.
+- As before, **only the body changes** and **nothing is lost**: the written
+  text stays stored and comes back when the choice is set to **Written
+  body**.
+- What each page keeps around its sections is said on the tab. A blog post
+  keeps its heading, picture, comments and sidebar (the sidebar moves under
+  the sections). A shop product keeps its pictures, price, buying panel,
+  specification and reviews. An event keeps its date, agenda, speakers and
+  registration panel. A vacancy keeps its lists and the application form.
+- **Shop products:** laying out sections needs the **Content manager** role.
+  A store manager without it sees a note in the tab, and saving the product
+  leaves its sections as they are.
+- **Categories have no Sections tab.** A category's description is a line in
+  its heading, not a body, so there is nothing for sections to take over.
+- Not changed: search, the website assistant, the SEO scores and the Google
+  and Meta product feeds still read the written text.
+- Fixed: an account with only the **Store manager** role could not open a
+  shop product to edit it, or start a new one — the screen showed an error,
+  because the brand list it loads belongs to another role. The form now
+  opens; the brand box offers the product's own brand, and saving keeps it.
+- Fixed: on a page of your own content types, the date under the heading was
+  dark text on a dark banner and could not be read. It now takes the
+  heading's text colour.
+- Fixed: on a phone, **Delete vacancy** on the vacancy form was too small to
+  press reliably. It is taller now.
+
+## 0.129.0 — 2026-10-07
+
+**Sections on solutions, services, industries and case studies.**
+
+- Each of these now has a **Sections** tab. Set **The page's body shows** to
+  **Sections** and lay the body out with the same sections a builder page
+  uses.
+- **Only the body changes.** The page keeps its heading, its related lists,
+  its FAQs and its closing band; the sections stand where the written text
+  stood.
+- **Nothing is lost.** The written text stays stored while it is not shown,
+  and comes back when the choice is set to **Written body**. The sections
+  are kept too. Until a section is added, the page shows the written text.
+- **Lay it out as sections** turns the existing text into sections at its
+  headings, as a starting point.
+- Hero and the theme's own homepage sections are not offered here, because
+  the page already has its heading.
+- Saved sections from the library can be placed on these records, and the
+  library will not delete one that a record still uses.
+- Not yet: the same on the other record types (blog posts, knowledge
+  articles, products and the rest) — that is the next release. Search and the
+  website assistant still read the written text of a record laid out as
+  sections.
+- Fixed: on a phone, a service with a long name ("Domain registration")
+  made its page scroll sideways by a few pixels. The heading's button now
+  wraps there.
+- Fixed: on a case study, the **Client** line under the heading was dark
+  text on a dark banner and could not be read. It now takes the heading's
+  own text colour.
+- Fixed: searching **cron** in the console's search (Ctrl K) found nothing.
+  It now lists **Scheduler command (cron job)**, which opens System status
+  at the scheduler's command. "crontab", "scheduler" and "scheduled task"
+  find it too.
+
+## 0.128.0 — 2026-10-07
+
+**The page builder: edit wording on the page itself.**
+
+- In the builder's **live preview** (shown beside the sections on a wide
+  screen), press a heading, a line of text or a button's wording and type.
+  **Enter** finishes; **Escape** puts back what was there.
+- The section's own fields follow as you type, **Undo** takes an edit back,
+  and nothing is saved until you save the page.
+- The preview redraws when you finish, so the words do not jump while you
+  are typing.
+- Longer formatted text, pictures, links and layout are still changed in the
+  section's card, as are tab names, questions that open and close, links
+  with an arrow and counting figures.
+- **System → System status** now shows the scheduler's **exact command for
+  your server**, with a Copy button and the steps for adding it in Plesk, in
+  cPanel or from a terminal (on Windows, the equivalent). Where the host
+  allows, the site tests the command and says whether it works. The notices
+  elsewhere that say the scheduler has stopped link straight to it.
+- Fixed: on the dashboard's **Getting started** list, **Add the scheduler's
+  cron line** opened a "page not found". It now opens that part of System
+  status.
+- After updating, nothing needs doing.
+
+---
+
+## 0.127.0 — 2026-10-07
+
+**The page builder: an assistant on each section.**
+
+- Most sections in the builder now have an **Assistant** at the top of their
+  card. **Write** drafts the section's wording from a line or two about it;
+  **Reword**, **Shorten** and **Expand** change what it already says.
+- It changes **words only**: the picture, the layout, where the buttons go,
+  the background and the rows of a list stay exactly as they are.
+- Nothing is saved until you save the page, and **Undo** puts the old
+  wording back. Anything the assistant could not know is marked
+  **[CHECK: …]** — read each result through.
+- Sections that are somebody's words or your own figures (Testimonials,
+  Figures, Comparison table) have no assistant, and a text containing a
+  list, a link or a picture is left alone rather than flattened.
+- It uses the AI assistant already set up under Settings (switched on, with
+  an OpenRouter key) and counts towards its daily limit.
+- Fixed: **Undo** in the builder now also puts a text section's words back
+  in the editor on screen; before, the editor could go on showing the newer
+  text.
+- After updating, nothing needs doing.
+
+---
+
+## 0.126.0 — 2026-10-07
+
+**The page builder: shaped edges, moving backgrounds, more lists, a menu for the page.**
+
+- **Shaped edges.** In a section's **Style**, the new **Top edge** and
+  **Bottom edge** turn the straight line between two sections into a wave, a
+  slant, a curve or a peak. The section needs a background of its own, since
+  the shape is cut from it.
+- **Moving backgrounds.** A section's **Background** — in the builder and
+  for the homepage sections on the Themes screen — can now be an
+  **Animation**: one of the slow canvas animations from the sign-in screen,
+  in your palette's colours on a dark band. Every one has a pause button
+  and stays still for visitors who ask for less motion.
+- **More lists for the Cards section**: product categories, shop
+  categories, open vacancies, and any of your own content types.
+- **In-page menu**: a new section that lists the page's sections as links
+  and stays at the top of the screen as the visitor scrolls. It lists the
+  sections you have given an **Anchor** (Style → Anchor), worded from each
+  section's heading.
+- Works in all twelve themes and on phones. After updating, nothing needs
+  doing.
+
+---
+
+## 0.125.0 — 2026-10-07
+
+**Your own fonts.**
+
+- **Site → Settings → Colour palette → Your own fonts**: upload your
+  company's typeface and it joins the Headline and Body font lists beside
+  the nineteen built in. Two fonts can be kept at once — typically one for
+  headings and one for text.
+- Each font is a **WOFF2** file (.woff2): one file for a variable font, or a
+  regular and an optional bold. A TTF or OTF can be converted with a free
+  online converter.
+- Uploading a font only makes it available; the site changes when you choose
+  it in a list and save, as with any other font. Removing a font puts the
+  site back on the default if it was in use.
+- Some themes set their headings in a typeface of their own; those headings
+  keep it whatever is chosen here, as they already do.
+- After updating, nothing needs doing.
+
+---
+
+## 0.124.0 — 2026-10-07
+
+**Ready for a CDN, and an edited picture now shows at once.**
+
+- **Media CDN** (Content → Media settings → CDN): optional and off. Give it
+  the address of a CDN that pulls from your server — Bunny, CloudFront,
+  KeyCDN — and videos, documents and vector (SVG) logos are served from it.
+  **Test the CDN** checks the address before you switch it on, and switching
+  it off puts every file back on your own server immediately. Your files stay
+  where they are; nothing is uploaded anywhere.
+- **Behind Cloudflare**: photographs are resized by the website itself, so
+  they are sped up by putting the whole website behind a CDN such as
+  Cloudflare. The site is ready for that, the manual has a new chapter —
+  *25 — Using a CDN* — and **System → Status** now says whether a CDN is in
+  front of the site and warns if one setting it needs is missing.
+- **Edited pictures show at once.** Cropping, resizing, rotating or
+  replacing a picture now changes its web address, so visitors get the new
+  version immediately. Until now a returning visitor could go on seeing the
+  old picture for a long time.
+- After updating, nothing needs doing.
+
+---
+
+## 0.123.0 — 2026-10-07
+
+**Pictures load from a blurred preview.**
+
+- Photographs on the public site — blog and case-study covers, product and
+  shop pictures, slides, galleries, page banners, team photos — now fill in
+  from a soft blurred version of themselves instead of appearing out of an
+  empty box.
+- The preview is made by the media library when a picture is uploaded or
+  edited. Pictures already in the library get theirs in the background, 250
+  an hour; nothing needs doing.
+- Logos and other vector (SVG) files have no preview and load as before.
+- After updating, nothing needs doing.
+
+---
+
+## 0.122.0 — 2026-10-07
+
+**A phone action bar, a coming-soon page and a more useful 404.**
+
+- **Phone action bar** (Site → Settings → Phone action bar): Call, WhatsApp
+  and one button of your own, pinned to the bottom of the screen on phones.
+  Off until you switch it on; each button shows only when it has a number or
+  a link to use.
+- **Coming soon** (Site → Settings → Coming soon): one switch puts a holding
+  page — your heading, message and picture — in front of the whole public
+  site. The console, the customer portal and links already emailed to
+  customers keep working, and you still see the real site while signed in.
+  Open `/coming-soon` while signed in to check the wording first. Allow up
+  to a minute for the switch to reach visitors.
+- **Page not found** now searches the whole site and suggests pages from the
+  address that was typed.
+- After updating, nothing needs doing: both new features start switched off.
+
+---
+
+## 0.121.0 — 2026-10-07
+
+**Look: a heading size, two new card finishes and a new look.**
+
+- **Headings** (Site → Settings → Colour palette): choose **Standard**,
+  **Compact** or **Large** for every heading on the site, in any theme.
+- **Cards** gains two finishes: **Soft** — no border, a wide gentle shadow —
+  and **Glow** — a halo in your brand colour under every card, stronger under
+  the pointer. Both follow light and dark by themselves.
+- A sixth ready-made look, **Statement**: emerald, big Sora headlines, round
+  corners and the glow. *Calm* now uses the Soft finish and *Editorial* the
+  Compact headings.
+- All of it is a choice: a site that does not touch these looks exactly as it
+  did.
+- **Dashboard**: every tile is now the same height. The trend line on "New
+  leads" sits beside the figure instead of under it, which had made that one
+  group taller than the others.
+- After updating, nothing needs doing.
+
+---
+
+## 0.120.0 — 2026-10-07
+
+**Customise the dashboard: choose its panels and their order.**
+
+- **Customise** (top right of the console's Dashboard) lists every panel the
+  dashboard can show you. Untick one to put it away, use the arrows to move
+  it up or down, and press **Save**. **Reset** goes back to the dashboard as
+  it comes.
+- The tiles under **At a glance** can be put away one group at a time —
+  Support, Sales, Visits and meetings, Content.
+- It is each person's own arrangement, kept in their browser for their
+  account. Nothing changes for a colleague, and nobody is shown a panel their
+  role does not have.
+- An untouched dashboard looks exactly as it did.
+- After updating, nothing needs doing.
+
+---
+
+## 0.119.0 — 2026-10-07
+
+**Table view: compact rows, a column chooser and a header that stays put.**
+
+- **Table view** (the sliders button in the console's top bar, on any screen
+  with a list): choose **Comfortable** or **Compact** row spacing for every
+  list in the console, and tick which **columns** the list in front of you
+  shows. Both are remembered in your browser — each member of staff has their
+  own, and nothing changes for anybody else.
+- Columns are remembered per screen. The first column and a row's actions
+  always stay, and on a phone every detail is still shown.
+- **The header row stays in view** while a long list scrolls, on a desktop
+  screen, wherever the whole table fits across it. A table too wide for the
+  screen scrolls sideways as before.
+- Fixed: the dashboard's loading outline no longer runs past the edge of a
+  phone screen while the figures load.
+- After updating, nothing needs doing.
+
+---
+
+## 0.118.1 — 2026-10-06
+
+- **Fixed**: after a save the console refused, a dropdown inside a list
+  editor could show its first option instead of the value it held — seen on
+  the form builder, where every field's Type read "Short text". What was
+  saved was always right; only the display was wrong. The fix is in the
+  shared form component, so every editor of this kind is covered.
+
+---
+
+## 0.118.0 — 2026-10-06
+
+**Events: seminars, webinars and trade shows, with free registration.**
+
+- **Events** (a new section in the sidebar): each event has its own page at
+  `/events/…` with the date and place, a cover picture, an agenda, speakers,
+  questions and answers, "Add to calendar" and sharing. `/events` lists what
+  is coming up and what has taken place.
+- **Registration is optional and free.** An event can take no registration,
+  take it on your site, or link to somebody else's sign-up page. On your site
+  you can set a **capacity**, a **waiting list** (people are confirmed and
+  emailed, oldest first, as places open), a **closing time** and how many
+  seats one person may book.
+- **Online events**: the join link is never shown on the page. It is sent
+  only to people who registered, in their confirmation email and calendar
+  file.
+- **Emails**: confirmation, waiting list, a place has opened, cancellation, a
+  reminder before the start (24 hours by default), and — when you tick "Tell
+  everyone registered" on saving — a notice that the time or place changed.
+  All editable under Settings → Email templates.
+- **The registrant's own page**: the confirmation email links to a page
+  showing the registration, with a Cancel button.
+- **In the console**: an event form in seven tabs, a registrations list per
+  event (change a status, add somebody by hand, export a CSV), and Events →
+  Settings for where notices go, the reminder time and the default seats.
+- Every registration files a **lead**. Events also appear in menus, site
+  search, the sitemap, the SEO overview and as a list a builder page can show
+  ("Upcoming events" in a Cards section).
+- **Not included**: paid tickets, and repeating events — each date is its own
+  event, and **Duplicate** copies one.
+- **Also changed**: a page can no longer be given an address the site already
+  uses for something else (`/events`, `/blog`, `/store` …); it is refused with
+  a message. A custom content type at `/events` must be renamed.
+- After updating, nothing needs doing: the Events section is empty until you
+  add an event, and no "Events" link appears on the site until one is
+  published.
+
+---
+
+## 0.117.0 — 2026-10-06
+
+**The form builder: nine new field types, fields that appear only when
+needed, forms in steps, file uploads and a CSV export.**
+
+- **New field types** (Site → Forms → a form → Fields): Web address, Date
+  (with an earliest and a latest day, "today" included), Single choice,
+  Multiple choice, Rating (five stars), File upload, Hidden value, and two
+  that lay the form out — a Heading with a paragraph under it, and a Step
+  break.
+- **Show a field only when…**: any field can depend on an earlier answer —
+  "How many racks?" only when the site is a data centre. A hidden field is not
+  required and is not stored, whatever was typed into it.
+- **Forms in steps**: add step breaks and the visitor fills in one step at a
+  time, with Back and Next and a "Step 2 of 3" bar. Without JavaScript the
+  whole form shows on one page and still sends.
+- **File uploads**: up to three per form, each limited to images, PDFs or
+  office documents and to a size you choose. Files are kept privately and
+  downloaded from the form's submissions; they are never attached to email.
+- **After sending**: show the message as before, or send the visitor to a
+  page of your choice (a thank-you page, a brochure).
+- **Submissions**: answers read as you wrote them (option labels, "4 / 5",
+  Yes/No), with **Export CSV**, a download link per uploaded file, and a
+  Delete for a single submission.
+- The form screen is now three tabs — Details, Fields, Put it on a page — and
+  field rows fold, so a long form is a list you can scan and reorder.
+- **Embedding**: the frame does everything. The copy-as-HTML snippet is
+  offered only for a form with no upload, step or condition.
+- **Changed**: a required tick box left unticked is now always refused (a
+  submission sent by a script could previously pass); a Single or Multiple
+  choice needs at least two options; a form may hold 50 rows, up from 30.
+- After updating, nothing needs doing: existing forms are unchanged.
+
+---
+
+## 0.116.0 — 2026-10-06
+
+**Draft a page with AI, and every AI feature now runs through OpenRouter.**
+
+- **Draft with AI** (Content → Pages): describe the page in a sentence or
+  two, choose a length, and the assistant lays out a builder page — a hero,
+  features, steps, a diagram, questions and answers, a closing band — saved
+  as a **draft** and opened in the builder. Facts it cannot know are left as
+  `[CHECK: …]` to fill in; it never writes figures, prices, testimonials or
+  client names. Its links are the site's real pages and its pictures come
+  from the media library (those with alt text). Sections that do not pass the
+  page's own rules are left out and counted.
+- **OpenRouter replaces the OpenAI key.** Settings → API keys now asks for one
+  OpenRouter key, used by the website assistant, the SEO assistant, alt text,
+  article drafts and page drafts. Your own Google AI Studio or OpenAI keys go
+  into OpenRouter ("bring your own key"). The models offered are Gemini 2.5
+  Flash (the default), Flash-Lite and Pro, and GPT-4o mini, 4.1 mini, 4o and
+  4.1.
+- **Test this model** (Settings → API keys): pick a model and send one real
+  request through the saved key; a refusal is shown in OpenRouter's own words.
+- **After updating**: the old OpenAI key is removed — it does not work at
+  OpenRouter — so paste an OpenRouter key, or every AI feature says none is
+  configured. A model already chosen keeps its choice (`gpt-4o-mini` becomes
+  `openai/gpt-4o-mini`).
+
+---
+
+## 0.115.0 — 2026-10-06
+
+**Motion graphics, part two: page transitions, a hero video and a diagram.**
+
+- **Page transitions** (Site → Settings → Motion → Changing pages): two new
+  choices, **Crossfade** and **Slide**, move between pages with the browser's
+  view transitions — the old page leaves as the new one arrives, while the
+  header and footer stay where they are. The Cinematic preset now crossfades
+  and Lively slides.
+- A builder **hero** in the Cover layout can loop a silent **background
+  video** behind its words, with a pause button. The picture is shown first
+  and stays for visitors who ask for less motion or whose phone is saving
+  data.
+- A new section, **Diagram**: two to six connected steps, each with an icon,
+  a title and a note, whose connecting arrows draw themselves as the page
+  scrolls — across from tablet width, down the page on a phone.
+- The timeline's and the steps' connecting lines now draw as the page
+  scrolls, where the browser can.
+
+---
+
+## 0.114.0 — 2026-10-06
+
+**Motion graphics, part one: headings, scrolling, a scroll story and presets.**
+
+- A section's Style panel has two new choices. **Heading arrives**: the words
+  rise one after another, the heading is wiped in from the left, or a shimmer
+  of the palette's inks sweeps across it. **While scrolling**: the section's
+  pictures drift slower than the page (parallax), the section zooms in as it
+  arrives, or it fades in and out as it passes.
+- A new section, **Scroll story**: two to six steps scroll past a picture held
+  in place, the picture changing with each step. On a phone, and for visitors
+  who ask for less motion, it is a plain list with a picture above each step.
+- **Reading progress** (Site → Settings → Motion): a thin line along the top of
+  every public page that fills as the visitor scrolls.
+- **Motion presets**: Standard, Calm, Lively, Cinematic and Still set every
+  motion choice at once; nothing changes until Save.
+- All of it is CSS scroll-driven animation — no script, nothing downloaded —
+  and still for visitors who ask their device for less motion, or whose
+  browser cannot tie an animation to scrolling.
+- The audit grades a gradient heading's words correctly when each word is its
+  own element.
+
+---
+
+## 0.113.0 — 2026-10-06
+
+**The homepage can be a builder page.**
+
+- Settings → Homepage → Homepage chooses what the front page draws: the
+  theme's own homepage, as now, or any published builder page.
+- A new section, **From the theme**, places one of the theme's own homepage
+  sections — the hero, the solutions, the partners, the closing band — on a
+  builder page. It is drawn the way the active theme draws it, and changes
+  when the theme does.
+- **New homepage from the theme** on Content → Pages starts the page for you:
+  today's homepage, section by section, with its backgrounds, ready to mix
+  with any other section.
+- The chosen page is drawn at `/`; its own address redirects there, and it is
+  left out of the sitemap.
+
+## 0.112.0 — 2026-10-06
+
+**The page builder shows the page beside its sections, live.**
+
+- From 1400px wide, the page sits to the right of the sections in the active
+  theme and redraws about a second after you stop typing — nothing flashes and
+  the preview keeps its scroll position.
+- Desktop, tablet and phone widths, each drawn at its real width and scaled to
+  fit.
+- Press a section in the preview to open its card; open a card and the
+  preview scrolls to that section and outlines it.
+- A section still missing something it needs is left out of the preview, and
+  the pane says which, rather than the whole preview stopping.
+- "Hide live preview" puts the old single column back, and the browser
+  remembers the choice. Below 1400px the Preview button works as before.
+
+## 0.111.0 — 2026-10-06
+
+**Five more builder sections.**
+
+- **Team** — your people from Company → Team, drawn the way the active theme
+  draws its team cards: everybody, or one department, optionally grouped. It
+  stays in step as the team changes.
+- **Downloads** — brochures, datasheets and price lists from the media
+  library, each with its file type, size and a download button. A file
+  deleted from the library simply drops off the list.
+- **Countdown** — days, hours, minutes and seconds to a date and time (an
+  offer ending, a launch, an event), with your own words for when it has
+  passed and up to two buttons.
+- **Columns of text** — two or three columns side by side, each with a
+  heading and a body from the editor.
+- **Map** — a Google map that loads only when somebody presses it, with the
+  address shown on its card until then.
+
+---
+
+## 0.110.0 — 2026-10-05
+
+**The WordPress import now recognises forms, price tables, galleries and
+the other page-builder widgets, and turns each into a builder section.**
+
+- **Forms come across as forms.** A Contact Form 7, WPForms, Gravity Forms,
+  Elementor or Divi form becomes a published form here, with its fields,
+  labels, choices and button wording, placed on the page where it was. The
+  same form used on several pages is created once. Submissions go to the
+  leads pipeline like every other form. A file-upload field has no
+  equivalent here and the review says so.
+- **Price tables become pricing blocks**, with each plan's name, price,
+  features, button and "popular" badge. Rupee prices per month or year
+  become real prices; anything else (dollars, "Custom") is kept exactly as
+  written.
+- **Galleries and carousels become galleries**, their pictures brought into
+  the media library with alt text and captions.
+- **Testimonials, counters, progress bars, accordions and FAQs, tabs, call-
+  to-action boxes, icon boxes, icon lists, timelines, how-to steps, YouTube
+  videos and dividers** each become the matching section, from Elementor,
+  Divi, Spectra, Kadence, Stackable, Yoast, Rank Math and the block editor.
+  Neighbouring widgets of one kind become one section, under the heading
+  above them.
+- **Nothing is lost**: anything that does not fit a section's rules comes
+  across as text.
+- **The review shows what will be created** — "Forms, pricing tables and
+  galleries" — before anything is written, and a second import reuses what
+  the first created.
+
+---
+
+## 0.109.0 — 2026-10-05
+
+**Imported pages arrive ready to edit in the builder, and four new
+sections.**
+
+- **WordPress import**: pages now arrive laid out as builder sections. A page
+  written in WordPress's block editor keeps its shape: its cover becomes the
+  opening hero, a picture beside text stays that way, columns become feature
+  points, quotes become testimonials, YouTube videos and question lists come
+  across as their own sections, and the rest is text split at each heading.
+  Pages built with Elementor or Divi, or written in the classic editor, are
+  split at their headings. The review offers "As one text body" for anyone
+  who wants the old behaviour, and a second import never overwrites sections
+  you have arranged.
+- **"This page's content"**: switching an existing page to the builder no
+  longer shows an empty builder. It offers to lay the page's text out as
+  sections, one per heading, or keep it as one text section, and Undo
+  reverses either.
+- **A builder page with no sections** shows its text instead of an empty
+  page.
+- **Four new sections**: a **comparison table** of plans (one card per plan
+  on a phone), a **timeline** of dated milestones, a **before and after**
+  picture with a divider to drag, and **testimonials** (two to nine quotes).
+- Pictures inside text sections stay in proportion, and text sections that
+  follow each other no longer leave large gaps between them.
+
+---
+
+## 0.108.0 — 2026-10-05
+
+**Every homepage section, in every theme, in proportion at every screen
+width.**
+
+- **Logo strips**: with reduced motion switched on, a strip shows each logo
+  once instead of a frozen loop repeating them; on a phone logos sit two to a
+  row instead of one.
+- **Product categories** sit two to a row on a phone in every theme, with
+  every name whole — they took ten screens of scrolling before.
+- **Editorial's hero** sets the headline beside the introduction on a wide
+  screen instead of running the text the full width.
+- **Launch**: the four figures pair up on a phone and tablet, the hero
+  picture and the lead tile keep a wide shape on a tablet, and a lead tile
+  without a picture is no longer drawn as a big empty box.
+- **Datacenter and Terminal**: pictured services sit two or three to a row
+  instead of one photograph per full-width row.
+- **Summit**, **Horizon** and **Terminal**: a caption band no longer crosses
+  its photograph, the "why" picture no longer outweighs its words, and a
+  certification note no longer wraps under itself.
+- **Certification names** wrap to two lines instead of being cut off.
+
+---
+
+## 0.107.0 — 2026-10-05
+
+**Five new builder sections, and sections that hold their proportions.**
+
+- **Figures**: up to eight numbers that count up, drawn as large figures,
+  rings or bars.
+- **Steps**: a numbered process, either down the page with a joining line or
+  across it as cards.
+- **Tabs**: two to eight panels, each with words and an optional picture.
+- **Checklist**: short points with ticks, in one to three columns.
+- **Call to action**: a closing band drawn in the active theme's own style.
+- **Proportion at every screen width**: a row never shows empty slots, and
+  short rows are centred. Bars and steps sit beside their heading on wide
+  screens. Figures sit two to a phone row. Pictures never outgrow the words
+  beside them. All checked in all twelve themes.
+- **Fixed**: saving a builder page could move a section down the page.
+- **Fixed**: the Terminal theme's header was 3px too wide on a 390px phone.
+- **Theme previews** now show any builder page:
+  `/theme-preview/<theme>/page/<slug>`.
+
+## 0.106.0 — 2026-10-05
+
+**A section library and page templates.**
+
+- **Save to library** on any builder section, then place it on other pages
+  from Add a section — **linked**, so editing it once in the library changes
+  every page that uses it, or as a **copy** the page owns. A linked section
+  says what it is, links to its library entry, and offers "Make a copy here"
+  to cut the link.
+- **Save as template** keeps a whole page's sections; a new builder page can
+  start from it, as a copy.
+- **Content → Section library** lists both, edits them in the same builder,
+  and deletes them — refusing a section still placed linked on a page, and
+  saying how many.
+
+## 0.105.0 — 2026-10-05
+
+**The page builder is easier to work in.**
+
+- **Undo and redo** for every change — adding, moving, duplicating, hiding,
+  removing and editing sections — from the buttons above the list or
+  Ctrl/⌘ Z and Ctrl/⌘ Shift Z. Typing in a field is undone in one step, not a
+  letter at a time.
+- **Drag a section by its handle** to move it; the arrows still work, and are
+  what phones and tablets use.
+- **Copy a section to another page**: press Copy on it, open any other page's
+  builder and press Paste a section.
+
+---
+
+## 0.104.0 — 2026-10-05
+
+**Every section in the page builder has a Style panel.** Beside what a
+section says, you can now set how it sits on the page:
+
+- space above and below (none, small, large, extra large);
+- content width (full, medium, narrow — narrow suits a block of text);
+- heading and text left or centred;
+- heading size (smaller or larger);
+- a link name, so a menu item or a button can jump straight to it
+  (`/about#pricing`);
+- which devices show it — phones, tablets, computers — for a section that
+  only makes sense on one of them.
+
+The choices are buttons you can see rather than lists to open, the preview
+shows them before saving, and every option is drawn to keep the page
+readable and inside the screen on a phone.
+
+---
+
+## 0.103.0 — 2026-10-05
+
+**Cards can float, outline or tilt.** Two new choices for every card on the
+website:
+
+- **Cards** beside Corners and Spacing (Site → Settings → Colour palette):
+  flat as before, *elevated* on a soft shadow that deepens under the pointer,
+  or *outline* with a crisp border. The looks set it too.
+- **Cards** on the Motion tab: lift as before, *tilt* — a card leans towards
+  the pointer in 3-D as it moves across it — *float*, or *still*.
+
+Phones and visitors who prefer less motion always see cards sitting still.
+The live preview shows the card choice before saving.
+
+Run `php artisan db:seed --class=SettingsSeeder` on update (the updater does).
+
+---
+
+## 0.102.0 — 2026-10-05
+
+**Choose a whole look in one press, and see it before you save.** Site →
+Settings → Colour palette now starts with five looks — Corporate, Modern,
+Bold, Calm and Editorial — each setting the colours, the fonts, the corners
+and the spacing together. Pick one and adjust from there.
+
+**Corners and spacing are yours to set.** Two new choices beside the
+palette: corners (soft, sharp or round — cards, buttons, pictures and
+fields together) and spacing between sections (comfortable, compact or
+airy). Both apply to the website and the customer portal; the defaults are
+exactly how the site looked before.
+
+**A live preview of the real site.** Under the palette, the actual homepage
+or an inner page — on a desktop or a phone width — changes as you choose
+colours, fonts, a look, corners or spacing, before anything is saved.
+
+Run `php artisan db:seed --class=SettingsSeeder` on update (the updater does).
+
+---
+
+## 0.101.0 — 2026-10-05
+
+**Sections can carry a texture.** Any section with a background of its own —
+on the homepage (Site → Themes) or on a page built with the section builder —
+can now add film grain, soft pools of the palette's colours, a glow, a
+blueprint grid or a dot field. Each is subtle by design and never makes the
+words harder to read.
+
+**Empty screens are friendlier.** Every "nothing here yet" panel in the
+console now has a small illustration in the site's own colours, and the
+store reports, stock report, newsletter and dashboard say what to do next
+rather than leaving a blank line.
+
+**A "Getting started" checklist** on the dashboard, for administrators: ten
+steps — your logo, replacing the sample phone number, address, figures and
+social links, choosing a look, a test email, the scheduler, backups, your
+team, and the policy pages — each ticked automatically once it is really
+done. Fold it away when you like; it stays as one line until the last step.
+
+**Customers can see where their ticket is.** The portal's ticket page shows
+its progress — received, with an engineer, being worked on, resolved,
+closed — and says plainly when it is waiting for the customer's reply.
+
+---
+
+## 0.100.0 — 2026-10-05
+
+**The console's dashboards are charts you can read, not lists of numbers.**
+A small chart kit (`docs/charts.md`) now draws every figure on the main
+dashboard, the store, the website assistant and the leads screen:
+
+- Ticket volume is an interactive chart — point at a day (or use the arrow
+  keys) to read it, switch either line off, compare with the period before,
+  or see the same figures as a table and download them as a spreadsheet.
+- New: when tickets arrive, by weekday and hour, for staffing the busy
+  squares; every ticket by status as a ring; the sales pipeline as a funnel
+  (received → replied to → won); a trend line inside the New tickets and New
+  leads tiles, with the change against the previous 30 days.
+- The store's daily revenue, the assistant's topics and busiest pages, and
+  where leads come from are ranked bars and charts; every bar opens the list
+  behind it.
+- Screens show their own outline while they load rather than a generic table.
+
+**The website can be installed as an app** (`docs/pwa.md`). Visitors can add
+it to their phone's home screen or their desktop; it opens full screen in the
+site's colours, and pages they have opened still load without a connection.
+A small card offers it from a visitor's second page — never over the cookie
+banner, quiet for a month once dismissed, with Share instructions on iPhone.
+Its name and icon are under Site → Settings → Installable app; with no icon
+uploaded one is drawn from the company's initials.
+
+Run `php artisan db:seed --class=SettingsSeeder` on update (the updater does).
+
+---
+
 ## 0.99.1 — 2026-09-30
 
 **Fixed: a new install could keep showing its first, unstyled pages for hours.**
@@ -1489,6 +3723,9 @@ prefetch payload, and every upload path on a throttled connection.
 
 The homepage certifications row carries `patterns/dot-halftone.svg` as a faded
 backdrop, the treatment the "Why Technoware" section already gives its waves.
+
+---
+
 ## 0.40.3 — 2026-09-12
 
 Client logos larger again — the "Trusted by" strip's slots are 224×80
@@ -1498,6 +3735,9 @@ both sides: the cards and the homepage row draw it in a portrait well and
 crop to fit, the form asks for a scan of the certificate rather than a
 badge, and the seeder's placeholder is `PlaceholderImage::portrait()` —
 the three seeded files were regenerated in place.
+
+---
+
 ## 0.40.2 — 2026-09-12
 
 The homepage strips read larger: marquee slots are 160×56 rather than
@@ -1506,12 +3746,18 @@ certification cards' badges 112px. And the client marquee no longer shows
 empty track on a wide screen — each copy of the list is repeated until it is
 wider than any viewport (18 slots), so `-50%` is seamless with six logos as
 it always was with twenty-six brands; the duration scales with the copy.
+
+---
+
 ## 0.40.1 — 2026-09-12
 
 A slider's words can animate in. "Text animation" beside Transition on the
 slider form — None (the default, and what every slider did before), Fade in,
 Rise, Slide in, Zoom — plays the heading, the caption and the button a beat
 apart each time a slide becomes current, and is still under reduced motion.
+
+---
+
 ## 0.40.0 — 2026-09-12
 
 Three modules for the company profile, all under Content in the console:
@@ -1531,6 +3777,9 @@ Three modules for the company profile, all under Content in the console:
 Index pages only — no slugs, no per-record SEO. In the footer's Company
 column, the sitemap, and the menu/popup section lists. Seeded as
 placeholders, create-only.
+
+---
+
 ## 0.39.3 — 2026-09-12
 
 A staff mobile number is mandatory everywhere, not only on the form. The
@@ -1540,6 +3789,9 @@ every account without one, `/admin/auth/me` carries the number, and Your
 account says whether one is on file and who to ask. `StaffPhoneTest` pins
 the rule and the one exception: an edit that does not mention the number
 does not have to backfill a row from before the column.
+
+---
+
 ## 0.39.2 — 2026-09-12
 
 The gallery's filter pills draw a frame on hover: two corner brackets grow
@@ -1547,12 +3799,18 @@ from the top-left and bottom-right until they outline the whole pill, and
 shrink back on leave. Keyboard focus does the same. `.bracket-hover` in
 `globals.css`, reusable on any control with corners — the pills went from
 `rounded-full` to `rounded-md` for it, since a bracket needs a corner.
+
+---
+
 ## 0.39.1 — 2026-09-12
 
 A gallery tile leans in on hover — the picture scales to 1.08 over half a
 second, a wash comes over it and a magnifier on a solid dark disc rises into
 the middle; keyboard focus does the same. It was a 4% scale that measured
 1.037 mid-flight and read as nothing. The caption stays under the picture.
+
+---
+
 ## 0.39.0 — 2026-09-12
 
 The shop's search box suggests as you type — up to six matching products
@@ -1573,6 +3831,9 @@ hovered or focused, crossfading every 1.1s, with dots saying which is
 showing; the extra images are fetched on the first hover, not with the grid.
 
 Fixed: "Basket is empty" wrapped to three lines once the strip was tight.
+
+---
+
 ## 0.38.2 — 2026-09-12
 
 Every card on the blog — the hero's side rows, the list rows, the sidebar

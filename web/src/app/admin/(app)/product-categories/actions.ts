@@ -1,5 +1,8 @@
 "use server";
 
+import { runBulkAction } from "@/lib/admin/bulk";
+import type { BulkState } from "@/types/bulk";
+
 import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
@@ -91,4 +94,14 @@ export async function deleteProductCategoryAction(formData: FormData) {
   updateTag("product-categories");
   revalidatePath("/admin/product-categories");
   redirect("/admin/product-categories?deleted=1");
+}
+
+/** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
+export async function bulkProductCategoriesAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  return runBulkAction(formData, {
+    path: "product-categories",
+    noun: ["category", "categories"],
+    tags: ["product-categories"],
+    paths: ["/admin/product-categories"],
+  });
 }

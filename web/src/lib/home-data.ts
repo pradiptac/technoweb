@@ -3,6 +3,7 @@ import "server-only";
 import { publicApi } from "@/lib/api";
 import { isPortablePrerender } from "@/lib/build-phase";
 import { getSiteSettings } from "@/lib/settings";
+import { videoShelfConfig, videoShelfEnabled } from "@/lib/store-videos";
 import type { HomeData } from "@/themes/contract";
 
 /**
@@ -90,11 +91,23 @@ async function fetchHome(): Promise<HomeData> {
     const found = await publicApi.block(slug).then((r) => r.data).catch(() => null);
     return found && found.type === type ? found : null;
   };
-  const [stats, pricing, stack] = await Promise.all([
+  /*
+    "Shop the videos" on the homepage (0.140.0), in the same round: asked
+    only when its switch is on, cached under `store-videos` and caught on its
+    own — no videos, or an API that predates the row, is a homepage without
+    it. `blocks.videos` is how it reaches all twelve themes through the one
+    helper they already spread.
+  */
+  const videoConfig = videoShelfConfig(settings);
+  const [stats, pricing, stack, videoRows] = await Promise.all([
     block(settings.home_stats_block, "stats"),
     block(settings.home_pricing_block, "pricing"),
     block(settings.home_stack_block, "stack"),
+    videoShelfEnabled.home(settings)
+      ? publicApi.storeVideos(`?limit=${videoConfig.limit}`).then((r) => r.data).catch(() => null)
+      : Promise.resolve(null),
   ]);
+  const videos = videoRows ? { rows: videoRows, config: videoConfig } : null;
 
-  return { settings, solutions, categories, industries, services, serviceCategories, caseStudies, posts, brands, clients, certifications, heroSlider, blocks: { stats, pricing, stack } };
+  return { settings, solutions, categories, industries, services, serviceCategories, caseStudies, posts, brands, clients, certifications, heroSlider, blocks: { stats, pricing, stack, videos } };
 }

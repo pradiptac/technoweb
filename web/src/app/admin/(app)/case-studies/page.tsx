@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkCaseStudiesAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -113,10 +115,13 @@ export default async function AdminCaseStudiesPage({
             : "A case study is the most persuasive page on the site — real numbers from real work."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="case-studies" ids={studies.map((c) => c.id)} noun={{ one: "case study", many: "case studies" }} action={bulkCaseStudiesAction} />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[800px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="case-studies" ids={studies.map((c) => c.id)} noun="case study" /></th>
                 <th scope="col" className="px-3 py-1.5">Case study</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
                 <th scope="col" className="px-3 py-1.5">Industry</th>
@@ -126,6 +131,7 @@ export default async function AdminCaseStudiesPage({
             <tbody>
               {studies.map((c) => (
                 <tr key={c.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="case-studies" id={c.id} label={c.title} /></td>
                   <td data-label="Case study" className="px-3 py-2">
                     <Link href={`/admin/case-studies/${c.id}`} className="block hover:underline">
                       <p className="max-w-[44ch] text-13-5 font-medium text-ink">{c.title}</p>
@@ -145,6 +151,7 @@ export default async function AdminCaseStudiesPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/case-studies" params={paginationParams} />

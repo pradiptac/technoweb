@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
@@ -10,6 +10,7 @@ import { PageSections, startsWithHero } from "@/components/page-sections/page-se
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata, listingMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { getSiteSettings } from "@/lib/settings";
 import type { CmsPage } from "@/types/api";
 import { ContentArchive } from "@/components/content/content-archive";
 import { loadArchive } from "./archive";
@@ -54,6 +55,11 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
 
 export default async function CmsPageRoute({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: SearchParams }) {
   const { slug } = await params;
+
+  // The page chosen as the homepage (0.113.0, Settings → Homepage) is served
+  // at `/`, and must not exist at two addresses.
+  if ((await getSiteSettings()).homepage_page_slug === slug) permanentRedirect("/");
+
   const page = await load(slug);
 
   if (!page) {
@@ -65,8 +71,10 @@ export default async function CmsPageRoute({ params, searchParams }: { params: P
 
   // A builder page (2026-09-26, docs/page-builder.md) renders its sections
   // instead of the body. Its own branch, so the default and wide templates
-  // below are untouched.
-  if (page.template === "builder") return <BuilderPage page={page} slug={slug} />;
+  // below are untouched. One with no sections yet — switched to the builder
+  // and saved before anything was laid out — shows its body as before rather
+  // than an empty page (0.109.0).
+  if (page.template === "builder" && (page.sections?.length ?? 0) > 0) return <BuilderPage page={page} slug={slug} />;
 
   const updated = new Intl.DateTimeFormat("en-IN", {
     day: "numeric", month: "long", year: "numeric",
@@ -128,13 +136,13 @@ function BuilderPage({ page, slug }: { page: CmsPage; slug: string }) {
   const sections = page.sections ?? [];
   const crumbs = [{ name: page.title, path: `/${slug}` }];
   const showsPageFaqs = sections.some((s) => s.type === "faq" && s.data.source === "page");
-  const closesItself = sections.some((s) => s.type === "content_block" && s.data.block.type === "cta");
+  const closesItself = sections.some((s) => s.type === "cta" || (s.type === "content_block" && s.data.block.type === "cta"));
 
   return (
     <>
       {!startsWithHero(sections) && <PageHero title={page.title} crumbs={crumbs} />}
 
-      <PageSections sections={sections} crumbs={crumbs} />
+      <PageSections sections={sections} crumbs={crumbs} runCode />
 
       <Container className="pb-16 empty:hidden" data-aos="fade-up">
         <AnswerBlocks blocks={page.answer_blocks} faqs={showsPageFaqs ? [] : page.faqs ?? []} className="mt-12" />

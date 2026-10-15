@@ -54,6 +54,20 @@ import {
  * Included only when credentials are set, so the command still works without
  * them; `mobile-audit.mjs` has always done it this way.
  */
+/*
+ * The signed-in customer portal (Portal 2.0, 0.167.0). Audited only when
+ * PORTAL_LOGIN_EMAIL / PORTAL_LOGIN_PASSWORD are set — there is no seeded
+ * portal account — and signed in through the portal's own form, the way the
+ * console is. Until then nothing checked the portal's contrast at all: the
+ * phone audit covers its layout and not its colours.
+ */
+const PORTAL_EMAIL = process.env.PORTAL_LOGIN_EMAIL ?? "";
+const PORTAL_PASSWORD = process.env.PORTAL_LOGIN_PASSWORD ?? "";
+const PORTAL_ROUTES = [
+  "/portal", "/portal/orders", "/portal/wishlist", "/portal/tickets", "/portal/tickets/new",
+  "/portal/visits", "/portal/meetings", "/portal/downloads", "/portal/profile",
+];
+
 const ADMIN_ROUTES = [
   "/admin", "/admin/tickets", "/admin/tickets/saved-replies", "/admin/tickets/saved-replies/new",
   "/admin/customers", "/admin/blog", "/admin/blog/new",
@@ -62,20 +76,21 @@ const ADMIN_ROUTES = [
   // sat on it unnoticed. The builder behind it has the same history.
   "/admin/menus",
   "/admin/jobs", "/admin/jobs/new", "/admin/jobs/reference", "/admin/applications",
-  "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/faqs",
+  "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/pages/library", "/admin/detail-templates", "/admin/detail-templates/new", "/admin/faqs",
   "/admin/media", "/admin/products", "/admin/products/new", "/admin/product-categories",
   "/admin/brands", "/admin/solutions", "/admin/services", "/admin/industries",
   "/admin/service-categories", "/admin/service-categories/new",
-  "/admin/sliders", "/admin/popups", "/admin/forms", "/admin/seo", "/admin/redirects",
+  "/admin/sliders", "/admin/popups", "/admin/forms", "/admin/seo", "/admin/redirects", "/admin/not-found",
   // Content blocks (2026-09-24): the four lists, and the four showcases — the
   // showcases render every seeded layout, drafts included, which is the only
   // place the audit can reach all of them without a public placeholder page.
   "/admin/blocks/cta", "/admin/blocks/stats", "/admin/blocks/pricing", "/admin/blocks/stack",
   "/admin/blocks/cta/showcase", "/admin/blocks/stats/showcase", "/admin/blocks/pricing/showcase", "/admin/blocks/stack/showcase",
   "/admin/team-members", "/admin/clients", "/admin/certifications",
+  "/admin/support-centres", "/admin/support-centres/new",
   "/admin/landing-pages", "/admin/landing-pages/opportunities",
   "/admin/locations", "/admin/locations/new",
-  "/admin/users", "/admin/settings", "/admin/info-bar", "/admin/store/promo", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen", "/admin/profile",
+  "/admin/users", "/admin/settings", "/admin/info-bar", "/admin/store/promo", "/admin/store/videos", "/admin/store/tags", "/admin/store/shipping", "/admin/store/invoicing", "/admin/themes", "/admin/site/chrome", "/theme-preview/classic", "/theme-preview/classic/specimen", "/admin/profile",
   // The wording of every system email. A new console module is not covered
   // until it is named here — the menu builder carried 183px of horizontal
   // scroll at 320px for exactly that reason.
@@ -85,13 +100,14 @@ const ADMIN_ROUTES = [
   // audited; the Email to ticket panel is the one the consent callback belongs
   // to, and that callback is a page nothing links to.
   "/admin/site/settings", "/admin/blog/settings", "/admin/media/settings", "/admin/seo/settings", "/admin/store/settings",
-  "/admin/newsletter/settings", "/admin/leads/settings", "/admin/tickets/settings", "/admin/customers/settings", "/admin/chat/settings",
-  "/admin/settings/tickets/callback",
+  "/admin/newsletter/settings", "/admin/leads/settings", "/admin/tickets/settings", "/admin/customers/settings", "/admin/chat/settings", "/admin/messaging/settings",
+  "/admin/settings/tickets/callback", "/admin/store/settings/zoho/callback",
   // The store, which is its own catalogue and its own role.
   "/admin/store", "/admin/store?days=7",
   "/admin/store/products", "/admin/store/products/new", "/admin/store/products/import",
   "/admin/store/categories", "/admin/store/categories/new",
   "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new", "/admin/store/reviews",
+  "/admin/store/returns",
   "/admin/store/reports",
   // The Campaign section. Seven screens behind one sidebar entry, and none
   // of them was in this list or the phone one until the Verification tab was
@@ -117,7 +133,7 @@ const ADMIN_ROUTES = [
   // entry below, because nothing seeds a webhook and its id is whatever an
   // administrator made.
   "/admin/webhooks", "/admin/webhooks/new",
-  "/admin/imports/wordpress", "/admin/backups", "/admin/backups/settings",
+  "/admin/imports/wordpress", "/admin/imports/site", "/admin/backups", "/admin/backups/settings",
   // System → Status and Updates (2026-09-28, docs/distribution.md).
   "/admin/system/status", "/admin/system/updates",
   // Engineer visits (docs/visits.md): the queue and its settings; the record
@@ -129,6 +145,13 @@ const ADMIN_ROUTES = [
   "/admin/meetings", "/admin/meetings?view=agenda", "/admin/meetings/new",
   "/admin/meetings/types", "/admin/meetings/types/new", "/admin/meetings/hosts",
   "/admin/meetings/settings", "/admin/my-meetings",
+  // Events (docs/events.md): the list, the seven-panel form and the settings.
+  // An event's edit form and its registrations are DISCOVER entries below.
+  "/admin/events", "/admin/events/new", "/admin/events/settings",
+  // Tenders (0.174.0): the list, the form and the category list.
+  "/admin/tenders", "/admin/tenders/new", "/admin/tenders/categories", "/admin/tenders/categories/new",
+  // The downloads centre (0.131.0): the list, both new forms, the categories.
+  "/admin/downloads", "/admin/downloads/new", "/admin/downloads/categories", "/admin/downloads/categories/new",
   // Custom fields and content types (docs/custom-content.md).
   "/admin/custom-fields", "/admin/custom-fields/new",
   "/admin/content-types", "/admin/content-types/new", "/admin/content",
@@ -153,8 +176,15 @@ const DISCOVER = [
   // canonical, and it was covered by neither this list nor the route list.
   { from: "/blog", match: /^\/blog\/category\/[^/]+$/ },
   { from: "/careers", match: /^\/careers\/[^/]+$/ },
+  // An event's page: its registration panel, agenda, speakers and FAQs
+  // (docs/events.md) — the first card on the list, whichever event that is.
+  // Not `/events/registration/…`, which is a registrant's own link.
+  { from: "/events", match: /^\/events\/(?!registration(?:\/|$))[^/]+$/ },
+  { from: "/tenders", match: /^\/tenders\/[^/]+$/ },
   // A store product page: the reviews section, its popovers and the dialog's trigger (docs/store.md, "Reviews").
   { from: "/store", match: /^\/store\/products\/[^/]+$/ },
+  // A tag page (0.157.0), reached the way a shopper reaches it: the chip on a product.
+  { from: "/store", via: /^\/store\/products\/[^/]+$/, match: /^\/store\/tags\/[^/]+$/ },
   { from: "/case-studies", match: /^\/case-studies\/[^/]+$/ },
   { from: "/knowledge-base", match: /^\/knowledge-base\/[^/]+$/ },
   // A reference's shape, not `[^/]+`: the queue's header links to
@@ -175,12 +205,27 @@ const DISCOVER = [
   { from: "/admin/meetings", match: /^\/admin\/meetings\/[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}$/, admin: true },
   { from: "/admin/my-meetings", match: /^\/admin\/my-meetings\/[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}$/, admin: true },
   { from: "/admin/meetings/types", match: /^\/admin\/meetings\/types\/\d+$/, admin: true },
+  // An event's edit form, and the registrations that hang off it — a table
+  // with an inline status select per row, the screen of the three most
+  // likely to overflow. The second by `suffix`, the code inventory's way:
+  // the list links to an event's registrations only once it takes any, and
+  // the screen (its empty state included) exists for every event.
+  { from: "/admin/events", match: /^\/admin\/events\/\d+$/, admin: true },
+  { from: "/admin/tenders", match: /^\/admin\/tenders\/\d+$/, admin: true },
+  { from: "/admin/tenders/categories", match: /^\/admin\/tenders\/categories\/\d+$/, admin: true },
+  { from: "/admin/downloads", match: /^\/admin\/downloads\/\d+$/, admin: true },
+  { from: "/admin/downloads/categories", match: /^\/admin\/downloads\/categories\/\d+$/, admin: true },
+  { from: "/admin/events", match: /^\/admin\/events\/\d+$/, admin: true, suffix: "/registrations" },
   { from: "/admin/blog", match: /^\/admin\/blog\/\d+$/, admin: true },
   { from: "/admin/jobs", match: /^\/admin\/jobs\/\d+$/, admin: true },
   { from: "/admin/applications", match: /^\/admin\/applications\/\d+$/, admin: true },
   { from: "/admin/knowledge-base", match: /^\/admin\/knowledge-base\/\d+$/, admin: true },
   { from: "/admin/case-studies", match: /^\/admin\/case-studies\/\d+$/, admin: true },
   { from: "/admin/pages", match: /^\/admin\/pages\/\d+$/, admin: true },
+  // A library item exists only once an editor saved one; the index says so when it yields nothing.
+  { from: "/admin/pages/library", match: /^\/admin\/pages\/library\/\d+$/, admin: true },
+  // A detail template (0.161.0) exists only once an editor made one; the index says so when it yields nothing.
+  { from: "/admin/detail-templates", match: /^\/admin\/detail-templates\/\d+$/, admin: true },
   /*
    * The page builder (2026-09-26): the seeded sample builder page — a draft,
    * so its public route 404s until somebody publishes it and is audited by
@@ -214,6 +259,7 @@ const DISCOVER = [
   { from: "/admin/team-members", match: /^\/admin\/team-members\/\d+$/, admin: true },
   { from: "/admin/clients", match: /^\/admin\/clients\/\d+$/, admin: true },
   { from: "/admin/certifications", match: /^\/admin\/certifications\/\d+$/, admin: true },
+  { from: "/admin/support-centres", match: /^\/admin\/support-centres\/\d+$/, admin: true },
   { from: "/admin/forms", match: /^\/admin\/forms\/\d+$/, admin: true },
   { from: "/admin/forms", match: /^\/admin\/forms\/\d+\/submissions$/, admin: true },
   { from: "/admin/faqs", match: /^\/admin\/faqs\/\d+$/, admin: true },
@@ -243,7 +289,9 @@ const DISCOVER = [
   { from: "/admin/webhooks", match: /^\/admin\/webhooks\/\d+$/, admin: true },
   { from: "/admin/store/products", match: /^\/admin\/store\/products\/\d+$/, admin: true },
   { from: "/admin/store/categories", match: /^\/admin\/store\/categories\/\d+$/, admin: true },
+  { from: "/admin/store/tags", match: /^\/admin\/store\/tags\/\d+$/, admin: true },
   { from: "/admin/store/orders", match: /^\/admin\/store\/orders\/[A-Z0-9-]+$/, admin: true },
+  { from: "/admin/store/returns", match: /^\/admin\/store\/returns\/[A-Z0-9-]+$/, admin: true },
   { from: "/admin/store/coupons", match: /^\/admin\/store\/coupons\/\d+$/, admin: true },
   // The code inventory hangs off a product, so it is reached the way a person
   // reaches it: open the first product, then its codes.
@@ -262,7 +310,14 @@ const haveAdminCredentials = Boolean(
 
 const DEFAULT_ROUTES = [
   ...PUBLIC_ROUTES,
+  // Events (docs/events.md): the list, upcoming and past. Named here rather
+  // than in `shared.mjs` so `perf.mjs`'s route set is unchanged; an event's
+  // own page is a DISCOVER entry above.
+  "/events", "/events?when=past",
+  "/tenders", "/tenders?when=closed",
+  "/downloads",
   ...(haveAdminCredentials ? ADMIN_ROUTES : []),
+  ...(PORTAL_EMAIL && PORTAL_PASSWORD ? PORTAL_ROUTES : []),
 ];
 
 /** Routes whose correct answer is 404 rather than 200. */
@@ -426,10 +481,22 @@ const AUDIT = `(function () {
       the ground is walked from the parent, which is what the reader sees the
       words on. No backticks in this comment: the whole probe is a template
       literal.
+
+      The clip reaches descendant text too: a kinetic heading (0.114.0)
+      wraps each word in a span, and the words are painted with the
+      heading's gradient while the spans hold none of their own -- graded
+      on their own they were read as ink on the heading's gradient as a
+      ground, 1:1. So the gradient is the nearest ancestor (a few levels at
+      most) that clips its background to text.
     */
-    const clipText = (cs.webkitBackgroundClip === "text" || cs.backgroundClip === "text") && gradientStops(el);
-    const inks = clipText ? gradientStops(el) : [parse(cs.color)];
-    const grounds = bgOf(clipText ? el.parentElement : el);
+    let clipHost = null;
+    for (let n = el, depth = 0; n && depth < 4; n = n.parentElement, depth++) {
+      const c = n === el ? cs : getComputedStyle(n);
+      if ((c.webkitBackgroundClip === "text" || c.backgroundClip === "text") && gradientStops(n)) { clipHost = n; break; }
+    }
+    const clipText = Boolean(clipHost);
+    const inks = clipText ? gradientStops(clipHost) : [parse(cs.color)];
+    const grounds = bgOf(clipText ? clipHost.parentElement : el);
     // The worst ground this text sits on. One entry for a flat colour, one per
     // stop for a gradient -- and the worst ink, for gradient text.
     const ratio = inks.reduce((worstInk, ink) => {
@@ -891,6 +958,22 @@ const PREPARE = {
   },
 };
 
+let customerLoggedIn = false;
+async function signInCustomer() {
+  if (customerLoggedIn) return;
+
+  await desktop.goto(`${BASE}/portal/login`, { waitUntil: "load", timeout: 180000 });
+  await switchToPasswordForm(desktop);
+  await desktop.fill("#email", PORTAL_EMAIL);
+  await desktop.fill("#password", PORTAL_PASSWORD);
+  await Promise.all([
+    desktop.waitForURL((u) => !u.pathname.startsWith("/portal/login"), { timeout: 180000 }),
+    desktop.click('button[type="submit"]'),
+  ]);
+
+  customerLoggedIn = true;
+}
+
 async function signIn() {
   if (staffLoggedIn) return;
 
@@ -1048,6 +1131,17 @@ for (const route of routes) {
       await signIn();
     } catch (e) {
       problems.push(`${route}: admin login failed — ${e.message.split("\n")[0]}`);
+      failures++;
+      continue;
+    }
+  }
+
+  const PUBLIC_PORTAL = ["/portal/login", "/portal/register", "/portal/forgot-password", "/portal/reset-password", "/portal/verify-email"];
+  if (route.startsWith("/portal") && !PUBLIC_PORTAL.some((p) => route.startsWith(p)) && PORTAL_EMAIL && !customerLoggedIn) {
+    try {
+      await signInCustomer();
+    } catch (e) {
+      problems.push(`${route}: portal login failed — ${e.message.split("\n")[0]}`);
       failures++;
       continue;
     }

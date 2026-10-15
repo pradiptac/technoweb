@@ -59,7 +59,7 @@ class CatalogueImport
         'sku', 'parent_sku', 'name', 'slug', 'type', 'category', 'brand',
         'price', 'compare_at', 'stock', 'track_stock', 'allow_oversell',
         'gtin', 'mpn', 'condition', 'weight_grams', 'status', 'feed_include',
-        'short_description',
+        'short_description', 'tags',
     ];
 
     /** Refused lines reported per file. The fifty-first says nothing the first fifty did not. */
@@ -112,6 +112,7 @@ class CatalogueImport
             'status' => ['status', 'published', 'visibility'],
             'feed_include' => ['feedinclude', 'infeed', 'googlefeed', 'feed'],
             'short_description' => ['shortdescription', 'summary', 'blurb', 'tagline', 'excerpt'],
+            'tags' => ['tags', 'tag', 'producttags', 'labels'],
         ];
 
         $mapping = [];
@@ -489,6 +490,29 @@ class CatalogueImport
             }
         }
 
+        /*
+         * Shop tags, separated by `;` (a comma is common inside a name). A
+         * blank cell leaves a product's tags alone like every other column;
+         * a filled one replaces them. A name the tags cannot hold is
+         * refused, not trimmed: "Wi-Fi 6E Access Points And Controllers For
+         * Large Estates" cut to 32 characters is a different tag.
+         */
+        if ($cells['tags'] !== null) {
+            $names = array_values(array_filter(array_map('trim', explode(';', $cells['tags'])), fn ($n) => $n !== ''));
+
+            foreach ($names as $name) {
+                if (mb_strlen($name) > Tags::NAME_MAX || Str::slug($name) === '') {
+                    return ['values' => [], 'error' => "\"{$name}\" cannot be a tag — a tag is 1 to ".Tags::NAME_MAX.' characters with at least one letter or number.'];
+                }
+            }
+
+            if (count(Tags::clean($names)) > Tags::MAX_PER_PRODUCT) {
+                return ['values' => [], 'error' => 'A product can carry up to '.Tags::MAX_PER_PRODUCT.' tags.'];
+            }
+
+            $values['tags'] = $names;
+        }
+
         return ['values' => $values, 'error' => null];
     }
 
@@ -518,6 +542,7 @@ class CatalogueImport
             $variation = $line['variation'];
             $product = $variation->product()->firstOrFail();
             $before = $product->variations()->pluck('stock', 'id')->all();
+            $values = self::stored($values, $variation->price_paise ?? $product->price_paise, null, Tax::rateFor($product));
 
             $variation->update(array_intersect_key($values, array_flip([
                 'price_paise', 'stock', 'gtin', 'mpn', 'weight_grams', 'allow_oversell',
@@ -533,25 +558,66 @@ class CatalogueImport
             $product = $line['product'];
             $stockBefore = (int) $product->stock;
             $variationsBefore = $product->variations()->pluck('stock', 'id')->all();
+            $values = self::stored($values, $product->price_paise, $product->compare_at_paise, Tax::rateFor($product));
 
             // Everything a product line may set except the two the import
             // uses to find it: a SKU is the key here, and a slug changed by a
             // spreadsheet cell would move a live URL without anybody meaning to.
-            $product->update(array_diff_key($values, array_flip(['sku', 'slug'])));
+            $product->update(array_diff_key($values, array_flip(['sku', 'slug', 'tags'])));
 
             StockLedger::adjusted($product, $stockBefore, $variationsBefore, false, $source);
+            self::tag($product, $values['tags'] ?? null);
 
             return;
         }
+
+        $values = self::stored($values, null, null, Tax::rate());
 
         $product = StoreProduct::create([
             'type' => ProductType::Physical,
             'status' => PublishStatus::Draft,
             'sku' => $line['sku'],
-            ...$values,
+            ...array_diff_key($values, ['tags' => true]),
         ]);
 
         StockLedger::adjusted($product, 0, [], true, $source);
+        self::tag($product, $values['tags'] ?? null);
+    }
+
+    /**
+     * A line's prices as stored (0.178.0). The file is in the console's
+     * basis — `store_price_entry`, the basis the export writes — and a stored
+     * price always includes GST. A cell holding exactly what the export
+     * wrote keeps the stored price, so a round trip moves nothing by a paisa
+     * (`Tax::keep()`).
+     *
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    private static function stored(array $values, ?int $price, ?int $compareAt, int $rate): array
+    {
+        foreach (['price_paise' => $price, 'compare_at_paise' => $compareAt] as $key => $was) {
+            if (isset($values[$key])) {
+                $values[$key] = Tax::keep((int) $values[$key], $was, $rate, false);
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * Tags for a line: the cell's, when it had one; otherwise the automatic
+     * rule, which is a no-op for a product that has tags or was decided.
+     *
+     * @param  array<int, string>|null  $names
+     */
+    private static function tag(StoreProduct $product, ?array $names): void
+    {
+        if ($names !== null) {
+            Tags::sync($product, $names);
+        } else {
+            Tags::autoTag($product);
+        }
     }
 
     /** @return array<string, int> */

@@ -1,0 +1,176 @@
+{
+  "name": "Form builder probe",
+  "slug": "form-builder-probe",
+  "status": "published",
+  "submit_label": "Send request",
+  "success_message": "Thank you. We will be in touch within one working day.",
+  "embed_enabled": true,
+  "fields": [
+    {
+      "kind": "heading",
+      "label": "About you",
+      "help": "Tell us who to contact."
+    },
+    {
+      "kind": "text",
+      "name": "full_name",
+      "label": "Your name",
+      "required": true,
+      "width": "half"
+    },
+    {
+      "kind": "email",
+      "name": "email",
+      "label": "Email",
+      "required": true,
+      "width": "half"
+    },
+    {
+      "kind": "tel",
+      "name": "phone",
+      "label": "Phone",
+      "width": "half"
+    },
+    {
+      "kind": "url",
+      "name": "company_site",
+      "label": "Company website",
+      "width": "half"
+    },
+    {
+      "kind": "hidden",
+      "name": "campaign",
+      "label": "Campaign",
+      "settings": {
+        "value": "probe"
+      }
+    },
+    {
+      "kind": "step",
+      "label": "Your site"
+    },
+    {
+      "kind": "radio",
+      "name": "site_type",
+      "label": "What kind of site is it?",
+      "required": true,
+      "options": [
+        {
+          "value": "office",
+          "label": "Office"
+        },
+        {
+          "value": "warehouse",
+          "label": "Warehouse"
+        },
+        {
+          "value": "datacentre",
+          "label": "Data centre"
+        }
+      ]
+    },
+    {
+      "kind": "number",
+      "name": "racks",
+      "label": "How many racks?",
+      "settings": {
+        "min": 1,
+        "max": 200
+      },
+      "show_if": {
+        "field": "site_type",
+        "op": "equals",
+        "value": "datacentre"
+      }
+    },
+    {
+      "kind": "checkboxes",
+      "name": "needs",
+      "label": "What do you need?",
+      "options": [
+        {
+          "value": "network",
+          "label": "Networking"
+        },
+        {
+          "value": "cctv",
+          "label": "CCTV"
+        },
+        {
+          "value": "wifi",
+          "label": "Wi-Fi"
+        },
+        {
+          "value": "other",
+          "label": "Something else"
+        }
+      ]
+    },
+    {
+      "kind": "textarea",
+      "name": "other_need",
+      "label": "Tell us what else",
+      "show_if": {
+        "field": "needs",
+        "op": "includes",
+        "value": "other"
+      }
+    },
+    {
+      "kind": "date",
+      "name": "visit_date",
+      "label": "Preferred visit date",
+      "settings": {
+        "min": "today"
+      },
+      "width": "half"
+    },
+    {
+      "kind": "select",
+      "name": "urgency",
+      "label": "How urgent is it?",
+      "width": "half",
+      "options": [
+        {
+          "value": "low",
+          "label": "No rush"
+        },
+        {
+          "value": "soon",
+          "label": "This month"
+        },
+        {
+          "value": "now",
+          "label": "This week"
+        }
+      ]
+    },
+    {
+      "kind": "step",
+      "label": "Last details"
+    },
+    {
+      "kind": "file",
+      "name": "floor_plan",
+      "label": "Floor plan (optional)",
+      "settings": {
+        "accept": [
+          "image",
+          "pdf"
+        ],
+        "max_kb": 2048
+      }
+    },
+    {
+      "kind": "rating",
+      "name": "confidence",
+      "label": "How sure are you about the scope?"
+    },
+    {
+      "kind": "checkbox",
+      "name": "consent",
+      "label": "I agree to be contacted about this request",
+      "required": true
+    }
+  ]
+}

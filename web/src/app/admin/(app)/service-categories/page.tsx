@@ -1,11 +1,14 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkServiceCategoriesAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
-import { iconMap, IconLayers, type IconName } from "@/components/icons";
+import { IconByKey, IconLayers } from "@/components/icons";
 import { getServiceCategoryList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -18,9 +21,8 @@ export const metadata = buildMetadata({
 });
 
 function RowIcon({ name }: { name: string | null | undefined }) {
-  const Icon = name && name in iconMap ? iconMap[name as IconName] : IconLayers;
   return (
-    <IconTile size="sm"><Icon /></IconTile>
+    <IconTile size="sm"><IconByKey name={name} Fallback={IconLayers} /></IconTile>
   );
 }
 
@@ -85,16 +87,19 @@ export default async function AdminServiceCategoriesPage({
       </FilterBar>
 
       {categories.length === 0 ? (
-        <EmptyState icon={<IconLayers />} title={hasFilters ? "No categories match that search" : "No service categories yet"}>
+        <EmptyState icon={<IconLayers />} title={hasFilters ? "No categories match that search" : "No service categories yet"} action={<EmptyListAction filtered={hasFilters} clearHref="/admin/service-categories" newHref="/admin/service-categories/new" noun="service category" />}>
           {hasFilters
             ? "Try a different term, or clear the filters."
             : "Each category is a tab on the homepage's services section and on /services."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="service-categories" ids={categories.map((c) => c.id)} noun={{ one: "category", many: "categories" }} actions={["delete"]} action={bulkServiceCategoriesAction} deleteNote="Their services stay, under Other services." />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[680px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="service-categories" ids={categories.map((c) => c.id)} noun="category" /></th>
                 <th scope="col" className="px-3 py-1.5">Category</th>
                 <th scope="col" className="px-3 py-1.5">Services</th>
                 <th scope="col" className="px-3 py-1.5">Cards</th>
@@ -104,6 +109,7 @@ export default async function AdminServiceCategoriesPage({
             <tbody>
               {categories.map((c) => (
                 <tr key={c.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="service-categories" id={c.id} label={c.name} /></td>
                   <td data-label="Category" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <RowIcon name={c.icon} />
@@ -126,6 +132,7 @@ export default async function AdminServiceCategoriesPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/service-categories" params={{ q: params.q, active: params.active, per_page: params.per_page }} />

@@ -255,6 +255,10 @@ class MenuController extends Controller
                 'url' => $type === MenuItemType::Custom && trim((string) ($item['url'] ?? '')) !== '#' ? ($item['url'] ?? null) : null,
                 'icon' => $item['icon'] ?? null,
                 'description' => $item['description'] ?? null,
+                // Trimmed, and a blank is no badge at all; the tone is only
+                // meaningful beside one, so it falls back to the default.
+                'badge' => filled(trim((string) ($item['badge'] ?? ''))) ? trim((string) $item['badge']) : null,
+                'badge_tone' => in_array($item['badge_tone'] ?? null, MenuItem::BADGE_TONES, true) ? $item['badge_tone'] : 'new',
                 'open_in_new_tab' => (bool) ($item['open_in_new_tab'] ?? false),
                 'is_active' => (bool) ($item['is_active'] ?? true),
             ]);

@@ -18,11 +18,15 @@ use App\Models\Setting;
 use App\Notifications\CustomerRegistered;
 use App\Notifications\VerifyCustomerEmail;
 use App\Support\Address;
+use App\Support\Auth\GoogleSignIn;
+use App\Support\Auth\GoogleSignInRefused;
 use App\Support\Notifier;
+use App\Support\OAuth\CallbackPath;
 use App\Support\SignInCodes;
 use App\Support\Store\Wishlists;
 use App\Support\Webhooks\WebhookPayload;
 use App\Support\Webhooks\Webhooks;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -211,6 +215,143 @@ class AuthController extends Controller
         }
 
         RateLimiter::clear($request->throttleKey());
+
+        return $this->issueToken($customer, $request);
+    }
+
+    /**
+     * Where to send a browser that pressed "Continue with Google"
+     * (0.133.0, docs/auth.md "Signing in with Google").
+     *
+     * The website supplies its own callback address — only it knows the
+     * origin it is reachable at — and the random value it has just put in an
+     * httpOnly cookie, which `GoogleSignIn` binds the round trip to.
+     */
+    public function googleAuthorize(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'redirect_uri' => ['required', 'url', 'max:500'],
+            'binding' => ['required', 'string', 'regex:/^[a-f0-9]{32,128}$/'],
+        ]);
+
+        if (! GoogleSignIn::live()) {
+            return $this->refuse('Signing in with Google is not available.', 'google_login_disabled');
+        }
+
+        $redirect = CallbackPath::assert($data['redirect_uri'], GoogleSignIn::CALLBACK_PATH);
+
+        return response()->json(['data' => ['url' => GoogleSignIn::authorizeUrl($redirect, $data['binding'])]]);
+    }
+
+    /**
+     * Google sent the browser back: sign the customer in, or make their
+     * account.
+     *
+     * Who this is, in order:
+     *
+     *   1. the customer already linked to that Google account (`google_sub`),
+     *      whatever address they have since moved to here;
+     *   2. the customer at the address Google has **verified** — linked from
+     *      now on. A verified Google address is the same proof a sign-in
+     *      code is: control of the mailbox;
+     *   3. nobody — so a new account, while registration is open. It is born
+     *      confirmed (Google confirmed the address) and `active` or
+     *      `pending` exactly as a registration through the form would be.
+     *
+     * A first confirmation goes through `markEmailVerified()` like every
+     * other, so a password somebody chose for an address they never proved
+     * is replaced, that row's sessions end, and the address's paid guest
+     * orders join the account. The desk is told for the reason
+     * `verifyCode()` gives: the approval queue is fed by `CustomerRegistered`
+     * and nothing else.
+     *
+     * Every refusal after Google has answered is the login's own 403 with
+     * its `reason`. Saying "no account uses that address" here is not the
+     * membership oracle `/auth/register` refuses to be: it is said only to
+     * somebody Google has just confirmed owns the address.
+     */
+    public function googleCallback(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:2048'],
+            'state' => ['required', 'string', 'max:128'],
+            'redirect_uri' => ['required', 'url', 'max:500'],
+            'binding' => ['required', 'string', 'regex:/^[a-f0-9]{32,128}$/'],
+        ]);
+
+        if (! GoogleSignIn::live()) {
+            return $this->refuse('Signing in with Google is not available.', 'google_login_disabled');
+        }
+
+        $redirect = CallbackPath::assert($data['redirect_uri'], GoogleSignIn::CALLBACK_PATH);
+
+        try {
+            $who = GoogleSignIn::identify($data['code'], $data['state'], $redirect, $data['binding']);
+        } catch (GoogleSignInRefused $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'reason' => 'google_'.$e->reason,
+                'errors' => ['google' => [$e->getMessage()]],
+            ], 422);
+        }
+
+        $customer = Customer::where('google_sub', $who['sub'])->first()
+            ?? Customer::where('email', $who['email'])->first();
+
+        if (! $customer) {
+            if (! Setting::get('registration_enabled', false)) {
+                return $this->refuse(
+                    'No customer account uses that Google address, and new registrations are closed. Contact us and we will set one up for you.',
+                    'registration_closed',
+                );
+            }
+
+            try {
+                $customer = Customer::create([
+                    'name' => $who['name'],
+                    'email' => $who['email'],
+                    // Nobody knows it and nobody needs to: this account is
+                    // reached through Google, a sign-in code, or a password
+                    // its owner sets through "Forgot your password?".
+                    'password' => Str::random(64),
+                    'status' => Setting::get('customer_approval_required', false)
+                        ? CustomerStatus::Pending
+                        : CustomerStatus::Active,
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                // Two callbacks for one new address at once: the other made the row.
+                $customer = Customer::where('email', $who['email'])->firstOrFail();
+            }
+        }
+
+        if ($barred = $this->refuseIfBarred($customer)) {
+            return $barred;
+        }
+
+        if ($customer->google_sub !== $who['sub']) {
+            $customer->forceFill(['google_sub' => $who['sub']])->save();
+        }
+
+        // Google vouches for *its* address. A customer linked earlier who has
+        // since moved their account to another address, and not confirmed
+        // it, has proved nothing about that one by signing in to Google.
+        if (! $customer->hasVerifiedEmail() && $customer->email === $who['email']) {
+            $customer->markEmailVerified();
+
+            Notifier::route('support_email', new CustomerRegistered($customer->fresh()));
+            Webhooks::emit(WebhookEvent::CustomerRegistered, fn () => WebhookPayload::customer($customer->fresh()));
+        }
+
+        if (! $customer->hasVerifiedEmail()) {
+            return $this->refuse(
+                'Confirm your email address first — check your inbox for the link we sent.',
+                'email_unverified',
+            );
+        }
+
+        if (! $customer->status->canSignIn()) {
+            return $this->refuse($customer->status->signInMessage(), $customer->status->reasonCode());
+        }
 
         return $this->issueToken($customer, $request);
     }

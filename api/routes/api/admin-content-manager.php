@@ -10,7 +10,10 @@ use App\Http\Controllers\Api\V1\Admin\ClientController as AdminClientController;
 use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBlockController;
 use App\Http\Controllers\Api\V1\Admin\ContentTypeController;
 use App\Http\Controllers\Api\V1\Admin\CustomFieldGroupController;
+use App\Http\Controllers\Api\V1\Admin\DownloadCategoryController as AdminDownloadCategoryController;
+use App\Http\Controllers\Api\V1\Admin\DownloadController as AdminDownloadController;
 use App\Http\Controllers\Api\V1\Admin\EntryController;
+use App\Http\Controllers\Api\V1\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
 use App\Http\Controllers\Api\V1\Admin\FormController as AdminFormController;
 use App\Http\Controllers\Api\V1\Admin\GalleryController as AdminGalleryController;
@@ -25,11 +28,14 @@ use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\V1\Admin\PopupController as AdminPopupController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController as AdminProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\V1\Admin\SavedSectionController;
 use App\Http\Controllers\Api\V1\Admin\ServiceCategoryController as AdminServiceCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Api\V1\Admin\SliderController as AdminSliderController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
 use App\Http\Controllers\Api\V1\Admin\TeamMemberController as AdminTeamMemberController;
+use App\Http\Controllers\Api\V1\Admin\TenderCategoryController as AdminTenderCategoryController;
+use App\Http\Controllers\Api\V1\Admin\TenderController as AdminTenderController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,6 +44,54 @@ use Illuminate\Support\Facades\Route;
  * admin group by routes/api.php.
  */
 Route::middleware('role:content_manager')->group(function () {
+
+    /*
+     * Events (0.118.0, docs/events.md). An event is a page with a date, so
+     * it is content; the people who register for one are not, and their
+     * routes are in `admin-events.php` under a wider role.
+     *
+     * Bound by **id**, not slug — the edit form changes the slug it is
+     * addressed by. `duplicate` makes a draft copy, which is how a series
+     * is made: nothing recurs.
+     */
+    Route::get('events', [AdminEventController::class, 'index'])->name('events.index');
+    Route::post('events', [AdminEventController::class, 'store'])->name('events.store');
+    Route::post('events/bulk', [AdminEventController::class, 'bulk'])->middleware('throttle:30,1')->name('events.bulk');
+    Route::get('events/{event:id}', [AdminEventController::class, 'show'])->name('events.show');
+    Route::patch('events/{event:id}', [AdminEventController::class, 'update'])->name('events.update');
+    Route::delete('events/{event:id}', [AdminEventController::class, 'destroy'])->name('events.destroy');
+    Route::post('events/{event:id}/duplicate', [AdminEventController::class, 'duplicate'])->name('events.duplicate');
+
+    /*
+     * Tenders (0.174.0, docs/tenders.md). A notice inviting bids is a page
+     * with two dates, so it is content — and nothing is submitted through
+     * the site, so there is no second role here the way events have one for
+     * the people who register.
+     *
+     * Bound by **id**, not slug — the edit form changes the slug it is
+     * addressed by. `duplicate` makes a draft copy, which is how next
+     * year's tender is made from last year's.
+     *
+     * `tenders/bulk` is declared **above** `tenders/{tender:id}`, or `{id}`
+     * binds the literal string "bulk" and answers 404 from model binding —
+     * the `media/move` trap, which reads as a missing record rather than as
+     * a routing mistake.
+     */
+    Route::get('tenders', [AdminTenderController::class, 'index'])->name('tenders.index');
+    Route::post('tenders', [AdminTenderController::class, 'store'])->name('tenders.store');
+    Route::post('tenders/bulk', [AdminTenderController::class, 'bulk'])->middleware('throttle:30,1')->name('tenders.bulk');
+    Route::get('tenders/{tender:id}', [AdminTenderController::class, 'show'])->name('tenders.show');
+    Route::patch('tenders/{tender:id}', [AdminTenderController::class, 'update'])->name('tenders.update');
+    Route::delete('tenders/{tender:id}', [AdminTenderController::class, 'destroy'])->name('tenders.destroy');
+    Route::post('tenders/{tender:id}/duplicate', [AdminTenderController::class, 'duplicate'])->name('tenders.duplicate');
+
+    // Taxonomy for the above: a name, an order and a switch. Deleting one
+    // leaves its tenders unfiled (`nullOnDelete`).
+    Route::get('tender-categories', [AdminTenderCategoryController::class, 'index'])->name('tender-categories.index');
+    Route::post('tender-categories', [AdminTenderCategoryController::class, 'store'])->name('tender-categories.store');
+    Route::get('tender-categories/{tender_category}', [AdminTenderCategoryController::class, 'show'])->name('tender-categories.show');
+    Route::patch('tender-categories/{tender_category}', [AdminTenderCategoryController::class, 'update'])->name('tender-categories.update');
+    Route::delete('tender-categories/{tender_category}', [AdminTenderCategoryController::class, 'destroy'])->name('tender-categories.destroy');
 
     /*
      * Vacancies are content: a careers page is a page. The people
@@ -51,6 +105,7 @@ Route::middleware('role:content_manager')->group(function () {
      */
     Route::get('job-openings', [JobOpeningController::class, 'index'])->name('job-openings.index');
     Route::post('job-openings', [JobOpeningController::class, 'store'])->name('job-openings.store');
+    Route::post('job-openings/bulk', [JobOpeningController::class, 'bulk'])->middleware('throttle:30,1')->name('job-openings.bulk');
     Route::get('job-openings/{job_opening:id}', [JobOpeningController::class, 'show'])->name('job-openings.show');
     Route::patch('job-openings/{job_opening:id}', [JobOpeningController::class, 'update'])->name('job-openings.update');
     Route::delete('job-openings/{job_opening:id}', [JobOpeningController::class, 'destroy'])->name('job-openings.destroy');
@@ -68,6 +123,7 @@ Route::middleware('role:content_manager')->group(function () {
     // slug it is addressed by.
     Route::get('blog-posts', [AdminBlogPostController::class, 'index'])->name('blog-posts.index');
     Route::post('blog-posts', [AdminBlogPostController::class, 'store'])->name('blog-posts.store');
+    Route::post('blog-posts/bulk', [AdminBlogPostController::class, 'bulk'])->middleware('throttle:30,1')->name('blog-posts.bulk');
     Route::get('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'show'])->name('blog-posts.show');
     Route::patch('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'update'])->name('blog-posts.update');
     Route::delete('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'destroy'])->name('blog-posts.destroy');
@@ -99,17 +155,20 @@ Route::middleware('role:content_manager')->group(function () {
     // One endpoint per resource — the same call made for industries.
     Route::get('products', [AdminProductController::class, 'index'])->name('products.index');
     Route::post('products', [AdminProductController::class, 'store'])->name('products.store');
+    Route::post('products/bulk', [AdminProductController::class, 'bulk'])->middleware('throttle:30,1')->name('products.bulk');
     Route::get('products/{product:id}', [AdminProductController::class, 'show'])->name('products.show');
     Route::patch('products/{product:id}', [AdminProductController::class, 'update'])->name('products.update');
     Route::delete('products/{product:id}', [AdminProductController::class, 'destroy'])->name('products.destroy');
 
     Route::get('solutions', [AdminSolutionController::class, 'index'])->name('solutions.index');
     Route::post('solutions', [AdminSolutionController::class, 'store'])->name('solutions.store');
+    Route::post('solutions/bulk', [AdminSolutionController::class, 'bulk'])->middleware('throttle:30,1')->name('solutions.bulk');
     Route::get('solutions/{solution:id}', [AdminSolutionController::class, 'show'])->name('solutions.show');
     Route::patch('solutions/{solution:id}', [AdminSolutionController::class, 'update'])->name('solutions.update');
     Route::delete('solutions/{solution:id}', [AdminSolutionController::class, 'destroy'])->name('solutions.destroy');
     Route::get('case-studies', [AdminCaseStudyController::class, 'index'])->name('case-studies.index');
     Route::post('case-studies', [AdminCaseStudyController::class, 'store'])->name('case-studies.store');
+    Route::post('case-studies/bulk', [AdminCaseStudyController::class, 'bulk'])->middleware('throttle:30,1')->name('case-studies.bulk');
     Route::get('case-studies/{case_study:id}', [AdminCaseStudyController::class, 'show'])->name('case-studies.show');
     Route::patch('case-studies/{case_study:id}', [AdminCaseStudyController::class, 'update'])->name('case-studies.update');
     Route::delete('case-studies/{case_study:id}', [AdminCaseStudyController::class, 'destroy'])->name('case-studies.destroy');
@@ -118,35 +177,52 @@ Route::middleware('role:content_manager')->group(function () {
         ->name('knowledge-categories.index');
     Route::get('knowledge-articles', [AdminKnowledgeArticleController::class, 'index'])->name('knowledge-articles.index');
     Route::post('knowledge-articles', [AdminKnowledgeArticleController::class, 'store'])->name('knowledge-articles.store');
+    Route::post('knowledge-articles/bulk', [AdminKnowledgeArticleController::class, 'bulk'])->middleware('throttle:30,1')->name('knowledge-articles.bulk');
     Route::get('knowledge-articles/{knowledge_article:id}', [AdminKnowledgeArticleController::class, 'show'])->name('knowledge-articles.show');
     Route::patch('knowledge-articles/{knowledge_article:id}', [AdminKnowledgeArticleController::class, 'update'])->name('knowledge-articles.update');
     Route::delete('knowledge-articles/{knowledge_article:id}', [AdminKnowledgeArticleController::class, 'destroy'])->name('knowledge-articles.destroy');
 
     Route::get('services', [AdminServiceController::class, 'index'])->name('services.index');
     Route::post('services', [AdminServiceController::class, 'store'])->name('services.store');
+    Route::post('services/bulk', [AdminServiceController::class, 'bulk'])->middleware('throttle:30,1')->name('services.bulk');
     Route::get('services/{service:id}', [AdminServiceController::class, 'show'])->name('services.show');
     Route::patch('services/{service:id}', [AdminServiceController::class, 'update'])->name('services.update');
     Route::delete('services/{service:id}', [AdminServiceController::class, 'destroy'])->name('services.destroy');
 
     Route::get('industries', [AdminIndustryController::class, 'index'])->name('industries.index');
     Route::post('industries', [AdminIndustryController::class, 'store'])->name('industries.store');
+    Route::post('industries/bulk', [AdminIndustryController::class, 'bulk'])->middleware('throttle:30,1')->name('industries.bulk');
     Route::get('industries/{industry:id}', [AdminIndustryController::class, 'show'])->name('industries.show');
     Route::patch('industries/{industry:id}', [AdminIndustryController::class, 'update'])->name('industries.update');
     Route::delete('industries/{industry:id}', [AdminIndustryController::class, 'destroy'])->name('industries.destroy');
 
     Route::get('pages', [AdminPageController::class, 'index'])->name('pages.index');
     Route::post('pages', [AdminPageController::class, 'store'])->name('pages.store');
+    Route::post('pages/bulk', [AdminPageController::class, 'bulk'])->middleware('throttle:30,1')->name('pages.bulk');
     // The section builder (2026-09-26): its pickers, and the unsaved-draft
     // preview. Declared above `pages/{page:id}`, or the id binding reads
     // "builder" as a page and 404s.
     Route::get('pages/builder', [AdminPageController::class, 'builder'])->name('pages.builder');
     Route::post('pages/preview', [AdminPageController::class, 'preview'])->middleware('throttle:60,1')->name('pages.preview');
+    Route::post('pages/sections-from-body', [AdminPageController::class, 'sectionsFromBody'])->middleware('throttle:30,1')->name('pages.sections-from-body');
+    // A draft builder page laid out by the assistant from a brief (0.116.0).
+    Route::post('pages/ai-draft', [AdminPageController::class, 'aiDraft'])->middleware('throttle:6,1')->name('pages.ai-draft');
+    // The assistant on one section of the builder (0.127.0): answers new
+    // wording for the console's form and writes nothing.
+    Route::post('pages/ai-section', [AdminPageController::class, 'aiSection'])->middleware('throttle:20,1')->name('pages.ai-section');
+    // The section library and page templates (2026-10-05, docs/page-builder.md).
+    Route::get('saved-sections', [SavedSectionController::class, 'index'])->name('saved-sections.index');
+    Route::post('saved-sections', [SavedSectionController::class, 'store'])->name('saved-sections.store');
+    Route::get('saved-sections/{savedSection}', [SavedSectionController::class, 'show'])->name('saved-sections.show');
+    Route::patch('saved-sections/{savedSection}', [SavedSectionController::class, 'update'])->name('saved-sections.update');
+    Route::delete('saved-sections/{savedSection}', [SavedSectionController::class, 'destroy'])->name('saved-sections.destroy');
     Route::get('pages/{page:id}', [AdminPageController::class, 'show'])->name('pages.show');
     Route::patch('pages/{page:id}', [AdminPageController::class, 'update'])->name('pages.update');
     Route::delete('pages/{page:id}', [AdminPageController::class, 'destroy'])->name('pages.destroy');
 
     Route::get('brands', [AdminBrandController::class, 'index'])->name('brands.index');
     Route::post('brands', [AdminBrandController::class, 'store'])->name('brands.store');
+    Route::post('brands/bulk', [AdminBrandController::class, 'bulk'])->middleware('throttle:30,1')->name('brands.bulk');
     Route::get('brands/{brand:id}', [AdminBrandController::class, 'show'])->name('brands.show');
     Route::patch('brands/{brand:id}', [AdminBrandController::class, 'update'])->name('brands.update');
     Route::delete('brands/{brand:id}', [AdminBrandController::class, 'destroy'])->name('brands.destroy');
@@ -245,6 +321,18 @@ Route::middleware('role:content_manager')->group(function () {
     Route::patch('forms/{form:id}', [AdminFormController::class, 'update'])->name('forms.update');
     Route::delete('forms/{form:id}', [AdminFormController::class, 'destroy'])->name('forms.destroy');
     Route::get('forms/{form:id}/submissions', [AdminFormController::class, 'submissions'])->name('forms.submissions');
+    // Above `submissions/{submission}`, or `{submission}` binds the literal
+    // "export" and answers 404 from model binding — the `media/move` trap.
+    Route::get('forms/{form:id}/submissions/export', [AdminFormController::class, 'export'])->name('forms.submissions.export');
+    // An upload has no URL; this is the only way to read one. `{field}` is
+    // held to the shape of a field key so it can never be read as a path.
+    Route::get('forms/{form:id}/submissions/{submission}/files/{field}', [AdminFormController::class, 'file'])
+        ->whereNumber('submission')
+        ->where('field', '[a-z][a-z0-9_]*')
+        ->name('forms.submissions.file');
+    Route::delete('forms/{form:id}/submissions/{submission}', [AdminFormController::class, 'destroySubmission'])
+        ->whereNumber('submission')
+        ->name('forms.submissions.destroy');
 
     /*
      * Custom field groups (docs/custom-content.md). The console calls the
@@ -274,6 +362,7 @@ Route::middleware('role:content_manager')->group(function () {
     Route::scopeBindings()->group(function () {
         Route::get('content-types/{content_type:slug}/entries', [EntryController::class, 'index'])->name('entries.index');
         Route::post('content-types/{content_type:slug}/entries', [EntryController::class, 'store'])->name('entries.store');
+        Route::post('content-types/{content_type:slug}/entries/bulk', [EntryController::class, 'bulk'])->middleware('throttle:30,1')->name('entries.bulk');
         Route::get('content-types/{content_type:slug}/entries/{entry:id}', [EntryController::class, 'show'])->name('entries.show');
         Route::patch('content-types/{content_type:slug}/entries/{entry:id}', [EntryController::class, 'update'])->name('entries.update');
         Route::delete('content-types/{content_type:slug}/entries/{entry:id}', [EntryController::class, 'destroy'])->name('entries.destroy');
@@ -283,6 +372,7 @@ Route::middleware('role:content_manager')->group(function () {
     // category select — one endpoint per resource, as with industries.
     Route::get('product-categories', [AdminProductCategoryController::class, 'index'])->name('product-categories.index');
     Route::post('product-categories', [AdminProductCategoryController::class, 'store'])->name('product-categories.store');
+    Route::post('product-categories/bulk', [AdminProductCategoryController::class, 'bulk'])->middleware('throttle:30,1')->name('product-categories.bulk');
     Route::get('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'show'])->name('product-categories.show');
     Route::patch('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'update'])->name('product-categories.update');
     Route::delete('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
@@ -291,9 +381,32 @@ Route::middleware('role:content_manager')->group(function () {
     // doubles as the service form's category select.
     Route::get('service-categories', [AdminServiceCategoryController::class, 'index'])->name('service-categories.index');
     Route::post('service-categories', [AdminServiceCategoryController::class, 'store'])->name('service-categories.store');
+    Route::post('service-categories/bulk', [AdminServiceCategoryController::class, 'bulk'])->middleware('throttle:30,1')->name('service-categories.bulk');
     Route::get('service-categories/{service_category:id}', [AdminServiceCategoryController::class, 'show'])->name('service-categories.show');
     Route::patch('service-categories/{service_category:id}', [AdminServiceCategoryController::class, 'update'])->name('service-categories.update');
     Route::delete('service-categories/{service_category:id}', [AdminServiceCategoryController::class, 'destroy'])->name('service-categories.destroy');
+
+    /*
+     * The downloads centre (0.131.0, docs/downloads.md). `options` is
+     * declared above `{download:id}`, or the parameter would bind the
+     * literal "options" and 404 from model binding — the `media/move` trap.
+     * A write may arrive as multipart with the file, on POST with
+     * `_method=PATCH` for an edit. `file` streams a private upload to staff.
+     */
+    Route::get('downloads', [AdminDownloadController::class, 'index'])->name('downloads.index');
+    Route::get('downloads/options', [AdminDownloadController::class, 'options'])->name('downloads.options');
+    Route::post('downloads', [AdminDownloadController::class, 'store'])->name('downloads.store');
+    Route::post('downloads/bulk', [AdminDownloadController::class, 'bulk'])->middleware('throttle:30,1')->name('downloads.bulk');
+    Route::get('downloads/{download:id}', [AdminDownloadController::class, 'show'])->name('downloads.show');
+    Route::get('downloads/{download:id}/file', [AdminDownloadController::class, 'file'])->name('downloads.file');
+    Route::patch('downloads/{download:id}', [AdminDownloadController::class, 'update'])->name('downloads.update');
+    Route::delete('downloads/{download:id}', [AdminDownloadController::class, 'destroy'])->name('downloads.destroy');
+
+    Route::get('download-categories', [AdminDownloadCategoryController::class, 'index'])->name('download-categories.index');
+    Route::post('download-categories', [AdminDownloadCategoryController::class, 'store'])->name('download-categories.store');
+    Route::get('download-categories/{download_category:id}', [AdminDownloadCategoryController::class, 'show'])->name('download-categories.show');
+    Route::patch('download-categories/{download_category:id}', [AdminDownloadCategoryController::class, 'update'])->name('download-categories.update');
+    Route::delete('download-categories/{download_category:id}', [AdminDownloadCategoryController::class, 'destroy'])->name('download-categories.destroy');
 
     // Owners first: the picker needs it before the form can save.
     Route::get('faq-owners', [AdminFaqController::class, 'owners'])->name('faq-owners.index');
@@ -321,6 +434,9 @@ Route::middleware('role:content_manager')->group(function () {
     Route::post('media/move', [MediaController::class, 'move'])->name('media.move');
     Route::post('media/copy', [MediaController::class, 'copy'])->name('media.copy');
     Route::post('media/delete', [MediaController::class, 'bulkDestroy'])->name('media.bulk-destroy');
+    // A pasted link copied into the library (0.172.0); above the {medium} routes for the same reason.
+    Route::post('media/import-url', [MediaController::class, 'importUrl'])
+        ->middleware('throttle:10,1')->name('media.import-url');
 
     Route::get('media/{medium:id}/download', [MediaController::class, 'download'])->name('media.download');
     Route::post('media/{medium:id}/resize', [MediaController::class, 'resize'])->name('media.resize');

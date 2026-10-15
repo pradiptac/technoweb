@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { formatDate } from "@/lib/dates";
+import { snapshotValues, REVISION_LOAD_EVENT, type RevisionLoad } from "@/lib/revisions";
 
 type Draft = { at: string; values: Record<string, string[]> };
 
@@ -14,6 +15,8 @@ const EVERY_MS = 10_000;
 function storable(el: Element): el is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
   if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)) return false;
   if (el instanceof HTMLInputElement && (el.type === "file" || el.type === "password")) return false;
+  // RecordSwitch's hidden "0" is the off-answer, not a value to restore.
+  if (el instanceof HTMLInputElement && "switchOff" in el.dataset) return false;
   return Boolean(el.name);
 }
 
@@ -87,11 +90,20 @@ function restore(form: HTMLFormElement, values: Record<string, string[]>) {
  * *create* a control: a repeater row added and never saved has no field to
  * land in and is the one thing a draft loses. Placed inside the `<Form>`,
  * anywhere; it finds the form it is in.
+ *
+ * **It is also where a record's history is put back** (0.145.0 for pages, 0.148.0
+ * for the other eleven kinds; docs/page-builder.md "Page history"). The History dialog announces `tw:revision-load` on
+ * `document`; a version is only a set of field values, so it goes through the
+ * same `restore()` — typed values, then `tw:draft-restored` for the editor and
+ * the builder list to re-read — and a bar says what was loaded and that
+ * nothing is saved yet. The loaded values then count as typed, so the leave
+ * guard and the local draft treat them like any edit.
  */
 export function FormDraft() {
   const pathname = usePathname();
   const anchor = useRef<HTMLDivElement>(null);
   const [offer, setOffer] = useState<Draft | null>(null);
+  const [loaded, setLoaded] = useState<string | null>(null);
   const key = `${PREFIX}${pathname}`;
 
   useEffect(() => {
@@ -110,7 +122,7 @@ export function FormDraft() {
     } catch { /* nothing to offer */ }
 
     let dirty = false;
-    const touched = () => { dirty = true; };
+    const touched = (e: Event) => { if (!(e.target as Element | null)?.closest?.("[data-no-dirty]")) dirty = true; };
     const save = () => {
       if (!dirty) return;
       dirty = false;
@@ -136,6 +148,21 @@ export function FormDraft() {
     };
   }, [key]);
 
+  // A version from the page's history, put into the form (never saved).
+  useEffect(() => {
+    const onLoad = (event: Event) => {
+      const form = anchor.current?.closest("form");
+      const detail = (event as CustomEvent<RevisionLoad>).detail;
+      // A library item is not a form with fields: its editor takes its own versions.
+      if (!form || !detail || detail.type === "saved_section") return;
+      restore(form, snapshotValues(detail.snapshot, detail.fields));
+      setOffer(null);
+      setLoaded(detail.at ?? "");
+    };
+    document.addEventListener(REVISION_LOAD_EVENT, onLoad);
+    return () => document.removeEventListener(REVISION_LOAD_EVENT, onLoad);
+  }, []);
+
   const discard = () => { try { localStorage.removeItem(key); } catch { /* fine */ } setOffer(null); };
   const apply = () => {
     const form = anchor.current?.closest("form");
@@ -145,6 +172,11 @@ export function FormDraft() {
 
   return (
     <div ref={anchor} data-form-draft>
+      {loaded !== null && (
+        <Alert tone="info" title={loaded ? `Loaded the version from ${formatDate(loaded, "dateTime")}.` : "Loaded an earlier version."}>
+          Press Save to keep it — nothing has been saved yet. Leave without saving and the page stays as it was.
+        </Alert>
+      )}
       {offer && (
         <Alert tone="info" title={`You were typing here at ${formatDate(offer.at, "dateTime")}.`}>
           <span>Nothing was saved — put it back?</span>

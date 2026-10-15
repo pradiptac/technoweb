@@ -4,6 +4,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Form } from "@/components/ui/form";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconUsers } from "@/components/icons";
@@ -90,7 +91,7 @@ export default async function MessagingContactsPage({ searchParams }: { searchPa
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconUsers />} title={filtered ? "Nobody matches that filter" : "Nobody has opted in yet"}>
+        <EmptyState icon={<IconUsers />} title={filtered ? "Nobody matches that filter" : "Nobody has opted in yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/messaging/contacts" noun="contact" />}>
           {filtered ? "Clear the filter to see the rest." : "People opt in with the box under the mobile number at the checkout, in the portal, or with the bell on the shop."}
         </EmptyState>
       ) : (

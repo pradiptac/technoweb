@@ -6,6 +6,7 @@ use App\Enums\PublishStatus;
 use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Faq;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
@@ -13,7 +14,12 @@ use App\Models\Page;
 use App\Models\Service;
 use App\Models\Solution;
 use App\Models\StoreProduct;
+use App\Models\Tender;
+use App\Support\Events\EventText;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
+use App\Support\Store\Tax;
+use App\Support\Tenders\TenderText;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -112,6 +118,8 @@ class Retriever
             self::knowledge($question, $terms),
             self::blog($terms),
             self::pages($terms),
+            self::events($terms),
+            self::tenders($terms),
             self::entries($terms),
         ]);
 
@@ -232,8 +240,12 @@ class Retriever
      * the question being asked. FAQs and the knowledge base are the deliberate
      * exceptions — their body **is** the answer.
      *
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  Builder<TModel>  $query
      * @param  array<int, string>  $terms
      * @param  array<int, string>  $columns
+     * @return Builder<TModel>
      */
     private static function match(Builder $query, array $terms, array $columns): Builder
     {
@@ -402,7 +414,7 @@ class Retriever
                  * `store_products.images` is a JSON array of storage paths
                  * (`media/store/….jpg`), which is what a record stores and what
                  * every editor screen writes. Both public resources map one
-                 * through `asset('storage/'.$p)` before it crosses the wire;
+                 * through `MediaUrl::for($p)` before it crosses the wire;
                  * this retriever was written against the model rather than
                  * against a resource, so it handed the raw path over and the
                  * browser resolved it relative to whatever page the panel
@@ -413,10 +425,12 @@ class Retriever
                  * a second way of turning a path into a URL is a second thing to
                  * get wrong the day this application moves to a CDN.
                  */
-                'image' => filled($p->images[0] ?? null) ? asset('storage/'.$p->images[0]) : null,
-                'price_paise' => (int) $p->price_paise,
+                'image' => filled($p->images[0] ?? null) ? MediaUrl::for($p->images[0]) : null,
+                // As the website shows prices (0.178.0), so the card and the
+                // product page agree.
+                'price_paise' => Tax::shown((int) $p->price_paise, Tax::rateFor($p)),
                 'compare_at_paise' => $p->compare_at_paise !== null && $p->compare_at_paise > $p->price_paise
-                    ? (int) $p->compare_at_paise
+                    ? Tax::shown((int) $p->compare_at_paise, Tax::rateFor($p))
                     : null,
                 'in_stock' => $p->inStock(),
                 'returnable' => (bool) $p->returnable,
@@ -428,7 +442,8 @@ class Retriever
                 'brand' => $p->brand?->name,
                 'category' => $p->category?->name,
                 'sku' => $p->sku,
-                'price_inr' => $p->price_paise !== null ? number_format($p->price_paise / 100, 2, '.', '') : null,
+                'price_inr' => $p->price_paise !== null ? number_format(Tax::shown((int) $p->price_paise, Tax::rateFor($p)) / 100, 2, '.', '') : null,
+                'price_includes_gst' => Tax::basis() === Tax::BASIS_INCLUSIVE ? 'yes' : 'no',
                 'in_stock' => $p->inStock() ? 'yes' : 'no',
                 'returnable' => $p->returnable ? 'yes' : 'no',
                 'type' => $p->type?->value,
@@ -553,16 +568,79 @@ class Retriever
 
         $out = [];
         foreach ($rows as $e) {
-            if (! $e instanceof Entry) {
-                continue;
-            }
-
             $out[] = [
                 'type' => 'entry',
                 'label' => (string) $e->contentType->name,
                 'title' => (string) $e->title,
                 'excerpt' => self::excerpt(filled($e->summary) ? $e->summary : $e->body),
                 'url' => $e->publicPath(),
+                'meta' => [],
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Published events that have not finished (docs/events.md).
+     *
+     * Upcoming only: "is there a seminar on Wi-Fi?" is a question about
+     * what somebody can go to, and an assistant offering last year's is
+     * worse than one that says it knows of none. The excerpt opens with the
+     * date and the place, because those are the answer — and it is built
+     * from the same labels the page shows. **The join link is not read
+     * here**: it goes to people who registered, never into a prompt.
+     */
+    private static function events(array $terms): array
+    {
+        $rows = self::match(Event::query()->published()->upcoming(), $terms, ['title', 'summary', 'venue_city'])
+            ->orderBy('starts_at')
+            ->limit(self::PER_GROUP)
+            ->get();
+
+        $out = [];
+        foreach ($rows as $e) {
+            $out[] = [
+                'type' => 'event',
+                'label' => 'Event',
+                'title' => (string) $e->title,
+                'excerpt' => trim(EventText::when($e).' — '.EventText::place($e).'. '
+                    .self::excerpt(filled($e->summary) ? $e->summary : $e->body)),
+                'url' => $e->publicPath(),
+                'meta' => [],
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Tender notices (docs/tenders.md).
+     *
+     * **Open ones only.** A closed tender answers a question nobody asked:
+     * somebody asking the assistant about tenders wants one they can still
+     * bid on, and offering a notice that shut last spring reads as an
+     * invitation. The archive is on the site for a reader who goes looking.
+     *
+     * The excerpt leads with the reference and the deadline, because those
+     * are the answer, and it is built from the labels the page shows.
+     */
+    private static function tenders(array $terms): array
+    {
+        $rows = self::match(Tender::query()->published()->open(), $terms, ['reference', 'title', 'summary'])
+            ->orderBy('closes_at')
+            ->limit(self::PER_GROUP)
+            ->get();
+
+        $out = [];
+        foreach ($rows as $t) {
+            $out[] = [
+                'type' => 'tender',
+                'label' => 'Tender',
+                'title' => (string) $t->title,
+                'excerpt' => trim($t->reference.' — closes '.TenderText::deadlineLabel($t->closes_at).'. '
+                    .self::excerpt(filled($t->summary) ? $t->summary : $t->description)),
+                'url' => $t->publicPath(),
                 'meta' => [],
             ];
         }

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { IconArrowRight } from "@/components/icons";
@@ -40,6 +41,7 @@ export function PromoTiles({ settings }: { settings: SiteSettings }) {
         ctaHref: k("cta_href") || "/store",
         image,
         focus: k("image_focus"),
+        blur: k("image_blur"),
       };
     })
     .filter((t) => t !== null);
@@ -72,7 +74,7 @@ export function PromoTiles({ settings }: { settings: SiteSettings }) {
                     fill
                     sizes={tiles.length === 1 ? "100vw" : "(min-width: 1024px) 50vw, 100vw"}
                     className="object-cover"
-                    style={focalStyle(t.focus)}
+                    style={focalStyle(t.focus)} {...blurProps(t.blur)}
                   />
                   {/* The words' ground: the left half fades from the scrim to the photograph.
                       Below `sm` the picture is not drawn at all — the words would cover most of it. */}

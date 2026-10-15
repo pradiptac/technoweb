@@ -22,6 +22,9 @@
  *
  * - `menu_style` — how a top-level item's panel is drawn: a narrow list, two
  *   compact columns, the mega panel, or one spanning the whole header.
+ * - `topbar_style` — how the top bar's panel opens: `match` follows `menu_style`
+ *   (the default and what an install that chose nothing renders), `columns` is
+ *   its own wide panel of headed columns (0.150.0).
  * - `hero_style` — how a first- or second-level page opens: the banner
  *   band, a taller centred cover, the words beside the picture, or the
  *   headline alone.
@@ -35,11 +38,16 @@
  *   follow in the theme's own order, so a section added later still shows.
  */
 
+import { parseChrome, type ChromeOptions } from "./chrome-parts.ts";
+
 export type MenuStyle = "simple" | "semi" | "mega" | "big";
+/** How the top bar's panel opens: following `menu_style`, or the client's columns (0.150.0). */
+export type TopBarPanelStyle = "match" | "columns";
 export type HeroStyle = "banner" | "cover" | "split" | "compact";
 /** Where a category card's name sits beside its icon: next to it, or at the card's far edge. */
 export type HeadingAlign = "left" | "right";
-export type SectionKind = "default" | "page" | "solid" | "gradient" | "image";
+export type SectionKind = "default" | "page" | "solid" | "gradient" | "image" | "scene";
+export type SectionTexture = "none" | "grain" | "mesh" | "glow" | "grid" | "dots";
 
 export type SectionBackground = {
   kind: SectionKind;
@@ -57,6 +65,10 @@ export type SectionBackground = {
   image_focus?: string;
   /** 0–90: how much of the overlay colour sits over the picture. */
   overlay?: number;
+  /** For `scene` (0.126.0): the animation's id, one of the sign-in screen's (`lib/login-backdrop-choices.ts`). */
+  scene?: string;
+  /** A decorative layer over the ground (2026-10-05); absent is none. */
+  texture?: SectionTexture;
 };
 
 /** One homepage section's settings: drawn or not, what it sits on, and how it arrives. */
@@ -73,6 +85,7 @@ export type SectionSetting = {
 
 export type ThemeOptions = {
   menu_style: MenuStyle;
+  topbar_style: TopBarPanelStyle;
   hero_style: HeroStyle;
   /**
    * A theme's own option (2026-09-19): only a manifest that lists it under
@@ -81,8 +94,18 @@ export type ThemeOptions = {
    */
   heading_align: HeadingAlign;
   sections: Partial<Record<string, SectionSetting>>;
+  /** The header's and the footer's parts as stored (0.160.0); `resolveChrome()` applies the theme's defaults to them. */
+  chrome: ChromeOptions;
   /** Section ids in the order chosen; empty means the theme's own order. */
   order: string[];
+  /**
+   * One section and nothing else (0.113.0): how a builder page's
+   * `theme_section` draws a single piece of the active theme's homepage. Never
+   * stored and never resolved from the row — `ThemeSectionSlot` sets it on the
+   * options it hands `Home`, so `orderSections()` is the one place every
+   * theme's homepage is narrowed and no template had to learn about it.
+   */
+  only?: string;
 };
 
 /** What a manifest may declare as its own starting point. */
@@ -100,6 +123,11 @@ export const MENU_STYLES: readonly Choice<MenuStyle>[] = [
   { id: "big", label: "Big mega", blurb: "A panel as wide as the header, four columns, the section's link along the foot." },
 ];
 
+export const TOPBAR_STYLES: readonly Choice<TopBarPanelStyle>[] = [
+  { id: "match", label: "Same as the menu", blurb: "The panel under a top-bar link opens in the menu style above — tabs and cards." },
+  { id: "columns", label: "Columns", blurb: "A wide panel under a thin brand line: a heading over each column of links, each with its status chip and a line of description. Everything shows at once." },
+];
+
 export const HERO_STYLES: readonly Choice<HeroStyle>[] = [
   { id: "banner", label: "Banner", blurb: "The section's picture behind the heading, words on the left." },
   { id: "cover", label: "Cover", blurb: "Taller, the words centred over the picture." },
@@ -112,12 +140,29 @@ export const HEADING_ALIGNS: readonly Choice<HeadingAlign>[] = [
   { id: "right", label: "At the right edge", blurb: "The icon on the left, the name pushed to the card's right edge, on one line." },
 ];
 
+/**
+ * The textures a section ground can carry (2026-10-05), the API's
+ * `ThemeOptions::TEXTURES` with words. Drawn by `SectionBg` on a layer of
+ * its own behind the content, so the ink is graded against the ground and a
+ * texture can never be what fails the contrast audit; each is a whisper —
+ * the CSS is `[data-texture]` in `globals.css`.
+ */
+export const SECTION_TEXTURES: readonly Choice<SectionTexture>[] = [
+  { id: "none", label: "None", blurb: "The ground alone." },
+  { id: "grain", label: "Film grain", blurb: "A fine noise, like printed paper — it takes the flatness off a colour." },
+  { id: "mesh", label: "Colour mesh", blurb: "Soft pools of the palette's colours in the corners." },
+  { id: "glow", label: "Glow", blurb: "One soft light from the top, behind the heading." },
+  { id: "grid", label: "Grid", blurb: "A faint blueprint grid fading towards the edges." },
+  { id: "dots", label: "Dots", blurb: "A faint dot field fading towards the edges." },
+];
+
 export const SECTION_KINDS: readonly Choice<SectionKind>[] = [
   { id: "default", label: "Theme's own", blurb: "Whatever the theme draws." },
   { id: "page", label: "None", blurb: "No band: the page's own ground and its own inks, light in light and dark in dark." },
   { id: "solid", label: "Solid colour", blurb: "One colour; the text is derived to read on it." },
   { id: "gradient", label: "Gradient", blurb: "Two colours at an angle; the text reads on both." },
   { id: "image", label: "Picture", blurb: "A photograph under a colour overlay." },
+  { id: "scene", label: "Animation", blurb: "A slow animation in your palette's colours over the theme's dark band. Visitors can pause it, and it is still for anyone who asks for less motion." },
 ];
 
 /**
@@ -149,6 +194,9 @@ export const HOME_SECTIONS: readonly { id: string; label: string }[] = [
   { id: "stats_block", label: "Stat bar (block)" },
   { id: "stack", label: "Technology stack (block)" },
   { id: "pricing", label: "Pricing (block)" },
+  // The shop's "shop the videos" row (0.140.0): drawn only when Store →
+  // Product videos has the homepage switched on and a product has a video.
+  { id: "videos", label: "Product videos (shop)" },
   { id: "cta", label: "Closing band" },
 ];
 
@@ -179,15 +227,22 @@ function sectionBackground(r: Record<string, unknown>): SectionBackground | unde
   const colour2 = typeof r.colour2 === "string" && HEX.test(r.colour2) ? r.colour2.toLowerCase() : undefined;
   const angle = typeof r.angle === "number" && r.angle >= 0 && r.angle <= 360 ? r.angle : undefined;
 
-  if (kind === "page") return { kind };
-  if (kind === "solid") return colour ? { kind, colour } : undefined;
-  if (kind === "gradient") return colour && colour2 ? { kind, colour, colour2, angle } : undefined;
+  const tx = choice(SECTION_TEXTURES, r.texture, "none");
+  const texture = tx === "none" ? undefined : tx;
+
+  if (kind === "page") return { kind, texture };
+  if (kind === "scene") {
+    const scene = typeof r.scene === "string" && /^[a-z][a-z0-9-]{1,31}$/.test(r.scene) ? r.scene : undefined;
+    return scene ? { kind, scene } : undefined;
+  }
+  if (kind === "solid") return colour ? { kind, colour, texture } : undefined;
+  if (kind === "gradient") return colour && colour2 ? { kind, colour, colour2, angle, texture } : undefined;
 
   const image_path = typeof r.image_path === "string" && PATH.test(r.image_path) && !r.image_path.includes("..") ? r.image_path : undefined;
   const image_url = typeof r.image_url === "string" && /^https?:\/\//.test(r.image_url) ? r.image_url : undefined;
   const image_focus = typeof r.image_focus === "string" && /^\d{1,3}% \d{1,3}%$/.test(r.image_focus) ? r.image_focus : undefined;
   const overlay = typeof r.overlay === "number" && r.overlay >= 0 && r.overlay <= 90 ? r.overlay : 60;
-  return image_path && image_url ? { kind, colour, image_path, image_url, image_focus, overlay } : undefined;
+  return image_path && image_url ? { kind, colour, image_path, image_url, image_focus, overlay, texture } : undefined;
 }
 
 /**
@@ -221,9 +276,11 @@ export function resolveOptions(raw: string | undefined, themeId: string, default
 
   return {
     menu_style: choice(MENU_STYLES, stored.menu_style, defaults.menu_style ?? "mega"),
+    topbar_style: choice(TOPBAR_STYLES, stored.topbar_style, "match"),
     hero_style: choice(HERO_STYLES, stored.hero_style, defaults.hero_style ?? "banner"),
     heading_align: choice(HEADING_ALIGNS, stored.heading_align, defaults.heading_align ?? "left"),
     sections,
+    chrome: parseChrome(stored.header, stored.footer),
     order,
   };
 }
@@ -236,8 +293,14 @@ export function resolveOptions(raw: string | undefined, themeId: string, default
  * order), so a section added to a theme later still renders. A section
  * switched off is left out. A theme that does not draw a section the order
  * names simply never lists it here.
+ *
+ * `only` narrows it to one entry before any of that: the order is beside the
+ * point for a single section, and the switch is the homepage's — a builder
+ * page that places a section has decided to show it, whether or not the
+ * homepage does. A theme that does not draw that section yields nothing.
  */
 export function orderSections<T extends { id: string }>(entries: readonly T[], options: ThemeOptions): T[] {
+  if (options.only !== undefined) return entries.filter((e) => e.id === options.only);
   const named = options.order
     .map((id) => entries.find((e) => e.id === id))
     .filter((e): e is T => e !== undefined);

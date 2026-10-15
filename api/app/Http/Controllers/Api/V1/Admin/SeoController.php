@@ -10,6 +10,7 @@ use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Certification;
 use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Industry;
 use App\Models\JobOpening;
 use App\Models\KnowledgeArticle;
@@ -23,6 +24,8 @@ use App\Models\Setting;
 use App\Models\Solution;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
+use App\Models\StoreTag;
+use App\Models\Tender;
 use App\Support\AeoScore;
 use App\Support\EntityLinks;
 use App\Support\GeoScore;
@@ -110,12 +113,31 @@ class SeoController extends Controller
          */
         'store_category' => [StoreCategory::class, 'name', 'store/categories', 'Store categories', ['faqs', 'answerBlocks'], ['description'], 80],
         /*
+         * A shop tag is a landing page at `/store/tags/{slug}` since 0.157.0.
+         * The introduction is its body; a sentence or two is a complete one.
+         */
+        'store_tag' => [StoreTag::class, 'name', 'store/tags', 'Store tags', [], ['intro'], 60],
+        /*
          * Entries of the custom content types (docs/custom-content.md) — one
          * row per entry. The console route is per type
          * (`/admin/content/{type}/{id}`), so the record answers `adminPath()`
          * itself rather than taking the segment here.
          */
         'entry' => [Entry::class, 'title', 'content', 'Custom content', ['contentType', 'faqs', 'answerBlocks'], ['body'], 250],
+        /*
+         * Events (docs/events.md): a page per event at `/events/{slug}`, in
+         * the sitemap, emitting an `Event` graph. A hundred and fifty words
+         * is a complete one — the date, the place and the agenda carry the
+         * rest, and none of those is body copy.
+         */
+        'event' => [Event::class, 'title', 'events', 'Events', ['faqs'], ['body'], 150],
+        /*
+         * Tenders (0.174.0, docs/tenders.md): a page per notice at
+         * `/tenders/{slug}`, in the sitemap, emitting a `WebPage` graph. A
+         * hundred and fifty words is a complete notice — the dates, the fee
+         * and the documents carry the rest, and none of those is body copy.
+         */
+        'tender' => [Tender::class, 'title', 'tenders', 'Tenders', [], ['description'], 150],
     ];
 
     /** The bands `?aeo=` and `?geo=` may ask for. */

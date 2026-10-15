@@ -21,8 +21,11 @@ use Illuminate\Support\Facades\Storage;
  * URL is `127.0.0.1` on a development machine and behind whatever the host
  * allows in production, and a provider that cannot fetch the picture
  * answers about nothing. Raster formats only — a vector is a document, and
- * describing one from its markup is a different task — and under 4MB, the
- * provider's own ceiling. Same refusals, cap and counter as every other
+ * describing one from its markup is a different task — and under 4MB,
+ * comfortably inside what every model offered will take. Every model in
+ * `AiModel` reads pictures, which is a condition of being on that list; one
+ * set outside it that cannot is refused by the provider and says so. Same
+ * refusals, cap and counter as every other
  * action; the reply is one JSON key, bounded to the 125 characters a
  * screen reader reads without pausing.
  */
@@ -46,7 +49,7 @@ class AltText
         }
 
         if (! filled(SeoAiSettings::apiKey())) {
-            return ['ok' => false, 'error' => 'No OpenAI key is configured. Add one in Settings → API keys.'];
+            return ['ok' => false, 'error' => 'No OpenRouter key is configured. Add one in Settings → API keys.'];
         }
 
         if (! SeoAssistant::underDailyCap()) {
@@ -63,7 +66,8 @@ class AltText
             return ['ok' => false, 'error' => 'The file is over 4MB, which is more than the model will look at. Resize it first.'];
         }
 
-        $dataUrl = 'data:'.$media->mime.';base64,'.base64_encode((string) $disk->get($media->path));
+        [$mime, $bytes] = self::still((string) $media->mime, (string) $disk->get($media->path));
+        $dataUrl = 'data:'.$mime.';base64,'.base64_encode($bytes);
 
         $reply = $this->provider->complete(
             [
@@ -106,5 +110,38 @@ class AltText
         SeoAssistant::countRun();
 
         return ['ok' => true, 'alt' => $decorative ? '' : mb_substr($alt, 0, 255)];
+    }
+
+    /**
+     * The picture as every model offered can read it: a GIF goes as a PNG of
+     * its first frame.
+     *
+     * The model is whichever one the console has chosen, and since OpenRouter
+     * that may be a Gemini model, which reads PNG, JPEG and WebP and **not
+     * GIF** — where a GPT model takes a GIF and looks at its first frame
+     * anyway. So the first frame is what is sent, in a format all of them
+     * take, and the alt text does not depend on which maker is selected.
+     * GD reads a GIF's first frame by itself. A file GD cannot read goes as
+     * it is: the provider's refusal is a better answer than none.
+     *
+     * @return array{0: string, 1: string} mime, bytes
+     */
+    private static function still(string $mime, string $bytes): array
+    {
+        if ($mime !== 'image/gif' || ! function_exists('imagecreatefromstring')) {
+            return [$mime, $bytes];
+        }
+
+        $image = @imagecreatefromstring($bytes);
+
+        if ($image === false) {
+            return [$mime, $bytes];
+        }
+
+        ob_start();
+        $written = imagepng($image);
+        $png = (string) ob_get_clean();
+
+        return $written && $png !== '' ? ['image/png', $png] : [$mime, $bytes];
     }
 }

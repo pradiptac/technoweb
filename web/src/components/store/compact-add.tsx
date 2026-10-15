@@ -29,8 +29,15 @@ const PILL =
   "grid size-9 place-items-center rounded-full border border-brand-200 bg-card text-brand-ink shadow-1 " +
   "transition-colors duration-(--duration-base) hover:bg-brand-50";
 
-export function CompactAdd({ product }: { product: StoreProduct }) {
+/**
+ * `inline` (0.140.0) drops the corner positioning for a caller that lays the
+ * control out itself — the video tile's product strip puts it at the end of a
+ * row, not on a photograph. Every other rule (the variation branch, the sold-out
+ * words, the toast) is the same code, deliberately not forked.
+ */
+export function CompactAdd({ product, inline = false }: { product: StoreProduct; inline?: boolean }) {
   const { formAction, pending, hasVariations } = useQuickAdd(product);
+  const corner = inline ? "" : "absolute bottom-2 right-2";
 
   if (hasVariations) {
     return (
@@ -49,7 +56,7 @@ export function CompactAdd({ product }: { product: StoreProduct }) {
       <Link
         href={`/store/products/${product.slug}`}
         aria-label={`Choose options for ${product.name}`}
-        className={`absolute bottom-2 right-2 ${PILL}`}
+        className={`${corner} ${PILL}`}
       >
         <IconCart className="size-[18px]" />
       </Link>
@@ -68,14 +75,14 @@ export function CompactAdd({ product }: { product: StoreProduct }) {
   */
   if (!product.in_stock) {
     return (
-      <span className="absolute bottom-2 right-2 rounded-full border border-line-strong bg-card px-3 py-1 text-11 font-semibold uppercase tracking-[.03em] text-muted shadow-1">
+      <span className={`${corner} rounded-full border border-line-strong bg-card px-3 py-1 text-11 font-semibold uppercase tracking-[.03em] text-muted shadow-1`}>
         Sold out
       </span>
     );
   }
 
   return (
-    <form action={formAction} className="absolute bottom-2 right-2">
+    <form action={formAction} className={corner}>
       <input type="hidden" name="product_id" value={product.id} />
       <button
         type="submit"

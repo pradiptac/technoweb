@@ -9,7 +9,10 @@ import { ButtonLink } from "@/components/ui/button";
 import { getOrder } from "@/lib/store";
 import { orderToken } from "@/lib/order-access";
 import { formatPaise } from "@/lib/money";
+import { DeliveryRow } from "@/components/store/delivery-row";
 import { RevealCode } from "./reveal-code";
+import { ReturnsSection } from "@/components/store/returns-section";
+import { requestReturnAction } from "./actions";
 import { PaymentInstructionsPanel } from "./payment-instructions";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -200,6 +203,19 @@ export default async function OrderPage({
                   </address>
                 </div>
               )}
+
+              {/*
+                Returns (docs/store.md "Returns"): what has been asked to come
+                back, and the form while the order is inside its window. The
+                upload address is under this order's own path, because that
+                is where the cookie holding its token is sent.
+              */}
+              <ReturnsSection
+                order={order}
+                action={requestReturnAction.bind(null, order.order_number)}
+                uploadUrl={`/order/${order.order_number}/returns`}
+                className="mt-4"
+              />
             </div>
 
             <aside className="rounded-lg border border-line-strong bg-card p-5 lg:sticky lg:top-24">
@@ -217,6 +233,8 @@ export default async function OrderPage({
                     <dd className="tabular-nums text-ok">−{formatPaise(order.discount_paise)}</dd>
                   </div>
                 )}
+
+                <DeliveryRow paise={order.shipping_paise} zone={order.shipping_zone} />
 
                 <div className="flex justify-between gap-4 border-t border-line pt-2 text-17 font-semibold">
                   <dt>Total</dt>
@@ -246,12 +264,34 @@ export default async function OrderPage({
                 </div>
               )}
 
-              {order.gst_required && (
+              {/*
+                The invoice, at last downloadable (0.176.0).
+
+                `has_invoice` has said one exists since the store shipped and
+                there was no route behind it, so this paragraph told people
+                to wait for an email that may never have been sent. It is a
+                plain `<a download>` rather than a `Link`: the address is a
+                route handler that streams a file, and a prefetch would
+                fetch somebody's invoice on hover.
+              */}
+              {order.has_invoice ? (
                 <p className="measure mt-4 text-12-5 text-muted">
-                  The GST invoice for {order.company_name} ({order.gstin}) is prepared by hand and
-                  emailed to you — it is not generated automatically.
+                  <a
+                    className="font-semibold text-brand-ink underline"
+                    href={`/api/order/${encodeURIComponent(order.order_number)}/invoice`}
+                    download
+                  >
+                    Download the GST invoice
+                  </a>
+                  {order.invoice_number ? ` (${order.invoice_number})` : null}
+                  {order.gst_required ? ` — made out to ${order.company_name} (${order.gstin}).` : "."}
                 </p>
-              )}
+              ) : order.gst_required ? (
+                <p className="measure mt-4 text-12-5 text-muted">
+                  The GST invoice for {order.company_name} ({order.gstin}) will be here once the order is
+                  paid, and a link to it is in your email.
+                </p>
+              ) : null}
 
               <p className="measure mt-4 text-12-5 text-muted">
                 Keep this page&rsquo;s link. It is how you come back to this order, and it is in your

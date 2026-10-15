@@ -7,28 +7,35 @@ use App\Enums\ProductAvailability;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasCustomFields;
+use App\Models\Concerns\HasRevisions;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model implements Answerable, Faqable
 {
-    use HasAnswerBlocks, HasCustomFields, HasFactory, HasSeo, Sluggable, SoftDeletes;
+    use HasAnswerBlocks, HasCustomFields, HasFactory, HasRevisions, HasSeo, Sluggable, SoftDeletes;
 
     protected $fillable = [
         'brand_id', 'product_category_id', 'name', 'slug', 'sku',
         'short_description', 'description', 'specifications', 'features',
         'images', 'datasheet_path', 'status', 'is_featured', 'availability', 'sort_order',
+        'body_layout', 'blocks',
     ];
+
+    /** In memory as in the column: a new record's page draws its written body. */
+    protected $attributes = ['body_layout' => 'body'];
 
     protected function casts(): array
     {
@@ -41,6 +48,7 @@ class Product extends Model implements Answerable, Faqable
             'status' => PublishStatus::class,
             'availability' => ProductAvailability::class,
             'is_featured' => 'boolean',
+            'blocks' => 'array',
         ];
     }
 
@@ -83,6 +91,31 @@ class Product extends Model implements Answerable, Faqable
         return $this->belongsToMany(self::class, 'product_related', 'product_id', 'related_product_id');
     }
 
+    /**
+     * The files of the downloads centre attached to this product
+     * (0.131.0, docs/downloads.md).
+     *
+     * @return MorphToMany<Download, $this>
+     */
+    public function downloads(): MorphToMany
+    {
+        return $this->morphToMany(Download::class, 'downloadable');
+    }
+
+    /**
+     * The ones a visitor may be shown, in the order the centre lists them
+     * within a shelf. What the product page loads.
+     *
+     * @return MorphToMany<Download, $this>
+     */
+    public function publishedDownloads(): MorphToMany
+    {
+        return $this->downloads()->published()
+            ->orderBy('downloads.sort_order')
+            ->orderByDesc('downloads.released_on')
+            ->orderBy('downloads.title');
+    }
+
     /** @return MorphMany<Faq, $this> */
     public function faqs(): MorphMany
     {
@@ -98,7 +131,7 @@ class Product extends Model implements Answerable, Faqable
             'description' => str(HtmlSanitiser::toText($this->short_description ?? $this->description ?? ''))
                 ->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/products/'.$this->slug,
-            'og_image' => is_array($this->images) && $this->images ? asset('storage/'.$this->images[0]) : null,
+            'og_image' => is_array($this->images) && $this->images ? MediaUrl::for($this->images[0]) : null,
             'schema_type' => 'Product',
         ];
     }

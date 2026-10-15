@@ -24,7 +24,7 @@ use App\Support\Chat\AiProvider;
 use App\Support\Chat\AiReply;
 use App\Support\Chat\Assistant;
 use App\Support\Chat\Intent;
-use App\Support\Chat\Providers\OpenAiProvider;
+use App\Support\Chat\Providers\OpenRouterProvider;
 use App\Support\Chat\Retriever;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -702,26 +702,33 @@ class ChatTest extends TestCase
      * Two things worth pinning that no amount of reading proves: the key goes
      * in the `Authorization` header and nowhere else, and a refusal comes back
      * as a failure rather than as an empty answer somebody would render.
+     * The rest of the provider — its headers, OpenRouter's three ways of
+     * saying no — is `OpenRouterProviderTest`.
      */
-    public function test_the_openai_provider_sends_a_bearer_token_and_reports_a_refusal(): void
+    public function test_the_provider_sends_a_bearer_token_to_openrouter(): void
     {
         Setting::updateOrCreate(
-            ['key' => 'openai_api_key'],
+            ['key' => 'openrouter_api_key'],
             ['group' => 'integrations', 'value' => 'sk-test-key', 'type' => 'string', 'is_secret' => false],
         );
         Setting::flushCache();
 
-        Http::fake(['api.openai.com/*' => Http::response([
+        Http::preventStrayRequests();
+        Http::fake(['openrouter.ai/*' => Http::response([
             'choices' => [['message' => ['content' => 'Hello.']]],
             'usage' => ['total_tokens' => 11],
         ])]);
 
-        $reply = (new OpenAiProvider)->complete([['role' => 'user', 'content' => 'hi']]);
+        $reply = (new OpenRouterProvider)->complete([['role' => 'user', 'content' => 'hi']]);
 
         $this->assertTrue($reply->ok);
         $this->assertSame('Hello.', $reply->text);
 
-        Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer sk-test-key'));
+        Http::assertSent(fn ($request) => $request->url() === 'https://openrouter.ai/api/v1/chat/completions'
+            && $request->hasHeader('Authorization', 'Bearer sk-test-key'));
+
+        // And it is what the container hands every AI feature.
+        $this->assertInstanceOf(OpenRouterProvider::class, app(AiProvider::class));
     }
 
     /**
@@ -732,17 +739,18 @@ class ChatTest extends TestCase
      * original success kept matching and the assertion passed for the wrong
      * reason. It read as the provider ignoring a 429.
      */
-    public function test_the_openai_provider_reports_a_refusal_rather_than_an_empty_answer(): void
+    public function test_the_provider_reports_a_refusal_rather_than_an_empty_answer(): void
     {
         Setting::updateOrCreate(
-            ['key' => 'openai_api_key'],
+            ['key' => 'openrouter_api_key'],
             ['group' => 'integrations', 'value' => 'sk-test-key', 'type' => 'string', 'is_secret' => false],
         );
         Setting::flushCache();
 
-        Http::fake(['api.openai.com/*' => Http::response(['error' => ['message' => 'no quota']], 429)]);
+        Http::preventStrayRequests();
+        Http::fake(['openrouter.ai/*' => Http::response(['error' => ['message' => 'no quota']], 429)]);
 
-        $reply = (new OpenAiProvider)->complete([['role' => 'user', 'content' => 'hi']]);
+        $reply = (new OpenRouterProvider)->complete([['role' => 'user', 'content' => 'hi']]);
 
         $this->assertFalse($reply->ok);
         $this->assertSame('no quota', $reply->error);
@@ -768,13 +776,15 @@ class ChatTest extends TestCase
 
     public function test_the_public_settings_publish_the_four_presentational_keys_and_no_others(): void
     {
-        $this->setting('chatbot_model', 'gpt-4o');
+        $this->setting('chatbot_model', 'openai/gpt-4o');
         $this->setting('chatbot_daily_reply_cap', '9');
         $this->setting('chatbot_icon', 'chat');
         $this->setting('chatbot_font_size', 'medium');
         $this->setting('chatbot_show_name', '1', 'boolean');
+        $this->setting('chatbot_header', '#0f766e');
 
         $data = $this->getJson('/api/v1/settings')->assertOk()->json('data');
+        $this->assertSame('#0f766e', $data['chatbot_header'] ?? null, 'the header is drawn before anybody speaks, so public');
 
         $this->assertArrayHasKey('chatbot_enabled', $data);
         // The widget's appearance is drawn before anybody speaks, so public.
@@ -783,7 +793,7 @@ class ChatTest extends TestCase
         $this->assertSame('1', $data['chatbot_show_name']);
         $this->assertArrayNotHasKey('chatbot_model', $data, 'The model is nobody visiting the site is business.');
         $this->assertArrayNotHasKey('chatbot_daily_reply_cap', $data);
-        $this->assertArrayNotHasKey('openai_api_key', $data);
+        $this->assertArrayNotHasKey('openrouter_api_key', $data);
     }
 
     public function test_the_appearance_settings_are_checked_and_the_colour_is_lower_cased(): void
@@ -812,6 +822,11 @@ class ChatTest extends TestCase
         $save(['chatbot_background' => '#F5F0FF'])->assertOk();
         $this->assertSame('#f5f0ff', Setting::get('chatbot_background'));
         $save(['chatbot_background' => 'lilac'])->assertUnprocessable()->assertJsonValidationErrors('settings.0.value');
+        // The panel's header (2026-10-12): blank is the theme colour, a colour is checked and lower-cased.
+        $this->setting('chatbot_header', null);
+        $save(['chatbot_header' => '#0F766E'])->assertOk();
+        $this->assertSame('#0f766e', Setting::get('chatbot_header'));
+        $save(['chatbot_header' => 'teal'])->assertUnprocessable()->assertJsonValidationErrors('settings.0.value');
         $save(['chatbot_colour' => ''])->assertOk();
         $this->assertNull(Setting::get('chatbot_colour'), 'blank means the brand colour');
 

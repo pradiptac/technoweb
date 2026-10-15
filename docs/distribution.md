@@ -125,7 +125,8 @@ hands every request to `api/install/Wizard.php` outside the document root:
   concern only.
 - **Clean install versus sample content.** It runs `InstallSeeder` (structure
   and starting points only), plus `DemoSeeder` when the box is ticked, which
-  is off by default. `DatabaseSeeder` runs both, so a developer's
+  is ticked by default (0.151.0, the client: a first install should show the
+  site working; unticking it gives an empty site). `DatabaseSeeder` runs both, so a developer's
   `migrate:fresh --seed` is unchanged. It also calls
   `UpgradeSteps::markAllDone()`, so the first update does not replay history.
 - **`Branding::apply()` makes the install the customer's.** Every seeded
@@ -209,6 +210,201 @@ mismatch (stopped before the swap, site reopened), a path climbing out of the
 install, the full update and a rollback driven by the key alone, maintenance
 scope, and a downgrade. The update test builds a real
 signed zip with a key of its own. Also pinned by `SystemStatusTest`.
+
+## Upgrade steps
+
+A one-off "run this after deploying" is a class under
+`app/Support/Upgrade/Steps/`, never a line in a README the customer will not
+read. The rules:
+
+- **Listed by hand in `UpgradeSteps::STEPS`, in the order they must run.** A
+  class nobody names there never runs — the rule `routes/api.php` follows for
+  route files.
+- **Run by the updater's `steps` stage, one per request, after `migrate` and
+  `seed`.** So a step may rely on this release's tables and on the rows
+  `SettingsSeeder` and `RoleSeeder` have just made; those two seeders are not
+  steps, because they are safe on every update and run on every update.
+- **Recorded in `system_upgrade_steps` by id as each one ends**, and never
+  run again. A step must still be safe to run twice — a run that stops between
+  the work and the record repeats it on "Try this step again".
+- **The wizard marks every step done** (`UpgradeSteps::markAllDone()`), so a
+  fresh install does not replay history on its first update.
+- **Its `description()` is what the run's log shows the customer**, in their
+  words: "Point the AI features at OpenRouter.", not a class name.
+- **A step is not undone by a rollback that only swaps the code.** The
+  safety copy is restored only when the update ran migrations
+  (`$run['migrated']`); a release whose only database change is a step leaves
+  that change in place under the previous release's code.
+
+The steps so far:
+
+| Step | Release | What it does |
+|---|---|---|
+| `RebuildStoreSpecs` | 0.96.0 | Rebuilds the shop's specification-filter index (`docs/store.md`) |
+| `DeriveMeetingPrefix` | 0.98.0 | Numbers online meetings under the ticket prefix (`docs/meetings.md`) |
+| `MoveAiToOpenRouter` | 0.116.0 | Points the AI features at OpenRouter — below |
+
+### `MoveAiToOpenRouter`, and the one step that needs the customer afterwards
+
+From 0.116.0 every AI feature calls OpenRouter instead of OpenAI
+(`docs/chatbot-architecture.md`, "The provider is OpenRouter"). An existing
+install carries two things in the old arrangement's terms, and the step
+settles both:
+
+- **The chosen models are renamed, never swapped.** `chatbot_model` and
+  `seo_ai_model` holding a bare OpenAI id — `gpt-4o-mini` — get their maker in
+  front, `openai/gpt-4o-mini`, which is OpenRouter's name for the same model;
+  sent bare it is refused there as no model at all. A blank stays blank (it
+  means "the default", now `google/gemini-2.5-flash`), and a value already
+  naming a maker, or one that does not look like OpenAI's, is left exactly as
+  it is. `AI_MODEL` in `config/api.env` is a file no step may edit, so it is
+  read through the same rename (`AiModel::qualify()`) on every request.
+- **The `openai_api_key` row is deleted, and its value is not copied** into
+  `openrouter_api_key`, which the seeder has made by then. An OpenAI key is
+  not an OpenRouter key: sent there it is refused, and a refused key that
+  looks configured reports a provider failure on every call where a blank one
+  says what to do. It also takes an encrypted credential nothing reads any
+  more out of the database.
+
+**So this update leaves the AI features off until somebody acts**, which no
+step can do for them: the customer creates a key at openrouter.ai → Keys,
+adds their own provider key in that OpenRouter account (Settings →
+Integrations — a free Google AI Studio key for the Gemini models, an OpenAI
+key for the GPT ones) and pastes the OpenRouter key into Settings → API keys.
+Until then every AI action answers "No OpenRouter key is configured." and
+calls nothing, and the website assistant goes on answering with the pages it
+finds, as it always has without a model. Because the renamed models are
+OpenAI's, an account that holds only a Google AI Studio key must also change
+the model to a Gemini one — "Test this model" on the same tab says so in
+OpenRouter's words. The customer is told in two places: the manual's settings
+chapter (`manual/18-settings.md`, "After updating to 0.116.0", shipped as
+`MANUAL/`), and the release's changelog entry, which System → Updates shows
+under "What is new" before Apply is pressed. The 0.116.0 entry carries an
+"After updating" line for that reason: it is the only one of the two the
+customer sees before the AI features stop. **A step that leaves work for the
+customer needs that line in its release's entry**, in their words.
+
+`UpgradeOpenRouterTest` pins the registration and the record, the rename,
+the delete, the key that is not copied, a key already saved for OpenRouter
+that is kept, a second run that changes nothing, and an install holding none
+of the rows.
+
+## The scheduler's command (0.128.0)
+
+Everything unattended hangs off one line run every minute, and the part of it
+nobody can guess is the path to the **command-line** PHP: in a web request
+`PHP_BINARY` is the FPM or CGI binary — under Apache's module, Apache itself.
+The wizard worked the path out and showed the line once, on a screen that
+cannot be reopened; five console notices printed
+`cd /path/to/api && php artisan schedule:run` for somebody to rewrite.
+
+`App\Support\System\SchedulerSetup` is the one definition now, read by the
+wizard's last step and by `GET /admin/system/status` (`scheduler.setup`):
+
+- **`phpCli()` is a pure mapping**, pinned row by row in
+  `tests/Unit/SchedulerSetupTest.php` because none of these hosts can be
+  reached from a development machine: a request served by the CLI names it;
+  Plesk `/opt/plesk/php/8.3/bin/php`, cPanel
+  `/opt/cpanel/ea-php83/root/usr/bin/php`, CloudLinux
+  `/opt/alt/php83/usr/bin/php`; on Windows the `php.exe` beside
+  `php-cgi.exe`, or in `PHP_BINDIR` when the binary is `httpd.exe` (XAMPP);
+  otherwise the versioned and then the plain binary in `PHP_BINDIR`; plain
+  `php` last.
+- **`verify()` is the diagnosis**: it runs that binary with a fixed
+  `-r "echo PHP_VERSION, '|', PHP_SAPI;"` (three seconds, nothing from the
+  request) and reports `php_checked` true only for a `cli` SAPI at
+  `Requirements::PHP_MIN` or newer. A binary that will not run is `false` —
+  a result. `null` means the host would not let a web request start a
+  program at all (`proc_open` disabled, the shared-hosting case): *could not
+  be checked*, never a guess dressed as one. Cached ten minutes.
+- **The line in each form somebody pastes**: `command` (a control panel's
+  box), `cron` (a crontab; null on Windows), `work` (`schedule:work`, a
+  terminal left open), `windows_task` (a `schtasks` line; Windows has no
+  cron and no `/dev/null`). A path is quoted only when it has to be.
+- **The screen** (`system/status/scheduler-guide.tsx`) composes nothing: the
+  command with a Copy button, what the check found in words, the steps for
+  the panel detected with the others a fold away, and "Check again"
+  (`router.refresh()` — a link to the same route is answered from the
+  router's own copy). Open while the scheduler is not running, folded once it is. Its
+  heading is `#scheduler`, which the dashboard checklist and every "the
+  scheduler is not running" notice (backups, mail, the ticket mailbox, the
+  campaign report) link to in place of a generic line.
+- Pint is not run over `api/install/Wizard.php`: it is outside the app's
+  formatting and the fixer rewrites the whole file.
+
+Measured on the development machine (Windows, Laragon): the card printed
+`C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe D:\technoweb\api\artisan
+schedule:run`, "Checked just now: PHP 8.3.30". The Plesk and cPanel paths
+are the unit test's word, not a measurement.
+
+## Speed suggestions (0.144.0)
+
+System → Status carries a **Speed** card (anchor `#speed`, a row in the
+command palette): what on this install is slowing the site down, how much it
+matters, and where to change it — each answered from the server that is
+answering, in the `SchedulerSetup` manner: where the host will not let us look
+the state is `unknown` ("could not check"), never a guess.
+
+**The API half**, `App\Support\System\SpeedChecks::run()`, rides on
+`GET /admin/system/status` as `speed`:
+
+```
+speed: { measured: {boot_ms, db_ms, website_ms},
+         summary:  {good, attention, unknown},
+         checks:   [{key, group, impact, state, label, detail, fix, snippet}] }
+```
+
+`group` is `server`, `app` or `content`; `impact` `high`, `medium` or `low`;
+`state` `good`, `attention`, `unknown` or `info` (a fact, nothing to fix — not
+counted in the summary). `detail` says what was found with the figure, `fix`
+where to change it, `snippet` is an optional generic line to copy (never this
+server's own `.env` or a path).
+
+**Every check is wrapped.** A probe that throws becomes `unknown` with a
+sentence that does not repeat the exception: a host that disables
+`opcache_get_status` or `proc_open` must cost one row, not the screen. A check
+that does not apply returns nothing and is left out (OPcache's memory while
+OPcache is off). `run()` takes a third argument, extra checks, which is the
+seam the test uses to prove it.
+
+The checks, in the order they are listed: `opcache` (installed? on for this
+SAPI? hit rate), `opcache_memory` (cache full, under 10% free, or within 90%
+of its file slots), `opcache_timestamps` (`validate_timestamps=1` is `info`,
+**never** a must-fix: the updater does not restart PHP, so recommending 0
+would leave an updated site running old code), `xdebug`, `optimize`
+(configuration and routes cached; `info` on a `local` install), `debug`,
+`cache_store` (`database` and `array` need attention, `file`/`redis`/
+`memcached` are good), `queue` (`sync` is mail sent while the visitor waits;
+otherwise `QueueHealth::delivering()`), `log_level`, `autoloader` (the class
+map holds 1,500 or more classes), `database` (median of three `select 1`:
+≤ 5 ms good, ≤ 25 ms info), `realpath_cache`, `php_version`, `media_cdn`,
+`large_images` (library images over 1.5 MB or wider than 2560 px, trashed ones
+and SVG ignored, the three largest named), `third_party` (GA4, Tag Manager,
+Meta Pixel, the reviews embed and `body_code`: `info`, attention at four) and
+`splash`. Every threshold is a constant on the class with its reason beside
+it. `app.env` is read from **config**, not the container, so a test can set it.
+
+**Measured figures.** `boot_ms` is the time since `LARAVEL_START` when the
+status controller starts (null where the entry point did not define it — a
+test run); `db_ms` the median above; `website_ms` the timing of the
+controller's existing website health call, null when the website did not
+answer, since a timeout measures the timeout. No new network call is made.
+
+**The website half** (`web/src/lib/speed.ts`, `server-only`) adds the two
+checks only the Next server can answer: `next_build` (`next dev` is
+attention, any other non-production `NODE_ENV` is `info`, production is good)
+and `cdn_in_front` (from `lib/cdn.ts`: detected is good, none is `info`).
+`withWebsiteChecks()` merges them in and counts the summary again, so the
+card's arithmetic holds for what it draws. The card (`speed-card.tsx`) is a
+server component: Needs attention (high impact first), Could not check, Good
+(folded), For information; its snippets are the scheduler card's `Command`.
+`scripts/probes/speed-status.mjs` checks the summary against the rows, a fix
+sentence on every attention row, the copy button and overflow at 360 and 1280.
+
+**What it will not say.** Nothing recommends full-page caching of `/admin`,
+and `opcache.validate_timestamps=0` is offered only as an option with its
+cost. The `database` and `queue` rows measure the server answering, not the
+customer's hosting plan.
 
 ## Known limits
 

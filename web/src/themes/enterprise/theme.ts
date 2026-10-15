@@ -1,4 +1,5 @@
 import type { ThemeManifest } from "../contract.ts";
+import { CLASSIC_HEADER, BRAND_FOOTER } from "../chrome-parts.ts";
 
 /**
  * Enterprise: the site as a large IT-services company presents itself.
@@ -26,4 +27,5 @@ export const enterpriseManifest: ThemeManifest = {
   screenshot: "/themes/enterprise.jpg",
   extends: "classic",
   defaults: { menu_style: "mega", hero_style: "compact" },
+  chrome: { header: CLASSIC_HEADER, footer: BRAND_FOOTER },
 };

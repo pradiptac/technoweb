@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Concerns;
 
+use App\Support\PageSections\CustomCodeGuard;
 use App\Support\PageSections\SectionRules;
 use Illuminate\Validation\Validator;
 
@@ -24,6 +25,15 @@ trait ValidatesPageSections
     {
         $validator->after(function (Validator $v) {
             SectionRules::after($v, $this->input('blocks'));
+            if ($this->guardsCustomCode()) {
+                CustomCodeGuard::check($v, $this->input('blocks'));
+            }
         });
+    }
+
+    /** Who may run custom code on the page itself is checked wherever sections are saved; a preview saves nothing. */
+    protected function guardsCustomCode(): bool
+    {
+        return true;
     }
 }

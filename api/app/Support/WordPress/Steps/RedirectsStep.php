@@ -2,10 +2,7 @@
 
 namespace App\Support\WordPress\Steps;
 
-use App\Models\ContentType;
-use App\Models\Page;
-use App\Models\Redirect;
-use App\Support\ReservedSlugs;
+use App\Support\Import\Redirects;
 use App\Support\WordPress\Context;
 use App\Support\WordPress\Outcome;
 
@@ -77,34 +74,6 @@ class RedirectsStep extends Step
             $pairs['/shop'] = '/store';
         }
 
-        foreach ($pairs as $from => $to) {
-            if ($from === $to || str_starts_with($from, '/wp-') || $this->live($from)) {
-                continue;
-            }
-
-            $from = mb_substr($from, 0, 255);
-
-            // Anything already pointing at the old address now points at the new one.
-            Redirect::query()->where('to_path', $from)->update(['to_path' => $to]);
-
-            $redirect = Redirect::query()->updateOrCreate(
-                ['from_path' => $from],
-                ['to_path' => $to, 'status_code' => 301, 'is_active' => true, 'created_automatically' => true],
-            );
-
-            $ctx->report->count($this->key(), $redirect->wasRecentlyCreated ? 'create' : 'update');
-        }
-
-        Redirect::query()->whereColumn('from_path', 'to_path')->delete();
-    }
-
-    /** Whether an old path collides with something this site serves itself. */
-    private function live(string $path): bool
-    {
-        $first = explode('/', ltrim($path, '/'))[0];
-
-        return ReservedSlugs::reserved($first)
-            || ($first === ltrim($path, '/') && Page::query()->where('slug', $first)->exists())
-            || ContentType::query()->where('slug', $first)->exists() && substr_count($path, '/') === 1;
+        Redirects::write($pairs, fn (string $from, bool $created) => $ctx->report->count($this->key(), $created ? 'create' : 'update'), fn (string $from) => str_starts_with($from, '/wp-'));
     }
 }

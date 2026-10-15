@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\StoreCaseStudyRequest;
 use App\Http\Requests\UpdateCaseStudyRequest;
 use App\Http\Resources\Admin\CaseStudyResource;
 use App\Models\CaseStudy;
 use App\Support\CustomFields\CustomFields;
+use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -23,6 +26,7 @@ use Illuminate\Support\Facades\DB;
  */
 class CaseStudyController extends Controller
 {
+    use HandlesBulk;
     use WritesCmsEntities;
 
     public function index(Request $request): AnonymousResourceCollection
@@ -57,6 +61,7 @@ class CaseStudyController extends Controller
         $study = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
 
             $study = CaseStudy::create($attributes);
 
@@ -78,6 +83,7 @@ class CaseStudyController extends Controller
         DB::transaction(function () use ($request, $caseStudy) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
 
             $caseStudy->update($attributes);
 
@@ -91,11 +97,23 @@ class CaseStudyController extends Controller
 
     public function destroy(CaseStudy $caseStudy): JsonResponse
     {
+        $this->remove($caseStudy);
+
+        return response()->json(['message' => 'Case study deleted.']);
+    }
+
+    /** `POST /admin/case-studies/bulk` — publish, draft, archive or delete the ticked case studies. */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, CaseStudy::query(), $this->remove(...));
+    }
+
+    /** What deleting a case study does, for `destroy()` and the bulk path alike. */
+    private function remove(CaseStudy $caseStudy): void
+    {
         DB::transaction(function () use ($caseStudy) {
             $caseStudy->seo()->delete();
             $caseStudy->delete();
         });
-
-        return response()->json(['message' => 'Case study deleted.']);
     }
 }

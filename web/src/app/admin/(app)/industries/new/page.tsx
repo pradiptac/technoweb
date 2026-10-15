@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getAnswerBlockKinds, getSolutionOptions, getCustomFieldGroups } from "@/lib/admin";
+import { getAnswerBlockKinds, getSolutionOptions, getCustomFieldGroups, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import type { AnswerBlockKindOption } from "@/types/api";
 import { noIndex } from "@/lib/no-index";
@@ -30,7 +30,7 @@ export default async function NewIndustryPage() {
         title="New industry"
       />
 
-      <IndustryForm solutions={solutions} kinds={kinds} fieldGroups={await getCustomFieldGroups("/admin/industries")} />
+      <IndustryForm solutions={solutions} kinds={kinds} fieldGroups={await getCustomFieldGroups("/admin/industries")} builder={await getPageBuilderOptions()} />
     </>
   );
 }

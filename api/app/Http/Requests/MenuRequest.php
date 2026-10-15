@@ -4,7 +4,9 @@ namespace App\Http\Requests;
 
 use App\Enums\MenuItemType;
 use App\Enums\MenuLocation;
+use App\Models\MenuItem;
 use App\Support\CatalogueList;
+use App\Support\IconKey;
 use App\Support\LinkPattern;
 use App\Support\SiteSection;
 use Illuminate\Contracts\Validation\Validator;
@@ -96,8 +98,13 @@ class MenuRequest extends FormRequest
              */
             "$prefix.url" => ['nullable', 'string', 'max:2048', 'regex:'.LinkPattern::MENU_REGEX],
 
-            "$prefix.icon" => ['nullable', 'string', 'max:60'],
+            "$prefix.icon" => ['nullable', 'string', 'max:60', IconKey::RULE],
             "$prefix.description" => ['nullable', 'string', 'max:160'],
+            // A status chip beside the entry (0.150.0): plain text, drawn
+            // upper-case, and a tone from a short list — the colour is the
+            // frontend's token for it.
+            "$prefix.badge" => ['nullable', 'string', 'max:'.MenuItem::BADGE_MAX],
+            "$prefix.badge_tone" => ['nullable', 'string', Rule::in(MenuItem::BADGE_TONES)],
             "$prefix.open_in_new_tab" => ['boolean'],
             "$prefix.is_active" => ['boolean'],
             "$prefix.children" => ['sometimes', 'array'],

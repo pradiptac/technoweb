@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkPagesAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -6,12 +8,24 @@ import { Input, Select, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { IconBook } from "@/components/icons";
-import { getPages, type PageQueryParams } from "@/lib/admin";
+import { getPages, type PageQueryParams, type PagesIndex } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import type { AdminPage, Paginated, PublishStatus } from "@/types/api";
+import type { PublishStatus } from "@/types/api";
 import type { ReactNode } from "react";
 import { requireScreen } from "@/lib/admin-screen";
+import { getCurrentStaff } from "@/lib/admin-auth";
+import { NewHomepageButton } from "./homepage-button";
+import { AiDraftButton } from "./ai-draft-button";
+import { screenFor } from "../settings/settings-copy";
+
+/**
+ * Where the AI SEO assistant is switched on — the screen that draws the `seo`
+ * group, opened on its tab at the switch. The AI page builder rides on that
+ * assistant's switch, key and daily cap, so its refusals all point there.
+ */
+const SEO_SETTINGS = screenFor("seo");
+const AI_SETTINGS_HREF = SEO_SETTINGS ? `${SEO_SETTINGS.path}?tab=seo#setting__seo_ai_enabled` : null;
 
 export const metadata = buildMetadata({ title: "Pages", path: "/admin/pages", seo: noIndex });
 
@@ -42,6 +56,9 @@ export default async function AdminPagesPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  // The SEO settings are `role:admin`: anybody else following the link would
+  // meet that screen's 404, so only an administrator is offered it.
+  const isAdmin = (await getCurrentStaff())?.roles.some((r) => r.slug === "admin") ?? false;
 
   const queryParams: PageQueryParams = {
     status: params.status as PublishStatus | undefined,
@@ -50,7 +67,7 @@ export default async function AdminPagesPage({
       per_page: Number(params.per_page) || undefined,
   };
 
-  let result: Paginated<AdminPage> | null = null;
+  let result: PagesIndex | null = null;
   try {
     result = await getPages(queryParams);
   } catch {
@@ -67,7 +84,9 @@ export default async function AdminPagesPage({
   return (
     <>
       <PageHeader title="Pages">
-        <div className="ml-auto">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <AiDraftButton availability={result.meta.ai_draft ?? null} settingsHref={isAdmin ? AI_SETTINGS_HREF : null} />
+          <NewHomepageButton />
           <ButtonLink href="/admin/pages/new" size="sm">New page</ButtonLink>
         </div>
       </PageHeader>
@@ -101,10 +120,13 @@ export default async function AdminPagesPage({
             : "Standalone pages like privacy, terms and downloads live here. Each one is served at /its-slug."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="pages" ids={pages.map((p) => p.id)} noun={{ one: "page", many: "pages" }} action={bulkPagesAction} />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[620px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="pages" ids={pages.map((p) => p.id)} noun="page" /></th>
                 <th scope="col" className="px-3 py-1.5">Page</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
                 <th scope="col" className="px-3 py-1.5">URL</th>
@@ -113,6 +135,7 @@ export default async function AdminPagesPage({
             <tbody>
               {pages.map((p) => (
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="pages" id={p.id} label={p.title} /></td>
                   <td data-label="Page" className="px-3 py-2">
                     <Link href={`/admin/pages/${p.id}`} className="block hover:underline">
                       <p className="text-13-5 font-medium text-ink">{p.title}</p>
@@ -133,6 +156,7 @@ export default async function AdminPagesPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/pages" params={{ status: params.status, q: params.q, per_page: params.per_page }} />

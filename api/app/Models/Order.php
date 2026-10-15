@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
 use App\Support\References;
+use App\Support\Store\Invoice\Invoices;
+use App\Support\Store\Zoho\ZohoInvoices;
 use App\Support\Webhooks\WebhookPayload;
 use App\Support\Webhooks\Webhooks;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,13 +29,25 @@ class Order extends Model
     protected $fillable = [
         'order_number', 'customer_id', 'status', 'payment_method',
         'subtotal_paise', 'discount_paise', 'taxable_paise', 'gst_paise', 'total_paise',
+        // Delivery (0.142.0): what was charged, the zone's name and the weight it came from.
+        'shipping_paise', 'shipping_zone', 'shipping_weight_grams',
         'coupon_id', 'coupon_code',
         'customer_name', 'customer_email', 'customer_phone', 'customer_note',
         'billing_address', 'shipping_address',
         'gst_required', 'gstin', 'company_name',
-        'invoice_number', 'invoice_date', 'invoice_path',
+        'invoice_number', 'invoice_date', 'invoice_path', 'invoice_source',
         'courier', 'tracking_number', 'tracking_url', 'shipping_notes',
         'access_token', 'placed_at', 'paid_at', 'dispatched_at', 'completed_at', 'cancelled_at',
+    ];
+
+    /**
+     * In-memory defaults matching the columns, so an order made without a
+     * delivery charge (an import, a test) reads the same unsaved and saved.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'shipping_paise' => 0,
     ];
 
     protected function casts(): array
@@ -42,6 +56,8 @@ class Order extends Model
             'status' => OrderStatus::class,
             'subtotal_paise' => 'integer',
             'discount_paise' => 'integer',
+            'shipping_paise' => 'integer',
+            'shipping_weight_grams' => 'integer',
             'taxable_paise' => 'integer',
             'gst_paise' => 'integer',
             'total_paise' => 'integer',
@@ -56,6 +72,21 @@ class Order extends Model
             'dispatched_at' => 'datetime',
             'completed_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            // Courier booking and tracking (0.143.0, docs/store.md "Shiprocket").
+            'delivered_at' => 'datetime',
+            'shipment_attempts' => 'integer',
+            'shipment_claimed_at' => 'datetime',
+            'shipment_awb_at' => 'datetime',
+            'shipment_pickup_at' => 'datetime',
+            'shipment_cancelled_at' => 'datetime',
+            'shipment_status_id' => 'integer',
+            'shipment_status_at' => 'datetime',
+            'shipment_checked_at' => 'datetime',
+            'shipment_manifest_at' => 'datetime',
+            'zoho_attempts' => 'integer',
+            'zoho_claimed_at' => 'datetime',
+            'zoho_next_attempt_at' => 'datetime',
+            'zoho_synced_at' => 'datetime',
         ];
     }
 
@@ -87,6 +118,20 @@ class Order extends Model
                     'from' => $from instanceof OrderStatus ? $from->value : $from,
                     'to' => $order->status->value,
                 ]));
+            }
+
+            // Zoho Books (0.134.0): an order that has just been dispatched or
+            // paid may now be due its invoice. Asked only on those two
+            // changes, and guarded inside — it can never fail this save.
+            if ($order->wasChanged('status') || $order->wasChanged('paid_at')) {
+                ZohoInvoices::consider($order);
+
+                // And the shop's own GST invoice (0.176.0), on the same two
+                // changes and guarded the same way. Only one of the two ever
+                // acts: `Invoices::ready()` stands down while Zoho Books is
+                // set up, because two systems numbering one series is two
+                // series.
+                Invoices::consider($order);
             }
         });
     }
@@ -143,6 +188,32 @@ class Order extends Model
     }
 
     /**
+     * Orders whose parcel the courier is bringing back or has cancelled
+     * (0.143.0) and which nobody has finished: not completed, cancelled or
+     * refunded. The dashboard's tile and the list it opens
+     * (`?shipment=problem`) are this one scope.
+     */
+    public function scopeShipmentTrouble(Builder $query): Builder
+    {
+        return $query->where('shipment_booking', 'created')
+            ->whereNotNull('shipment_problem')
+            ->whereNotIn('status', [
+                OrderStatus::Completed->value, OrderStatus::Cancelled->value, OrderStatus::Refunded->value,
+            ]);
+    }
+
+    /**
+     * Orders Zoho Books refused something for: the invoice, or — since
+     * 0.136.0 — a payment or a credit note. The dashboard's tile and the
+     * list it opens (`?zoho=failed`) are this one scope.
+     */
+    public function scopeZohoFailed(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $q) => $q->where('zoho_status', 'failed')
+            ->orWhereHas('payments', fn (Builder $p) => $p->where('zoho_status', 'failed')));
+    }
+
+    /**
      * Where the customer reads this order.
      *
      * On the model because three notifications need it and two had already
@@ -191,6 +262,17 @@ class Order extends Model
     public function history(): HasMany
     {
         return $this->hasMany(OrderStatusEvent::class)->orderBy('id');
+    }
+
+    /**
+     * What the customer has asked to send back, newest first (docs/store.md
+     * "Returns").
+     *
+     * @return HasMany<OrderReturn, $this>
+     */
+    public function returns(): HasMany
+    {
+        return $this->hasMany(OrderReturn::class)->orderByDesc('id');
     }
 
     /** @return HasMany<OrderNote, $this> */

@@ -1,7 +1,10 @@
 import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/seo";
 import { publicApi } from "@/lib/api";
+import { getSiteSettings } from "@/lib/settings";
 import type { Paginated } from "@/types/api";
+import type { EventSummary } from "@/types/events";
+import type { TenderSummary } from "@/types/tenders";
 
 /**
  * Built from the API, not from a hard-coded list — otherwise the sitemap
@@ -88,6 +91,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/certifications", 0.5, "yearly"),
     entry("/contact", 0.6, "yearly"),
     entry("/careers", 0.6, "weekly"),
+    // The events index. Its own pages follow further down, one per published
+    // event, past ones included — a past event stays readable and stays linked.
+    entry("/events", 0.6, "weekly"),
+    // The tenders index. Its own pages follow further down, one per
+    // published notice, closed ones included — a closed tender stays
+    // readable and stays linked, because the archive is the point.
+    entry("/tenders", 0.6, "weekly"),
     entry("/brands", 0.6, "monthly"),
     entry("/locations", 0.6, "monthly"),
     // The shop. Absent from this list until now, along with every product and
@@ -105,7 +115,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [
       solutions, services, industries, categories, products,
       posts, articles, caseStudies, pages, careers,
-      storeProducts, storeCategories, taxonomy, landing,
+      storeProducts, storeCategories, storeTags, taxonomy, landing, settings, events, tenders, downloads, centres,
     ] = await Promise.all([
       publicApi.solutions().then((r) => r.data),
       publicApi.services().then((r) => r.data),
@@ -130,6 +140,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
        */
       all((q) => publicApi.storeProducts(q)),
       publicApi.storeCategories().then((r) => r.data),
+      // Shown tags with a published product; on its own `catch` so a failure leaves tag pages out, not the sitemap.
+      publicApi.storeTagsAll().then((r) => r.data).catch(() => []),
       // Blog categories are real, indexable, linked-to pages with their own
       // canonical — `/blog/category/{slug}` — and were unlisted too.
       publicApi.blogTaxonomy().then((r) => r.data),
@@ -137,7 +149,45 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // they were awaited on their own after it, one round trip more per
       // build and per hourly revalidation, for nothing that depended on it.
       publicApi.landingPages().then((r) => r.data).catch(() => []),
+      getSiteSettings(),
+      /*
+       * Every published event, upcoming and past, walked page by page at
+       * fifty a page — the API's ceiling for this endpoint, where the
+       * default hundred would be refused or quietly cut short. On its own
+       * `catch`, like the landing pages: a failure here leaves events out
+       * and never costs the rest of the sitemap.
+       */
+      Promise.all([
+        all((q) => publicApi.events(`${q}&when=upcoming`), 50),
+        all((q) => publicApi.events(`${q}&when=past`), 50),
+      ]).then((lists) => lists.flat()).catch(() => [] as EventSummary[]),
+      /*
+       * Tenders, open and closed, in the two reads the API offers — the same
+       * shape as the events above and for the same reason: a closed notice
+       * is still a page, and leaving the archive out of the sitemap would
+       * drop every tender the moment its deadline passed. On its own
+       * `catch`: a failure leaves tenders out and costs the rest nothing.
+       */
+      Promise.all([
+        all((q) => publicApi.tenders(`${q}&when=open`), 50),
+        all((q) => publicApi.tenders(`${q}&when=closed`), 50),
+      ]).then((lists) => lists.flat()).catch(() => [] as TenderSummary[]),
+      // The downloads centre: how many files it holds and when one last
+      // changed. On its own `catch` — a failure leaves the page out, no more.
+      publicApi.downloadCategories().then((r) => r.meta).catch(() => null),
+      // The support network (docs/support-network.md), on its own `catch`.
+      publicApi.supportCentres().then((r) => r.data).catch(() => []),
     ]);
+
+    /*
+     * A builder page chosen as the homepage (0.113.0, Settings → Homepage)
+     * is served at `/` and its own address redirects there, so it is left
+     * out of the pages below — the homepage is already listed — and its
+     * last change counts as the homepage's.
+     */
+    const homeSlug = settings.homepage_page_slug;
+    const homePage = homeSlug ? pages.find((p) => p.slug === homeSlug) : undefined;
+    const otherPages = homeSlug ? pages.filter((p) => p.slug !== homeSlug) : pages;
 
     /*
      * The landing-page endpoint returns published pages only, and a page is
@@ -150,7 +200,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     // An index page changes when anything it lists does.
     const indexDates: Record<string, Date | undefined> = {
-      "/": newest([...solutions, ...categories, ...caseStudies, ...posts]),
+      "/": newest([...solutions, ...categories, ...caseStudies, ...posts, ...(homePage ? [homePage] : [])]),
       "/solutions": newest(solutions),
       "/products": newest([...categories, ...products]),
       "/services": newest(services),
@@ -160,6 +210,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       "/blog": newest(posts),
       "/case-studies": newest(caseStudies),
       "/careers": newest(careers),
+      "/events": newest(events),
+      "/tenders": newest(tenders),
       "/store": newest([...storeProducts, ...storeCategories]),
     };
 
@@ -181,6 +233,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const d = indexDates[e.url.slice(SITE.url.length)];
         return d ? { ...e, lastModified: d } : e;
       }),
+      // The downloads centre (docs/downloads.md), once it holds a file: an
+      // empty one is a page that says "nothing yet", which is not worth a crawl.
+      ...(downloads && downloads.total > 0 ? [entry("/downloads", 0.6, "weekly", when(downloads.updated_at))] : []),
+      // The support network, once it lists a centre; its last change is the newest centre's.
+      ...(centres.length > 0 ? [entry("/support-network", 0.6, "monthly", when(centres.map((c) => c.updated_at ?? "").sort().at(-1)))] : []),
       ...included(solutions).map((s) => entry(`/solutions/${s.slug}`, 0.8, "monthly", when(s.updated_at))),
       ...included(services).map((s) => entry(`/services/${s.slug}`, 0.7, "monthly", when(s.updated_at))),
       ...included(industries).map((i) => entry(`/industries/${i.slug}`, 0.6, "monthly", when(i.updated_at))),
@@ -190,6 +247,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...included(articles).map((a) => entry(`/knowledge-base/${a.slug}`, 0.6, "monthly", when(a.updated_at ?? a.published_at))),
       ...included(caseStudies).map((c) => entry(`/case-studies/${c.slug}`, 0.6, "yearly", when(c.updated_at))),
       ...included(careers).map((j) => entry(`/careers/${j.slug}`, 0.6, "weekly", when(j.updated_at ?? j.published_at))),
+      // An event that is over changes rarely; one still to come may move.
+      ...included(events).map((e) => entry(`/events/${e.slug}`, e.is_past ? 0.4 : 0.6, e.is_past ? "yearly" : "weekly", when(e.updated_at))),
+      // A closed notice changes no more, so it is yearly and lower —
+      // the events line's reasoning, with `closed` in place of `is_past`.
+      ...included(tenders).map((t) => entry(`/tenders/${t.slug}`, t.closed ? 0.4 : 0.6, t.closed ? "yearly" : "weekly", when(t.updated_at))),
       /*
        * The store. `store_products` and `store_categories` both carry a
        * real SEO override now -- `StoreProduct` has since gained `HasSeo`,
@@ -203,10 +265,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
        */
       ...included(storeCategories).map((c) => entry(`/store/categories/${c.slug}`, 0.7, "weekly", when(c.updated_at))),
       ...included(storeProducts).map((p) => entry(`/store/products/${p.slug}`, 0.7, "weekly", when(p.updated_at))),
+      // A tag page is listed only with three or more published products (the API's `indexable`); under that it is `noindex`.
+      ...included(storeTags.filter((t) => t.indexable)).map((t) => entry(`/store/tags/${t.slug}`, 0.5, "weekly", when(t.updated_at))),
       ...taxonomy.categories.map((c) => entry(`/blog/category/${c.slug}`, 0.5, "weekly")),
       ...landing.map((l) => entry(l.path, 0.6, "monthly", when(l.updated_at))),
-      // /privacy, /terms, /downloads and anything else an editor publishes.
-      ...included(pages).map((p) => entry(`/${p.slug}`, 0.4, "yearly", when(p.updated_at))),
+      // /privacy, /terms and anything else an editor publishes.
+      ...included(otherPages).map((p) => entry(`/${p.slug}`, 0.4, "yearly", when(p.updated_at))),
       ...custom.flatMap(({ type, entries }) => [
         ...(type.archive_enabled ? [entry(type.path, 0.6, "weekly", when(type.updated_at))] : []),
         ...included(entries).map((e) => entry(e.path, 0.6, "monthly", when(e.updated_at ?? e.published_at))),

@@ -10,15 +10,17 @@ lead capture on detected buying intent. Phases 9–19 are not.
 
 ## Where the specification and this codebase disagreed
 
-The specification was written without sight of the code. Four places where it
+The specification was written without sight of the code. Five places where it
 was followed in spirit rather than to the letter, each because the codebase
-already answers the question:
+already answers the question — the fifth because the client's own choice of
+provider moved (0.116.0):
 
 | Specification | What was built | Why |
 |---|---|---|
 | `chat_leads` table + an admin Leads screen | Neither | `leads`, `LeadIntake`, `LeadScore` and `/admin/leads` already exist. *Every contact form in the product lands in one pipeline* — a second table and screen would be two answers to "who asked us to call them", one click apart. **Built:** a chatbot lead is a lead with `channel = 'chatbot'`, scored on the same rubric, with the conversation as its source. |
 | `chat_settings` table | A `chatbot` settings group | There is a `settings` table with groups, an admin screen that builds its own form from it, and encryption for secret rows. A second settings mechanism for one module is a second place to look. |
-| `AI_API_KEY` in `.env` | Settings first, `.env` second | Provider credentials here live encrypted in the settings table so a client can rotate a key without a deploy — the arrangement the six outgoing-mail transports use. `config/services.php` remains the fallback so a fresh install works before anybody opens the console. |
+| `AI_API_KEY` in `.env` | Settings first, `.env` second | Provider credentials here live encrypted in the settings table so a client can rotate a key without a deploy — the arrangement the six outgoing-mail transports use. `config/services.php` remains the fallback so a fresh install works before anybody opens the console: `OPENROUTER_API_KEY`, and the specification's `AI_API_KEY` after it. |
+| `OpenAIProvider`, "an appropriate OpenAI API model" | `OpenRouterProvider`, and a Gemini model by default | The interface the specification asks for is what made this a one-class change. Since 0.116.0 the one implementation calls OpenRouter, which routes to whichever maker the model id names, so the client's own Google and OpenAI keys sit in *their* OpenRouter account and this application holds one key. See "The provider is OpenRouter" below. |
 | shadcn/ui | This project's own primitives | There is no shadcn or Radix here. `CLAUDE.md` requires reusing `Button`, `Card`, `Field` and the rest. The instruction behind the letter — *look like part of the website* — is better served by the components the website is made of. |
 
 ---
@@ -26,12 +28,12 @@ already answers the question:
 ## The shape
 
 ```
-Visitor ── Next.js (Server Action) ── Laravel ── OpenAI
+Visitor ── Next.js (Server Action) ── Laravel ── OpenRouter ── the model's maker
                                           │
                                           └── Retriever ── published content only
 ```
 
-The browser never talks to OpenAI and never sees the key. It does not see the
+The browser never talks to OpenRouter and never sees the key. It does not see the
 conversation token either: that lives in an httpOnly cookie the Next server
 sets and forwards, the arrangement the basket already uses.
 
@@ -42,11 +44,117 @@ sets and forwards, the arrangement the basket already uses.
 | `app/Support/Chat/Retriever.php` | What the assistant is allowed to know |
 | `app/Support/Chat/Assistant.php` | The system prompt, the context window, the grounding decision |
 | `app/Support/Chat/AiProvider.php` | The interface — messages in, text out |
-| `app/Support/Chat/Providers/OpenAiProvider.php` | The only implementation |
-| `app/Support/Chat/ChatSettings.php` | Every number, read once |
+| `app/Support/Chat/Providers/OpenRouterProvider.php` | The only implementation (it replaced `OpenAiProvider` in 0.116.0) |
+| `app/Support/Chat/JsonReply.php` | A reply read as the JSON object it was asked for, whatever it arrived wrapped in |
+| `app/Enums/AiModel.php` | The models offered, as OpenRouter ids |
+| `app/Support/Chat/ChatSettings.php` | Every number, read once — and the key and the model |
 | `app/Http/Controllers/Api/V1/ChatController.php` | Three public routes |
 | `web/src/components/chat/chat-widget.tsx` | The launcher and the panel |
 | `web/src/components/chat/chat-actions.ts` | The Server Actions and the cookie |
+
+---
+
+## The provider is OpenRouter (0.116.0)
+
+Until 0.116.0 the one implementation called OpenAI directly. It calls
+**OpenRouter** now — `https://openrouter.ai/api/v1/chat/completions`, which
+speaks OpenAI's wire format and routes each request to the maker the model id
+names. `AiProvider` did not change, so nothing above the provider did either:
+the assistant, the intake judge, the SEO assistant, alt text, the article
+draft and the page draft all resolve the interface from the container and all
+arrive at `OpenRouterProvider`.
+
+**Why.** The client wanted to run on their own provider accounts — a free
+Google AI Studio key to begin with, an OpenAI key perhaps later — without this
+application growing a provider, a key row and a test button per maker. At
+OpenRouter those are "bring your own key": the maker's key is saved in the
+OpenRouter account (its Settings → Integrations) and OpenRouter spends it when
+it routes a call there. So this side holds **one** key, `openrouter_api_key`
+in the private `integrations` group, and the maker is a prefix on the model id
+(`google/gemini-2.5-flash`, `openai/gpt-4o-mini`) rather than a second
+integration. `App\Enums\AiModel` is the list; `AiModel::DEFAULT` is
+`google/gemini-2.5-flash`, because a default that needed a second, paid
+maker's key would be a default that fails on the first press.
+
+**What that costs: nothing here can know which makers a key can reach.** It is
+a fact about somebody's OpenRouter account. A Gemini model answers once a
+Google AI Studio key has been added there; an OpenAI model needs an OpenAI key
+or OpenRouter credit, and is refused without one — and the refusal would
+otherwise arrive on a visitor's first question. Hence **"Test this model"**
+beside the key on Settings → API keys (`GET /admin/seo/ai/models`,
+`POST /admin/seo/ai/test-model`): one short real request through the saved
+key, answering in OpenRouter's own words. It is the one place those words are
+shown, to an administrator, for the reason `/admin/settings/mail/test` shows a
+mail server's.
+
+**It sends two headers the old provider had no use for.** `HTTP-Referer` is
+`FRONTEND_URL` and `X-Title` is `company_name` — OpenRouter's attribution
+headers, which is how an account tells this install's spend from anything
+else on the same key. The title is the customer's company and never the
+product's name, the white-label rule; control characters are stripped from
+it, since a header value cannot hold a line break and a company name is
+something a person typed.
+
+**OpenRouter says no in three ways, and all three are failures here.** A
+status other than 2xx, as any API. A **200 carrying an `error` object**, which
+is how it reports a maker that failed after OpenRouter had accepted the
+request — read as a success, that is an empty answer somebody renders. And a
+200 with no choices, or a choice with nothing in it. Its `message` is often
+only "Provider returned error"; what the maker actually said is in
+`error.metadata.raw`, so that is read, bounded, and appended. All of it goes
+to the log at `warning` and into `AiReply::$error`; **none of it reaches a
+visitor**, who gets the pages that were found, exactly as before.
+
+**A 429 is never retried on the spot.** The one retry is on the connection,
+not on a refusal: a 401 says the same thing twice, and retrying a rate limit
+immediately is how a limit becomes a ban. This matters more than it did,
+because **a free Google AI Studio key is rate-limited by Google, per minute
+and per day**. Past the limit the assistant degrades the way it does for any
+provider failure — `withoutModel()`, the retrieved pages named and linked,
+`grounded: true`, a `provider_failed` event — and the SEO assistant's actions
+answer "The AI service did not answer. Try again shortly." A busy afternoon
+and a bulk SEO run are where a free key's limits are met first, and the daily
+caps on this side do not know about the maker's.
+
+**A model that thinks first is given headroom.** A thinking model's reasoning
+is drawn from the same `max_tokens` as its answer, so a cap sized for the
+answer alone — five tokens to prove a model, 120 for an intake reading — can
+be spent before a word is written, and comes back as an empty reply from a
+model that is working perfectly. `AiModel::thinks()` names them (Gemini 2.5
+Flash and Pro) and `OpenRouterProvider::allowance()` sends the caller's cap
+again on top, never less than 1,024. A model outside the enum is sent the
+caller's figure untouched, like everything else about it.
+
+**JSON mode is not a promise about wrapping any more.** A GPT model answers a
+JSON-mode request with the object and nothing else; a Gemini model routinely
+wraps the same object in a ```` ```json ```` fence and now and then introduces
+it with a sentence. `JsonReply::decode()` reads the text as it stands, then
+the inside of a fence, then the run from an opening brace to the last closing
+one — forgiving about the wrapping and not about the contents, since a
+repaired answer is one the model did not give. The intake judge and
+`SeoAssistant::decode()` both go through it.
+
+**Privacy changed with the route, and the manual says so.** A visitor's
+message now passes through OpenRouter and then the model's maker. On Google's
+free tier, Google may use requests to improve its products; a paid key (or a
+paid maker) is the way out of that. Nothing in the retrieval rules moved —
+`Retriever` still cannot reach a customer, an order, a ticket or a code — but
+what a visitor *types* is theirs to have typed, and it travels.
+
+**An install from before the move.** `MoveAiToOpenRouter` (an upgrade step,
+`docs/distribution.md`) renames a stored bare model id to OpenRouter's name
+for the same model — `gpt-4o-mini` → `openai/gpt-4o-mini`, a rename and never
+a swap for the default — and deletes the `openai_api_key` row **without
+copying it**: an OpenAI key is refused at OpenRouter, and a refused key that
+looks configured is worse than a blank one that says what to do. Until a key
+is pasted every AI feature answers "No OpenRouter key is configured" and the
+assistant goes on answering from the pages it finds. `AI_MODEL` in a `.env`
+no step can edit is passed through `AiModel::qualify()` on every read.
+
+Pinned by `OpenRouterProviderTest` (the headers, the body's shape, the
+headroom, each kind of refusal, a rate limit sent once and never retried, the
+old key row not read), `SeoAiModelsTest` (the list, the test call, the
+maker's words reaching the administrator) and `UpgradeOpenRouterTest`.
 
 ---
 
@@ -250,7 +358,10 @@ fence fails two tests, neutralising the instruction line fails one.
 
 ### The specification's battery, run against the live model
 
-§16's five questions, `gpt-4o-mini`, through the real endpoint:
+§16's five questions, through the real endpoint — run in September 2026 with
+`gpt-4o-mini`, when OpenAI was called directly. It has not been re-run against
+the Gemini default; this section's closing paragraph says why that is not what
+the guarantee rests on.
 
 | asked | what happened |
 |---|---|

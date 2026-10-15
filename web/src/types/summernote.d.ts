@@ -12,7 +12,7 @@ declare module "jquery" {
   /** Every Summernote call this project makes. */
   interface SummernoteElement {
     summernote(options: Record<string, unknown>): void;
-    summernote(method: "destroy" | "reset" | "focus"): void;
+    summernote(method: "destroy" | "reset" | "focus" | "saveRange" | "restoreRange"): void;
     summernote(method: "code"): string;
     summernote(method: "code", html: string): void;
     summernote(method: "pasteHTML", html: string): void;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { Form } from "@/components/ui/form";
 import { CompanyField } from "@/components/forms/company-field";
 import { AddressFields } from "@/components/forms/address-fields";
@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { brandConfettiColors, confettiBurst } from "@/components/velora/confetti";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { formatPaise } from "@/lib/money";
+import { shownDelivery } from "@/lib/cart-shown";
 import { cn } from "@/lib/utils";
-import { placeOrderAction, saveCartContactAction, type CheckoutState } from "./actions";
+import { placeOrderAction, saveCartContactAction, saveCartDestinationAction, type CheckoutState } from "./actions";
 import type { CartSummary, Customer } from "@/types/api";
 
 const initial: CheckoutState = {};
@@ -50,7 +51,7 @@ const initial: CheckoutState = {};
  *   on this screen is smaller than it was.
  */
 export function CheckoutForm({
-  cart,
+  cart: initialCart,
   shippable,
   customer,
   messagingChannels = [],
@@ -72,6 +73,14 @@ export function CheckoutForm({
 }) {
   const [state, formAction, pending] = useActionState(placeOrderAction, initial);
   const [gst, setGst] = useState(Boolean(customer?.gstin));
+
+  /*
+   * The basket as the summary draws it, replaced whenever the delivery
+   * destination is re-quoted. Delivery depends on where the parcel goes, so
+   * the Delivery row and the total are whatever the API last said — never a
+   * sum worked out here.
+   */
+  const [cart, setCart] = useState(initialCart);
 
   const billing = customer?.billing_address ?? null;
   const delivery = customer?.shipping_address ?? null;
@@ -100,6 +109,62 @@ export function CheckoutForm({
   const chosen = methods.find((m) => m.value === method);
 
   const err = (field: string) => state.fieldErrors?.[field]?.[0];
+
+  /*
+   * Delivery is quoted from the state the parcel goes to — the delivery
+   * address's when there is one, else the billing address's. In zones mode
+   * the state is a list of the API's own names, and every change to it (typed,
+   * chosen, or filled by the PIN code, which sets the field programmatically
+   * and announces it as an `input` event) is sent to the basket after a short
+   * pause; the answer replaces the summary. Flat mode asks nothing.
+   */
+  const zones = shippable && initialCart.shipping_mode === "zones";
+  const stateOptions = zones ? (initialCart.shipping_states ?? null) : null;
+  const anchor = useRef<HTMLSpanElement>(null);
+  const destinationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastDestination = useRef<string | null>(null);
+
+  const syncDestination = useCallback(() => {
+    if (!zones) return;
+    if (destinationTimer.current) clearTimeout(destinationTimer.current);
+
+    destinationTimer.current = setTimeout(() => {
+      const form = anchor.current?.closest("form");
+      const field = form?.elements.namedItem(elsewhere ? "ship_state" : "state");
+
+      if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement)) return;
+
+      const value = field.value.trim();
+
+      if (value === (lastDestination.current ?? "")) return;
+      lastDestination.current = value;
+
+      void saveCartDestinationAction(value).then((next) => {
+        if (next) setCart(next);
+      });
+    }, 250);
+  }, [zones, elsewhere]);
+
+  useEffect(() => {
+    syncDestination();
+
+    return () => {
+      if (destinationTimer.current) clearTimeout(destinationTimer.current);
+    };
+  }, [syncDestination]);
+
+  /*
+   * The order was refused because the address is not the one delivery was
+   * quoted for. The API has saved the new destination; fetch the figure it
+   * quoted so the summary says what the message says.
+   */
+  const shippingRefusal = state.fieldErrors?.shipping?.[0];
+
+  useEffect(() => {
+    if (!shippingRefusal) return;
+    lastDestination.current = null;
+    syncDestination();
+  }, [shippingRefusal, syncDestination]);
 
   /*
    * The email and the mobile are kept on the basket as each field is left,
@@ -149,9 +214,21 @@ export function CheckoutForm({
   const card = "rounded-lg border border-line-strong bg-card p-4 sm:p-5";
 
   return (
-    <Form action={formAction} state={state} noValidate className="grid gap-6 lg:grid-cols-[1.3fr_1fr] lg:items-start">
+    <Form action={formAction} state={state} noValidate onInput={syncDestination} onChange={syncDestination}
+      className="grid gap-6 lg:grid-cols-[1.3fr_1fr] lg:items-start">
+      <span ref={anchor} hidden />
+
       <div className="min-w-0">
         {state.error && <Alert tone="err" title="We could not place the order">{state.error}</Alert>}
+
+        {/*
+          The address is not the one delivery was quoted for. The order was
+          not placed; the summary beside the form now carries the new figure,
+          and pressing "Place order" again takes it.
+        */}
+        {shippingRefusal && (
+          <Alert tone="warn" title="The delivery cost changed" dismissible={false}>{shippingRefusal}</Alert>
+        )}
 
         {/*
           Every problem the server found with the basket, before the fields
@@ -309,7 +386,7 @@ export function CheckoutForm({
                 Where the invoice is made out to. We deliver here unless you say otherwise.
               </p>
 
-              <AddressFields defaults={billing} err={err} />
+              <AddressFields defaults={billing} err={err} stateOptions={stateOptions} />
 
               {/*
                 The two are the same for almost every order, so the question is
@@ -345,6 +422,7 @@ export function CheckoutForm({
                   autoCompletePrefix="shipping "
                   defaults={delivery}
                   err={err}
+                  stateOptions={stateOptions}
                 />
               </section>
             )}
@@ -392,7 +470,7 @@ export function CheckoutForm({
                   <span className="block text-12 font-medium text-warn">Non-returnable</span>
                 )}
               </span>
-              <span className="tabular-nums">{formatPaise(line.line_total_paise)}</span>
+              <span className="tabular-nums">{formatPaise(line.shown_line_total_paise ?? line.line_total_paise)}</span>
             </li>
           ))}
         </ul>
@@ -400,13 +478,51 @@ export function CheckoutForm({
         <dl className="grid gap-1.5 py-3 text-14">
           <div className="flex justify-between gap-4">
             <dt className="text-muted">Subtotal</dt>
-            <dd className="tabular-nums">{formatPaise(cart.subtotal_paise)}</dd>
+            <dd className="tabular-nums">{formatPaise(cart.shown_subtotal_paise ?? cart.subtotal_paise)}</dd>
           </div>
 
           {cart.discount_paise > 0 && (
             <div className="flex justify-between gap-4">
               <dt className="text-muted">Discount</dt>
-              <dd className="tabular-nums text-ok">−{formatPaise(cart.discount_paise)}</dd>
+              <dd className="tabular-nums text-ok">−{formatPaise(cart.shown_discount_paise ?? cart.discount_paise)}</dd>
+            </div>
+          )}
+
+          {/*
+            Delivery (0.142.0): the API's own words and figure, re-quoted as
+            the state changes. Drawn only for a basket that ships; "Worked out
+            at checkout" is zones mode before a state is chosen, and the total
+            below does not include it yet.
+          */}
+          {shippable && cart.shipping_label && (
+            <div className="flex justify-between gap-4" data-delivery-row>
+              <dt className="text-muted">Delivery{cart.shipping_zone ? ` (${cart.shipping_zone})` : ""}</dt>
+              <dd className={cn(
+                "text-right tabular-nums",
+                cart.shipping_deliverable === false ? "text-err" : cart.shipping_paise == null ? "text-muted" : cart.shipping_paise === 0 ? "text-ok" : "",
+              )}>
+                {shownDelivery(cart)}
+              </dd>
+            </div>
+          )}
+
+          {/*
+            GST: a row above the total when the website shows prices before
+            GST, a note under the total when it shows them with GST (0.178.0;
+            the figures above are the `shown_*` ones, so the column adds up).
+
+            The API says which through `gst_basis` rather than the template
+            inferring it from the numbers. Drawn the wrong way round, one of
+            them is a column that does not add up and the other is a total
+            nobody can arrive at.
+
+            `gst_rate` is null when the basket holds two rates, because
+            "18%" over a basket of 18% and 5% goods is simply false.
+          */}
+          {cart.gst_added_paise > 0 && (
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">GST{cart.gst_rate ? ` at ${cart.gst_rate}` : ""}</dt>
+              <dd className="tabular-nums">{formatPaise(cart.gst_added_paise)}</dd>
             </div>
           )}
 
@@ -415,10 +531,12 @@ export function CheckoutForm({
             <dd className="tabular-nums">{formatPaise(cart.total_paise)}</dd>
           </div>
 
-          <div className="flex justify-between gap-4 text-12-5 text-muted">
-            <dt>Includes GST at {cart.gst_rate}</dt>
-            <dd className="tabular-nums">{formatPaise(cart.gst_paise)}</dd>
-          </div>
+          {cart.gst_added_paise === 0 && (
+            <div className="flex justify-between gap-4 text-12-5 text-muted">
+              <dt>Includes GST{cart.gst_rate ? ` at ${cart.gst_rate}` : ""}</dt>
+              <dd className="tabular-nums">{formatPaise(cart.gst_paise)}</dd>
+            </div>
+          )}
         </dl>
 
         {/*

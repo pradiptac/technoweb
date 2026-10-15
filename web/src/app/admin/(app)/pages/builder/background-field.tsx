@@ -2,7 +2,8 @@
 
 import { CoverField } from "@/components/admin/cover-field";
 import { Field, Input, Select } from "@/components/ui/input";
-import { SECTION_KINDS, type SectionBackground, type SectionKind } from "@/themes/options";
+import { BACKDROPS } from "@/lib/login-backdrop-choices";
+import { SECTION_KINDS, SECTION_TEXTURES, type SectionBackground, type SectionKind, type SectionTexture } from "@/themes/options";
 
 /**
  * A section's ground — the Themes screen's section background, the same
@@ -40,6 +41,8 @@ export function BackgroundField({ value, onChange, error, idPrefix, media }: {
               kind: next,
               ...(next === "solid" || next === "gradient" || next === "image" ? { colour: bg.colour ?? "#0b1020" } : {}),
               ...(next === "gradient" ? { colour2: bg.colour2 ?? "#1e293b", angle: bg.angle ?? 135 } : {}),
+              // An animation names a scene and carries no texture: the scene is the texture.
+              ...(next === "scene" ? { scene: bg.scene ?? "aurora", texture: undefined } : {}),
             });
           }}>
             {SECTION_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
@@ -64,6 +67,25 @@ export function BackgroundField({ value, onChange, error, idPrefix, media }: {
           </>
         )}
 
+        {kind === "scene" && (
+          <Field label="Animation" htmlFor={id("scene")} variant="float-static"
+            hint={BACKDROPS.find((b) => b.id === bg.scene)?.note}>
+            <Select id={id("scene")} value={bg.scene ?? "aurora"} onChange={(e) => set({ scene: e.target.value })}>
+              {BACKDROPS.filter((b) => b.id !== "image").map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+            </Select>
+          </Field>
+        )}
+
+        {kind !== "default" && kind !== "scene" && (
+          <Field label="Texture" htmlFor={id("texture")} variant="float-static"
+            hint={SECTION_TEXTURES.find((t) => t.id === (bg.texture ?? "none"))?.blurb}>
+            <Select id={id("texture")} value={bg.texture ?? "none"}
+              onChange={(e) => set({ texture: e.target.value === "none" ? undefined : e.target.value as SectionTexture })}>
+              {SECTION_TEXTURES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </Select>
+          </Field>
+        )}
+
         {kind === "image" && (
           <Field label="Overlay (0–90%)" htmlFor={id("overlay")} hint="How much of the overlay colour sits over the picture.">
             <Input id={id("overlay")} type="number" min={0} max={90} value={bg.overlay ?? 60}
@@ -76,6 +98,7 @@ export function BackgroundField({ value, onChange, error, idPrefix, media }: {
         <CoverField
           name={`_media_${id("image")}`}
           label="Picture"
+          spec="hero"
           defaultPath={bg.image_path ?? null}
           defaultUrl={bg.image_path ? media[bg.image_path] ?? bg.image_url ?? null : null}
           onPathChange={(p) => set({ image_path: p ?? undefined })}

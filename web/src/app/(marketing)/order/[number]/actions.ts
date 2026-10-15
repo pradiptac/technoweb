@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { apiFetch, ApiError } from "@/lib/api";
-import { createPaymentSession, verifyPayment } from "@/lib/store";
+import { createPaymentSession, requestReturn, verifyPayment } from "@/lib/store";
 import { orderToken } from "@/lib/order-access";
+import { returnPayload } from "@/lib/return-payload";
+import type { ReturnFormState } from "@/components/store/return-form";
 import type { PaymentSession } from "@/types/api";
 
 /**
@@ -120,5 +122,38 @@ export async function revealCodeAction(
     }
 
     return { ok: false, message: "We could not reveal that code just now. Please try again shortly." };
+  }
+}
+
+/**
+ * A return, asked for from the order's own page (docs/store.md "Returns").
+ *
+ * The path the form takes when no photograph is attached; with one, the
+ * browser posts the multipart body to `/order/{n}/returns`, which lives
+ * under the order's own path because that is where the token's cookie is
+ * sent. Either way the token is read from that cookie here on the server
+ * and never from the form.
+ */
+export async function requestReturnAction(
+  orderNumber: string,
+  _prev: ReturnFormState,
+  formData: FormData,
+): Promise<ReturnFormState> {
+  const token = await orderToken(orderNumber);
+  if (!token) return { error: NO_ACCESS };
+
+  try {
+    const { message } = await requestReturn(orderNumber, token, returnPayload(formData));
+    revalidatePath(`/order/${orderNumber}`);
+
+    return { ok: message };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 422) return { error: "Check the highlighted fields.", fieldErrors: error.errors };
+      if (error.status === 429) return { error: "That is a lot of requests in a short time. Wait a minute and try again." };
+      if (error.status === 404) return { error: NO_ACCESS };
+    }
+
+    return { error: "We could not send that. Try again shortly, or contact us." };
   }
 }

@@ -5,23 +5,45 @@ namespace App\Support\PageSections;
 use App\Enums\PageSectionType;
 use App\Enums\PublishStatus;
 use App\Http\Resources\ContentBlockResource;
+use App\Http\Resources\SupportCentreResource;
+use App\Http\Resources\TeamMemberResource;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\ContentBlock;
+use App\Models\ContentType;
+use App\Models\Download;
+use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Faq;
 use App\Models\Form;
 use App\Models\Gallery;
 use App\Models\Industry;
+use App\Models\JobOpening;
 use App\Models\KnowledgeArticle;
+use App\Models\Media;
 use App\Models\Page;
 use App\Models\Product;
+use App\Models\ProductCategory;
+use App\Models\SavedSection;
 use App\Models\Service;
 use App\Models\Slider;
 use App\Models\Solution;
+use App\Models\StoreCategory;
 use App\Models\StoreProduct;
+use App\Models\SupportCentre;
+use App\Models\TeamMember;
+use App\Models\Tender;
+use App\Support\Downloads\DownloadFiles;
+use App\Support\Events\EventText;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use App\Support\Money;
+use App\Support\Store\Tax;
+use App\Support\Store\VideoShelf;
+use App\Support\Tenders\TenderText;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * A builder page's sections as the public site reads them (2026-09-26).
@@ -54,18 +76,22 @@ final class SectionPresenter
 {
     /**
      * @param  array<int, mixed>|null  $blocks  as stored (or as normalised, for a preview)
+     * @param  list<string>  $except  types left out — what a record's body area cannot hold
+     *                                (`RecordSections`), checked after a linked library
+     *                                section has been swapped in, since that is where one
+     *                                could arrive unseen
      * @return list<array<string, mixed>>
      */
-    public static function present(?array $blocks, ?Page $page = null): array
+    public static function present(?array $blocks, ?Page $page = null, array $except = []): array
     {
         $out = [];
 
-        foreach ($blocks ?? [] as $block) {
-            if (! is_array($block) || filter_var($block['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+        foreach (self::resolve($blocks) as $block) {
+            if (filter_var($block['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
                 continue;
             }
             $type = PageSectionType::tryFrom((string) ($block['type'] ?? ''));
-            if (! $type) {
+            if (! $type || in_array($type->value, $except, true)) {
                 continue;
             }
 
@@ -79,8 +105,50 @@ final class SectionPresenter
                 'type' => $type->value,
                 'background' => self::background($block['background'] ?? null),
                 'reveal' => SectionRules::reveal($block['reveal'] ?? null),
+                'style' => SectionRules::style($block['style'] ?? null),
                 'data' => (object) $data,
             ];
+        }
+
+        return self::withSubnav($out);
+    }
+
+    /**
+     * An in-page menu's links (0.126.0): every *other* section that will be
+     * drawn and has an anchor, in page order, labelled by its own heading.
+     * Worked out here, after the hidden and the empty sections have gone, so
+     * the menu can never point at one that is not on the page. A menu with
+     * fewer than two places to go is not a menu, and is dropped.
+     *
+     * @param  list<array<string, mixed>>  $sections
+     * @return list<array<string, mixed>>
+     */
+    private static function withSubnav(array $sections): array
+    {
+        if (! collect($sections)->contains(fn ($s) => $s['type'] === PageSectionType::Subnav->value)) {
+            return $sections;
+        }
+
+        $links = [];
+        foreach ($sections as $s) {
+            $anchor = $s['style']['anchor'] ?? null;
+            if (! is_string($anchor) || $s['type'] === PageSectionType::Subnav->value) {
+                continue;
+            }
+            $data = (array) $s['data'];
+            $heading = collect(['heading', 'title', 'kicker'])->map(fn ($k) => $data[$k] ?? null)->first(fn ($v) => is_string($v) && trim($v) !== '');
+            $links[] = ['anchor' => $anchor, 'label' => Str::limit(trim((string) ($heading ?? Str::headline($anchor))), 40)];
+        }
+
+        $out = [];
+        foreach ($sections as $s) {
+            if ($s['type'] === PageSectionType::Subnav->value) {
+                if (count($links) < 2) {
+                    continue;
+                }
+                $s['data'] = (object) [...(array) $s['data'], 'items' => $links];
+            }
+            $out[] = $s;
         }
 
         return $out;
@@ -96,8 +164,8 @@ final class SectionPresenter
     public static function faqEntries(?array $blocks): array
     {
         $entries = [];
-        foreach ($blocks ?? [] as $block) {
-            if (! is_array($block) || filter_var($block['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+        foreach (self::resolve($blocks) as $block) {
+            if (filter_var($block['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
                 continue;
             }
             $data = (array) ($block['data'] ?? []);
@@ -116,6 +184,47 @@ final class SectionPresenter
         return $entries;
     }
 
+    /**
+     * The list with every linked library section (`saved`) replaced by the
+     * library's section (2026-10-05). The page's own id and its Hidden switch
+     * are kept — a page may hide a linked section without touching the
+     * library — and everything else is the library's, which is what "linked"
+     * means. One query for all of them; a link to a section that has gone,
+     * or to a template, is dropped like any other dead reference. One level
+     * only: a library section cannot itself be a link (`SavedSectionRequest`).
+     *
+     * @param  array<int, mixed>|null  $blocks
+     * @return list<array<string, mixed>>
+     */
+    public static function resolve(?array $blocks): array
+    {
+        $blocks = array_values(array_filter($blocks ?? [], 'is_array'));
+        $ids = collect($blocks)
+            ->filter(fn (array $b) => ($b['type'] ?? null) === PageSectionType::Saved->value)
+            ->map(fn (array $b) => (int) ($b['data']['saved_id'] ?? 0))
+            ->filter()->unique()->values();
+        if ($ids->isEmpty()) {
+            return $blocks;
+        }
+
+        $library = SavedSection::query()->whereIn('id', $ids)->where('kind', SavedSection::KIND_SECTION)->get()->keyBy('id');
+        $out = [];
+        foreach ($blocks as $block) {
+            if (($block['type'] ?? null) !== PageSectionType::Saved->value) {
+                $out[] = $block;
+
+                continue;
+            }
+            $inner = $library->get((int) ($block['data']['saved_id'] ?? 0))?->blocks[0] ?? null;
+            if (! is_array($inner) || ($inner['type'] ?? null) === PageSectionType::Saved->value) {
+                continue;
+            }
+            $out[] = ['id' => (string) ($block['id'] ?? ''), 'hidden' => (bool) ($block['hidden'] ?? false)] + $inner;
+        }
+
+        return $out;
+    }
+
     /** @return array<string, mixed>|null */
     private static function background(mixed $bg): ?array
     {
@@ -123,7 +232,7 @@ final class SectionPresenter
             return null;
         }
         if (is_string($bg['image_path'] ?? null) && $bg['image_path'] !== '') {
-            $bg['image_url'] = asset('storage/'.$bg['image_path']);
+            $bg['image_url'] = MediaUrl::for($bg['image_path']);
             if (($focus = MediaMeta::focus($bg['image_path'])) !== null) {
                 $bg['image_focus'] = $focus;
             }
@@ -148,13 +257,83 @@ final class SectionPresenter
             PageSectionType::Gallery => self::slug($data, 'gallery_id', Gallery::class),
             PageSectionType::Form => self::slug($data, 'form_id', Form::class),
             PageSectionType::Faq => self::faq($data, $page),
+            PageSectionType::Tabs, PageSectionType::Story => [...$data, 'items' => array_map(
+                fn ($item) => is_array($item) ? self::picture($item, 'image') : [],
+                array_values((array) ($data['items'] ?? [])),
+            )],
+            PageSectionType::Testimonials => [...$data, 'items' => array_map(
+                fn ($item) => is_array($item) ? self::picture($item, 'photo') : [],
+                array_values((array) ($data['items'] ?? [])),
+            )],
+            PageSectionType::BeforeAfter => self::picture(self::picture($data, 'before'), 'after'),
+            PageSectionType::Team => self::team($data),
+            PageSectionType::Downloads => self::downloads($data),
+            PageSectionType::ProductVideos => self::productVideos($data),
+            PageSectionType::SupportNetwork => self::supportNetwork($data),
+            PageSectionType::Countdown => self::countdown($data),
+            PageSectionType::Layout => LayoutPresenter::present($data),
+            PageSectionType::Lottie => self::lottie($data),
+            PageSectionType::Model => self::model($data),
             default => $data,
         };
     }
 
+    /**
+     * An animation from the library (0.172.0): `file_path` becomes `file`, with
+     * its `format` (`json` or `lottie`) and `ratio` (width over height, from the
+     * media row, so the box is reserved before the file loads). Gone when the
+     * file has left the library or is no longer an animation. Shared with the
+     * layout section's widget of the same name.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    public static function lottie(array $data): ?array
+    {
+        $row = self::motionFile($data, 'application/lottie');
+        if ($row === null) {
+            return null;
+        }
+        unset($data['file_path']);
+
+        return [
+            ...$data,
+            'file' => self::url($row->path),
+            'format' => str_ends_with(strtolower($row->path), '.lottie') ? 'lottie' : 'json',
+            'ratio' => $row->width && $row->height ? $row->width / $row->height : 1,
+        ];
+    }
+
+    /**
+     * A 3D model from the library: `file_path` becomes `file`, the cover
+     * picture `poster`/`poster_alt`. Gone when the file has gone.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    public static function model(array $data): ?array
+    {
+        $row = self::motionFile($data, 'model/');
+        if ($row === null) {
+            return null;
+        }
+        unset($data['file_path']);
+
+        return [...self::picture($data, 'poster'), 'file' => self::url($row->path)];
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private static function motionFile(array $data, string $mimePrefix): ?Media
+    {
+        $path = $data['file_path'] ?? null;
+        $row = is_string($path) && $path !== '' ? Media::query()->where('path', $path)->first() : null;
+
+        return $row && str_starts_with((string) $row->mime, $mimePrefix) ? $row : null;
+    }
+
     private static function url(?string $path): ?string
     {
-        return filled($path) ? asset('storage/'.$path) : null;
+        return filled($path) ? MediaUrl::for($path) : null;
     }
 
     /**
@@ -171,6 +350,7 @@ final class SectionPresenter
             $data[$name] = self::url($path);
             $data["{$name}_alt"] = MediaMeta::alt($path) ?? '';
             $data["{$name}_focus"] = MediaMeta::focus($path);
+            $data["{$name}_blur"] = MediaMeta::blur($path);
         }
 
         return self::video($data);
@@ -225,6 +405,177 @@ final class SectionPresenter
     }
 
     /**
+     * The team, as `/team` reads it: published, current certifications only.
+     * An empty list drops the section.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    /**
+     * The support network's active centres in the public shape (staff by
+     * name and title only); none drops the section.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private static function supportNetwork(array $data): ?array
+    {
+        $centres = SupportCentre::query()->active()
+            ->with(['staff' => fn ($q) => $q->select('users.id', 'users.name', 'users.is_active')])
+            ->inListOrder()->get();
+        $data['centres'] = SupportCentreResource::collection($centres)->resolve();
+
+        return $data['centres'] === [] ? null : $data;
+    }
+
+    private static function team(array $data): ?array
+    {
+        $department = is_string($data['department'] ?? null) && $data['department'] !== '' ? $data['department'] : null;
+        $members = TeamMember::query()->published()
+            ->when($department, fn ($q) => $q->where('department', $department))
+            ->with(['certifications' => fn ($q) => $q->current()])
+            ->orderBy('sort_order')->orderBy('id')
+            ->limit(max(1, min(48, (int) ($data['limit'] ?? 48))))
+            ->get();
+
+        $data['members'] = TeamMemberResource::collection($members)->resolve();
+
+        return $data['members'] === [] ? null : $data;
+    }
+
+    /**
+     * Each file's address, size and kind from the library; a file that has
+     * gone is left out, and a list with nothing left drops the section.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private static function downloads(array $data): ?array
+    {
+        if (($data['source'] ?? null) === 'centre') {
+            return self::centreDownloads($data);
+        }
+
+        $items = array_values(array_filter((array) ($data['items'] ?? []), 'is_array'));
+        $rows = Media::query()->whereIn('path', array_filter(array_column($items, 'file_path'), 'is_string'))->get()->keyBy('path');
+
+        $out = [];
+        foreach ($items as $item) {
+            $media = $rows->get((string) ($item['file_path'] ?? ''));
+            if (! $media) {
+                continue;
+            }
+            $out[] = array_filter([
+                'title' => $item['title'] ?? $media->filename,
+                'note' => $item['note'] ?? null,
+                'url' => self::url($media->path),
+                'size' => (int) $media->size,
+                'extension' => strtolower(pathinfo((string) ($media->filename ?: $media->path), PATHINFO_EXTENSION)) ?: null,
+            ], fn ($v) => $v !== null);
+        }
+        $data['items'] = $out;
+
+        return $out === [] ? null : $data;
+    }
+
+    /**
+     * The downloads centre's own files (0.131.0, docs/downloads.md): what is
+     * published now, one shelf of it when the section names one. Each item
+     * carries `download_id` and **no `url`** — a centre file is fetched
+     * through the website's `/api/downloads/{id}`, which counts it and asks
+     * who is reading a customers-only one. Nothing published drops the
+     * section, the rule every live list follows.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private static function centreDownloads(array $data): ?array
+    {
+        $downloads = Download::query()->published()
+            ->when(filled($data['category_id'] ?? null), fn ($q) => $q->where('downloads.download_category_id', (int) $data['category_id']))
+            ->shelved()
+            ->limit(max(1, min(50, (int) ($data['limit'] ?? 12))))
+            ->get();
+
+        DownloadFiles::prime($downloads);
+
+        $out = [];
+        foreach ($downloads as $download) {
+            $file = DownloadFiles::info($download);
+            if ($file === null) {
+                continue;
+            }
+            $out[] = array_filter([
+                'title' => $download->title,
+                'note' => $download->summary,
+                'version' => $download->version,
+                'released_label' => $download->released_on?->format('j F Y'),
+                'download_id' => $download->id,
+                'locked' => $download->isLocked() ?: null,
+                'size' => $file['size'],
+                'extension' => $file['extension'],
+            ], fn ($v) => $v !== null);
+        }
+
+        $data['items'] = $out;
+        $data['index_path'] = '/downloads';
+
+        return $out === [] ? null : $data;
+    }
+
+    /**
+     * The shop's "shop the videos" row (0.140.0): the tiles `VideoShelf`
+     * builds — the very list `GET /store/videos` answers — for the shelf the
+     * section names (the whole shop, or one category). Nothing to show drops
+     * the section, the rule every live list follows. The default count and
+     * order are the section's own: it stores a limit, and the order is the
+     * setting's.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private static function productVideos(array $data): ?array
+    {
+        $items = VideoShelf::presented([
+            'limit' => max(1, min(VideoShelf::MAX_LIMIT, (int) ($data['limit'] ?? 8))),
+            'category_id' => filled($data['category_id'] ?? null) ? (int) $data['category_id'] : null,
+        ]);
+
+        if ($items === []) {
+            return null;
+        }
+
+        unset($data['category_id'], $data['limit']);
+        $data['items'] = $items;
+
+        return $data;
+    }
+
+    /**
+     * The end as an instant with its offset, so a browser in any timezone
+     * counts to the same moment the editor meant in the site's own.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private static function countdown(array $data): ?array
+    {
+        try {
+            $end = CarbonImmutable::createFromFormat('Y-m-d\TH:i', (string) ($data['ends_at'] ?? ''), config('app.timezone'));
+        } catch (\Throwable) {
+            return null;
+        }
+        if (! $end) {
+            return null;
+        }
+        $data['ends_at'] = $end->toIso8601String();
+        // The label is the API's, in the site's own timezone — never a browser's.
+        $data['ends_label'] = $end->format('j F Y, g:i a');
+
+        return $data;
+    }
+
+    /**
      * A live list, resolved now.
      *
      * An empty list drops the section: a heading over nothing reads as broken.
@@ -237,6 +588,12 @@ final class SectionPresenter
         $limit = max(1, min(12, (int) ($data['limit'] ?? 6)));
         $category = is_string($data['category'] ?? null) && $data['category'] !== '' ? $data['category'] : null;
         $source = (string) ($data['source'] ?? '');
+        // A custom content type's entries: `entry:<type-slug>`. A type that
+        // has been switched off or deleted since yields nothing, and the
+        // section is dropped like any empty list.
+        $type = str_starts_with($source, 'entry:')
+            ? ContentType::query()->active()->where('slug', substr($source, 6))->first()
+            : null;
 
         /** @var Collection<int, array<string, mixed>> $items */
         $items = match ($source) {
@@ -259,8 +616,33 @@ final class SectionPresenter
             'store_products' => StoreProduct::published()->with('brand')
                 ->when($category, fn ($q) => $q->whereHas('category', fn ($c) => $c->where('slug', $category)))
                 ->orderByDesc('is_featured')->orderBy('sort_order')->orderBy('id')->limit($limit)->get()
-                ->map(fn (StoreProduct $p) => self::tile($p->name, $p->short_description, "/store/products/{$p->slug}", $p->images[0] ?? null, null, $p->brand?->name, Money::format((int) $p->price_paise))),
-            default => collect(),
+                ->map(fn (StoreProduct $p) => self::tile($p->name, $p->short_description, "/store/products/{$p->slug}", $p->images[0] ?? null, null, $p->brand?->name, Money::format(Tax::shown((int) $p->price_paise, Tax::rateFor($p))).(Tax::basis() === Tax::BASIS_INCLUSIVE ? '' : ' + GST'))),
+            // Upcoming only, soonest first: the kicker is the date and the
+            // meta the place, both the API's own labels. A page with nothing
+            // coming up loses the section, like any empty list.
+            'events' => Event::published()->upcoming()->orderBy('starts_at')->orderBy('id')->limit($limit)->get()
+                ->map(fn (Event $e) => self::tile($e->title, $e->summary, $e->publicPath(), $e->cover_image_path, null, EventText::dateLabel($e), EventText::place($e))),
+            // Open ones only, closing soonest first: the kicker is the
+            // reference and the meta the deadline, both the API's own
+            // labels. A page with nothing open loses the section, like any
+            // empty list — which is right here, because a row of closed
+            // tenders invites a bid nobody can make.
+            'tenders' => Tender::published()->open()->with('category')
+                ->orderBy('closes_at')->orderBy('id')->limit($limit)->get()
+                ->map(fn (Tender $t) => self::tile($t->title, $t->summary, $t->publicPath(), null, null, $t->reference, TenderText::deadlineLabel($t->closes_at))),
+            'product_categories' => ProductCategory::query()->orderBy('sort_order')->orderBy('name')->limit($limit)->get()
+                ->map(fn (ProductCategory $c) => self::tile($c->name, $c->description, "/products/{$c->slug}", $c->image_path, $c->icon)),
+            'store_categories' => StoreCategory::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->limit($limit)->get()
+                ->map(fn (StoreCategory $c) => self::tile($c->name, $c->description, "/store/categories/{$c->slug}", $c->image_path, null)),
+            // Open ones only — `published()` already drops a vacancy past its
+            // closing date. The kicker is the department and the meta the
+            // place, "Remote" for a blank one, as the careers page says it.
+            'vacancies' => JobOpening::published()->orderBy('sort_order')->orderByDesc('published_at')->limit($limit)->get()
+                ->map(fn (JobOpening $j) => self::tile($j->title, $j->summary, "/careers/{$j->slug}", null, null, $j->department, filled($j->location) ? $j->location : 'Remote')),
+            default => $type ? Entry::published()->where('content_type_id', $type->id)
+                ->orderBy('sort_order')->orderByDesc('published_at')->orderByDesc('id')->limit($limit)->get()
+                ->map(fn (Entry $e) => self::tile($e->title, $e->summary, "/{$type->slug}/{$e->slug}", $e->image_path, null))
+                : collect(),
         };
 
         $data['index_path'] = match ($source) {
@@ -272,7 +654,12 @@ final class SectionPresenter
             'knowledge' => '/knowledge-base',
             'products' => $category ? "/products/{$category}" : '/products',
             'store_products' => $category ? "/store/categories/{$category}" : '/store',
-            default => null,
+            'events' => '/events',
+            'tenders' => '/tenders',
+            'product_categories' => '/products',
+            'store_categories' => '/store',
+            'vacancies' => '/careers',
+            default => $type && $type->archive_enabled ? "/{$type->slug}" : null,
         };
         $data['items'] = $items->values()->all();
 
@@ -289,6 +676,7 @@ final class SectionPresenter
             'image' => self::url($image),
             'image_alt' => $image ? (MediaMeta::alt($image) ?? '') : null,
             'image_focus' => $image ? MediaMeta::focus($image) : null,
+            'image_blur' => $image ? MediaMeta::blur($image) : null,
             'icon' => $icon,
             'kicker' => $kicker,
             'meta' => $meta,

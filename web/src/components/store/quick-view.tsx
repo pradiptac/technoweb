@@ -94,6 +94,7 @@ export function QuickView({
 
             <div className="mt-2 flex items-baseline gap-2">
               <b className="text-[20px] font-semibold tabular-nums">{formatPaise(product.price_paise)}</b>
+              {product.price_includes_gst === false && <span className="text-12 text-muted">+ GST</span>}
               {discounted && product.compare_at_paise && (
                 <>
                   <span className="text-14 text-faint line-through">{formatPaise(product.compare_at_paise)}</span>

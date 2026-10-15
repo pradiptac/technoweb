@@ -34,10 +34,12 @@ import type { StoreCategory } from "@/types/api";
  * a basket cannot be cached.
  */
 export async function StoreFilterBar({
-  categories, q, category, sort, sticky = true, className, keep = [],
+  categories, q, category, sort, tag, sticky = true, className, keep = [],
 }: {
   categories: StoreCategory[];
   q?: string;
+  /** The chosen shop tag (0.141.0): searching keeps it, and it counts as a filter for Clear. */
+  tag?: string;
   /** Preselects the category. On a category page this is that page's slug. */
   category?: string;
   sort?: string;
@@ -74,7 +76,7 @@ export async function StoreFilterBar({
    */
   keep?: [string, string][];
 }) {
-  const filtered = Boolean(q || category);
+  const filtered = Boolean(q || category || tag);
   // Cached with the rest of the settings (600s), so the shop stays cacheable.
   const settings = await getSiteSettings();
   const push = pushConfigFrom(settings);
@@ -172,6 +174,7 @@ export async function StoreFilterBar({
         {keep.map(([name, value]) => (
           <input key={`${name}=${value}`} type="hidden" name={name} value={value} />
         ))}
+        {tag && <input type="hidden" name="tag" value={tag} />}
 
         <div className="col-span-2 min-w-0 lg:flex-[0_1_50%]">
           {/*

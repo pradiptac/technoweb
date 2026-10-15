@@ -6,6 +6,7 @@ import { Container } from "@/components/ui/container";
 import { IconArrowRight } from "@/components/icons";
 import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
 import type { ProductCategory } from "@/types/api";
+import { blurProps } from "@/lib/blur";
 
 /**
  * A `Collection` of `categories`, drawn in each theme's idiom — see
@@ -25,7 +26,13 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
           title="A catalogue backed by people who install it."
           lede="Every line we carry is hardware our engineers deploy and support in the field. Browse the catalogue, then ask us what actually fits."
         />
-        <Collection fill kind="categories" cols={6}>
+        {/*
+          Two to a row on a phone, picture and name only: one to a row, twelve
+          categories were ~4,800px of scrolling (the client's proportion
+          review, 2026-10-05). Layered utilities, so a theme that lays the
+          collection out itself — Datacenter's rack, Launch's bento — keeps it.
+        */}
+        <Collection fill kind="categories" cols={6} className="max-[479px]:grid-cols-2 max-[479px]:[&_[data-tile-summary]]:hidden">
           {items.map((c) => {
             const hue = hueForIcon(c.icon, "switch");
             return (
@@ -40,7 +47,7 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
                 icon={<IconTile name={c.icon} fallback="switch" />}
                 focus={c.image_focus}
                 media={c.image ? (
-                  <Image
+                  <Image {...blurProps(c.image_blur)}
                     src={c.image}
                     alt={c.image_alt ?? ""}
                     fill

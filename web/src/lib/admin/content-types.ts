@@ -72,6 +72,9 @@ export async function getEntry(type: string, id: number): Promise<AdminEntry> {
 }
 
 export type EntryPayload = Partial<{
+  /** Sections in place of the written body (0.130.0); absent leaves both alone. */
+  body_layout: import("@/types/page-sections").RecordBodyLayout;
+  blocks: import("@/types/page-sections").StoredSection[];
   title: string;
   slug: string | null;
   summary: string | null;

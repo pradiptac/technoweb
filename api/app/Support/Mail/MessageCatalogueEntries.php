@@ -16,6 +16,12 @@ use App\Notifications\CustomerRegistered;
 use App\Notifications\CustomerRejected;
 use App\Notifications\EnquiryAcknowledged;
 use App\Notifications\EnquiryReceived;
+use App\Notifications\EventChanged;
+use App\Notifications\EventRegistrationCancelled;
+use App\Notifications\EventRegistrationConfirmed;
+use App\Notifications\EventRegistrationReceived;
+use App\Notifications\EventRegistrationWaitlisted;
+use App\Notifications\EventReminder;
 use App\Notifications\FormAcknowledged;
 use App\Notifications\FormSubmitted;
 use App\Notifications\JobApplicationReceived;
@@ -33,6 +39,8 @@ use App\Notifications\OrderPlaced;
 use App\Notifications\OrderReceived;
 use App\Notifications\RegistrationAttempted;
 use App\Notifications\ResetPassword;
+use App\Notifications\ReturnRequestReceived;
+use App\Notifications\ReturnStatusChanged;
 use App\Notifications\ReviewRequested;
 use App\Notifications\SignInCodeIssued;
 use App\Notifications\TicketAcknowledged;
@@ -50,10 +58,12 @@ use App\Notifications\WishlistBackInStock;
 use App\Notifications\WishlistPriceDrop;
 
 /**
- * The 49 entries, kept out of `MessageCatalogue` so that class stays readable.
+ * The 56 entries, kept out of `MessageCatalogue` so that class stays readable.
  *
- * Forty-nine for forty-five classes (the online meetings, 2026-09-29, are
- * seven messages for seven classes): `TicketReplied` is two messages — its
+ * Fifty-six for fifty-one classes (the online meetings, 2026-09-29, are
+ * seven messages for seven classes; events, 0.118.0, are seven for six —
+ * `EventRegistrationConfirmed` is the confirmation and the promotion off the
+ * waiting list): `TicketReplied` is two messages — its
  * customer and desk versions differ in greeting, action label *and* recipient,
  * and one template cannot say both without lying about one of them —
  * `CartReminder` is two, the first basket reminder and the second, and the
@@ -121,7 +131,171 @@ class MessageCatalogueEntries
     /** @return array<string, array<string, mixed>> */
     public static function all(): array
     {
-        return array_merge(self::tickets(), self::orders(), self::accounts(), self::newsletter(), self::enquiries(), self::visits(), self::meetings());
+        return array_merge(self::tickets(), self::orders(), self::accounts(), self::newsletter(), self::enquiries(), self::visits(), self::meetings(), self::events());
+    }
+
+    /**
+     * Events (0.118.0, `docs/events.md`) — seven messages for six classes.
+     *
+     * The registrant's messages share one list of facts about the event, and
+     * the three that are sent to somebody with a seat (confirmed, promoted,
+     * reminded, changed) add the join link: `join` is the sentence with the
+     * link in it and is empty for an event with none, so one wording serves
+     * a seminar and a webinar alike.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private static function events(): array
+    {
+        $name = ['about' => 'Their first name, or “there”.', 'sample' => 'Priya'];
+        $title = ['about' => 'What the event is called.', 'sample' => 'Wi-Fi 7 for the office: a working session'];
+        $date = ['about' => 'The day, written out.', 'sample' => 'Thursday 12 November 2026'];
+        $time = ['about' => 'When it starts and ends, with the timezone.', 'sample' => '3:00 pm – 4:30 pm IST'];
+        $place = ['about' => 'The venue and its town, or “Online”.', 'sample' => 'Experience Centre, Mumbai'];
+        $seats = ['about' => 'How many seats the registration is for.', 'sample' => '2 seats'];
+        $page = ['about' => 'The event’s page on the website.', 'sample' => 'https://www.example.com/events/wifi-7-working-session'];
+        $manage = ['about' => 'Their own link to see or cancel the registration. No sign-in needed.', 'sample' => 'https://www.example.com/events/registration/3f9c…'];
+
+        $facts = [
+            'name' => $name,
+            'event_title' => $title,
+            'event_date' => $date,
+            'event_time' => $time,
+            'event_place' => $place,
+            'seats' => $seats,
+            'event_url' => $page,
+            'manage_url' => $manage,
+        ];
+
+        // Sent to somebody with a seat: the facts, plus the way in.
+        $seated = $facts + [
+            'join' => self::details('A line with the join link — empty when the event has none.', '<p><a href="https://meet.example.com/abc">Join the event online</a></p>'),
+            'join_url' => ['about' => 'The join link alone, or blank.', 'sample' => 'https://meet.example.com/abc'],
+        ];
+
+        return [
+            'event_registration_confirmed' => [
+                'label' => 'Event registration confirmed — to the registrant',
+                'description' => 'Sent when somebody registers for an event and has a place. Carries a calendar file, the join link for an online event, and their link to cancel.',
+                'audience' => self::CUSTOMER,
+                'class' => EventRegistrationConfirmed::class,
+                'variables' => $seated,
+                'subject' => 'You are registered: {{event_title}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>You are registered for <strong>{{event_title}}</strong> ({{seats}}).</p>'
+                    .'<p><strong>When:</strong> {{event_date}}, {{event_time}}<br><strong>Where:</strong> {{event_place}}</p>'
+                    .'{{join}}'
+                    .'<p>The calendar file attached adds it to your diary.</p>'
+                    .'<p><a href="{{manage_url}}">See or cancel your registration</a></p>',
+            ],
+
+            'event_waitlist_promoted' => [
+                'label' => 'A place opened — to the registrant',
+                'description' => 'Sent to somebody on the waiting list when a place opens for them. The confirmation’s content, with a different opening line.',
+                'audience' => self::CUSTOMER,
+                'class' => EventRegistrationConfirmed::class,
+                'variables' => $seated,
+                'subject' => 'A place has opened: {{event_title}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>A place has opened and you are off the waiting list — you are registered for <strong>{{event_title}}</strong> ({{seats}}).</p>'
+                    .'<p><strong>When:</strong> {{event_date}}, {{event_time}}<br><strong>Where:</strong> {{event_place}}</p>'
+                    .'{{join}}'
+                    .'<p>The calendar file attached adds it to your diary.</p>'
+                    .'<p><a href="{{manage_url}}">See or cancel your registration</a></p>',
+            ],
+
+            'event_registration_waitlisted' => [
+                'label' => 'On the waiting list — to the registrant',
+                'description' => 'Sent when somebody registers for an event that is full and joins the waiting list. No join link and no calendar file until a place opens.',
+                'audience' => self::CUSTOMER,
+                'class' => EventRegistrationWaitlisted::class,
+                'variables' => $facts,
+                'subject' => 'You are on the waiting list: {{event_title}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p><strong>{{event_title}}</strong> is full, so we have put you on the waiting list ({{seats}}).</p>'
+                    .'<p><strong>When:</strong> {{event_date}}, {{event_time}}</p>'
+                    .'<p>If a place opens we will email you straight away. You do not need to do anything until then.</p>'
+                    .'<p><a href="{{manage_url}}">See or cancel your place on the list</a></p>',
+            ],
+
+            'event_registration_cancelled' => [
+                'label' => 'Event registration cancelled — to the registrant',
+                'description' => 'Sent when a registration is cancelled, by the registrant from their own link or by the desk.',
+                'audience' => self::CUSTOMER,
+                'class' => EventRegistrationCancelled::class,
+                'variables' => [
+                    'name' => $name,
+                    'event_title' => $title,
+                    'event_date' => $date,
+                    'event_time' => $time,
+                    'event_url' => $page,
+                ],
+                'subject' => 'Your registration is cancelled: {{event_title}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>Your registration for <strong>{{event_title}}</strong> on {{event_date}}, {{event_time}} is cancelled.</p>'
+                    .'<p>If this is a mistake, or you change your mind, you can <a href="{{event_url}}">register again</a> while places remain.</p>',
+            ],
+
+            'event_registration_received' => [
+                'label' => 'Event registration — to the desk',
+                'description' => 'Sent to the events address (else the sales inbox) for every new registration. Replying goes to the registrant.',
+                'audience' => self::INTERNAL,
+                'class' => EventRegistrationReceived::class,
+                'variables' => [
+                    'name' => ['about' => 'Who registered.', 'sample' => 'Priya Das'],
+                    'email' => ['about' => 'Their address. Replying goes here.', 'sample' => 'priya@acmefoods.test'],
+                    'phone' => ['about' => 'Their telephone number, or blank.', 'sample' => '+91 98765 43210'],
+                    'company' => ['about' => 'Their company, or blank.', 'sample' => 'Acme Foods'],
+                    'seats' => $seats,
+                    'status' => ['about' => 'Whether they have a place or are on the waiting list.', 'sample' => 'Confirmed'],
+                    'note' => ['about' => 'The first 800 characters of the note they left.', 'sample' => 'One of us needs step-free access.'],
+                    'event_title' => $title,
+                    'event_date' => $date,
+                    'event_time' => $time,
+                    'url' => ['about' => 'The event’s registrations in the console.', 'sample' => 'https://www.example.com/admin/events/4/registrations'],
+                    'lead' => self::details('The lead score and a link to the pipeline record.', '<p><strong>Score:</strong> 64 / 100 — warm</p>'),
+                ],
+                'subject' => 'Event registration: {{event_title}} — {{name}}',
+                'body' => '<p>Somebody registered for an event.</p>'
+                    .'<p><strong>{{event_title}}</strong> — {{event_date}}, {{event_time}}</p>'
+                    .'<p><strong>{{name}}</strong> · {{company}}</p>'
+                    .'<p>{{email}} · {{phone}}</p>'
+                    .'<p>{{seats}} · {{status}}</p>'
+                    .'<p>{{note}}</p>'
+                    .'{{lead}}'
+                    .'<p><a href="{{url}}">Open the registrations</a></p>',
+            ],
+
+            'event_reminder' => [
+                'label' => 'Event reminder — to the registrant',
+                'description' => 'Sent once to each confirmed registrant before the event starts — how long before is a setting. Carries the join link again.',
+                'audience' => self::CUSTOMER,
+                'class' => EventReminder::class,
+                'variables' => $seated,
+                'subject' => 'Reminder: {{event_title}} — {{event_date}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>A reminder that <strong>{{event_title}}</strong> is on {{event_date}}, {{event_time}}.</p>'
+                    .'<p><strong>Where:</strong> {{event_place}}</p>'
+                    .'{{join}}'
+                    .'<p>If you can no longer come, please cancel so that somebody on the waiting list can take the place.</p>'
+                    .'<p><a href="{{manage_url}}">See or cancel your registration</a></p>',
+            ],
+
+            'event_changed' => [
+                'label' => 'Event details changed — to the registrant',
+                'description' => 'Sent to each confirmed registrant when an event is saved with a new time, place or join link and “Tell everyone registered” ticked. Carries a calendar file that updates the old entry.',
+                'audience' => self::CUSTOMER,
+                'class' => EventChanged::class,
+                'variables' => $seated,
+                'subject' => 'Updated details: {{event_title}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>The details of <strong>{{event_title}}</strong> have changed. You are still registered; this is how it stands now.</p>'
+                    .'<p><strong>When:</strong> {{event_date}}, {{event_time}}<br><strong>Where:</strong> {{event_place}}</p>'
+                    .'{{join}}'
+                    .'<p>The calendar file attached updates the one we sent before.</p>'
+                    .'<p><a href="{{manage_url}}">See or cancel your registration</a></p>',
+            ],
+        ];
     }
 
     /** @return array<string, array<string, mixed>> */
@@ -261,6 +435,7 @@ class MessageCatalogueEntries
         $number = ['about' => 'The order number.', 'sample' => 'ORD-2026-00117'];
         $customer = ['about' => 'The name on the order.', 'sample' => 'Priya Sharma'];
         $total = ['about' => 'The total, formatted.', 'sample' => '₹1,18,000.10'];
+        $returnRef = ['about' => 'The return\'s reference.', 'sample' => 'RMA-2026-00012'];
 
         return [
             /*
@@ -353,6 +528,152 @@ IFSC HDFC0001234</pre><p>Quote <strong>ORD-2026-00117</strong> as the reference 
                     .'<p>Courier: <strong>{{courier}}</strong> · Tracking: <strong>{{tracking_number}}</strong></p>'
                     .'<p>{{notes}}</p>'
                     .'<p><a href="{{url}}">Track this shipment</a></p>',
+            ],
+
+            /*
+             * Returns (0.132.0, docs/store.md "Returns"): one message to the
+             * desk and five to the customer, one per thing that happens to a
+             * return. The customer's five share one class and one set of
+             * variables — `ReturnStatusChanged` — and differ in their words.
+             */
+            'return_requested' => [
+                'label' => 'Return requested — to the customer',
+                'description' => 'The receipt for a return request: its reference, and that nothing should be sent back until it is approved.',
+                'audience' => self::CUSTOMER,
+                'class' => ReturnStatusChanged::class,
+                'variables' => [
+                    'reference' => $returnRef,
+                    'order_number' => $number,
+                    'customer_name' => $customer,
+                    'items' => self::details('What is coming back, one line each.', '<ul><li>1 × Aruba 2930F 24G</li></ul>'),
+                    'note' => ['about' => 'What the desk wrote to the customer with its decision, or blank.', 'sample' => 'Please include the original box.'],
+                    'instructions' => ['about' => 'How to send goods back, from Store → Settings. Blank when none is set.', 'sample' => 'Send to: Returns, Unit 4, Lakeview Estate.'],
+                    'amount' => ['about' => 'The refund, formatted. Blank until one is recorded.', 'sample' => '₹18,500.00'],
+                    'refund_reference' => ['about' => 'The refund\'s reference, or blank.', 'sample' => 'rfnd_NQ81xK'],
+                    'url' => ['about' => 'The customer\'s own order page.', 'sample' => 'https://www.example.com/order/ORD-2026-00117/open?token=…'],
+                ],
+                'subject' => 'We have your return request {{reference}}',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>We have received your request to return items from order <strong>{{order_number}}</strong>. Its reference is <strong>{{reference}}</strong>.</p>'
+                    .'{{items}}'
+                    .'<p>We will look at it and email you with what happens next. Please do not send anything back until we have approved it.</p>'
+                    .'<p><a href="{{url}}">View your order</a></p>',
+            ],
+
+            'return_received_internal' => [
+                'label' => 'Return requested — to the desk',
+                'description' => 'Sent to the support address when a customer asks to return something, with a link to decide it.',
+                'audience' => self::INTERNAL,
+                'class' => ReturnRequestReceived::class,
+                'variables' => [
+                    'reference' => $returnRef,
+                    'order_number' => $number,
+                    'customer_name' => $customer,
+                    'customer_email' => ['about' => 'Who to reply to.', 'sample' => 'priya@meridianfoods.test'],
+                    'reason' => ['about' => 'Why, from the list the customer chose from.', 'sample' => 'Arrived damaged'],
+                    'items' => self::details('What is coming back, one line each.', '<ul><li>1 × Aruba 2930F 24G</li></ul>'),
+                    'url' => ['about' => 'The return in the console.', 'sample' => 'https://www.example.com/admin/store/returns/RMA-2026-00012'],
+                ],
+                'subject' => 'Return requested: {{reference}} for order {{order_number}}',
+                'body' => '<p>A customer has asked to return something.</p>'
+                    .'<p><strong>{{reference}}</strong> — order {{order_number}}, {{customer_name}} ({{customer_email}}).</p>'
+                    .'<p>Reason: {{reason}}.</p>'
+                    .'{{items}}'
+                    .'<p><a href="{{url}}">Open the return</a></p>',
+            ],
+
+            'return_approved' => [
+                'label' => 'Return approved — to the customer',
+                'description' => 'Sent when the desk accepts a return, with how to send the goods back.',
+                'audience' => self::CUSTOMER,
+                'class' => ReturnStatusChanged::class,
+                'variables' => [
+                    'reference' => $returnRef,
+                    'order_number' => $number,
+                    'customer_name' => $customer,
+                    'items' => self::details('What is coming back, one line each.', '<ul><li>1 × Aruba 2930F 24G</li></ul>'),
+                    'note' => ['about' => 'What the desk wrote to the customer with its decision, or blank.', 'sample' => 'Please include the original box.'],
+                    'instructions' => ['about' => 'How to send goods back, from Store → Settings. Blank when none is set.', 'sample' => 'Send to: Returns, Unit 4, Lakeview Estate.'],
+                    'amount' => ['about' => 'The refund, formatted. Blank until one is recorded.', 'sample' => '₹18,500.00'],
+                    'refund_reference' => ['about' => 'The refund\'s reference, or blank.', 'sample' => 'rfnd_NQ81xK'],
+                    'url' => ['about' => 'The customer\'s own order page.', 'sample' => 'https://www.example.com/order/ORD-2026-00117/open?token=…'],
+                ],
+                'subject' => 'Your return {{reference}} is approved',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>We have approved return <strong>{{reference}}</strong> for order {{order_number}}.</p>'
+                    .'{{items}}'
+                    .'<p>{{instructions}}</p>'
+                    .'<p>{{note}}</p>'
+                    .'<p><a href="{{url}}">View your order</a></p>',
+            ],
+
+            'return_rejected' => [
+                'label' => 'Return not accepted — to the customer',
+                'description' => 'Sent when the desk refuses a return, with the reason it gave.',
+                'audience' => self::CUSTOMER,
+                'class' => ReturnStatusChanged::class,
+                'variables' => [
+                    'reference' => $returnRef,
+                    'order_number' => $number,
+                    'customer_name' => $customer,
+                    'items' => self::details('What is coming back, one line each.', '<ul><li>1 × Aruba 2930F 24G</li></ul>'),
+                    'note' => ['about' => 'What the desk wrote to the customer with its decision, or blank.', 'sample' => 'Please include the original box.'],
+                    'instructions' => ['about' => 'How to send goods back, from Store → Settings. Blank when none is set.', 'sample' => 'Send to: Returns, Unit 4, Lakeview Estate.'],
+                    'amount' => ['about' => 'The refund, formatted. Blank until one is recorded.', 'sample' => '₹18,500.00'],
+                    'refund_reference' => ['about' => 'The refund\'s reference, or blank.', 'sample' => 'rfnd_NQ81xK'],
+                    'url' => ['about' => 'The customer\'s own order page.', 'sample' => 'https://www.example.com/order/ORD-2026-00117/open?token=…'],
+                ],
+                'subject' => 'About your return {{reference}}',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>We have looked at return <strong>{{reference}}</strong> for order {{order_number}}, and we are not able to accept it.</p>'
+                    .'<p>{{note}}</p>'
+                    .'<p><a href="{{url}}">View your order</a></p>',
+            ],
+
+            'return_goods_received' => [
+                'label' => 'Returned items received — to the customer',
+                'description' => 'Sent when the desk marks the returned goods as arrived.',
+                'audience' => self::CUSTOMER,
+                'class' => ReturnStatusChanged::class,
+                'variables' => [
+                    'reference' => $returnRef,
+                    'order_number' => $number,
+                    'customer_name' => $customer,
+                    'items' => self::details('What is coming back, one line each.', '<ul><li>1 × Aruba 2930F 24G</li></ul>'),
+                    'note' => ['about' => 'What the desk wrote to the customer with its decision, or blank.', 'sample' => 'Please include the original box.'],
+                    'instructions' => ['about' => 'How to send goods back, from Store → Settings. Blank when none is set.', 'sample' => 'Send to: Returns, Unit 4, Lakeview Estate.'],
+                    'amount' => ['about' => 'The refund, formatted. Blank until one is recorded.', 'sample' => '₹18,500.00'],
+                    'refund_reference' => ['about' => 'The refund\'s reference, or blank.', 'sample' => 'rfnd_NQ81xK'],
+                    'url' => ['about' => 'The customer\'s own order page.', 'sample' => 'https://www.example.com/order/ORD-2026-00117/open?token=…'],
+                ],
+                'subject' => 'We have received your return {{reference}}',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>The items for return <strong>{{reference}}</strong> have reached us. We will check them and be in touch about the refund.</p>'
+                    .'{{items}}'
+                    .'<p><a href="{{url}}">View your order</a></p>',
+            ],
+
+            'return_refunded' => [
+                'label' => 'Return refunded — to the customer',
+                'description' => 'Sent when a refund is recorded against a return.',
+                'audience' => self::CUSTOMER,
+                'class' => ReturnStatusChanged::class,
+                'variables' => [
+                    'reference' => $returnRef,
+                    'order_number' => $number,
+                    'customer_name' => $customer,
+                    'items' => self::details('What is coming back, one line each.', '<ul><li>1 × Aruba 2930F 24G</li></ul>'),
+                    'note' => ['about' => 'What the desk wrote to the customer with its decision, or blank.', 'sample' => 'Please include the original box.'],
+                    'instructions' => ['about' => 'How to send goods back, from Store → Settings. Blank when none is set.', 'sample' => 'Send to: Returns, Unit 4, Lakeview Estate.'],
+                    'amount' => ['about' => 'The refund, formatted. Blank until one is recorded.', 'sample' => '₹18,500.00'],
+                    'refund_reference' => ['about' => 'The refund\'s reference, or blank.', 'sample' => 'rfnd_NQ81xK'],
+                    'url' => ['about' => 'The customer\'s own order page.', 'sample' => 'https://www.example.com/order/ORD-2026-00117/open?token=…'],
+                ],
+                'subject' => 'Your refund for return {{reference}}',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>We have refunded <strong>{{amount}}</strong> for return {{reference}}.</p>'
+                    .'<p>Reference: {{refund_reference}}. It can take a few working days to show on your statement.</p>'
+                    .'<p><a href="{{url}}">View your order</a></p>',
             ],
 
             'order_received' => [
@@ -546,7 +867,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>ORD-2026-00117</strong> as the reference 
                     'customer_name' => ['about' => 'Who it is for.', 'sample' => 'Neil Basu'],
                     'url' => ['about' => 'The portal sign-in page.', 'sample' => 'https://www.example.com/portal/login'],
                 ],
-                'subject' => 'Your '.MailBrand::name().' support account is active',
+                'subject' => 'Your '.MailBrand::name().' customer account is active',
                 'body' => '<p>You are all set, {{customer_name}}.</p>'
                     .'<p>Your support portal account has been approved. You can sign in and raise a ticket whenever you need us.</p>'
                     .'<p><a href="{{url}}">Sign in to the portal</a></p>'
@@ -726,7 +1047,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>ORD-2026-00117</strong> as the reference 
                 'variables' => [
                     'form_name' => ['about' => 'Which form it was.', 'sample' => 'Request a site survey'],
                     'answers' => self::details(
-                        'Every answer, labelled as the form labels them. A form’s questions are whatever an editor built, so this is one block rather than a fixed set.',
+                        'Every answer, labelled as the form labels them. A form’s questions are whatever an editor built, so this is one block rather than a fixed set. An uploaded file is listed by its name and never attached.',
                         '<p><strong>Name:</strong> Priya Sharma</p><p><strong>Sites:</strong> 2</p>',
                     ),
                     'lead' => self::details('The lead score and a link to the pipeline record.', '<p><strong>Score:</strong> 64 / 100 — warm</p>'),

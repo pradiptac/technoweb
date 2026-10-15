@@ -4,6 +4,7 @@ namespace App\Support\Store;
 
 use App\Models\Media;
 use App\Support\Media\MediaUploader;
+use App\Support\MediaUrl;
 use App\Support\YouTube;
 use Closure;
 
@@ -148,9 +149,9 @@ class ProductVideos
             ->map(fn (array $v) => array_filter([
                 'kind' => $v['kind'] ?? null,
                 'youtube_id' => ($v['kind'] ?? null) === 'youtube' ? ($v['youtube_id'] ?? null) : null,
-                'url' => ($v['kind'] ?? null) === 'file' && filled($v['path'] ?? null) ? asset('storage/'.$v['path']) : null,
+                'url' => ($v['kind'] ?? null) === 'file' && filled($v['path'] ?? null) ? MediaUrl::for($v['path']) : null,
                 'title' => $v['title'] ?? null,
-                'poster_url' => filled($v['poster_path'] ?? null) ? asset('storage/'.$v['poster_path']) : null,
+                'poster_url' => filled($v['poster_path'] ?? null) ? MediaUrl::for($v['poster_path']) : null,
             ], fn ($value) => $value !== null))
             ->filter(fn (array $v) => isset($v['youtube_id']) || isset($v['url']))
             ->values()
@@ -171,10 +172,10 @@ class ProductVideos
                 'kind' => $v['kind'] ?? 'youtube',
                 'youtube_id' => $v['youtube_id'] ?? null,
                 'path' => $v['path'] ?? null,
-                'url' => filled($v['path'] ?? null) ? asset('storage/'.$v['path']) : null,
+                'url' => filled($v['path'] ?? null) ? MediaUrl::for($v['path']) : null,
                 'title' => $v['title'] ?? null,
                 'poster_path' => $v['poster_path'] ?? null,
-                'poster_url' => filled($v['poster_path'] ?? null) ? asset('storage/'.$v['poster_path']) : null,
+                'poster_url' => filled($v['poster_path'] ?? null) ? MediaUrl::for($v['poster_path']) : null,
             ])
             ->values()
             ->all();

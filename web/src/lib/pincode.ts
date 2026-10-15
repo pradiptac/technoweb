@@ -38,6 +38,40 @@ export const PIN_PATTERN = /^[1-9][0-9]{5}$/;
 let table: Map<string, Place> | null = null;
 
 /**
+ * Two states made after the vendored directory was cut, filed back where they
+ * used to be: Telangana (2014) under Andhra Pradesh, Ladakh (2019) under
+ * Jammu & Kashmir. Since 0.142.0 the state decides what delivery costs and
+ * whether it is delivered at all, so a Hyderabad address quoted as Andhra
+ * Pradesh was a wrong zone, not a wrong label.
+ *
+ * Both are postal prefixes: Telangana is 500–509 (Andhra Pradesh's own run
+ * from 510), and Ladakh is 194 (Leh and Kargil; Jammu & Kashmir's other PINs
+ * are 180–193 and 195). Applied only where the table names the old state, so
+ * a corrected table is left alone.
+ */
+function stateFor(pin: string, state: string): string {
+  if (state === "Andhra Pradesh" && /^50[0-9]/.test(pin)) return "Telangana";
+  if (state === "Jammu & Kashmir" && pin.startsWith("194")) return "Ladakh";
+  return CURRENT_NAMES[state] ?? state;
+}
+
+/**
+ * The directory's spellings of six states, as the shop's own state list (the
+ * API's `IndianStates`) writes them. A shipping zone is found by state, and
+ * the checkout's state field is a list of those names in zones mode, so a PIN
+ * code that filled "Pondicherry" would find no option to select. All of them
+ * resolved to the same code before; they now also spell the same.
+ */
+const CURRENT_NAMES: Record<string, string> = {
+  "Andaman & Nicobar Islands": "Andaman and Nicobar Islands",
+  Chattisgarh: "Chhattisgarh",
+  "Dadra & Nagar Haveli": "Dadra and Nagar Haveli and Daman and Diu",
+  "Daman & Diu": "Dadra and Nagar Haveli and Daman and Diu",
+  "Jammu & Kashmir": "Jammu and Kashmir",
+  Pondicherry: "Puducherry",
+};
+
+/**
  * Parsed once, on the first lookup, and held for the life of the process.
  *
  * Not at module load: this module is imported by a route handler that Next
@@ -59,7 +93,7 @@ function load(): Map<string, Place> {
     table.set(pin, {
       pin,
       country: "India",
-      state: states.split(";")[0] ?? "",
+      state: stateFor(pin, states.split(";")[0] ?? ""),
       city: district[0] ?? "",
       // Deduplicated because a taluk sharing its district's name is one place
       // with one name, and offering it twice reads as a broken list.

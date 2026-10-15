@@ -29,10 +29,17 @@ update. `config/` and `storage/` are yours: an update never touches them.
 | Installing on Plesk | [02 — Installing on Plesk](02-install-plesk.md) |
 | Installing on cPanel | [03 — Installing on cPanel](03-install-cpanel.md) |
 | Just installed it | [04 — First steps](04-first-steps.md) |
-| Looking after it day to day | chapters 05–20, one per area of the console |
+| Looking after it day to day | chapters 05–20 and 24, one per area of the console |
 | Applying an update | [21 — Updating](21-updating.md) |
 | Protecting your data | [22 — Backups and restore](22-backups-and-restore.md) |
 | Stuck | [23 — Troubleshooting](23-troubleshooting.md) |
+| Running seminars and webinars | [24 — Events](24-events.md) |
+| Making the site faster with a CDN | [25 — Using a CDN](25-using-a-cdn.md) |
+| Offering datasheets, drivers and firmware | [26 — Downloads](26-downloads.md) |
+| Bringing in a site that is not WordPress | [27 — Importing a website](27-importing-a-website.md) |
+| Showing your service centres on a map | [28 — The support network](28-support-network.md) |
+| Posting the work you invite bids on | [29 — Tenders](29-tenders.md) |
+| Asking the console a question | [30 — Ask ALTIS](30-ask-altis.md) |
 
 ## The two addresses
 

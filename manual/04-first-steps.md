@@ -3,6 +3,10 @@
 Do these in order before you tell anybody the address. Each one is a few
 minutes in the console (`https://www.example.com/admin`).
 
+If the address is already public, switch on **Site → Settings → Coming
+soon** first: visitors see a holding page while you work, and you still see
+the real site while signed in (chapter 15).
+
 ## 1. Test the mail
 
 **System → Settings → Outgoing mail**. If you did not set mail up during the
@@ -60,6 +64,10 @@ is not one. Replace it with text your adviser has approved before launch.
   under **Store → Settings → Payments**.
 
 ## 6. If you loaded the sample content
+
+The setup wizard loads it unless **Load sample content** is unticked on the
+"Your company and your first administrator" step — it is ticked to begin with, so the site has something
+to show the first time you open it.
 
 The sample posts, products, team members, clients, certifications, case
 studies, the sample support tickets, the invented address and the social links

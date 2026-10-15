@@ -10,6 +10,7 @@ use App\Models\NewsletterGroup;
 use App\Models\Setting;
 use App\Notifications\BlockLeadCaptured;
 use App\Support\Crm\LeadIntake;
+use App\Support\MediaUrl;
 use App\Support\Newsletter\SubscriberIntake;
 use App\Support\Notifier;
 use Illuminate\Http\JsonResponse;
@@ -115,7 +116,7 @@ class ContentBlockController extends Controller
 
         return response()->json([
             'message' => $message,
-            'data' => ['url' => filled($path) ? asset('storage/'.$path) : null],
+            'data' => ['url' => filled($path) ? MediaUrl::for($path) : null],
         ]);
     }
 }

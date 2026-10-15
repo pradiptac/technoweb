@@ -4,6 +4,7 @@ import { getCurrentStaff } from "@/lib/admin-auth";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PasswordForm } from "./password-form";
+import { MotionChoice } from "./motion-choice";
 import { Card } from "@/components/ui/card";
 import { requireScreen } from "@/lib/admin-screen";
 
@@ -58,6 +59,8 @@ export default async function AdminProfilePage() {
         </p>
         <PasswordForm />
       </Card>
+
+      <MotionChoice />
     </>
   );
 }

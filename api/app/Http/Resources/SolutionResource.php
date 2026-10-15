@@ -5,9 +5,11 @@ namespace App\Http\Resources;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Solution;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -15,7 +17,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Solution */
 class SolutionResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSections, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -29,11 +31,18 @@ class SolutionResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
             'summary' => $this->summary,
             'icon' => $this->icon,
-            'hero_image' => $this->hero_image_path ? asset('storage/'.$this->hero_image_path) : null,
+            'hero_image' => $this->hero_image_path ? MediaUrl::for($this->hero_image_path) : null,
             'hero_image_alt' => MediaMeta::alt($this->hero_image_path),
             'hero_image_focus' => MediaMeta::focus($this->hero_image_path),
+            'hero_image_blur' => MediaMeta::blur($this->hero_image_path),
             'problem_statement' => $this->when($detail, $this->problem_statement),
             'overview' => $this->when($detail, $this->overview),
+            // The builder's sections in place of the written body (0.129.0): on
+            // this record's own page only, and only while it is laid out as
+            // sections. The body above is still sent.
+            'sections' => $this->publicSections($this->includeSchema),
+            // The kind's active detail template (0.161.0): on this record's own page only; absent when none is active.
+            'detail_template' => $this->publicDetailTemplate('solution', $this->includeSchema),
             'benefits' => $this->when($detail, $this->benefits),
             'technologies' => $this->when($detail, $this->technologies),
             'status' => $this->status?->value,

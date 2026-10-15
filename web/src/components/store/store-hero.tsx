@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { useAutoplay, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
@@ -158,7 +159,7 @@ export function StoreHero({ slider }: { slider: SliderRecord }) {
                   className={`object-cover transition-opacity duration-500 ${
                     i === index ? "opacity-100" : "opacity-0"
                   }`}
-                  style={focalStyle(s.focus)}
+                  style={focalStyle(s.focus)} {...blurProps(s.blur)}
                   priority={i === 0}
                 />
               ))}

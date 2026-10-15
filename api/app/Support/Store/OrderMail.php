@@ -37,6 +37,12 @@ class OrderMail
             .e($item->quantity.' × '.$item->name.($item->variation_name ? " ({$item->variation_name})" : ''))
             .' — '.e(Money::format($item->line_total_paise)).'</li>')->implode('');
 
+        $delivery = self::delivery($order);
+
+        if ($delivery !== null) {
+            $items .= '<li>'.e($delivery[0]).' — '.e($delivery[1]).'</li>';
+        }
+
         return $items ? "<ul>{$items}</ul>" : '';
     }
 
@@ -50,9 +56,39 @@ class OrderMail
     {
         $order->loadMissing('items');
 
-        return $order->items->map(fn ($item) => "{$item->quantity} x {$item->name}"
+        $lines = $order->items->map(fn ($item) => "{$item->quantity} x {$item->name}"
             .($item->variation_name ? " ({$item->variation_name})" : '')
             .' - '.Money::format($item->line_total_paise))->all();
+
+        $delivery = self::delivery($order);
+
+        if ($delivery !== null) {
+            $lines[] = $delivery[0].' - '.$delivery[1];
+        }
+
+        return $lines;
+    }
+
+    /**
+     * The Delivery row of an order, as `[label, amount]`, or null when the
+     * order never had one — an install left at a zero flat charge, or an order
+     * with nothing to ship, reads exactly as it did before delivery was
+     * charged (0.142.0). A zone's free-delivery line shows "Free".
+     *
+     * @return array{0: string, 1: string}|null
+     */
+    public static function delivery(Order $order): ?array
+    {
+        $paise = (int) $order->shipping_paise;
+
+        if ($paise === 0 && blank($order->shipping_zone)) {
+            return null;
+        }
+
+        return [
+            'Delivery'.(filled($order->shipping_zone) ? ' ('.$order->shipping_zone.')' : ''),
+            $paise === 0 ? 'Free' : Money::format($paise),
+        ];
     }
 
     /**

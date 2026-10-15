@@ -15,16 +15,23 @@ use App\Http\Controllers\Api\V1\CompanySuggestionController;
 use App\Http\Controllers\Api\V1\ContentBlockController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\ContentTypeController as PublicContentTypeController;
+use App\Http\Controllers\Api\V1\CourierWebhookController;
+use App\Http\Controllers\Api\V1\DownloadController;
 use App\Http\Controllers\Api\V1\EnquiryController;
+use App\Http\Controllers\Api\V1\EventController;
+use App\Http\Controllers\Api\V1\EventRegistrationController;
 use App\Http\Controllers\Api\V1\FormController;
 use App\Http\Controllers\Api\V1\GalleryController;
 use App\Http\Controllers\Api\V1\LandingPageController;
 use App\Http\Controllers\Api\V1\MeetingController;
 use App\Http\Controllers\Api\V1\MessagingController;
 use App\Http\Controllers\Api\V1\NewsletterController;
+use App\Http\Controllers\Api\V1\NotFoundController;
 use App\Http\Controllers\Api\V1\OrderCodeController;
+use App\Http\Controllers\Api\V1\OrderReturnController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PopupController;
+use App\Http\Controllers\Api\V1\PreviewController;
 use App\Http\Controllers\Api\V1\ProductReviewController;
 use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\RegistrationController;
@@ -32,6 +39,8 @@ use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\Api\V1\StockNoticeController;
 use App\Http\Controllers\Api\V1\StoreController;
+use App\Http\Controllers\Api\V1\SupportCentreController;
+use App\Http\Controllers\Api\V1\TenderController;
 use App\Http\Controllers\Api\V1\TicketSurveyController;
 use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\WishlistController;
@@ -74,7 +83,13 @@ Route::get('brands', [CatalogueController::class, 'brands'])->name('brands.index
  * `media/move` rule is cheap to keep and free to break.
  */
 Route::get('store/feed', [StoreController::class, 'feed'])->name('store.feed');
+// "Shop the videos" (0.140.0): the products that carry a video, a tile each.
+// Not `*.show`, so the product half of a row is the list shape.
+Route::get('store/videos', [StoreController::class, 'videos'])->name('store.videos.index');
 Route::get('store/products', [StoreController::class, 'products'])->name('store.products.index');
+// The shop front's tag row (0.141.0): visible tags of published products, counted.
+Route::get('store/tags', [StoreController::class, 'tags'])->name('store.tags.index');
+Route::get('store/tags/{storeTag:slug}', [StoreController::class, 'tag'])->name('store.tags.show');
 Route::get('store/products/{storeProduct:slug}', [StoreController::class, 'product'])->name('store.products.show');
 Route::get('store/categories', [StoreController::class, 'categories'])->name('store.categories.index');
 Route::get('store/categories/{storeCategory:slug}', [StoreController::class, 'category'])->name('store.categories.show');
@@ -179,6 +194,10 @@ Route::delete('cart/coupon', [CartController::class, 'removeCoupon'])
  */
 Route::patch('cart/contact', [CartController::class, 'contact'])
     ->middleware('throttle:20,1')->name('cart.contact');
+// Where the checkout says this is going, so delivery can be quoted for it
+// (0.142.0). Saved as the user types, so a little looser than the contact.
+Route::patch('cart/destination', [CartController::class, 'destination'])
+    ->middleware('throttle:60,1')->name('cart.destination');
 Route::get('cart/restore/{token}', [CartController::class, 'restore'])
     ->middleware('throttle:30,1')->name('cart.restore');
 
@@ -200,6 +219,18 @@ Route::post('checkout', [CheckoutController::class, 'store'])
     ->middleware('throttle:10,1')->name('checkout.store');
 Route::get('orders/{orderNumber}', [CheckoutController::class, 'show'])
     ->middleware('throttle:60,1')->name('orders.show');
+// The invoice, for whoever holds the link. Declared after `show` and under
+// a path it cannot shadow.
+Route::get('orders/{orderNumber}/invoice', [CheckoutController::class, 'invoice'])
+    ->middleware('throttle:30,1')->name('orders.invoice');
+/*
+ * A return (0.132.0, docs/store.md "Returns"), asked for by whoever holds
+ * the order's link: the token rides in the body, and a wrong one is the 404
+ * a wrong number is. Multipart when it carries photographs. Throttled hard —
+ * it writes rows and files and mails two people.
+ */
+Route::post('orders/{orderNumber}/returns', [OrderReturnController::class, 'store'])
+    ->middleware('throttle:10,1')->name('orders.returns.store');
 
 /*
  * Payment.
@@ -218,6 +249,17 @@ Route::post('orders/{orderNumber}/verify', [PaymentController::class, 'verify'])
     ->middleware('throttle:20,1')->name('orders.verify');
 Route::post('payments/{gateway}/webhook', [PaymentController::class, 'webhook'])
     ->name('payments.webhook');
+
+/*
+ * The courier platform reporting where a parcel is (0.143.0, docs/store.md
+ * "Shiprocket"). **The address may not contain "shiprocket", "kartrocket",
+ * "sr" or "kr"** — Shiprocket refuses such a webhook URL — so it names the
+ * role and not the vendor. Un-throttled and 200 always, like the payment
+ * webhook, and fails closed: nothing is acted on without the saved token in
+ * `x-api-key`.
+ */
+Route::post('store/shipping/webhooks/courier', CourierWebhookController::class)
+    ->name('store.shipping.webhook');
 
 /*
  * Revealing an activation code.
@@ -340,6 +382,8 @@ Route::get('case-studies/{caseStudy}', [ContentController::class, 'caseStudy'])-
  * every render. No detail routes: these are lists.
  */
 Route::get('team', [CompanyController::class, 'team'])->name('team.index');
+// The support network (0.170.0, docs/support-network.md).
+Route::get('support-centres', [SupportCentreController::class, 'index'])->name('support-centres.index');
 Route::get('clients', [CompanyController::class, 'clients'])->name('clients.index');
 Route::get('certifications', [CompanyController::class, 'certifications'])->name('certifications.index');
 
@@ -458,6 +502,15 @@ Route::post('messaging/push/unsubscribe', [MessagingController::class, 'unsubscr
 Route::post('client-errors', [ClientErrorController::class, 'store'])
     ->middleware('throttle:20,1')->name('client-errors.store');
 
+/*
+ * The 404 page reporting what it was asked for (0.137.0, docs/seo.md "Missing
+ * pages"). Public for the reason above, answers 204 to everything, and the
+ * model decides what is never recorded. Thirty a minute per visitor: a person
+ * following dead links is a handful, a crawler is the thing being bounded.
+ */
+Route::post('not-found', [NotFoundController::class, 'store'])
+    ->middleware('throttle:30,1')->name('not-found.store');
+
 Route::get('settings', [ContentController::class, 'settings'])->name('settings.index');
 
 // The whole active table, for the frontend proxy to hold in memory;
@@ -477,6 +530,16 @@ Route::get('redirects/lookup', [RedirectController::class, 'lookup'])->name('red
  */
 Route::get('landing-pages', [LandingPageController::class, 'index'])->name('landing-pages.index');
 Route::get('landing-pages/lookup', [LandingPageController::class, 'lookup'])->name('landing-pages.lookup');
+
+/*
+ * A draft opened from its share link (0.138.0, docs/admin-console.md "Draft
+ * share links"). The token is the credential: 64 lower-case hex characters or
+ * a 404 before any controller runs, and every way a link can be dead (unknown,
+ * expired, revoked, replaced) is the same 404.
+ */
+Route::get('preview/{token}', [PreviewController::class, 'show'])
+    ->where('token', '[a-f0-9]{64}')
+    ->middleware('throttle:30,1')->name('preview.show');
 
 // Write endpoints open to the public are throttled hard.
 /* ---------------------------------------------------------- careers */
@@ -515,6 +578,70 @@ Route::post('visits/{reference}/cancel', [VisitController::class, 'cancel'])
     ->middleware('throttle:10,1')->name('visits.cancel');
 Route::post('visits/{reference}/reschedule', [VisitController::class, 'reschedule'])
     ->middleware('throttle:10,1')->name('visits.reschedule');
+
+/*
+ * Events (0.118.0, docs/events.md): the list, one event's page, whether it
+ * can be registered for, its calendar file, and the free registration.
+ *
+ * **Order matters, and the token's shape is what makes it safe.** The
+ * registrant's own routes live at `events/registrations/{token}` and are
+ * declared above `events/{slug}`; the token is held to 64 lower-case hex
+ * characters by the route, so anything else under `registrations/` falls
+ * through and is a 404 rather than reaching a controller with a guess.
+ * `registration` and `registrations` are refused as event slugs for the same
+ * reason (`Event::RESERVED_SLUGS`).
+ *
+ * `availability` sends `no-store` — it is what the panel asks after mount
+ * because the page is ISR-cached. Registering is throttled like every
+ * public form, and answers an address that has registered before exactly as
+ * it answers one that has not — and writes nothing for it.
+ */
+Route::get('events', [EventController::class, 'index'])->name('events.index');
+Route::get('events/registrations/{token}', [EventRegistrationController::class, 'show'])
+    ->where('token', '[0-9a-f]{64}')
+    ->middleware('throttle:30,1')->name('events.registrations.show');
+Route::post('events/registrations/{token}/cancel', [EventRegistrationController::class, 'cancel'])
+    ->where('token', '[0-9a-f]{64}')
+    ->middleware('throttle:10,1')->name('events.registrations.cancel');
+Route::get('events/{slug}', [EventController::class, 'show'])->name('events.show');
+Route::get('events/{slug}/availability', [EventController::class, 'availability'])->name('events.availability');
+Route::get('events/{slug}/calendar', [EventController::class, 'calendar'])->name('events.calendar');
+Route::post('events/{slug}/register', [EventRegistrationController::class, 'store'])
+    ->middleware('throttle:10,1')->name('events.register');
+
+/*
+ * The downloads centre (0.131.0, docs/downloads.md): the list, its shelves,
+ * and the file. The list never carries a file's address — `{download}/file`
+ * is the one door to the bytes, so it is what counts a download and what
+ * asks who is reading a customers-only one (a portal bearer, read from the
+ * `sanctum` guard by name; the route is public). Held to digits in the
+ * route, so anything else is a 404 before a controller runs.
+ */
+Route::get('downloads', [DownloadController::class, 'index'])->name('downloads.index');
+Route::get('download-categories', [DownloadController::class, 'categories'])->name('download-categories.index');
+Route::get('downloads/{download}/file', [DownloadController::class, 'file'])
+    ->where('download', '[0-9]+')
+    ->middleware('throttle:60,1')->name('downloads.file');
+
+/*
+ * Tenders (0.174.0, docs/tenders.md): a notice inviting bids. The list, the
+ * categories, the notice and its state — nothing writes, because a bid is
+ * not submitted here.
+ *
+ * `tender-categories` and `tenders/{slug}/state` are declared **above**
+ * `tenders/{slug}`, or the slug route swallows both: it is bound in the
+ * controller by slug rather than by route-model binding for that reason.
+ *
+ * `state` exists because the notice's page is in the ISR cache, so the badge
+ * it renders is the state at render time. The page re-asks this, uncached,
+ * after it mounts — otherwise a cached page tells a bidder that a tender
+ * which shut yesterday is still open.
+ */
+Route::get('tenders', [TenderController::class, 'index'])->name('tenders.index');
+Route::get('tender-categories', [TenderController::class, 'categories'])->name('tender-categories.index');
+Route::get('tenders/{slug}/state', [TenderController::class, 'state'])
+    ->middleware('throttle:60,1')->name('tenders.state');
+Route::get('tenders/{slug}', [TenderController::class, 'show'])->name('tenders.show');
 
 /*
  * Online meetings (2026-09-29, docs/meetings.md). A booking, unlike a visit:
@@ -601,6 +728,21 @@ Route::post('auth/request-code', [AuthController::class, 'requestCode'])
 Route::post('auth/verify-code', [AuthController::class, 'verifyCode'])
     ->middleware(['portal', 'throttle:10,1'])
     ->name('auth.verify-code');
+
+/*
+ * "Continue with Google" (0.133.0, docs/auth.md "Signing in with Google").
+ *
+ * Called by the website's two route handlers, never by a browser: the first
+ * answers where to send it, the second spends what Google sent back and
+ * answers exactly like `auth/login`. Both are refused while the switch is
+ * off or the client is not set.
+ */
+Route::post('auth/google/authorize', [AuthController::class, 'googleAuthorize'])
+    ->middleware(['portal', 'throttle:20,1'])
+    ->name('auth.google.authorize');
+Route::post('auth/google/callback', [AuthController::class, 'googleCallback'])
+    ->middleware(['portal', 'throttle:20,1'])
+    ->name('auth.google.callback');
 
 /*
  * Self-registration.

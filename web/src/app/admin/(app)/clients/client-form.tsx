@@ -9,6 +9,7 @@ import { CoverField } from "@/components/admin/cover-field";
 import { FormActions } from "@/components/admin/form-actions";
 import { createClientAction, updateClientAction, type ClientState } from "./actions";
 import type { AdminClient } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: ClientState = {};
 
@@ -64,13 +65,8 @@ export function ClientForm({
             </Select>
           </Field>
 
-          <label className="mb-[18px] flex items-start gap-2.5 text-13-5">
-            <input type="checkbox" name="is_featured" defaultChecked={client?.is_featured ?? false} className="mt-1 size-4 accent-brand-600" />
-            <span>
-              <span className="block font-semibold">Featured</span>
-              <span className="block text-12-5 text-muted">On the homepage strip and the About page. With none ticked, the first twelve are shown.</span>
-            </span>
-          </label>
+          <RecordSwitch className="mb-[18px]" name="is_featured" defaultChecked={client?.is_featured ?? false} label="Featured"
+            hint="On the homepage strip and the About page. With none switched on, the first twelve are shown." />
 
           <Field label="Order" htmlFor="sort_order" error={err("sort_order")} hint="Lower numbers first.">
             <Input id="sort_order" name="sort_order" type="number" min={0} max={65535} defaultValue={client?.sort_order ?? 0} />
@@ -81,7 +77,8 @@ export function ClientForm({
             label="Logo"
             defaultPath={client?.logo_path ?? null}
             defaultUrl={client?.logo ?? null}
-            hint="SVG or PNG with a transparent background. It is shown contained, never cropped, and as a white silhouette in dark mode."
+            spec="client_logo"
+            hint="SVG or a transparent PNG. Shown whole, and as a white silhouette in dark mode."
           />
         </aside>
       </div>

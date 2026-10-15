@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PageSectionType;
 use App\Enums\PublishStatus;
 use App\Enums\Role as RoleEnum;
 use App\Models\ContentBlock;
@@ -9,10 +10,15 @@ use App\Models\Form;
 use App\Models\Media;
 use App\Models\Page;
 use App\Models\Role;
+use App\Models\Setting;
 use App\Models\Slider;
 use App\Models\Solution;
+use App\Models\TeamMember;
 use App\Models\User;
 use App\Support\MediaMeta;
+use App\Support\PageSections\SectionRules;
+use App\Support\Seo\Ai\SectionDraft;
+use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -130,6 +136,24 @@ class PageBuilderTest extends TestCase
             'video' => ['video', ['source' => 'youtube', 'youtube' => 'dQw4w9WgXcQ'], ['source' => 'mp4'], 'video_path'],
             'divider' => ['divider', ['size' => 'large', 'rule' => true], ['size' => 'huge'], 'size'],
             'content block' => ['content_block', ['block_id' => 0], [], 'block_id'],
+            'stats' => ['stats', ['display' => 'figures', 'items' => [['value' => '340+', 'label' => 'Sites']]], ['display' => 'pie', 'items' => [['value' => '1', 'label' => 'x']]], 'display'],
+            'stats percent' => ['stats', ['display' => 'rings', 'items' => [['value' => '99%', 'label' => 'Uptime', 'percent' => 99]]], ['display' => 'bars', 'items' => [['value' => '9', 'label' => 'x']]], 'items.0.percent'],
+            'steps' => ['steps', ['layout' => 'vertical', 'items' => [['title' => 'One'], ['title' => 'Two']]], ['layout' => 'vertical', 'items' => [['title' => 'Only one']]], 'items'],
+            'tabs' => ['tabs', ['items' => [['label' => 'A', 'body' => 'a'], ['label' => 'B', 'body' => 'b']]], ['items' => [['label' => 'A', 'body' => 'a'], ['label' => 'B']]], 'items.1.body'],
+            'checklist' => ['checklist', ['columns' => 2, 'items' => [['text' => 'Fast']]], ['columns' => 4, 'items' => [['text' => 'Fast']]], 'columns'],
+            'cta' => ['cta', ['heading' => 'Talk to us', 'tone' => 'brand', 'call' => true], ['heading' => 'H', 'tone' => 'neon'], 'tone'],
+            'comparison' => ['comparison', ['plans' => [['name' => 'Basic'], ['name' => 'Pro']], 'rows' => [['label' => 'Support', 'cells' => ['yes', 'no']]]], ['plans' => [['name' => 'Only']], 'rows' => [['label' => 'x']]], 'plans'],
+            'comparison cell' => ['comparison', ['plans' => [['name' => 'A'], ['name' => 'B']], 'rows' => [['label' => 'x']]], ['plans' => [['name' => 'A'], ['name' => 'B']], 'rows' => [['label' => 'x', 'cells' => [str_repeat('a', 61)]]]], 'rows.0.cells.0'],
+            'timeline' => ['timeline', ['items' => [['date' => '2010', 'title' => 'Founded'], ['date' => '2020', 'title' => 'Grew']]], ['items' => [['date' => '2010', 'title' => 'A'], ['title' => 'B']]], 'items.1.date'],
+            'before and after' => ['before_after', ['before_path' => 'media/a.jpg', 'after_path' => 'media/a.jpg'], ['after_path' => 'media/a.jpg'], 'before_path'],
+            'testimonials' => ['testimonials', ['items' => [['quote' => 'Good', 'name' => 'A'], ['quote' => 'Fine', 'name' => 'B']]], ['items' => [['quote' => 'Good', 'name' => 'A']]], 'items'],
+            'team' => ['team', ['department' => 'Support', 'limit' => 6, 'group' => true], ['limit' => 100], 'limit'],
+            'downloads' => ['downloads', ['items' => [['title' => 'Brochure', 'file_path' => 'media/a.jpg']]], ['items' => [['title' => 'No file']]], 'items.0.file_path'],
+            'downloads file' => ['downloads', ['items' => [['title' => 'Brochure', 'file_path' => 'media/a.jpg']]], ['items' => [['title' => 'Gone', 'file_path' => 'media/nowhere.pdf']]], 'items.0.file_path'],
+            'countdown' => ['countdown', ['heading' => 'Launch', 'ends_at' => '2030-01-01T10:00'], ['heading' => 'Launch', 'ends_at' => 'next Tuesday'], 'ends_at'],
+            'columns' => ['columns', ['columns' => [['body' => '<p>a</p>'], ['heading' => 'B', 'body' => '<p>b</p>']]], ['columns' => [['body' => '<p>only one</p>']]], 'columns'],
+            'columns body' => ['columns', ['columns' => [['body' => '<p>a</p>'], ['body' => '<p>b</p>']]], ['columns' => [['body' => '<p>a</p>'], ['heading' => 'B']]], 'columns.1.body'],
+            'map' => ['map', ['url' => 'https://www.google.com/maps/embed?pb=!1m18'], ['url' => 'https://evil.example/maps/embed'], 'url'],
         ];
     }
 
@@ -147,6 +171,238 @@ class PageBuilderTest extends TestCase
         }
         $this->create([self::section($type, $invalid)], ['title' => 'Refused'])
             ->assertStatus(422)->assertJsonValidationErrors("blocks.0.data.{$key}");
+    }
+
+    public function test_the_new_bands_are_stored_as_declared_and_presented(): void
+    {
+        $this->media('media/tab.jpg', 'image/jpeg', 'A tab picture');
+
+        $this->create([
+            self::section('stats', ['display' => 'figures', 'items' => [['value' => '16', 'label' => 'Years', 'percent' => '40', 'colour' => 'red']]]),
+            self::section('stats', ['display' => 'bars', 'items' => [['value' => '99%', 'label' => 'Uptime', 'percent' => '99']]]),
+            self::section('tabs', ['items' => [
+                ['label' => 'One', 'body' => 'First', 'image_path' => 'media/tab.jpg'],
+                ['label' => 'Two', 'body' => 'Second'],
+            ]]),
+            self::section('cta', ['heading' => 'Call us', 'call' => '1']),
+        ])->assertCreated();
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks;
+        // A percentage belongs to rings and bars only, and nothing undeclared is kept
+        // (MySQL reorders a JSON object's keys, so the comparison ignores order).
+        $this->assertEquals(['value' => '16', 'label' => 'Years'], $stored[0]['data']['items'][0]);
+        $this->assertSame(99, $stored[1]['data']['items'][0]['percent']);
+        $this->assertSame(['stats', 'stats', 'tabs', 'cta'], array_column($stored, 'type'));
+        $this->assertTrue($stored[3]['data']['call']);
+
+        $sections = $this->getJson('/api/v1/pages/built-page')->assertOk()->json('data.sections');
+        $this->assertStringEndsWith('storage/media/tab.jpg', $sections[2]['data']['items'][0]['image']);
+        $this->assertSame('A tab picture', $sections[2]['data']['items'][0]['image_alt']);
+        $this->assertArrayNotHasKey('image_path', $sections[2]['data']['items'][0]);
+        $this->assertArrayNotHasKey('image', $sections[2]['data']['items'][1]);
+    }
+
+    /**
+     * `validated()` rebuilds the list rule by rule, so a section whose only
+     * fields sit under a wildcard came back after the sections behind it, and
+     * a save moved it down the page. Pinned with a features section holding
+     * nothing but its points, ahead of one with a plain heading.
+     */
+    public function test_sections_keep_the_order_they_were_sent_in(): void
+    {
+        $this->create([
+            self::section('features', ['items' => [['title' => 'Only points']]]),
+            self::section('rich_text', ['heading' => 'After', 'body' => '<p>x</p>']),
+            self::section('steps', ['layout' => 'vertical', 'items' => [['title' => 'A'], ['title' => 'B']]]),
+            self::section('cta', ['heading' => 'Last']),
+        ])->assertCreated();
+
+        $this->assertSame(
+            ['features', 'rich_text', 'steps', 'cta'],
+            array_column(Page::query()->where('slug', 'built-page')->first()->blocks, 'type'),
+        );
+    }
+
+    public function test_the_comparison_timeline_before_after_and_testimonials_are_stored_and_presented(): void
+    {
+        $this->media('media/before.jpg', 'image/jpeg', 'The rack before');
+        $this->media('media/after.jpg', 'image/jpeg', 'The rack after');
+        $this->media('media/face.jpg', 'image/jpeg', 'A customer');
+
+        $this->create([
+            self::section('comparison', [
+                'plans' => [['name' => 'Basic', 'note' => '₹9,000'], ['name' => 'Pro'], ['name' => 'Plus']],
+                'highlight' => '1',
+                // A blank cell stays in its column as null; a stray key is dropped.
+                'rows' => [['label' => 'On-site visits', 'cells' => ['yes', ' ', 'Two a month'], 'colour' => 'red']],
+            ]),
+            self::section('timeline', ['items' => [['date' => '2010', 'title' => 'Founded'], ['date' => '2026', 'title' => 'Today', 'body' => 'Twelve engineers']]]),
+            self::section('before_after', ['before_path' => 'media/before.jpg', 'after_path' => 'media/after.jpg', 'start' => '40']),
+            self::section('testimonials', ['items' => [
+                ['quote' => 'Quick.', 'name' => 'Asha', 'photo_path' => 'media/face.jpg'],
+                ['quote' => 'Tidy.', 'name' => 'Ravi'],
+            ]]),
+        ])->assertCreated();
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks;
+        $this->assertSame(['comparison', 'timeline', 'before_after', 'testimonials'], array_column($stored, 'type'));
+        $this->assertSame(['yes', null, 'Two a month'], $stored[0]['data']['rows'][0]['cells']);
+        $this->assertArrayNotHasKey('colour', $stored[0]['data']['rows'][0]);
+        $this->assertSame(1, $stored[0]['data']['highlight']);
+        $this->assertSame(40, $stored[2]['data']['start']);
+
+        $sections = $this->getJson('/api/v1/pages/built-page')->assertOk()->json('data.sections');
+        $this->assertStringEndsWith('storage/media/before.jpg', $sections[2]['data']['before']);
+        $this->assertSame('The rack after', $sections[2]['data']['after_alt']);
+        $this->assertArrayNotHasKey('before_path', $sections[2]['data']);
+        $this->assertSame('A customer', $sections[3]['data']['items'][0]['photo_alt']);
+        $this->assertArrayNotHasKey('photo', $sections[3]['data']['items'][1]);
+    }
+
+    public function test_team_downloads_countdown_columns_and_map_are_stored_and_presented(): void
+    {
+        $this->media('media/brochure.pdf', 'application/pdf');
+        Media::query()->where('path', 'media/brochure.pdf')->update(['size' => 245760, 'filename' => 'AMC brochure.pdf']);
+        TeamMember::create(['name' => 'Asha Rao', 'designation' => 'Engineer', 'department' => 'Support', 'status' => 'published', 'sort_order' => 1]);
+        TeamMember::create(['name' => 'Ravi Sen', 'designation' => 'Sales', 'department' => 'Sales', 'status' => 'published', 'sort_order' => 2]);
+
+        $this->create([
+            self::section('team', ['heading' => 'Our engineers', 'department' => 'Support', 'group' => '0']),
+            self::section('downloads', ['items' => [
+                ['title' => 'AMC brochure', 'file_path' => 'media/brochure.pdf', 'note' => 'Four pages'],
+            ]]),
+            self::section('countdown', ['heading' => 'Offer ends', 'ends_at' => '2030-01-01T10:00', 'done_text' => 'The offer has ended.']),
+            self::section('columns', ['columns' => [
+                ['heading' => 'Offices', 'body' => '<p>Desks</p><script>alert(1)</script>'],
+                ['heading' => 'Factories', 'body' => '<p>Rugged <img src=x onerror="x()"></p>'],
+            ]]),
+            self::section('map', ['url' => 'https://www.google.com/maps/embed?pb=!1m18', 'address' => 'Salt Lake, Kolkata']),
+        ])->assertCreated();
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks;
+        $this->assertSame(['team', 'downloads', 'countdown', 'columns', 'map'], array_column($stored, 'type'));
+        $this->assertFalse($stored[0]['data']['group']);
+        // Both columns' bodies are cleaned, a second list deep.
+        $this->assertStringNotContainsString('<script', $stored[3]['data']['columns'][0]['body']);
+        $this->assertStringNotContainsString('onerror', $stored[3]['data']['columns'][1]['body']);
+
+        $sections = $this->getJson('/api/v1/pages/built-page')->assertOk()->json('data.sections');
+        $this->assertSame(['Asha Rao'], array_column($sections[0]['data']['members'], 'name'), 'one department only');
+        $file = $sections[1]['data']['items'][0];
+        $this->assertSame(['AMC brochure', 'Four pages', 245760, 'pdf'], [$file['title'], $file['note'], $file['size'], $file['extension']]);
+        $this->assertStringEndsWith('storage/media/brochure.pdf', $file['url']);
+        $this->assertArrayNotHasKey('file_path', $file);
+        // An instant with its offset, so every browser counts to the same moment.
+        $this->assertSame('2030-01-01T10:00:00+05:30', $sections[2]['data']['ends_at']);
+        $this->assertSame('Salt Lake, Kolkata', $sections[4]['data']['address']);
+    }
+
+    public function test_a_theme_section_is_stored_by_id_and_its_hero_must_open_the_page(): void
+    {
+        $this->create([
+            self::section('theme_section', ['section' => 'hero']),
+            self::section('theme_section', ['section' => 'solutions', 'stray' => 'dropped']),
+            self::section('rich_text', ['heading' => 'Ours', 'body' => '<p>Words.</p>']),
+        ])->assertCreated();
+
+        $sections = $this->getJson('/api/v1/pages/built-page')->json('data.sections');
+        $this->assertSame(['theme_section', 'theme_section', 'rich_text'], array_column($sections, 'type'));
+        $this->assertSame(['section' => 'solutions'], $sections[1]['data']);
+
+        // Anywhere but first, the theme's hero would be a second page title.
+        $this->create([
+            self::section('rich_text', ['heading' => 'First', 'body' => '<p>x</p>']),
+            self::section('theme_section', ['section' => 'hero']),
+        ], ['title' => 'Late hero'])->assertStatus(422)->assertJsonValidationErrors('blocks.1.data.section');
+
+        $this->create([self::section('theme_section', ['section' => 'Not An Id'])], ['title' => 'Bad id'])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.section');
+    }
+
+    public function test_the_homepage_is_a_published_builder_page_or_the_theme(): void
+    {
+        $this->seed(SettingsSeeder::class);
+        $admin = $this->user(RoleEnum::Admin);
+        $built = $this->create([self::section('theme_section', ['section' => 'hero'])], ['title' => 'Home page'])->json('data.id');
+        $draft = $this->create([self::section('divider', [])], ['title' => 'Draft one', 'status' => 'draft'])->json('data.id');
+        $plain = $this->create([], ['title' => 'Plain', 'template' => 'default', 'body' => '<p>x</p>'])->json('data.id');
+        $save = fn ($value) => $this->actingAs($admin, 'sanctum')->patchJson('/api/v1/admin/settings', ['settings' => [['key' => 'homepage_page_id', 'value' => $value]]]);
+
+        $save((string) $draft)->assertStatus(422)->assertJsonValidationErrors('settings.0.value');
+        $save((string) $plain)->assertStatus(422);
+
+        // The picker offers the theme's homepage and the published builder pages only.
+        $row = collect($this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/settings')->json('data.homepage'))->firstWhere('key', 'homepage_page_id');
+        $this->assertSame(['', (string) $built], array_column($row['options'], 'value'));
+
+        $save((string) $built)->assertOk();
+        Setting::flushCache();
+        $public = $this->getJson('/api/v1/settings')->json('data');
+        $this->assertSame('home-page', $public['homepage_page_slug']);
+        $this->assertArrayNotHasKey('homepage_page_id', $public);
+
+        // Unpublished, the slug goes and `/` falls back to the theme's homepage.
+        Page::query()->whereKey($built)->update(['status' => 'draft']);
+        Setting::flushCache();
+        $this->assertArrayNotHasKey('homepage_page_slug', $this->getJson('/api/v1/settings')->json('data'));
+
+        $save('')->assertOk();
+    }
+
+    public function test_an_empty_team_or_a_vanished_download_drops_the_section(): void
+    {
+        $this->media('media/gone.pdf', 'application/pdf');
+        $this->create([
+            self::section('team', ['department' => 'Nobody']),
+            self::section('downloads', ['items' => [['title' => 'Gone', 'file_path' => 'media/gone.pdf']]]),
+            self::section('divider', []),
+        ])->assertCreated();
+        Media::query()->where('path', 'media/gone.pdf')->delete();
+
+        $this->assertSame(['divider'], array_column($this->getJson('/api/v1/pages/built-page')->json('data.sections'), 'type'));
+    }
+
+    public function test_before_and_after_pictures_and_testimonial_photos_must_be_library_pictures(): void
+    {
+        $this->media('media/real.jpg', 'image/jpeg', 'Real');
+
+        $this->create([
+            self::section('before_after', ['before_path' => 'media/real.jpg', 'after_path' => 'media/nowhere.jpg']),
+            self::section('testimonials', ['items' => [
+                ['quote' => 'a', 'name' => 'A', 'photo_path' => 'media/nowhere.jpg'],
+                ['quote' => 'b', 'name' => 'B'],
+            ]]),
+        ])->assertStatus(422)->assertJsonValidationErrors(['blocks.0.data.after_path', 'blocks.1.data.items.0.photo_path']);
+    }
+
+    public function test_a_page_body_is_laid_out_as_sections_and_nothing_is_written(): void
+    {
+        $pages = Page::query()->count();
+
+        $sections = $this->actingAs($this->user(), 'sanctum')->postJson('/api/v1/admin/pages/sections-from-body', [
+            'body' => '<p>Intro</p><script>alert(1)</script><h2>Cabling</h2><p>Cat6A.</p><h2>Wi-Fi</h2><p>Surveys.</p>',
+        ])->assertOk()->json('data.sections');
+
+        $this->assertSame(['rich_text', 'rich_text', 'rich_text'], array_column($sections, 'type'));
+        $this->assertSame('Cabling', $sections[1]['data']['heading']);
+        $this->assertStringNotContainsString('script', json_encode($sections), 'cleaned as a saved body is');
+        $this->assertSame($pages, Page::query()->count());
+
+        // What comes back is saveable as it stands.
+        $this->create($sections)->assertCreated();
+
+        $this->actingAs($this->user(), 'sanctum')->postJson('/api/v1/admin/pages/sections-from-body', ['body' => ''])
+            ->assertStatus(422)->assertJsonValidationErrors('body');
+        $this->actingAs($this->user(RoleEnum::SupportEngineer), 'sanctum')->postJson('/api/v1/admin/pages/sections-from-body', ['body' => '<p>x</p>'])
+            ->assertForbidden();
+    }
+
+    public function test_a_tab_picture_must_be_a_library_picture(): void
+    {
+        $this->create([self::section('tabs', ['items' => [
+            ['label' => 'One', 'body' => 'a', 'image_path' => 'media/nowhere.jpg'],
+            ['label' => 'Two', 'body' => 'b'],
+        ]])])->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.items.0.image_path');
     }
 
     public function test_rich_text_in_a_section_is_sanitised(): void
@@ -241,6 +497,230 @@ class PageBuilderTest extends TestCase
             ->assertJsonPath('data.sections.2.reveal', null);
     }
 
+    public function test_a_style_is_a_set_of_choices_stored_only_where_it_differs(): void
+    {
+        foreach ([
+            ['pad_top' => '40px'],
+            ['width' => 'full-bleed'],
+            ['anchor' => 'Pricing Table'],
+            ['show_on' => []],
+            ['show_on' => ['watch']],
+        ] as $bad) {
+            $this->create([self::section('divider', [], ['style' => $bad])])->assertStatus(422);
+        }
+
+        $this->create([
+            self::section('divider', [], ['style' => ['anchor' => 'pricing']]),
+            self::section('divider', [], ['style' => ['anchor' => 'pricing']]),
+        ])->assertStatus(422)->assertJsonValidationErrors('blocks.1.style.anchor');
+
+        $this->create([
+            self::section('divider', [], ['style' => [
+                'pad_top' => 'xl', 'pad_bottom' => 'default', 'width' => 'narrow', 'align' => 'center',
+                'heading' => 'l', 'anchor' => 'pricing', 'show_on' => ['desktop', 'phone'],
+            ]]),
+            // Every value the section's own: nothing is stored.
+            self::section('divider', [], ['style' => ['pad_top' => 'default', 'show_on' => ['phone', 'tablet', 'desktop']]]),
+        ])->assertCreated()
+            ->assertJsonPath('data.blocks.0.style', [
+                'pad_top' => 'xl', 'width' => 'narrow', 'align' => 'center', 'heading' => 'l',
+                'anchor' => 'pricing', 'show_on' => ['phone', 'desktop'],
+            ])
+            ->assertJsonPath('data.blocks.1.style', null);
+
+        $this->getJson('/api/v1/pages/built-page')->assertOk()
+            ->assertJsonPath('data.sections.0.style.anchor', 'pricing')
+            ->assertJsonPath('data.sections.1.style', null);
+    }
+
+    public function test_the_headline_and_scroll_motions_are_choices_stored_only_where_chosen(): void
+    {
+        $this->create([self::section('divider', [], ['style' => ['headline' => 'bounce']])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.style.headline');
+        $this->create([self::section('divider', [], ['style' => ['scroll' => 'spin']])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.style.scroll');
+
+        $this->create([
+            self::section('divider', [], ['style' => ['headline' => 'wipe', 'scroll' => 'parallax']]),
+            self::section('divider', [], ['style' => ['headline' => 'default', 'scroll' => 'default']]),
+            self::section('divider', [], ['style' => ['headline' => 'shimmer', 'scroll' => 'default']]),
+        ])->assertCreated()
+            ->assertJsonPath('data.blocks.0.style', ['headline' => 'wipe', 'scroll' => 'parallax'])
+            ->assertJsonPath('data.blocks.1.style', null)
+            ->assertJsonPath('data.blocks.2.style', ['headline' => 'shimmer']);
+
+        $this->getJson('/api/v1/pages/built-page')->assertOk()
+            ->assertJsonPath('data.sections.0.style.headline', 'wipe')
+            ->assertJsonPath('data.sections.0.style.scroll', 'parallax')
+            ->assertJsonPath('data.sections.1.style', null)
+            ->assertJsonPath('data.sections.2.style', ['headline' => 'shimmer']);
+    }
+
+    public function test_a_story_is_stored_as_declared_and_its_pictures_presented(): void
+    {
+        $this->media('media/step-1.jpg', 'image/jpeg', 'The rack before');
+        $this->media('media/step-2.jpg', 'image/jpeg', 'The rack after');
+
+        $created = $this->create([self::section('story', [
+            'kicker' => 'How it went', 'heading' => 'A data centre in three weekends', 'lede' => 'Told in stages.',
+            'items' => [
+                ['title' => 'Survey', 'body' => 'We measured everything.', 'image_path' => 'media/step-1.jpg', 'junk' => 'never stored'],
+                ['title' => 'Cut-over', 'body' => 'One night, no downtime.', 'image_path' => 'media/step-2.jpg'],
+            ],
+        ])])->assertCreated()
+            ->assertJsonPath('data.blocks.0.type', 'story')
+            ->assertJsonPath('data.blocks.0.data.items.0.image_path', 'media/step-1.jpg')
+            ->assertJsonMissingPath('data.blocks.0.data.items.0.junk');
+        $this->assertSame(asset('storage/media/step-2.jpg'), $created->json('data.blocks_media')['media/step-2.jpg'] ?? null);
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks[0]['data'];
+        $this->assertEquals(['title' => 'Cut-over', 'body' => 'One night, no downtime.', 'image_path' => 'media/step-2.jpg'], $stored['items'][1]);
+
+        $section = $this->getJson('/api/v1/pages/built-page')->assertOk()->json('data.sections.0');
+        $this->assertSame('story', $section['type']);
+        $this->assertSame('A data centre in three weekends', $section['data']['heading']);
+        $this->assertSame(asset('storage/media/step-1.jpg'), $section['data']['items'][0]['image']);
+        $this->assertSame('The rack before', $section['data']['items'][0]['image_alt']);
+        $this->assertArrayHasKey('image_focus', $section['data']['items'][0]);
+        $this->assertArrayNotHasKey('image_path', $section['data']['items'][1]);
+
+        $this->actingAs($this->user(), 'sanctum')->getJson('/api/v1/admin/pages/builder')->assertOk()
+            ->assertJsonFragment(['value' => 'story', 'label' => 'Scroll story']);
+    }
+
+    public function test_a_story_needs_two_steps_each_titled_with_a_library_picture(): void
+    {
+        $this->media('media/step.jpg');
+        $this->media('media/brochure.pdf', 'application/pdf');
+        $step = fn (array $over = []) => ['title' => 'A step', 'body' => 'What happened.', 'image_path' => 'media/step.jpg', ...$over];
+
+        $this->create([self::section('story', ['items' => [$step()]])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items' => 'A story needs at least two steps.']);
+
+        $this->create([self::section('story', ['items' => [$step(), $step(['title' => ''])]])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items.1.title' => 'Give the step a title.']);
+
+        $this->create([self::section('story', ['items' => [$step(), $step(['body' => null])]])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items.1.body' => 'Write the words for this step.']);
+
+        $this->create([self::section('story', ['items' => [$step(), $step(['image_path' => null])]])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items.1.image_path' => 'Choose a picture for this step.']);
+
+        $this->create([self::section('story', ['items' => [$step(['image_path' => 'media/nowhere.jpg']), $step()]])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.items.0.image_path');
+
+        $this->create([self::section('story', ['items' => [$step(), $step(['image_path' => 'media/brochure.pdf'])]])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.items.1.image_path');
+
+        // A tab's words keep their own message beside a story on the same page.
+        $this->create([
+            self::section('story', ['items' => [$step(), $step()]]),
+            self::section('tabs', ['items' => [['label' => 'A', 'body' => 'a'], ['label' => 'B']]]),
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.1.data.items.1.body' => 'Every tab needs its words.']);
+    }
+
+    public function test_a_cover_hero_plays_a_library_video_over_its_poster(): void
+    {
+        $this->media('media/poster.jpg', 'image/jpeg', 'The control room');
+        $this->media('media/loop.mp4', 'video/mp4');
+
+        $created = $this->create([self::section('hero', [
+            'heading' => 'Networks that stay up', 'layout' => 'cover',
+            'image_path' => 'media/poster.jpg', 'video_path' => 'media/loop.mp4',
+        ])])->assertCreated()
+            ->assertJsonPath('data.blocks.0.data.video_path', 'media/loop.mp4');
+        $this->assertSame(asset('storage/media/loop.mp4'), $created->json('data.blocks_media')['media/loop.mp4'] ?? null);
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks[0]['data'];
+        $this->assertSame('media/loop.mp4', $stored['video_path']);
+
+        $data = $this->getJson('/api/v1/pages/built-page')->assertOk()->json('data.sections.0.data');
+        $this->assertSame(asset('storage/media/loop.mp4'), $data['video']);
+        $this->assertSame(asset('storage/media/poster.jpg'), $data['image']);
+        $this->assertArrayNotHasKey('video_path', $data);
+        $this->assertArrayNotHasKey('image_path', $data);
+    }
+
+    public function test_a_hero_video_is_refused_off_the_cover_layout_and_unless_it_is_a_library_video(): void
+    {
+        $this->media('media/poster.jpg');
+        $this->media('media/loop.webm', 'video/webm');
+        $hero = fn (array $over) => self::section('hero', ['heading' => 'H', 'layout' => 'cover', 'image_path' => 'media/poster.jpg', ...$over]);
+
+        $this->create([$hero(['layout' => 'split', 'video_path' => 'media/loop.webm'])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.video_path' => 'A background video plays behind a cover hero only — choose the Cover layout.']);
+
+        $this->create([$hero(['video_path' => 'media/poster.jpg'])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.video_path' => 'That file is not a video.']);
+
+        $this->create([$hero(['video_path' => 'media/nowhere.mp4'])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.video_path');
+
+        // The poster is still required: it is what reduced motion shows.
+        $this->create([$hero(['image_path' => null, 'video_path' => 'media/loop.webm'])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.image_path');
+
+        $this->create([$hero(['video_path' => 'media/loop.webm'])])->assertCreated();
+    }
+
+    public function test_a_diagram_is_stored_as_declared_and_read_back_whole(): void
+    {
+        $created = $this->create([self::section('flow', [
+            'kicker' => 'How it connects', 'heading' => 'From the branch to the cloud', 'lede' => 'Four hops.',
+            'items' => [
+                ['icon' => 'network', 'title' => 'Branch', 'note' => 'Switches and Wi-Fi.', 'junk' => 'never stored'],
+                ['icon' => 'shield', 'title' => 'Firewall'],
+                ['title' => 'Cloud', 'note' => 'Where the data lands.'],
+            ],
+            'caption' => 'Every link monitored.',
+        ])])->assertCreated()
+            ->assertJsonPath('data.blocks.0.type', 'flow')
+            ->assertJsonMissingPath('data.blocks.0.data.items.0.junk');
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks[0]['data'];
+        $this->assertEquals(['icon' => 'shield', 'title' => 'Firewall'], $stored['items'][1]);
+        $this->assertSame('Every link monitored.', $stored['caption']);
+
+        $this->getJson('/api/v1/pages/built-page')->assertOk()
+            ->assertJsonPath('data.sections.0.type', 'flow')
+            ->assertJsonPath('data.sections.0.data.heading', 'From the branch to the cloud')
+            ->assertJsonPath('data.sections.0.data.items.0.icon', 'network')
+            ->assertJsonPath('data.sections.0.data.items.2.note', 'Where the data lands.')
+            ->assertJsonPath('data.sections.0.data.caption', 'Every link monitored.');
+
+        $this->actingAs($this->user(), 'sanctum')->getJson('/api/v1/admin/pages/builder')->assertOk()
+            ->assertJsonFragment(['value' => 'flow', 'label' => 'Diagram']);
+    }
+
+    public function test_a_diagram_needs_two_to_six_named_steps(): void
+    {
+        $step = fn (array $over = []) => ['title' => 'A hop', ...$over];
+
+        $this->create([self::section('flow', ['items' => [$step()]])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items' => 'A diagram needs at least two steps.']);
+
+        $this->create([self::section('flow', ['items' => array_fill(0, 7, $step())])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items' => 'A diagram holds at most six steps.']);
+
+        $this->create([self::section('flow', ['items' => [$step(), $step(['title' => ''])]])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items.1.title' => 'Name this step.']);
+
+        $this->create([self::section('flow', ['items' => [$step(['icon' => 'Not An Icon!']), $step()]])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.items.0.icon');
+
+        $this->create([self::section('flow', ['items' => array_fill(0, 6, $step())])])->assertCreated();
+    }
+
     public function test_a_cards_section_is_resolved_to_the_live_list(): void
     {
         Solution::create(['title' => 'Networking', 'slug' => 'networking', 'summary' => 'Switching and routing.', 'icon' => 'network', 'status' => PublishStatus::Published, 'sort_order' => 1]);
@@ -317,11 +797,178 @@ class PageBuilderTest extends TestCase
         }
     }
 
+    /**
+     * Edit on the page (0.128.0): the fields the live preview lets an editor
+     * change in place are read off the save's rules — free text only, each
+     * with the rule's own length.
+     */
+    public function test_the_fields_edited_on_the_page_are_the_free_text_of_the_rules(): void
+    {
+        $inline = $this->actingAs($this->user(), 'sanctum')->getJson('/api/v1/admin/pages/builder')->assertOk()->json('data.inline_fields');
+
+        $this->assertSame($inline, SectionRules::inlineFields());
+
+        $paths = fn (string $type) => array_column($inline[$type] ?? [], 'max', 'path');
+
+        // A hero: its words and its buttons' labels — never the layout, the
+        // picture, the video or where a button goes.
+        $this->assertSame(
+            ['kicker' => 80, 'heading' => 160, 'lede' => 400, 'primary.label' => 40, 'secondary.label' => 40],
+            $paths('hero'),
+        );
+
+        // Rich text keeps its editor; a row's plain text is edited in place.
+        $this->assertSame(['heading' => 160], $paths('rich_text'));
+        $this->assertArrayNotHasKey('body', $paths('media_text'));
+        $this->assertSame(120, $paths('columns')['columns.*.heading']);
+        $this->assertArrayNotHasKey('columns.*.body', $paths('columns'));
+        $this->assertSame(2000, $paths('tabs')['items.*.body']);
+        $this->assertSame(60, $paths('comparison')['rows.*.cells.*']);
+
+        // Nothing that is a choice, a link, an icon, a date, a filter or a file.
+        foreach ($inline as $type => $fields) {
+            $rules = SectionRules::for(PageSectionType::from($type));
+
+            foreach ($fields as $field) {
+                // The layout's widget words come from the widget table (LayoutSectionTest pins them).
+                if (isset($field['widget'])) {
+                    continue;
+                }
+
+                $this->assertContains('string', $rules[$field['path']], "{$type}.{$field['path']}");
+                $this->assertContains('max:'.$field['max'], $rules[$field['path']], "{$type}.{$field['path']}");
+                $this->assertDoesNotMatchRegularExpression(
+                    '/(^|\.)(icon|href|url|layout|source|side|media|display|tone|youtube|category|department|ends_at|section)$|_path$|_id$/',
+                    $field['path'],
+                    "{$type}.{$field['path']}",
+                );
+            }
+        }
+
+        // A type with no words of its own offers nothing.
+        foreach (['content_block', 'divider', 'theme_section', 'saved'] as $type) {
+            $this->assertArrayNotHasKey($type, $inline);
+        }
+
+        // Every field the assistant treats as plain words can be edited here too.
+        foreach (SectionDraft::SCHEMA as $type => $schema) {
+            foreach ($schema['text'] ?? [] as $key) {
+                $this->assertArrayHasKey($key, $paths($type), "{$type}.{$key}");
+            }
+            foreach ($schema['buttons'] ?? [] as $button) {
+                $this->assertArrayHasKey("{$button}.label", $paths($type), "{$type}.{$button}");
+            }
+            foreach ($schema['list']['text'] ?? [] as $key) {
+                $this->assertArrayHasKey("{$schema['list']['key']}.*.{$key}", $paths($type), "{$type} list {$key}");
+            }
+        }
+    }
+
     public function test_only_a_content_manager_reaches_the_builder(): void
     {
         $engineer = $this->user(RoleEnum::SupportEngineer);
 
         $this->actingAs($engineer, 'sanctum')->getJson('/api/v1/admin/pages/builder')->assertForbidden();
         $this->actingAs($engineer, 'sanctum')->postJson('/api/v1/admin/pages/preview', ['blocks' => []])->assertForbidden();
+    }
+
+    // ---------------------------------------------------- Lottie and 3D (0.172.0)
+
+    private function motionMedia(): void
+    {
+        $this->media('media/spark.json', 'application/lottie+json');
+        Media::query()->where('path', 'media/spark.json')->update(['width' => 400, 'height' => 200]);
+        $this->media('media/chair.glb', 'model/gltf-binary');
+        $this->media('media/poster.jpg', 'image/jpeg', 'A chair');
+    }
+
+    public function test_the_two_new_types_come_last_and_are_listed(): void
+    {
+        $values = collect(PageSectionType::options())->pluck('value');
+
+        $this->assertSame(['hero', 'rich_text'], $values->take(2)->all());
+        $this->assertSame(['lottie', 'model'], $values->take(-2)->values()->all());
+        $this->assertSame(['Animation', '3D model'], [PageSectionType::Lottie->label(), PageSectionType::Model->label()]);
+    }
+
+    public function test_lottie_and_model_sections_save_with_defaults_unstored_and_present_their_files(): void
+    {
+        $this->motionMedia();
+
+        $this->create([
+            self::section('lottie', ['heading' => 'Watch', 'file_path' => 'media/spark.json', 'alt' => 'A spark', 'loop' => '1', 'size' => 'm', 'align' => 'center']),
+            self::section('model', ['file_path' => 'media/chair.glb', 'alt' => 'A chair', 'poster_path' => 'media/poster.jpg', 'rotate' => true, 'height' => 'l']),
+            self::section('model', ['file_path' => 'media/chair.glb', 'alt' => 'Still', 'rotate' => '0', 'height' => 'm']),
+        ])->assertCreated();
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks;
+        $this->assertTrue($stored[0]['data']['loop']);
+        $this->assertArrayNotHasKey('size', $stored[0]['data']);
+        $this->assertArrayNotHasKey('align', $stored[0]['data']);
+        $this->assertArrayNotHasKey('rotate', $stored[1]['data']);
+        $this->assertSame('l', $stored[1]['data']['height']);
+        $this->assertFalse($stored[2]['data']['rotate']);
+        $this->assertArrayNotHasKey('height', $stored[2]['data']);
+
+        $sections = $this->getJson('/api/v1/pages/built-page')->assertOk()->json('data.sections');
+        $this->assertSame(asset('storage/media/spark.json'), $sections[0]['data']['file']);
+        $this->assertSame('json', $sections[0]['data']['format']);
+        $this->assertSame(2, $sections[0]['data']['ratio']);
+        $this->assertArrayNotHasKey('file_path', $sections[0]['data']);
+        $this->assertSame(asset('storage/media/chair.glb'), $sections[1]['data']['file']);
+        $this->assertSame(asset('storage/media/poster.jpg'), $sections[1]['data']['poster']);
+        $this->assertSame('A chair', $sections[1]['data']['poster_alt']);
+        $this->assertArrayNotHasKey('poster_path', $sections[1]['data']);
+    }
+
+    public function test_a_packed_animation_is_a_lottie_format(): void
+    {
+        $this->media('media/pack.lottie', 'application/lottie+zip');
+
+        $this->create([self::section('lottie', ['file_path' => 'media/pack.lottie'])])->assertCreated();
+
+        $data = $this->getJson('/api/v1/pages/built-page')->json('data.sections.0.data');
+        $this->assertSame('lottie', $data['format']);
+        $this->assertSame(1, $data['ratio'], 'no size on the row is a square');
+    }
+
+    public function test_lottie_and_model_refuse_the_wrong_file_with_their_own_sentences(): void
+    {
+        $this->motionMedia();
+        $animation = 'Choose an animation from the media library.';
+        $model = 'Choose a 3D model (.glb) from the media library.';
+
+        $this->create([self::section('lottie', [])], ['title' => 'a'])
+            ->assertStatus(422)->assertJsonPath('errors', fn ($e) => $e['blocks.0.data.file_path'][0] === $animation);
+        $this->create([self::section('lottie', ['file_path' => 'media/poster.jpg'])], ['title' => 'b'])
+            ->assertStatus(422)->assertJsonPath('errors', fn ($e) => $e['blocks.0.data.file_path'][0] === $animation);
+        $this->create([self::section('lottie', ['file_path' => 'media/gone.json'])], ['title' => 'c'])
+            ->assertStatus(422)->assertJsonPath('errors', fn ($e) => $e['blocks.0.data.file_path'][0] === $animation);
+        $this->create([self::section('lottie', ['file_path' => 'media/spark.json', 'size' => 'xl'])], ['title' => 'd'])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.size');
+
+        $this->create([self::section('model', ['alt' => 'x'])], ['title' => 'e'])
+            ->assertStatus(422)->assertJsonPath('errors', fn ($e) => $e['blocks.0.data.file_path'][0] === $model);
+        $this->create([self::section('model', ['file_path' => 'media/spark.json', 'alt' => 'x'])], ['title' => 'f'])
+            ->assertStatus(422)->assertJsonPath('errors', fn ($e) => $e['blocks.0.data.file_path'][0] === $model);
+        $this->create([self::section('model', ['file_path' => 'media/chair.glb'])], ['title' => 'g'])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.alt');
+        $this->create([self::section('model', ['file_path' => 'media/chair.glb', 'alt' => 'x', 'poster_path' => 'media/spark.json'])], ['title' => 'h'])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.poster_path');
+    }
+
+    public function test_a_section_whose_file_has_left_the_library_is_dropped_from_the_public_read(): void
+    {
+        $this->motionMedia();
+        $this->create([
+            self::section('lottie', ['file_path' => 'media/spark.json']),
+            self::section('model', ['file_path' => 'media/chair.glb', 'alt' => 'A chair']),
+            self::section('divider', []),
+        ])->assertCreated();
+
+        Media::query()->whereIn('path', ['media/spark.json', 'media/chair.glb'])->forceDelete();
+        MediaMeta::forget();
+
+        $this->assertSame(['divider'], array_column($this->getJson('/api/v1/pages/built-page')->json('data.sections'), 'type'));
     }
 }

@@ -9,6 +9,7 @@ use App\Enums\ProductType;
 use App\Enums\PublishStatus;
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\OrderReturn;
 use App\Models\ProductReview;
 use App\Models\StoreProduct;
 use App\Models\WishlistItem;
@@ -194,6 +195,16 @@ class StoreMetrics
              */
             'reviews_pending' => ProductReview::waiting()->count(),
             'refund_requested' => Order::where('status', OrderStatus::RefundRequested)->count(),
+            // Returns nobody has answered — `OrderReturn::waiting()`, the
+            // scope the returns desk opens on, which is where this links.
+            'returns_requested' => OrderReturn::waiting()->count(),
+            // Orders Zoho Books refused something for — the invoice, a
+            // payment or a credit note — and which wait on a person: the
+            // list `?zoho=failed` opens. Zero while it is off.
+            'zoho_failed' => Order::query()->zohoFailed()->count(),
+            // Parcels coming back or cancelled by the courier (0.143.0) and
+            // still waiting on a person: the list `?shipment=problem` opens.
+            'shipments_in_trouble' => Order::query()->shipmentTrouble()->count(),
             /*
              * Failed payments are counted over the window rather than for ever.
              * A card declined last March is not something anybody is going to

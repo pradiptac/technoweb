@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { IdentityIcon, iconMap } from "@/components/icons";
+import { IdentityIcon, isIdentityIcon } from "@/components/icons";
 import { STAT_PX, type StatLook } from "@/lib/stat-look";
 import { StatValue } from "@/components/ui/stat-value";
 import type { StatPair } from "@/lib/site-settings";
@@ -44,7 +44,7 @@ export function StatFigure({
   className?: string;
   labelClassName?: string;
 }) {
-  const icon = stat.icon && stat.icon in iconMap ? stat.icon : null;
+  const icon = stat.icon && isIdentityIcon(stat.icon) ? stat.icon : null;
   return (
     <span className={cn(inline ? "inline-flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5" : "block", className)}>
       {icon && (

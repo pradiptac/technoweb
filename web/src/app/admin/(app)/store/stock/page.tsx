@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
-import { ErrorState } from "@/components/ui/empty";
+import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { getStockReport, getStockMovements } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -176,7 +176,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
           <h2 className="mb-3 text-13 font-semibold">By product</h2>
 
           {products.length === 0 ? (
-            <p className="py-6 text-center text-13 text-muted">Nothing moved in this range.</p>
+            <EmptyState compact illustration="empty" title="Nothing moved in this range">No stock came in or went out between these dates.</EmptyState>
           ) : (
             <div className="overflow-x-auto">
               <table className="admin-table w-full min-w-[560px] text-left text-13">

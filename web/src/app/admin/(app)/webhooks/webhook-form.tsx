@@ -5,12 +5,13 @@ import { useActionState } from "react";
 import { Form } from "@/components/ui/form";
 import { FormActions } from "@/components/admin/form-actions";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Alert, Field, Input, Select } from "@/components/ui/input";
+import { Alert, Field, Input } from "@/components/ui/input";
 import { SecretOnce } from "./secret-once";
 import {
   createWebhookAction, deleteWebhookAction, updateWebhookAction, type WebhookFormState,
 } from "./actions";
 import type { AdminWebhook, WebhookEventOption } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: WebhookFormState = {};
 
@@ -109,16 +110,8 @@ export function WebhookForm({
         </div>
 
         <aside className="grid content-start gap-0">
-          <Field label="Active" htmlFor="is_active" error={err("is_active")}
-            hint="Switched off, nothing is queued for it and anything still waiting is marked failed." variant="float-static">
-            <Select
-              id="is_active" name="is_active" defaultValue={webhook?.is_active === false ? "0" : "1"}
-              aria-invalid={Boolean(err("is_active"))}
-            >
-              <option value="1">Yes</option>
-              <option value="0">No</option>
-            </Select>
-          </Field>
+          <RecordSwitch className="mb-[18px]" name="is_active" defaultChecked={webhook?.is_active !== false} label="Active"
+            hint="Switched off, nothing is queued for it and anything still waiting is marked failed." />
 
           <div className="mb-[18px] rounded border border-line-strong bg-card p-3 text-12-5 leading-[1.5] text-muted">
             <p className="mb-1 text-13 font-semibold text-ink">Verifying a delivery</p>

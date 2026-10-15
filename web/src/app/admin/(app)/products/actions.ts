@@ -1,10 +1,13 @@
 "use server";
 
+import { runBulkAction } from "@/lib/admin/bulk";
+import type { BulkState } from "@/types/bulk";
+
 import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createProduct, deleteProduct, updateProduct, type ProductPayload } from "@/lib/admin";
-import { customFieldsFromFormData, jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import { customFieldsFromFormData, jsonListFromFormData, sectionsFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
 export type ProductFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -35,6 +38,8 @@ function payloadFrom(formData: FormData): ProductPayload {
   return {
     // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
     ...customFieldsFromFormData(formData),
+    // The Sections tab: which of the two the page shows, and the builder's list.
+    ...sectionsFromFormData(formData),
     name: str(formData, "name") ?? "",
     slug: str(formData, "slug"),
     sku: str(formData, "sku"),
@@ -110,4 +115,14 @@ export async function deleteProductAction(formData: FormData) {
   updateTag("products");
   revalidatePath("/admin/products");
   redirect("/admin/products?deleted=1");
+}
+
+/** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
+export async function bulkProductsAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  return runBulkAction(formData, {
+    path: "products",
+    noun: ["product", "products"],
+    tags: ["products"],
+    paths: ["/admin/products"],
+  });
 }

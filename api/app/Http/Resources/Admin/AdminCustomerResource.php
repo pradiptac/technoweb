@@ -36,6 +36,8 @@ class AdminCustomerResource extends JsonResource
 
             'email_verified' => $this->email_verified_at !== null,
             'email_verified_at' => $this->email_verified_at?->toIso8601String(),
+            // Whether they have signed in with Google — never Google's identifier.
+            'google_linked' => $this->google_sub !== null,
 
             'approved_at' => $this->approved_at?->toIso8601String(),
             'approved_by' => $this->whenLoaded('approver', fn () => $this->approver?->name),

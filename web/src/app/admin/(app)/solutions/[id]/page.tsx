@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
+import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
+import { RevisionPanel } from "@/components/admin/revision-panel";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getAnswerBlockKinds, getIndustries, getProductOptions, getSolution } from "@/lib/admin";
+import { getAnswerBlockKinds, getIndustries, getProductOptions, getSolution, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { SolutionForm } from "../solution-form";
@@ -50,17 +52,21 @@ export default async function EditSolutionPage({
         title="Edit solution"
       >
         <Badge tone={statusTone[solution.status]}>{solution.status_label}</Badge>
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          <RevisionPanel type="solution" id={solution.id} />
+          <PreviewLinkPanel type="solution" id={solution.id} />
+        </span>
         {solution.status === "published" && (
           <Link
             href={`/solutions/${solution.slug}`}
-            className="ml-auto py-1 text-13-5 font-semibold text-brand-ink hover:underline"
+            className="py-1 text-13-5 font-semibold text-brand-ink hover:underline"
           >
             View on site ↗
           </Link>
         )}
       </PageHeader>
 
-      <SolutionForm solution={solution} products={products} industries={industries} saved={Boolean(saved)} kinds={kinds} />
+      <SolutionForm solution={solution} products={products} industries={industries} saved={Boolean(saved)} kinds={kinds} builder={await getPageBuilderOptions()} />
     </>
   );
 }

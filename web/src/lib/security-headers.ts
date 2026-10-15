@@ -178,6 +178,14 @@ function buildReportOnlyCsp(dev: boolean, frameAncestors: string, assetOrigins: 
     frontend chooses the nocookie host, while Summernote builds the URL itself.
     Both are YouTube; only one of them is the one this code picks.
 
+    A custom code section (0.158.0) is a sandboxed `srcdoc` frame, and needs
+    nothing here: a `srcdoc` document is not fetched, so `frame-src` does not
+    govern it. It does **inherit this site's policy** — Report-Only and enforced
+    halves alike — so what the pasted code loads is reported by the policy above
+    (scripts and connections only report), and the enforced `form-action 'self'`
+    and `base-uri 'self'` apply inside the frame too: a form in a widget that
+    posts to another host is blocked, a widget's own `<base href>` as well.
+
     This list, `URI.SafeIframeRegexp` in api/config/purifier.php and the
     editor's own toolbar have to agree, and the sanitiser is the one that
     decides: a host allowed here but refused there is a video that vanishes on
@@ -211,13 +219,18 @@ const cache = new Map<string, string>();
  * `frameAncestors` is `'self'` everywhere except `/embed/*`, which may be
  * framed by anybody (see `next.config.ts`).
  */
-export function reportOnlyCsp(frameAncestors = "'self'"): string {
+export function reportOnlyCsp(frameAncestors = "'self'", mediaCdn: string | null = null): string {
   const dev = process.env.NODE_ENV !== "production";
-  const key = `${dev}|${frameAncestors}`;
+  // The media CDN (0.124.0) is a setting, not part of the environment: the
+  // proxy learns its origin from the API once a minute and names it here, so
+  // a video or a vector logo served from it is inside the policy. Checked
+  // for the shape of an https origin before it is written into a header.
+  const cdn = mediaCdn && /^https:\/\/[a-z0-9.-]+(:\d+)?$/.test(mediaCdn) ? mediaCdn : null;
+  const key = `${dev}|${frameAncestors}|${cdn ?? ""}`;
   let policy = cache.get(key);
 
   if (policy === undefined) {
-    policy = buildReportOnlyCsp(dev, frameAncestors, assetOriginList().join(" "));
+    policy = buildReportOnlyCsp(dev, frameAncestors, [...assetOriginList(), ...(cdn ? [cdn] : [])].join(" "));
     cache.set(key, policy);
   }
 

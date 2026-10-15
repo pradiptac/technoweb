@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
+use App\Models\Download;
 use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
 use App\Models\Page;
@@ -14,7 +16,11 @@ use App\Models\ProductCategory;
 use App\Models\Service;
 use App\Models\Solution;
 use App\Models\StoreProduct;
+use App\Models\Tender;
+use App\Support\Events\EventText;
 use App\Support\HtmlSanitiser;
+use App\Support\Tenders\TenderText;
+use App\Support\Tenders\TenderWindow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -110,6 +116,9 @@ class SearchController extends Controller
                 ->where(fn ($q) => $q->where('title', 'like', $like)
                     ->orWhere('body', 'like', $like)),
                 'title', 'body'),
+            $this->events($term),
+            $this->tenders($term),
+            $this->downloads($term),
             $this->entries($like),
         ])->filter(fn (?array $g) => $g !== null)->values();
 
@@ -186,6 +195,76 @@ class SearchController extends Controller
                 'path' => '/store/products/'.$p->slug,
             ];
         });
+    }
+
+    /**
+     * Events (docs/events.md): published ones, what is still to come ahead
+     * of what has been — somebody searching "wifi seminar" wants the one
+     * they can go to. Each result carries its date as the kicker, because
+     * two seminars with one title a year apart are told apart by nothing
+     * else.
+     */
+    private function events(string $term): ?array
+    {
+        $today = now()->startOfDay();
+
+        $query = Event::query()->published()->search($term)
+            ->orderByRaw('CASE WHEN starts_at >= ? THEN 0 ELSE 1 END', [$today])
+            ->orderByRaw('CASE WHEN starts_at >= ? THEN starts_at END ASC', [$today])
+            ->orderByDesc('starts_at');
+
+        return $this->build('event', 'Events', '/events', $query, fn (Event $e) => [
+            'title' => (string) $e->title,
+            'excerpt' => $this->trim($e->summary ?: $e->body),
+            'path' => $e->publicPath(),
+            'kicker' => EventText::dateLabel($e),
+        ]);
+    }
+
+    /**
+     * Tender notices (docs/tenders.md).
+     *
+     * Open ones first and closing soonest, then closed ones most recently
+     * first — the events' ordering, for the events' reason: a deadline is
+     * only useful in that order, and a tender that shut last spring is not
+     * what somebody searching for one wants at the top.
+     *
+     * The kicker is the state and the closing date, because two tenders for
+     * the same work a year apart are told apart by nothing else — and
+     * because "Closed" is the first thing a searcher needs to know.
+     */
+    private function tenders(string $term): ?array
+    {
+        $now = now()->toDateTimeString();
+
+        $query = Tender::query()->published()->with('category')->search($term)
+            ->orderByRaw('CASE WHEN tenders.closes_at > ? THEN 0 ELSE 1 END', [$now])
+            ->orderByRaw('CASE WHEN tenders.closes_at > ? THEN tenders.closes_at END ASC', [$now])
+            ->orderByRaw('CASE WHEN tenders.closes_at <= ? THEN tenders.closes_at END DESC', [$now]);
+
+        return $this->build('tender', 'Tenders', '/tenders', $query, fn (Tender $t) => [
+            'title' => (string) $t->title,
+            'excerpt' => $this->trim($t->summary ?: $t->description),
+            'path' => $t->publicPath(),
+            'kicker' => TenderWindow::for($t)->label().' · '.TenderText::dateLabel($t->closes_at),
+        ]);
+    }
+
+    /**
+     * Files of the downloads centre (docs/downloads.md). A download has no
+     * page of its own, so its result opens the centre searched for it; the
+     * shelf it sits on is the kicker.
+     */
+    private function downloads(string $term): ?array
+    {
+        $query = Download::query()->published()->with('category')->search($term)->shelved();
+
+        return $this->build('download', 'Downloads', '/downloads', $query, fn (Download $d) => [
+            'title' => (string) $d->title,
+            'excerpt' => $this->trim($d->summary),
+            'path' => '/downloads?q='.rawurlencode((string) $d->title),
+            'kicker' => $d->category?->name,
+        ]);
     }
 
     /**

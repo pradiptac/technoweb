@@ -8,7 +8,9 @@ use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Http\Requests\Concerns\ValidatesPageSections;
 use App\Support\PageSections\SectionRules;
+use App\Support\ReservedSlugs;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class StorePageRequest extends FormRequest
@@ -29,7 +31,7 @@ class StorePageRequest extends FormRequest
      */
     protected function richTextFields(): array
     {
-        return ['body', 'answer_blocks.*.detail', 'blocks.*.data.body'];
+        return ['body', 'answer_blocks.*.detail', ...SectionRules::RICH_TEXT];
     }
 
     public function authorize(): bool
@@ -40,8 +42,11 @@ class StorePageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('pages', 'slug')],
+            'title' => ['required', 'string', 'max:255', $this->titleDoesNotClaimARoute()],
+            // Not one of the site's own routes (`/events`, `/blog`): Next
+            // resolves a static segment before the page catch-all, so a page
+            // there would be saved and never opened.
+            'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('pages', 'slug'), ReservedSlugs::pageSlugRule()],
             'body' => ['nullable', 'string'],
             // An allowlist rather than a free string: the frontend can only
             // render the templates it has, and a value it does not know
@@ -69,6 +74,23 @@ class StorePageRequest extends FormRequest
         ];
     }
 
+    /**
+     * The same refusal for a slug nobody typed. With the slug left blank
+     * `Sluggable` derives it from the title, so a page called "Events" would
+     * take `/events` without the slug rule ever running — and that is how
+     * most pages are made.
+     */
+    private function titleDoesNotClaimARoute(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail): void {
+            $derived = is_string($value) ? Str::slug($value) : '';
+
+            if (blank($this->input('slug')) && $derived !== '' && ReservedSlugs::isFrontendRoute($derived)) {
+                $fail("A page with this title would live at /{$derived}, which is one of the site's own pages. Give it a slug of its own.");
+            }
+        };
+    }
+
     public function messages(): array
     {
         return [
@@ -81,7 +103,7 @@ class StorePageRequest extends FormRequest
             'answer_blocks.*.answer.required' => 'Every answer block needs its direct answer.',
             'answer_blocks.*.answer.max' => 'The direct answer is limited to 600 characters. Put the rest in the detail.',
             'answer_blocks.*.question.required_if' => 'A question or comparison block needs its question.',
-            ...SectionRules::messages(),
+            ...SectionRules::messages('blocks', $this->input('blocks')),
         ];
     }
 }

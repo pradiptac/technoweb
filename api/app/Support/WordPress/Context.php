@@ -6,8 +6,9 @@ use App\Models\Media;
 use App\Models\MediaFolder;
 use App\Models\User;
 use App\Models\WordPressImport;
+use App\Support\Import\MediaDownload;
+use App\Support\Import\PartsHost;
 use App\Support\Media\MediaUploader;
-use App\Support\Net\SafeHttp;
 use App\Support\Net\UnsafeUrl;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,7 +36,7 @@ use Throwable;
  * Lookups (`record()`, `children()`) index a harvest collection by id or by
  * `_parent` the first time a step asks, and keep it for the run.
  */
-final class Context
+final class Context implements PartsHost
 {
     public const MEDIA_STEP = 'media';
 
@@ -67,6 +68,21 @@ final class Context
     ) {
         $this->map = new ImportMap($import->site, $import->id);
         $this->report = $report ?? new Report;
+    }
+
+    public function map(): ImportMap
+    {
+        return $this->map;
+    }
+
+    public function report(): Report
+    {
+        return $this->report;
+    }
+
+    public function siteUrl(): string
+    {
+        return (string) ($this->site()['url'] ?? $this->import->site_url);
     }
 
     /** @return array<string, mixed> the site facts the scan recorded */
@@ -212,25 +228,10 @@ final class Context
      */
     private function download(string $url, string $mapType, string $key, string $name, ?array $attachment): ?string
     {
-        $tmp = tempnam(sys_get_temp_dir(), 'wpi');
+        $tmp = null;
 
         try {
-            $response = SafeHttp::get($url, [
-                'sink' => $tmp,
-                'timeout' => 30,
-                'max_bytes' => (int) config('wordpress_import.max_media_bytes'),
-                'allow_private' => (bool) config('wordpress_import.allow_private_hosts'),
-                'allow_http' => true,
-            ]);
-
-            if (! $response->successful()) {
-                throw new UnsafeUrl("The site answered {$response->status()}.");
-            }
-
-            // A client that ignored the sink (a faked one does) still handed back the body.
-            if ((int) @filesize($tmp) === 0) {
-                file_put_contents($tmp, $response->body());
-            }
+            $tmp = MediaDownload::toTemp($url, (bool) config('wordpress_import.allow_private_hosts'), (int) config('wordpress_import.max_media_bytes'));
 
             $filename = Str::limit(basename((string) parse_url($url, PHP_URL_PATH)) ?: 'file', 180, '');
             $alt = $attachment !== null ? trim((string) ($attachment['alt_text'] ?? '')) : '';
@@ -258,7 +259,9 @@ final class Context
 
             return null;
         } finally {
-            @unlink($tmp);
+            if ($tmp !== null) {
+                @unlink($tmp);
+            }
         }
     }
 

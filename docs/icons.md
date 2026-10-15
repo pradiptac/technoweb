@@ -119,3 +119,28 @@ also carry an 8x17 and a 16x16 viewBox rather than 24.
 declares `@babel/core`, `@svgr/core` and `fs-extra` as *runtime* dependencies —
 its build tools, mis-declared — so installing it puts Babel and SVGR in this
 application's `node_modules` to draw six glyphs.
+
+## Google icons — Material Symbols Rounded (0.179.0)
+
+The sixth pack, and **the first vendored whole**: an icon library an editor
+browses, not a gap-filler re-drawn to `base`. Rounded, weight 300, unfilled,
+from `@material-symbols/svg-300` (Apache-2.0, a dev dependency only);
+`web/scripts/build-material-symbols.mjs` writes
+`web/src/content/material-symbols.json` (`{name: pathData}`, ~3,900 icons,
+~4.3 MB) and `--check` fails when it is stale. Names over 37 characters are
+left out: a key is `ms:<name>` in a `varchar(40)` column.
+
+- **The path data never enters a client bundle.** `/icons/material/<name>.svg`
+  (a route handler, cached a year) serves one icon as `<path id="i">` with no
+  fill, and a page draws it with `<svg fill="currentColor"><use
+  href="…#i"/></svg>` — `MaterialIcon`, in its own module
+  (`components/material-icon.tsx`) so a client component can use it without
+  importing `icons.tsx` and the whole site map. `IdentityIcon` draws an `ms:`
+  key in its own hue; `isIdentityIcon()` replaced every `name in iconMap`
+  guard; `IconByKey` is the uncoloured form for console list rows.
+- **Stored** as `ms:<name>` beside the site's names, checked for shape only by
+  `App\Support\IconKey` (every icon rule uses it). An unknown name draws
+  nothing, the rule `iconMap` keys always followed.
+- **Picked** from the icon picker's "Google icons" tab, searched by
+  `/api/admin/icons/material` (staff only, 120 at a time) and mounted only
+  when chosen.

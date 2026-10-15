@@ -6,8 +6,12 @@ use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Certification;
 use App\Models\Client;
+use App\Models\Download;
+use App\Models\Event;
 use App\Models\JobOpening;
+use App\Models\SupportCentre;
 use App\Models\TeamMember;
+use App\Models\Tender;
 
 /**
  * The site's own index pages, as things a menu item can point at.
@@ -34,8 +38,8 @@ use App\Models\TeamMember;
  * `web/src/app/(marketing)` and answer 200 with no parameter. A page an editor
  * creates in the CMS is a `page` target and already resolves properly; it must
  * not be duplicated here, or the same page becomes two different things a menu
- * can point at. `/privacy`, `/terms`, `/downloads` and `/gallery` are exactly
- * that case and are deliberately absent.
+ * can point at. `/privacy`, `/terms` and `/gallery` are exactly that case and
+ * are deliberately absent.
  *
  * Two sides of one wire, as ever: this list and the Next route table are
  * hand-written in different languages, and nothing type-checks one against the
@@ -74,8 +78,17 @@ class SiteSection
         'blog' => ['label' => 'Blog', 'path' => '/blog'],
         'case_studies' => ['label' => 'Case studies', 'path' => '/case-studies'],
         'knowledge_base' => ['label' => 'Knowledge base', 'path' => '/knowledge-base'],
+        // Seminars, webinars and shows (0.118.0, docs/events.md).
+        'events' => ['label' => 'Events', 'path' => '/events'],
+        // Notices inviting bids (0.174.0, docs/tenders.md).
+        'tenders' => ['label' => 'Tenders', 'path' => '/tenders'],
+        // The downloads centre (0.131.0, docs/downloads.md). Until then
+        // `/downloads` was a CMS page, which is why it was absent here.
+        'downloads' => ['label' => 'Downloads', 'path' => '/downloads'],
 
         'support' => ['label' => 'Support', 'path' => '/support'],
+        // Service centres on a map (0.170.0, docs/support-network.md).
+        'support_network' => ['label' => 'Support network', 'path' => '/support-network'],
         'contact' => ['label' => 'Contact', 'path' => '/contact'],
         // The engineer visit request form (2026-09-26, docs/visits.md).
         'book_visit' => ['label' => 'Book a site visit', 'path' => '/book-a-visit'],
@@ -161,6 +174,13 @@ class SiteSection
             'careers' => JobOpening::published()->exists(),
             'case_studies' => CaseStudy::published()->exists(),
             'blog' => BlogPost::published()->exists(),
+            // Past or upcoming: a page of what has been on is still a page.
+            'events' => Event::published()->exists(),
+            // Open or closed: the archive of what this company has invited
+            // bids for is still a page.
+            'tenders' => Tender::published()->exists(),
+            'downloads' => Download::published()->exists(),
+            'support_network' => SupportCentre::query()->active()->exists(),
             default => true,
         };
     }

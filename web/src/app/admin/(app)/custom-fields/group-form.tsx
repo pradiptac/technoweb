@@ -11,6 +11,7 @@ import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { FieldBuilder } from "./field-builder";
 import { createGroupAction, updateGroupAction, type GroupFormState } from "./actions";
 import type { AdminCustomFieldGroup, CustomFieldGroupMeta } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: GroupFormState = {};
 
@@ -103,15 +104,8 @@ export function GroupForm({
               <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={group?.sort_order ?? 0} />
             </Field>
 
-            <label className="mb-[18px] flex items-start gap-2 text-13-5">
-              <input type="checkbox" name="is_active" value="1" className="mt-0.5" defaultChecked={group?.is_active ?? true} />
-              <span>
-                Switched on
-                <span className="mt-0.5 block text-12-5 text-faint">
-                  Off, the fields leave every form and page. What was typed into them is kept.
-                </span>
-              </span>
-            </label>
+            <RecordSwitch className="mb-[18px]" name="is_active" defaultChecked={group?.is_active ?? true} label="Switched on"
+              hint="Off, the fields leave every form and page. What was typed into them is kept." />
           </aside>
         </div>
 

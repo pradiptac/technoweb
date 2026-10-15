@@ -70,7 +70,19 @@ export default async function EmbeddedFormPage({ params }: { params: Promise<{ s
         rule meaningful on this route rather than exempting it.
       */}
       <h1 className="sr-only">{form.name}</h1>
-      <FormBlock form={form} />
+      {/*
+        `embedded`: after a successful submission a form with a redirect does
+        not navigate. The frame is a rectangle in somebody else's page, and
+        sending it to a third address there is neither what the host built nor
+        what the visitor expects — so the confirmation stays, with a
+        "Continue" link that opens the destination in the whole window
+        (`target="_top"`), on the visitor's own press.
+
+        `headingLevel={2}`: the only heading above the form in this document
+        is the `h1`, so a `heading` field or a step's title drawn as an `h3`
+        would skip a level.
+      */}
+      <FormBlock form={form} embedded headingLevel={2} />
     </>
   );
 }

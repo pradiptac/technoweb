@@ -3,6 +3,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconMegaphone } from "@/components/icons";
@@ -64,7 +65,7 @@ export default async function BroadcastsPage({ searchParams }: { searchParams: P
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconMegaphone />} title={filtered ? "No broadcasts match that filter" : "No broadcasts yet"}>
+        <EmptyState icon={<IconMegaphone />} title={filtered ? "No broadcasts match that filter" : "No broadcasts yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/messaging/broadcasts" newHref="/admin/messaging/broadcasts/new" noun="broadcast" />}>
           {filtered ? "Clear the filter to see the rest." : "Write a template first, then send it to the people who opted in on its channel."}
         </EmptyState>
       ) : (

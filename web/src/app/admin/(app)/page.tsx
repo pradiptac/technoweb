@@ -1,19 +1,34 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
-import { StatusBadge, PriorityBadge, TONE_BAR, statusTone, statusLabel } from "@/components/ui/badge";
-import { ErrorState } from "@/components/ui/empty";
-import { getDashboard } from "@/lib/admin";
+import { StatusBadge, PriorityBadge, statusTone, statusLabel } from "@/components/ui/badge";
+import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { getActivity, getDashboard, getOnboarding, getTickets } from "@/lib/admin";
+import { OnboardingCard } from "@/components/admin/onboarding-card";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import { cn } from "@/lib/utils";
 import { IconTicket, IconClock, IconUsers, IconBox, IconPen, IconMail, IconTools, IconMeeting } from "@/components/icons";
 import { istDate } from "@/lib/visit-dates";
 import { StatTile, type Tone } from "@/components/admin/stat-tile";
 import { Card } from "@/components/ui/card";
-import { DashboardMetricsPanel } from "./metrics";
+import { Panel } from "@/components/app-shell/panel";
+import { HERO_ACTION, HERO_ACTION_PRIMARY, HERO_ACTION_SECONDARY, HeroBand } from "@/components/app-shell/hero-band";
+import { Entrance } from "@/components/app-shell/entrance";
+import { ActivityFeed, type ActivityItem } from "@/components/app-shell/activity-feed";
+import { greeting } from "@/lib/greeting";
+import { TicketArrivals, TicketFigures, TicketVolume } from "./metrics";
+import { DashboardCustomise } from "./dashboard-customise";
+import { arrange, dashboardCookie, parseView, type DashboardView, type GroupKey, type WidgetKey } from "@/lib/dashboard-view";
+import { getCurrentStaff } from "@/lib/admin-auth";
+import { cookies } from "next/headers";
+import { cn } from "@/lib/utils";
+import { Donut } from "@/components/charts/donut";
+import { Funnel } from "@/components/charts/funnel";
+import type { ChartTone } from "@/components/charts/tones";
 import type { AdminDashboard, Ticket, TicketStatus } from "@/types/api";
-import type { CSSProperties, SVGProps } from "react";
+import type { CSSProperties, ReactNode, SVGProps } from "react";
 import { requireScreen } from "@/lib/admin-screen";
+import { Fragment, Suspense, cache } from "react";
+import { DashboardSkeleton } from "@/components/admin/skeletons";
 
 export const metadata = buildMetadata({ title: "Dashboard", path: "/admin", seo: noIndex });
 
@@ -41,16 +56,110 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
   );
 }
 
+/**
+ * One API call, asked for twice: the body draws it and the header's
+ * "Customise" button needs to know which panels this role's answer holds.
+ * `cache()` makes that one request per render, and a failure is `null` to
+ * both — the body says so, the button is simply not drawn.
+ */
+const loadDashboard = cache(async (volume?: string): Promise<AdminDashboard | null> => {
+  try {
+    return await getDashboard(volume);
+  } catch {
+    return null;
+  }
+});
+
+/** This account's arrangement, from its cookie (`lib/dashboard-view.ts`). */
+const readView = cache(async (): Promise<DashboardView> => {
+  const staff = await getCurrentStaff();
+  if (!staff) return parseView(undefined);
+  return parseView((await cookies()).get(dashboardCookie(staff.id))?.value);
+});
+
+/**
+ * What this role's dashboard can draw at all. The dialog lists exactly this,
+ * and `arrange()` ignores a stored key that is not in it.
+ */
+function availableFor(dashboard: AdminDashboard): { widgets: WidgetKey[]; groups: GroupKey[] } {
+  const widgets: WidgetKey[] = ["glance", "kpis", "volume"];
+  if (dashboard.metrics.arrivals) widgets.push("arrivals");
+  widgets.push("status");
+  if (dashboard.leads?.funnel) widgets.push("pipeline");
+  widgets.push("urgent", "activity");
+
+  const groups: GroupKey[] = ["support", "sales"];
+  if (dashboard.visits || dashboard.meetings) groups.push("diary");
+  groups.push("content");
+
+  return { widgets, groups };
+}
+
+async function CustomiseButton({ volume }: { volume?: string }) {
+  const dashboard = await loadDashboard(volume);
+  if (!dashboard) return null;
+  const { widgets, groups } = availableFor(dashboard);
+
+  return <DashboardCustomise view={await readView()} available={widgets} groups={groups} />;
+}
+
 export default async function AdminDashboardPage({ searchParams }: {
   searchParams: Promise<{ volume?: string }>;
 }) {
   await requireScreen();
   // The volume chart's period. The API allowlists it and falls back to a month.
   const { volume } = await searchParams;
-  let dashboard: AdminDashboard | null = null;
-  try {
-    dashboard = await getDashboard(typeof volume === "string" ? volume : undefined);
-  } catch {
+
+  /*
+   * The heading at once and the figures as they arrive (2026-10-05). The
+   * dashboard is one API call that aggregates thirty days of tickets, and the
+   * generic table skeleton `loading.tsx` draws is the wrong shape for tiles
+   * and charts, so the page streams its own: tile groups, the chart, the
+   * bars. Not keyed on the period, so switching 1M to 3M keeps the chart on
+   * screen while the next one loads rather than flashing the skeleton.
+   */
+  const period = typeof volume === "string" ? volume : undefined;
+
+  return (
+    <>
+      <PageHeader title="Dashboard">
+        {/* The button needs the dashboard's answer, so it streams in beside
+            the title; the placeholder is its height, so the row does not grow
+            when it arrives. */}
+        <Suspense fallback={<span aria-hidden className="ml-auto h-8" />}>
+          <CustomiseButton volume={period} />
+        </Suspense>
+      </PageHeader>
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardBody volume={period} />
+      </Suspense>
+    </>
+  );
+}
+
+async function DashboardBody({ volume }: { volume?: string }) {
+  // The checklist alongside, never in the way: null for a non-administrator
+  // or an unreachable API, and the dashboard is drawn either way.
+  const onboarding = getOnboarding();
+  /*
+   * The Activity panel's rows (Console 2.0), started beside the dashboard
+   * call. An administrator reads the activity log; the desk, which may not,
+   * reads the newest tickets. Either failing is null and the panel is simply
+   * not drawn.
+   */
+  const activity: Promise<ActivityItem[] | null> = getCurrentStaff().then((me) =>
+    me?.roles.some((r) => r.slug === "admin")
+      ? getActivity({ per_page: 8 }).then((r) => r.data.map((e): ActivityItem => ({
+          id: `a${e.id}`, at: e.created_at, tone: "brand",
+          text: <>{e.actor.name} · {e.action.replaceAll("_", " ")}{e.subject?.label ? <> · {e.subject.label}</> : null}</>,
+        })))
+      : getTickets({ sort: "created", dir: "desc", per_page: 8 }).then((r) => r.data.map((t): ActivityItem => ({
+          id: `t${t.id}`, at: t.created_at, tone: "info", href: `/admin/tickets/${t.reference}`,
+          text: <>{t.reference} · {t.subject}</>,
+        }))),
+  ).catch(() => null);
+  const dashboard = await loadDashboard(volume);
+  if (!dashboard) {
     return (
       <ErrorState title="We could not load the dashboard">
         The admin API is not responding. Try again shortly.
@@ -82,6 +191,7 @@ export default async function AdminDashboardPage({ searchParams }: {
   type Tile = {
     label: string; value: string; href?: string; tone: Tone;
     icon: (p: SVGProps<SVGSVGElement>) => React.ReactElement;
+    spark?: number[];
   };
 
   /*
@@ -142,6 +252,8 @@ export default async function AdminDashboardPage({ searchParams }: {
         href: "/admin/leads?status=new",
         tone: dashboard.leads.new > 0 ? "warn" : "info",
         icon: IconMail,
+        // New leads a day over thirty days: is the pipeline filling or drying up.
+        spark: dashboard.leads.series,
       },
       {
         label: "Overdue follow-ups", value: n(dashboard.leads.overdue),
@@ -205,93 +317,206 @@ export default async function AdminDashboardPage({ searchParams }: {
   }
 
   const breakdown = Object.entries(dashboard.status_breakdown);
-  const breakdownTotal = breakdown.reduce((sum, [, n]) => sum + n, 0) || 1;
+  const breakdownTotal = breakdown.reduce((sum, [, n]) => sum + n, 0);
+  /* A badge tone as a chart tone: the ring and the queue's badges agree about
+     what "In progress" looks like, by construction. */
+  const statusChart: Record<string, ChartTone> = {
+    open: "info", progress: "warn", resolved: "ok", closed: "muted", urgent: "err", brand: "brand", accent: "accent",
+  };
+  const funnel = dashboard.leads?.funnel;
 
-  return (
-    <>
-      <PageHeader title="Dashboard" />
+  const checklist = await onboarding;
+  const view = await readView();
+  const recent = await activity;
 
-      {/*
-        Each group keeps its tiles on one row from `sm`, and asks for as much
-        width as that row needs — 9.5rem a tile, enough for "Overdue
-        follow-ups" on one line — growing in proportion to its tile count. The
-        panels then wrap by themselves: two or three abreast on a desktop, one
-        a row where the screen cannot hold that, never a group split over two
-        rows of its own (the client, 2026-09-29: one line per title).
-      */}
+  /*
+   * The hero's one line and its buttons (Console 2.0), from figures this
+   * role's answer already holds — a section the API left null is never
+   * mentioned, the rule every tile here follows.
+   */
+  const staff = await getCurrentStaff();
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  const due = dashboard.counts.overdue_tickets;
+  const summary = [
+    due > 0 ? plural(due, "overdue ticket", "overdue tickets") : null,
+    dashboard.counts.open_tickets > 0 ? `${dashboard.counts.open_tickets} open` : null,
+    dashboard.leads && dashboard.leads.new > 0 ? plural(dashboard.leads.new, "new lead", "new leads") : null,
+    dashboard.visits && dashboard.visits.awaiting > 0 ? plural(dashboard.visits.awaiting, "visit to confirm", "visits to confirm") : null,
+    dashboard.meetings && dashboard.meetings.today > 0 ? plural(dashboard.meetings.today, "meeting today", "meetings today") : null,
+  ].filter(Boolean);
+  const heroActions = [
+    { label: "Open the queue", href: "/admin/tickets?open=1" },
+    due > 0 ? { label: "Overdue tickets", href: "/admin/tickets?overdue=1" } : null,
+    dashboard.leads ? { label: "New leads", href: "/admin/leads?status=new" } : null,
+  ].filter((a): a is { label: string; href: string } => a !== null).slice(0, 3);
+  const shown = (key: string) => !view.hidden.includes(key);
+
+  /*
+   * Every panel this dashboard can draw, by key (0.120.0). The order they are
+   * written in is the default; `arrange()` puts them in the order this
+   * account chose and leaves out what it put away. A panel with nothing to
+   * draw for this role is simply absent from the map.
+   */
+  const tileGroups = ([
+    ["support", "Support", support],
+    ["sales", "Sales", sales],
+    ["diary", "Visits and meetings", diary],
+    ["content", "Content", content],
+  ] as const).filter(([key, , list]) => list.length > 0 && shown(`glance.${key}`));
+
+  const panels: Partial<Record<WidgetKey, ReactNode>> = {
+    /*
+      Each group keeps its tiles on one row from `sm`, and asks for as much
+      width as that row needs — 9.5rem a tile, enough for "Overdue
+      follow-ups" on one line — growing in proportion to its tile count. The
+      panels then wrap by themselves: two or three abreast on a desktop, one
+      a row where the screen cannot hold that, never a group split over two
+      rows of its own (the client, 2026-09-29: one line per title).
+    */
+    glance: tileGroups.length > 0 && (() => { let idx = 0; return (
       <div className="flex flex-wrap gap-3">
-        {([
-          ["Support", support],
-          ["Sales", sales],
-          ["Visits and meetings", diary],
-          ["Content", content],
-        ] as const).filter(([, list]) => list.length > 0).map(([title, list]) => (
+        {tileGroups.map(([key, title, list]) => (
           <Card
-            key={title} as="section" interactive={false} padding="none" className="min-w-0 p-3"
+            key={key} as="section" interactive={false} padding="none" className="flex min-w-0 flex-col rounded-xl p-3 shadow-1"
             style={{ flex: `${list.length} 1 calc(${list.length} * 9.5rem + ${list.length - 1} * 0.5rem + 1.5rem + 2px)` }}
           >
             <h2 className="mb-2 text-12-5 font-semibold text-muted">{title}</h2>
             <ul
-              className="grid grid-cols-2 gap-2 sm:grid-cols-[repeat(var(--tiles),minmax(0,1fr))]"
+              // `flex-1`: the panels in a row are one height, and only one
+              // tile on the dashboard carries a trend line. Without it that
+              // group's tiles were 150px and its neighbour's 96px, with the
+              // difference left as a blank strip under them (the client,
+              // 2026-10-07). The row stretches, and every tile is `h-full`.
+              className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-[repeat(var(--tiles),minmax(0,1fr))]"
               style={{ "--tiles": list.length } as CSSProperties}
             >
               {list.map((t) => (
-                <li key={t.label}><StatTile {...t} compact /></li>
+                <li key={t.label} data-entrance-item style={{ "--i": idx++ } as CSSProperties}><StatTile {...t} compact /></li>
               ))}
             </ul>
           </Card>
         ))}
       </div>
+    ); })(),
 
-      <DashboardMetricsPanel metrics={dashboard.metrics} />
+    kpis: <TicketFigures metrics={dashboard.metrics} />,
+    volume: <TicketVolume metrics={dashboard.metrics} />,
+    arrivals: dashboard.metrics.arrivals && <TicketArrivals metrics={dashboard.metrics} />,
 
-      {/* Recent tickets used to sit beside this. It was the queue with a
-          different heading — /admin/tickets already lists newest-first and is
-          one click away — so the dashboard was spending half its width
-          repeating a screen rather than telling you what needs attention. */}
-      <section className="mt-9">
+    status: (
+      <Panel title="Every ticket, by status" icon={<IconTicket />}>
+        {breakdownTotal === 0 ? (
+          <p className="text-13 text-muted">No tickets yet, so there is nothing to break down.</p>
+        ) : (
+          /* The API sends the status value; the wording is this side's
+             business, and `statusLabel` is the one place it is decided. */
+          <Donut
+            caption="tickets"
+            segments={breakdown.map(([status, total]) => ({
+              key: status,
+              label: statusLabel[status as TicketStatus] ?? status,
+              value: total,
+              tone: statusChart[statusTone[status as TicketStatus] ?? "closed"],
+              href: `/admin/tickets?status=${encodeURIComponent(status)}`,
+            }))}
+          />
+        )}
+      </Panel>
+    ),
+
+    pipeline: funnel && (
+      <Panel title="Sales pipeline" icon={<IconMail />}>
+        <p className="-mt-1 mb-3 text-12 text-muted">
+          What happened to the leads that arrived in the last {funnel.days} days. Spam is left out.
+        </p>
+        <Funnel
+          stages={[
+            { label: "Received", value: funnel.received, href: "/admin/leads" },
+            { label: "Replied to", value: funnel.contacted, href: "/admin/leads?status=contacted" },
+            { label: "Won", value: funnel.won, href: "/admin/leads?status=won" },
+          ]}
+        />
+      </Panel>
+    ),
+
+    /* Recent tickets used to sit beside this. It was the queue with a
+       different heading — /admin/tickets already lists newest-first and is
+       one click away — so the dashboard was spending half its width
+       repeating a screen rather than telling you what needs attention. */
+    urgent: (
+      <section>
         <h2 className="mb-3.5 text-15 font-semibold">High priority</h2>
         {dashboard.high_priority.length === 0 ? (
-          <p className="text-13-5 text-muted">Nothing critical or high priority open right now.</p>
+          <EmptyState illustration="done" title="Nothing urgent">Nothing critical or high priority is open right now.</EmptyState>
         ) : (
           <ul className="grid gap-2 lg:grid-cols-2">
             {dashboard.high_priority.map((t) => <TicketRow key={t.id} ticket={t} />)}
           </ul>
         )}
       </section>
+    ),
+  };
 
-      <section className="mt-9">
-        <h2 className="mb-3.5 text-15 font-semibold">Status breakdown</h2>
-        {/* An empty ul renders as a blank card that reads as broken, and a
-            division by a zero total would render NaN-width bars anyway. */}
-        {breakdownTotal === 0 ? (
-          <p className="rounded-lg border border-line-strong bg-card p-5 text-14 text-muted">
-            No tickets yet, so there is nothing to break down.
-          </p>
-        ) : (
-        <ul className="grid gap-2.5 rounded-lg border border-line-strong bg-card p-5">
-          {breakdown.map(([label, count]) => (
-            <li key={label} className="flex items-center gap-3">
-              {/* The API sends the status value; the wording is this side's
-                  business, and `statusLabel` is the one place it is decided. */}
-              <span className="w-[132px] shrink-0 text-13 text-muted">
-                {statusLabel[label as TicketStatus] ?? label}
-              </span>
-              <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
-                <span
-                  // Same tone the status badge uses for that word. One map,
-                  // exported from badge.tsx, so the chart and the queue cannot
-                  // disagree about what "In progress" looks like.
-                  className={cn("block h-full rounded-full", TONE_BAR[statusTone[label as TicketStatus] ?? "closed"])}
-                  style={{ width: `${Math.round((count / breakdownTotal) * 100)}%` }}
-                />
-              </span>
-              <span className="w-6 shrink-0 text-right text-13 font-semibold">{count}</span>
-            </li>
-          ))}
-        </ul>
-        )}
-      </section>
+  panels.activity = recent && (
+    <Panel title="Activity" icon={<IconClock />}>
+      <ActivityFeed items={recent} />
+    </Panel>
+  );
+
+  const drawable = (Object.keys(panels) as WidgetKey[]).filter((key) => Boolean(panels[key]));
+  const rows = arrange(view, drawable);
+
+  /*
+   * The space above a row belongs to the pair of rows, not to either panel:
+   * a panel that opens on a bare heading ("Last 30 days", "High priority")
+   * wants air above it, and so does whatever follows the unboxed ticket
+   * list; two cards sit a card-gap apart. In the default order this is the
+   * dashboard's old spacing exactly — 8, 3, 3, 3, 9.
+   */
+  const gapAbove = (row: WidgetKey[], previous: WidgetKey[] | undefined) => {
+    if (!previous) return "";
+    if (row[0] === "kpis" || previous[previous.length - 1] === "urgent") return "mt-8";
+    if (row[0] === "urgent") return "mt-9";
+    return "mt-3";
+  };
+
+  return (
+    <>
+      <HeroBand
+        className="mb-5"
+        title={greeting(staff?.name ?? "")}
+        summary={summary.length ? `${summary.join(" · ")}.` : "All quiet. Nothing is waiting on you."}
+        actions={heroActions.map((a, i) => (
+          <Link key={a.href} href={a.href} data-press className={cn(HERO_ACTION, i === 0 ? HERO_ACTION_PRIMARY : HERO_ACTION_SECONDARY)}>
+            {a.label}
+          </Link>
+        ))}
+      />
+      <Entrance scope="console" />
+
+      {checklist && checklist.done < checklist.total && <OnboardingCard data={checklist} />}
+
+      {rows.length === 0 && (
+        <EmptyState title="Every panel is put away">
+          Press Customise, at the top of this screen, to bring one back.
+        </EmptyState>
+      )}
+
+      {rows.map((row, i) => {
+        const half = row.some((key) => key === "status" || key === "pipeline");
+
+        return (
+          <div
+            key={row.join("+")}
+            data-dashboard-row={row.join(" ")}
+            // Half-width panels keep their half even alone: a ring and its
+            // legend stretched across the whole screen is a wide empty card.
+            className={cn(gapAbove(row, rows[i - 1]), half && "grid gap-3 lg:grid-cols-2")}
+          >
+            {row.map((key) => <Fragment key={key}>{panels[key]}</Fragment>)}
+          </div>
+        );
+      })}
     </>
   );
 }

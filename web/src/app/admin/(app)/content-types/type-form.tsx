@@ -9,6 +9,7 @@ import { FormActions } from "@/components/admin/form-actions";
 import { IconField } from "@/components/admin/icon-field-lazy";
 import { createTypeAction, deleteTypeAction, updateTypeAction, type TypeFormState } from "./actions";
 import type { AdminContentType, ContentTypeMeta } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: TypeFormState = {};
 
@@ -33,13 +34,7 @@ export function TypeForm({
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
 
   const check = (name: string, label: string, hint: string, on: boolean) => (
-    <label className="mb-[18px] flex items-start gap-2 text-13-5">
-      <input type="checkbox" name={name} value="1" className="mt-0.5" defaultChecked={on} />
-      <span>
-        {label}
-        <span className="mt-0.5 block text-12-5 text-faint">{hint}</span>
-      </span>
-    </label>
+    <RecordSwitch className="mb-[18px]" name={name} defaultChecked={on} label={label} hint={hint} />
   );
 
   return (

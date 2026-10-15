@@ -24,8 +24,18 @@ class LinkPattern
     /** A menu item may also be `#`, a heading that links nowhere. */
     public const MENU_REGEX = '#^(\#|/(?![/\\\\])[^\s]*|https?://[^\s]+|mailto:[^\s]+|tel:[^\s]+)$#i';
 
+    /**
+     * Somewhere a visitor can be *sent*: a path on this site or an http(s)
+     * URL. The same two branches as above without `mailto:` and `tel:`, which
+     * are things to press, not places to arrive — a form that redirected to
+     * one would leave its visitor on a page that never said "sent".
+     */
+    public const PAGE_REGEX = '#^(/(?![/\\\\])[^\s]*|https?://[^\s]+)$#i';
+
     /** For a validator's rule list. */
     public const RULE = 'regex:'.self::REGEX;
+
+    public const PAGE_RULE = 'regex:'.self::PAGE_REGEX;
 
     public static function allows(?string $value): bool
     {

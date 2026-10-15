@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin;
 
 use App\Http\Resources\Concerns\IncludesCustomFields;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Models\CaseStudy;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -10,7 +11,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin CaseStudy */
 class CaseStudyResource extends JsonResource
 {
-    use IncludesCustomFields;
+    use IncludesCustomFields, IncludesSections;
 
     public function toArray(Request $request): array
     {
@@ -23,6 +24,9 @@ class CaseStudyResource extends JsonResource
             'client_name' => $this->client_name,
             'summary' => $this->summary,
             'body' => $this->when($detail, $this->body),
+            // Which of the two the page draws in its body area, and the builder's
+            // sections as stored (0.129.0) — see IncludesSections.
+            ...$this->adminSections($detail),
             // Always a list, never null — the form renders rows from it and
             // would otherwise have to special-case "never filled in".
             'results' => $this->results ?? [],

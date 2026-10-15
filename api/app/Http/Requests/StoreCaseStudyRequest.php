@@ -5,16 +5,24 @@ namespace App\Http\Requests;
 use App\Enums\PublishStatus;
 use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\SanitisesRichText;
+use App\Http\Requests\Concerns\ValidatesRecordSections;
+use App\Support\PageSections\SectionRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreCaseStudyRequest extends FormRequest
 {
-    use AcceptsCustomFields, SanitisesRichText;
+    use AcceptsCustomFields, SanitisesRichText, ValidatesRecordSections;
 
     protected function customFieldTarget(): string
     {
         return 'case_study';
+    }
+
+    /** `body`, as the trait's default says, and the rich text inside the builder's sections. */
+    protected function richTextFields(): array
+    {
+        return ['body', ...SectionRules::RICH_TEXT];
     }
 
     public function authorize(): bool
@@ -44,6 +52,8 @@ class StoreCaseStudyRequest extends FormRequest
             // No published_at — case_studies has no such column. Status alone
             // decides whether one is live.
 
+            // Builder sections in place of the written body (0.129.0, `RecordSections`).
+            ...$this->recordSectionRules(),
             ...SeoRules::rules(),
 
             ...$this->customFieldRules(),
@@ -53,6 +63,7 @@ class StoreCaseStudyRequest extends FormRequest
     public function messages(): array
     {
         return [
+            ...$this->recordSectionMessages(),
             'title.required' => 'Give the case study a title.',
             'slug.alpha_dash' => 'A slug can contain letters, numbers, dashes and underscores only.',
             'slug.unique' => 'Another case study already uses that slug.',

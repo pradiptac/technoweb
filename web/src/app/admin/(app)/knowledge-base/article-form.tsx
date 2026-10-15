@@ -14,9 +14,10 @@ import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, useRecordSections } from "../pages/builder/record-sections";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { createArticleAction, updateArticleAction, deleteArticleAction, type ArticleFormState } from "./actions";
-import type { CustomFieldGroupDefinition, AdminKnowledgeArticle, KnowledgeCategory, AnswerBlockKindOption } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminKnowledgeArticle, KnowledgeCategory, AnswerBlockKindOption, PageBuilderOptions } from "@/types/api";
 
 const initial: ArticleFormState = {};
 
@@ -25,6 +26,8 @@ const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["title", "slug", "excerpt", "body", "status", "published_at",
              "knowledge_category_id", "tags"] },
+  // Sections in place of the written body (0.130.0) — the choice and the builder.
+  SECTIONS_TAB,
   { id: "seo", label: "SEO", fields: ["seo"] },
   // The AEO tab (docs/aeo-geo-contract.md §7). Last, so every tab above keeps its place.
   { id: "aeo", label: "AEO", fields: ["answer_blocks", "faqs"] },
@@ -39,7 +42,7 @@ function toLocalInput(iso: string | null): string {
 }
 
 export function ArticleForm({
-  article, categories, saved, kinds, fieldGroups,
+  article, categories, saved, kinds, fieldGroups, builder,
 }: {
   article?: AdminKnowledgeArticle;
   categories: KnowledgeCategory[];
@@ -48,6 +51,8 @@ export function ArticleForm({
   kinds: AnswerBlockKindOption[];
   /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
   fieldGroups?: CustomFieldGroupDefinition[];
+  /** `GET /admin/pages/builder` — the section builder's types and pickers, for the Sections tab. */
+  builder: PageBuilderOptions;
 }) {
   const editing = Boolean(article);
   const [state, formAction, pending] = useActionState(
@@ -60,6 +65,9 @@ export function ArticleForm({
   /** Per-row errors arrive as e.g. answer_blocks.0.answer; surface the first. */
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
+
+  // The body area: the written body, or builder sections (0.130.0).
+  const body = useRecordSections(article);
 
   // Custom fields (docs/custom-content.md): the groups that apply, from the API.
   const customGroups = article?.custom_field_groups ?? fieldGroups ?? [];
@@ -102,6 +110,8 @@ export function ArticleForm({
                 maxLength={500} aria-invalid={Boolean(err("excerpt"))} />
             </Field>
 
+            <BodyReplacedNote state={body} />
+
             <EditorField name="body" defaultValue={article?.body ?? ""} error={err("body")} />
           </div>
 
@@ -142,6 +152,18 @@ export function ArticleForm({
             )}
           </aside>
         </div>
+
+        {/* Sections in place of the written body. One child, always mounted. */}
+        <RecordSectionsPanel
+          state={body}
+          builder={builder}
+          media={article?.blocks_media ?? {}}
+          errors={state.fieldErrors ?? {}}
+          bodyField="body"
+          storedBody={article?.body ?? ""}
+          noun="article"
+          keeps="Its heading, FAQs, the helpful vote, its tags and the way to raise a ticket stay where they are."
+        />
 
         <SeoPanel seo={article?.seo} defaults={article?.seo_defaults} error={seoErr} embedded record={article ? { type: 'knowledge_article', id: article.id } : null} />
 

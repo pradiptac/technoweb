@@ -72,7 +72,12 @@ class CatalogueController extends Controller
     {
         abort_unless($product->status?->value === 'published', 404);
 
-        $product->load(['brand', 'category', 'solutions', 'relatedProducts.brand', 'faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group']);
+        return $this->presentProduct($product);
+    }
+
+    public function presentProduct(Product $product): JsonResource
+    {
+        $product->load(['brand', 'category', 'solutions', 'relatedProducts.brand', 'faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group', 'publishedDownloads.category']);
         EntityLinks::attach($product);
 
         return (new ProductResource($product))->withSchema();

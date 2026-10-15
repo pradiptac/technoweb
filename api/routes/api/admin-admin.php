@@ -3,12 +3,18 @@
 use App\Http\Controllers\Api\V1\Admin\ActivityController;
 use App\Http\Controllers\Api\V1\Admin\ChatAdminController;
 use App\Http\Controllers\Api\V1\Admin\ClientErrorController as AdminClientErrorController;
+use App\Http\Controllers\Api\V1\Admin\CustomFontController;
+use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\EmailTemplateController;
+use App\Http\Controllers\Api\V1\Admin\GoogleFontController;
 use App\Http\Controllers\Api\V1\Admin\InboundMailController;
 use App\Http\Controllers\Api\V1\Admin\IntegrationsController;
 use App\Http\Controllers\Api\V1\Admin\MailController;
+use App\Http\Controllers\Api\V1\Admin\MediaCdnController;
 use App\Http\Controllers\Api\V1\Admin\MessagingSettingsController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
+use App\Http\Controllers\Api\V1\Admin\SiteImportController;
+use App\Http\Controllers\Api\V1\Admin\SupportCentreController as AdminSupportCentreController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\WebhookController;
 use App\Http\Controllers\Api\V1\Admin\WordPressImportController;
@@ -28,6 +34,9 @@ Route::middleware('role:admin')->group(function () {
      */
     Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
 
+    // The dashboard's "Getting started" checklist (App\Support\Onboarding).
+    Route::get('onboarding', [DashboardController::class, 'onboarding'])->name('onboarding');
+
     /*
      * Importing a WordPress / WooCommerce site. `role:admin` because one
      * import writes content, the store's catalogue and customer accounts at
@@ -43,6 +52,24 @@ Route::middleware('role:admin')->group(function () {
     Route::post('imports/wordpress/{wordpressImport}/commit', [WordPressImportController::class, 'commit'])
         ->middleware('throttle:6,1')->name('imports.wordpress.commit');
     Route::delete('imports/wordpress/{wordpressImport}', [WordPressImportController::class, 'destroy'])->name('imports.wordpress.destroy');
+
+    /*
+     * Importing a website that has no API — a live address read page by page,
+     * or an uploaded ZIP of its files (0.163.0). `role:admin` for the same
+     * reason: one import writes pages, files, menus and redirects across the
+     * site. The ZIP arrives in chunks like a release does, and nothing in it
+     * is ever executed or served. See `docs/site-import.md`.
+     */
+    Route::get('imports/site', [SiteImportController::class, 'index'])->name('imports.site.index');
+    Route::post('imports/site', [SiteImportController::class, 'store'])
+        ->middleware('throttle:6,1')->name('imports.site.store');
+    Route::post('imports/site/upload', [SiteImportController::class, 'upload'])
+        ->middleware('throttle:600,1')->name('imports.site.upload');
+    Route::get('imports/site/{siteImport}', [SiteImportController::class, 'show'])->name('imports.site.show');
+    Route::patch('imports/site/{siteImport}', [SiteImportController::class, 'update'])->name('imports.site.update');
+    Route::post('imports/site/{siteImport}/commit', [SiteImportController::class, 'commit'])
+        ->middleware('throttle:6,1')->name('imports.site.commit');
+    Route::delete('imports/site/{siteImport}', [SiteImportController::class, 'destroy'])->name('imports.site.destroy');
 
     /*
      * JavaScript failures, grouped by bug rather than listed by
@@ -81,6 +108,11 @@ Route::middleware('role:admin')->group(function () {
     // Clearing a credential is its own action: a blank save means
     // "unchanged", because the form can never show the current one.
     Route::post('settings/clear-secret', [AdminSettingController::class, 'clearSecret'])->name('settings.clear-secret');
+
+    // A palette read from the logo (0.173.0). It writes nothing; the console
+    // fills the colour fields and Save applies them.
+    Route::post('settings/palette-from-logo', [AdminSettingController::class, 'paletteFromLogo'])
+        ->middleware('throttle:20,1')->name('settings.palette-from-logo');
 
     /*
      * Outgoing mail: which transport, and connecting a mailbox.
@@ -126,6 +158,27 @@ Route::middleware('role:admin')->group(function () {
         ->middleware('throttle:6,1')->name('settings.tickets.inbound.test');
 
     // Proving a third-party key from the screen it was typed into.
+    // A company's own typefaces (0.125.0): two slots, WOFF2 files, checked
+    // by their bytes. Not rows on the settings form — a font is a file.
+    Route::get('settings/fonts', [CustomFontController::class, 'index'])->name('settings.fonts.index');
+    Route::post('settings/fonts/{slot}', [CustomFontController::class, 'store'])
+        ->whereIn('slot', ['1', '2'])->middleware('throttle:20,1')->name('settings.fonts.store');
+    Route::delete('settings/fonts/{slot}', [CustomFontController::class, 'destroy'])
+        ->whereIn('slot', ['1', '2'])->name('settings.fonts.destroy');
+    // Google fonts copied to this server (0.179.0): chosen from a committed
+    // catalogue, downloaded once, served from our own origin. Literal paths
+    // sit above `{slug}` so they are not read as one.
+    Route::get('settings/google-fonts', [GoogleFontController::class, 'index'])->name('settings.google-fonts.index');
+    Route::get('settings/google-fonts/catalogue', [GoogleFontController::class, 'catalogue'])->name('settings.google-fonts.catalogue');
+    Route::get('settings/google-fonts/preview/{slug}', [GoogleFontController::class, 'preview'])
+        ->where('slug', '[a-z0-9-]{1,62}')->middleware('throttle:120,1')->name('settings.google-fonts.preview');
+    Route::post('settings/google-fonts', [GoogleFontController::class, 'store'])->middleware('throttle:10,1')->name('settings.google-fonts.store');
+    Route::delete('settings/google-fonts/{slug}', [GoogleFontController::class, 'destroy'])
+        ->where('slug', '[a-z0-9-]{1,62}')->name('settings.google-fonts.destroy');
+    // The media CDN (0.124.0): one library file fetched through the saved
+    // address and compared with this server's copy.
+    Route::post('settings/media-cdn/test', [MediaCdnController::class, 'test'])
+        ->middleware('throttle:6,1')->name('settings.media-cdn.test');
     // Same shape as the mail test: one real call, the provider's
     // own words on a refusal, a success clears the last failure.
     Route::post('settings/integrations/hunter/test', [IntegrationsController::class, 'hunter'])
@@ -176,6 +229,14 @@ Route::middleware('role:admin')->group(function () {
     Route::get('staff/{user:id}', [UserAdminController::class, 'show'])->name('staff.show');
     Route::patch('staff/{user:id}', [UserAdminController::class, 'update'])->name('staff.update');
     Route::delete('staff/{user:id}', [UserAdminController::class, 'destroy'])->name('staff.destroy');
+
+    // The support network's centres (0.170.0, docs/support-network.md):
+    // beside staff, because a centre tags staff accounts.
+    Route::get('support-centres', [AdminSupportCentreController::class, 'index'])->name('support-centres.index');
+    Route::post('support-centres', [AdminSupportCentreController::class, 'store'])->name('support-centres.store');
+    Route::get('support-centres/{supportCentre:id}', [AdminSupportCentreController::class, 'show'])->name('support-centres.show');
+    Route::patch('support-centres/{supportCentre:id}', [AdminSupportCentreController::class, 'update'])->name('support-centres.update');
+    Route::delete('support-centres/{supportCentre:id}', [AdminSupportCentreController::class, 'destroy'])->name('support-centres.destroy');
 
     /*
      * Outgoing webhooks: where to announce a lead, a ticket, an order.

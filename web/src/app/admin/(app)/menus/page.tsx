@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { RebuildButton } from "./rebuild-button";
 import { Badge } from "@/components/ui/badge";
 import { IconMenu } from "@/components/icons";
@@ -96,7 +97,7 @@ export default async function AdminMenusPage() {
       <h2 className="mb-2 text-13 font-semibold">All menus</h2>
 
       {menus.length === 0 ? (
-        <EmptyState icon={<IconMenu />} title="No menus yet">
+        <EmptyState icon={<IconMenu />} title="No menus yet" action={<EmptyListAction filtered={false} clearHref="/admin/menus" newHref="/admin/menus/new" noun="menu" />}>
           Create one, add links to it, and assign it to the header or the footer.
         </EmptyState>
       ) : (

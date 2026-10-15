@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\LandingPageKind;
 use App\Enums\PublishStatus;
+use App\Models\Concerns\HasRevisions;
 use App\Models\Concerns\HasSeo;
 use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,7 +33,7 @@ use Illuminate\Support\Collection;
  */
 class LandingPage extends Model
 {
-    use HasSeo;
+    use HasRevisions, HasSeo;
 
     protected $fillable = [
         'kind', 'brand_id', 'product_category_id', 'solution_id', 'service_id', 'location_id',

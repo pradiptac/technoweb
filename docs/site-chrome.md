@@ -226,7 +226,7 @@ window and the derived bit under `Carbon::setTestNow()`.
 **Every dropdown fades in (2026-09-27), which reverses the second round
 below.** The client saw the instant swap as the flicker this time and asked
 for a fade on every menu, the utility bar's included: a panel now arrives
-over `--duration-base`, opacity only (the 4px rise went too — a panel that
+over `--duration-menu` (340ms, and out over `--duration-menu-exit`, 240ms — slowed from `base`/`exit`, 200/140ms, at the client's request on 2026-10-09; tokens of their own, so no other state change moved), opacity only (the 4px rise went too — a panel that
 moves while it fades reads as a jump), a first open and a swap alike. The
 panel being left still goes at once by the `:has()` rule, so a swap is one
 panel fading in over nothing, never two over each other. The
@@ -467,3 +467,189 @@ name the hover selector too, or the hover rule outranks it.
 Reddit (`social_reddit`) is the seventh profile: `IconReddit` is drawn here
 from filled shapes; `#FF4500` is 5.39:1 on the footer's `#12140d`, but white
 on it is 3.44:1, so the blog sidebar's filled button is `#D93A00` (4.61:1).
+
+## The phone action bar, the coming-soon page and the 404 (0.122.0)
+
+### The action bar
+
+Call, WhatsApp and one button of the site's own, pinned to the foot of the
+screen below `sm`. `lib/action-bar.ts` turns the public `action_bar` settings
+into a list of buttons and `components/layout/action-bar.tsx` draws it, on
+the server, from the marketing layout — so the page stays cached and nothing
+is decided in the browser.
+
+**A button is drawn only when it has what it needs.** Call needs the Contact
+tab's phone number; WhatsApp needs a number of its own or the assistant's;
+the third needs a link. A bar switched on with none of them draws nothing.
+The last button is the filled one: three equal buttons read as a menu, one
+filled button reads as the thing to press.
+
+**It is a direct child of `.public-site`, and one rule depends on that.**
+The bar is `position: fixed`, so alone it would cover the last 52px of every
+page and sit under everything else pinned to the foot of a phone. The rule
+at the end of `globals.css` is `.public-site:has(> [data-action-bar])`,
+below `sm` only:
+
+- the page's foot is padded by `--action-bar-h` (the bar, its hairline and
+  the safe-area inset), so the footer's policy links end above it;
+- the assistant's launcher and panel, the compare tray and the install card
+  rise by the same height — by `bottom`, never `translate`, which the
+  launcher's hop and every `.rise-in` already animate.
+
+Anything new that is pinned to the foot of a phone screen joins that rule.
+The cookie banner is `z-50` and simply covers the bar until it is answered.
+
+Measured: 53px tall with 52px buttons in all twelve themes (the theme
+preview draws the bar too, so a preview on a phone is what a visitor's phone
+shows), the launcher's foot 16px above it, no sideways scroll at 320–414.
+
+### The coming-soon page
+
+One switch (`coming_soon_enabled`) puts `/coming-soon` in front of the whole
+public site.
+
+**It is a rewrite in `proxy.ts`, and it could not be anything else.** The
+obvious place — the marketing layout rendering a holding page instead of its
+children — needs either the setting per request or a cookie to let staff
+through, and either one makes every ISR-cached page dynamic (the "static to
+dynamic at runtime" 500 on every `[slug]` route). The proxy already runs
+before the cache and already holds one thing it fetched from the API: the
+redirect table. The switch rides on that read as `meta.coming_soon`, costs a
+request one boolean, and takes up to sixty seconds to reach visitors — the
+delay a renamed slug has, and the console says so beside the switch.
+
+**What stays open** (`NEVER_CURTAINED`): the console and the portal, every
+route handler, any path ending in an extension (the manifest, the service
+worker, a feed), and the pages a link in an email already sent addresses —
+an order, a visit, a meeting, an event registration, a survey, an
+unsubscribe. Only GET and HEAD are rewritten.
+
+**A curtain, not a lock.** A browser holding the staff session cookie sees
+the real site, and only the cookie's *presence* is checked — verifying it is
+an API call per request. A prefetch also skips the proxy by its matcher. It
+keeps visitors and crawlers away from an unfinished site and protects
+nothing confidential; the settings tab says that in words.
+
+**The redirect loop it had.** The page's answer to a direct visit with the
+switch off is to send the visitor home. For the minute after the switch is
+turned off the proxy still rewrites to it while the page — whose settings
+were purged at once — already sees "off": home, rewritten back, home again.
+The probe hit `ERR_TOO_MANY_REDIRECTS` on exactly that. The rewrite now
+stamps `x-coming-soon: 1` on the request and the page draws the holding page
+for that stale minute instead of redirecting.
+
+The page itself sits outside `(marketing)`: no header, footer, assistant or
+analytics. `noindex`, and `robots.ts` disallows everything while the switch
+is on, since every address answers with the same page. A signed-in member of
+staff can open `/coming-soon` with the switch off, with a line saying nobody
+else can see it. The console's layout carries a standing strip while it is
+on — staff see the real site, so the console is the one place that can say
+what everybody else sees.
+
+### The 404
+
+The not-found body searched the knowledge base only; most missing addresses
+are a product or a page. It is a plain GET form to `/search` now, and
+`NotFoundSuggestions` — a client island, because a not-found boundary is
+given no params and only the browser knows the address — asks `/api/search`
+for the address's last segment (`/products/cisco-cbs350-24t` is a search for
+"cisco cbs350 24t") and lists up to five matches. Nothing is drawn until
+something comes back.
+
+`scripts/probes/action-bar.mjs` measures all three through the real settings
+form and always switches both features off again.
+
+## Arranging a theme's header and footer (0.160.0)
+
+**Site → Header & footer** (`/admin/site/chrome`, administrators) lets an
+editor choose which parts of a theme's header and footer show, put the movable
+ones in another order, and change the words and the link on the header's
+buttons. It is **not a builder**: each theme still draws its own header and
+footer — the markup, the widths at which a piece appears, the idiom — and the
+screen chooses among the parts *that theme has*. A free-form builder was
+considered and not wanted (the client, 2026-10-10).
+
+**The data** is two keys inside a theme's object in the `site_theme_options`
+row (`docs/themes.md`), beside `menu_style` and `sections`:
+
+```json
+{ "launch": {
+    "header": { "parts": { "search": {"on": false}, "scheme": {"on": true} },
+                "order": ["cta", "search", "utility", "phone"],
+                "cta":  { "label": "Book a survey", "href": "/book-a-visit", "on": true } },
+    "footer": { "parts": { "signup": {"on": false} }, "order": ["social", "tagline", "address"] } } }
+```
+
+- **Header ids** (`ThemeOptions::HEADER_PARTS`): `topbar` (the strip above the
+  bar), `phone`, `email`, `search`, `utility` (the top-bar menu's links), `cta`
+  (the main button), `cta2` (a quieter second button), `cart` (the basket mark
+  on the Store link), `scheme` (a light / dark switch, new in the header).
+  **Footer ids** (`FOOTER_PARTS`): `brand` (the logo), `tagline`, `address`,
+  `phone`, `social`, `columns`, `signup`, `legal` (policy links), `credit`,
+  `scheme`.
+- A button's switch is `header.cta.on` / `header.cta2.on`, **not** an entry in
+  `parts` (the API refuses `parts.cta`); its `label` is plain text of at most 30
+  characters and its `href` is checked by `LinkPattern`, so `javascript:` and
+  `//host` are refused. A blank label or link means the theme's own.
+- **Only differences are stored.** Absent means the theme's default: the
+  console works out what changed against the manifest and writes just that, and
+  `ThemeOptions::clean()` drops anything empty, so an untouched theme stores
+  nothing. The API does not know the themes (they are code on the frontend), so
+  what it refuses is a *shape* — an id outside the two lists, a non-boolean
+  switch, an order naming an unknown id, a bad link — with the row's usual
+  error key, `settings.N.value`. `GET /admin/settings` sends the two id lists as
+  `meta.theme_parts`.
+- **What a theme draws is its manifest's `chrome`** (`themes/chrome-parts.ts`,
+  declared in each `themes/<id>/theme.ts`): `parts` (every part it draws, in
+  the order it draws them), `groups` (clusters whose members may swap places
+  among themselves — the members of one row or one block, listed in the theme's
+  own order) and `off` (parts it draws only when asked: `scheme`). **That is how
+  the defaults reproduce today's chrome exactly**: with nothing stored every
+  supported part is on bar `off`, no group is reordered, and a button keeps the
+  theme's own words and link. `resolveChrome(themeId, options)`
+  (`themes/chrome.tsx`) is the one answer; `themeChrome()` and classic's chrome
+  hand it to the header (`chrome` prop, `ResolvedHeader`) and `SiteFooter`
+  (`ResolvedFooter`).
+- **How a header uses it.** Each part is `chrome.show.<id> && …`; a cluster the
+  theme can reorder is `<Arranged chrome={chrome} nodes={{ utility: …, search:
+  …, phone: …, cta: … }}/>` (`header-parts.tsx`), the nodes written in the
+  theme's own order, so the default is the markup it always rendered (the
+  `Fragment`s add no element). `arrange()` takes **whole groups only** — a part
+  that is in no group would be sorted to the end. `PrimaryNavItems` takes
+  `showCart`. A button's words go through `CtaWords`: the theme's own pair
+  (long from 560px, short below) or the editor's one label, ellipsised below
+  560px where the row has nothing to spare. The 404 page renders the classic
+  header with no options and gets its default.
+- **How a footer uses it.** `SiteFooter` takes `chrome`; `columns` empties the
+  link columns (`--footer-cols` never goes below 1), `signup` is folded into the
+  signup flag, `Brand` draws the logo, tagline, address (carrying the phone
+  number) and social row as an arranged block — `address` stands for the phone
+  as well when only the number is on — and `BottomRow` the credit, policy links
+  and scheme switch, and nothing at all when all three are off. Layouts that
+  compose their own brand block (`statement`, `cream`, `contact`, and the
+  masthead's big name) read the same flags.
+- **Hiding only makes room.** No breakpoint or width gate moved: the one-row
+  headers' search (1760px / 1920px), phone and utility gates, the classic
+  Contact button (1400px) and every `max-[…]` rule are the theme's and stay.
+  The mobile drawer is not touched — the number and the search field are there
+  by design — and neither is the footer on a small screen.
+- **The in-header switch is opt-in and late.** `scheme` is off by default; on,
+  it appears from 1600px, wider than every gate the bars already use, because a
+  bar at its measured limit has no 90px to give. The footer's switch shows at
+  every width. It sits in the bar proper (not in a top strip), so it survives
+  switching the strip off.
+- **The screen** reads the whole row, changes one theme's two keys and posts the
+  whole row back through `saveSettingsAction` — the Themes screen's own way, so
+  neither screen disturbs the other's keys. A button's link is read raw while
+  being typed (a half-typed link is not yet a link) and Save is disabled while
+  one does not pass the same pattern. The frame beside it is the theme's real
+  `/theme-preview/<id>`, reloaded when the saved row comes back; Desktop and
+  Phone widths. Parts the theme lacks are not listed.
+
+`scripts/probes/chrome-builder.mjs` switches off search and phone and changes
+the button's words in Classic and Launch through the real screen, then reads
+the preview at 1280 and 360 (the drawer is excluded from every count) and
+restores the defaults. `scripts/probes/html-snapshot.mjs` is the proof the
+default markup did not move: build the tree from before this release and the
+one after, snapshot each (`node scripts/probes/html-snapshot.mjs <dir>` against
+`npm run start`), and `diff -r` must come back empty.

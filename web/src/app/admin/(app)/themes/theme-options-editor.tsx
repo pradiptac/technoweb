@@ -1,17 +1,19 @@
 "use client";
 
 import { useId } from "react";
+import { BACKDROPS } from "@/lib/login-backdrop-choices";
 import { CoverField } from "@/components/admin/cover-field";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";
 import { Field, Input, Select } from "@/components/ui/input";
 import { SECTION_REVEALS } from "@/lib/motion-choices";
 import { announcementBand } from "@/lib/palette";
+import { Switch } from "@/components/ui/switch";
 import { isHex } from "@/lib/presets";
 import { cn } from "@/lib/utils";
 import { MANIFESTS } from "@/themes/manifests";
 import {
-  HEADING_ALIGNS, HERO_STYLES, HOME_SECTIONS, MENU_STYLES, SECTION_KINDS,
-  type Choice, type HeadingAlign, type HeroStyle, type MenuStyle, type SectionBackground, type SectionKind,
+  HEADING_ALIGNS, HERO_STYLES, HOME_SECTIONS, MENU_STYLES, SECTION_KINDS, SECTION_TEXTURES, TOPBAR_STYLES,
+  type Choice, type HeadingAlign, type HeroStyle, type MenuStyle, type SectionBackground, type SectionKind, type SectionTexture, type TopBarPanelStyle,
 } from "@/themes/options";
 
 /**
@@ -22,6 +24,7 @@ import {
  */
 export type OptionsDraft = Record<string, {
   menu_style?: MenuStyle;
+  topbar_style?: TopBarPanelStyle;
   hero_style?: HeroStyle;
   heading_align?: HeadingAlign;
   sections?: Record<string, Partial<SectionBackground> & { enabled?: boolean; reveal?: string }>;
@@ -96,6 +99,15 @@ export function ThemeOptionsEditor({
         disabled={ignores.has("menu_style")}
         note={ignores.has("menu_style") ? `${manifest?.name} draws its own menu and does not use this.` : undefined}
         diagram={(id) => <MenuDiagram style={id} />}
+      />
+
+      <ChoiceTiles<TopBarPanelStyle>
+        legend="Top bar panel"
+        intro="How a link in the strip above the header opens when it has a menu under it, such as Customer Zone. Edit the links in Site → Menus."
+        choices={TOPBAR_STYLES}
+        value={mine.topbar_style ?? "match"}
+        onChange={(v) => set({ topbar_style: v })}
+        diagram={(id) => <TopBarDiagram style={id} />}
       />
 
       <ChoiceTiles<HeroStyle>
@@ -217,6 +229,42 @@ function MenuDiagram({ style }: { style: MenuStyle }) {
   );
 }
 
+/** The strip above the header, and the panel under its last link: tabs and cards, or headed columns under a brand line. */
+function TopBarDiagram({ style }: { style: TopBarPanelStyle }) {
+  return (
+    <div className="relative h-full p-[6%]">
+      <div className="flex h-[12%] items-center justify-end gap-[4%] rounded-sm bg-dark px-[4%]">
+        {[0, 1].map((i) => <i key={i} className="h-[35%] w-[10%] rounded-xs bg-dark-muted/70" />)}
+      </div>
+      <div className="absolute top-[20%] right-[6%] h-[62%] w-[70%] overflow-hidden rounded-b-sm bg-dark p-[3%] shadow-2 ring-1 ring-dark-line">
+        {style === "columns" ? (
+          <>
+            <i className="absolute inset-x-0 top-0 h-[3%] bg-brand-600" />
+            <div className="mt-[3%] grid h-full grid-cols-3 gap-[5%]">
+              {[0, 1, 2].map((c) => (
+                <div key={c} className="flex flex-col gap-[9%]">
+                  <i className="h-[7%] w-[60%] rounded-xs bg-dark-muted" />
+                  {[0, 1, 2].map((r) => (
+                    <div key={r} className="flex flex-col gap-[6%]">
+                      <span className="flex items-center gap-[6%]"><i className="h-[8px] w-[45%] rounded-xs bg-dark-ink/80" /><i className="h-[8px] w-[22%] rounded-xs border border-brand-ink/70" /></span>
+                      <i className="h-[5px] w-[85%] rounded-xs bg-dark-muted/60" />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="grid h-full grid-cols-[28%_1fr] gap-[4%]">
+            <div className="flex flex-col gap-[10%]">{[0, 1, 2].map((i) => <i key={i} className={cn("h-[16%] rounded-xs", i === 0 ? "bg-dark-line" : "bg-dark-2")} />)}</div>
+            <div className="grid grid-cols-2 gap-[6%]">{[0, 1, 2, 3].map((i) => <i key={i} className="h-[40%] rounded-xs bg-dark-2" />)}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** A page's opening block: where the picture goes and where the words sit. */
 function HeroDiagram({ style }: { style: HeroStyle }) {
   const words = (align: "left" | "center") => (
@@ -267,7 +315,13 @@ function SectionRow({
   const moved = band && band.stops.some((s, i) => s.toLowerCase() !== stops[i]!.toLowerCase());
 
   return (
-    <div className={cn("grid gap-3 rounded-lg border border-line-strong bg-card p-3.5 md:grid-cols-[auto_170px_180px_1fr] md:items-start", !enabled && "opacity-70")}>
+    /*
+      One line per section (the client, 2026-10-12): the controls, the name,
+      then every setting side by side across the row's width — the picture,
+      colours and gradient fields flow into the same grid rather than
+      stacking under a narrow column.
+    */
+    <div className={cn("grid gap-3 rounded-lg border border-line-strong bg-card p-3.5 md:grid-cols-[8.75rem_minmax(9rem,13rem)_minmax(0,1fr)] md:items-start", !enabled && "opacity-70")}>
       <div className="flex items-center gap-2 pt-1.5">
         <ReorderButtons index={index} count={count} subject={label} onMove={onMove} dense />
         {/* The hero cannot be switched off (the client's rule, 2026-09-17: a
@@ -276,26 +330,26 @@ function SectionRow({
         {locked ? (
           <span className="text-12-5 text-muted" title="The hero is always shown.">Always</span>
         ) : (
-          <label className="flex cursor-pointer items-center gap-1.5 text-12-5 text-muted">
-            <input type="checkbox" checked={enabled} onChange={(e) => patch({ enabled: e.target.checked ? undefined : false })} className="size-4 accent-brand-600" />
+          <label className="flex cursor-pointer items-center gap-2 text-12-5 text-muted">
+            <Switch checked={enabled} onChange={(e) => patch({ enabled: e.target.checked ? undefined : false })} />
             Show
           </label>
         )}
       </div>
       <div className="flex items-center gap-2.5 pt-2">
-        <span
+        {kind !== "default" && <span
           aria-hidden
           className="size-6 shrink-0 rounded-md border border-line-strong"
           style={
             kind === "gradient" && stops.length === 2
               ? { backgroundImage: `linear-gradient(${value?.angle ?? 135}deg, ${stops[0]}, ${stops[1]})` }
               : kind === "page" ? { backgroundColor: "var(--color-page)" }
-                : kind !== "default" && stops[0] ? { backgroundColor: stops[0] } : undefined
+                : stops[0] ? { backgroundColor: stops[0] } : undefined
           }
-        />
+        />}
         <span className="text-13-5 font-semibold text-ink">{label}</span>
       </div>
-      <div className="grid gap-3">
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(11.5rem,1fr))]">
         <Field label="Background" htmlFor={`${id}-kind`} variant="float-static" className="mb-0">
           <Select
             id={`${id}-kind`}
@@ -306,12 +360,30 @@ function SectionRow({
               // change of kind carries them across rather than dropping them.
               onChange(next === "default"
                 ? (enabled && !value?.reveal ? null : { kind: "default", enabled: value?.enabled, reveal: value?.reveal })
-                : { kind: next, colour: value?.colour ?? (next === "image" ? "#0b0b12" : "#1e3a8a"), colour2: value?.colour2 ?? "#0b1020", overlay: value?.overlay ?? 60, image_path: value?.image_path, image_url: value?.image_url, enabled: value?.enabled, reveal: value?.reveal });
+                : next === "scene"
+                  // An animation names a scene and nothing else — no colour, no texture.
+                  ? { kind: next, scene: value?.scene ?? "aurora", enabled: value?.enabled, reveal: value?.reveal }
+                  : { kind: next, colour: value?.colour ?? (next === "image" ? "#0b0b12" : "#1e3a8a"), colour2: value?.colour2 ?? "#0b1020", overlay: value?.overlay ?? 60, image_path: value?.image_path, image_url: value?.image_url, enabled: value?.enabled, reveal: value?.reveal, texture: value?.texture });
             }}
           >
             {SECTION_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
           </Select>
         </Field>
+        {/* A decorative layer over the ground — any ground but the theme's own. */}
+        {kind === "scene" && (
+          <Field label="Animation" htmlFor={`${id}-scene`} variant="float-static" className="mb-0">
+            <Select id={`${id}-scene`} value={value?.scene ?? "aurora"} onChange={(e) => patch({ scene: e.target.value })}>
+              {BACKDROPS.filter((b) => b.id !== "image").map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+            </Select>
+          </Field>
+        )}
+        {kind !== "default" && kind !== "scene" && (
+          <Field label="Texture" htmlFor={`${id}-texture`} variant="float-static" className="mb-0">
+            <Select id={`${id}-texture`} value={value?.texture ?? "none"} onChange={(e) => patch({ texture: e.target.value === "none" ? undefined : e.target.value as SectionTexture })}>
+              {SECTION_TEXTURES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </Select>
+          </Field>
+        )}
         {/* How the section arrives on scroll. A homepage section is still unless
             one is chosen here (the 2026-09-15 UX audit), so the list has no
             "Default" and opens on None; the site-wide Motion style shapes the
@@ -323,9 +395,8 @@ function SectionRow({
             </Select>
           </Field>
         )}
-      </div>
-      {kind !== "default" && kind !== "page" && (
-        <div className="grid gap-3 sm:grid-cols-2">
+      {kind !== "default" && kind !== "page" && kind !== "scene" && (
+        <>
           <ColourInput id={`${id}-c1`} label={kind === "image" ? "Overlay colour" : kind === "gradient" ? "First colour" : "Colour"} value={value?.colour ?? ""} onChange={(v) => patch({ colour: v })} />
           {kind === "gradient" && (
             <>
@@ -337,28 +408,30 @@ function SectionRow({
           )}
           {kind === "image" && (
             <>
-              <Field label={`Overlay strength: ${value?.overlay ?? 60}%`} htmlFor={`${id}-ov`} variant="above" className="mb-0" hint="How much of the overlay colour sits over the picture. The words are graded against the colour, so more is safer.">
+              <Field label={`Overlay strength: ${value?.overlay ?? 60}%`} htmlFor={`${id}-ov`} variant="above" className="col-span-full mb-0 sm:col-span-2" hint="How much of the overlay colour sits over the picture. The words are graded against the colour, so more is safer.">
                 <input id={`${id}-ov`} type="range" min={0} max={90} step={5} value={value?.overlay ?? 60} onChange={(e) => patch({ overlay: Number(e.target.value) })} className="w-full accent-brand-600" />
               </Field>
-              <div className="sm:col-span-2">
+              <div className="col-span-full">
                 <CoverField
                   defaultPath={value?.image_path ?? null}
                   defaultUrl={value?.image_url ?? null}
                   name={`${id}-picture`}
                   label="Picture"
-                  hint="A wide photograph, 1920px across or more."
+                  spec="hero"
+                  hint="A wide photograph."
                   onPathChange={(path) => patch({ image_path: path ?? undefined })}
                 />
               </div>
             </>
           )}
           {moved && (
-            <p className="text-12 text-muted sm:col-span-2">
+            <p className="col-span-full text-12 text-muted">
               Adjusted to {band!.stops.map((s) => <code key={s} className="font-mono text-11-5"> {s}</code>)} on the site so the words stay readable.
             </p>
           )}
-        </div>
+        </>
       )}
+      </div>
     </div>
   );
 }

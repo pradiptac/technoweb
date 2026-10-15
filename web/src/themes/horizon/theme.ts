@@ -1,4 +1,5 @@
 import type { ThemeManifest } from "../contract.ts";
+import { CLASSIC_HEADER, BRAND_FOOTER } from "../chrome-parts.ts";
 
 /**
  * Horizon: the site as a hosting and cloud company presents itself.
@@ -23,4 +24,5 @@ export const horizonManifest: ThemeManifest = {
   screenshot: "/themes/horizon.jpg",
   extends: "classic",
   defaults: { menu_style: "semi", hero_style: "banner" },
+  chrome: { header: CLASSIC_HEADER, footer: BRAND_FOOTER },
 };

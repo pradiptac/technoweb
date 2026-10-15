@@ -11,12 +11,21 @@ use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
 use App\Models\ContentBlock;
 use App\Models\Coupon;
+use App\Models\GoogleFont;
+use App\Models\Media;
+use App\Models\Page;
 use App\Models\Setting;
 use App\Support\Announcement;
 use App\Support\Backups\BackupSettings;
 use App\Support\Chat\ChatSettings;
+use App\Support\Chat\OpenRouterModels;
+use App\Support\Events\EventSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\InboundMail;
+use App\Support\LinkPattern;
+use App\Support\Media\BrandPalette;
+use App\Support\Media\LogoColours;
+use App\Support\MediaUrl;
 use App\Support\Meetings\MeetingSettings;
 use App\Support\Messaging\ProviderOption;
 use App\Support\Messaging\Providers\Fcm;
@@ -24,6 +33,10 @@ use App\Support\Messaging\Providers\GoogleRbm;
 use App\Support\Net\PublicHost;
 use App\Support\Seo\GoogleServiceAccount;
 use App\Support\Store\CartReminders;
+use App\Support\Store\Fulfilment;
+use App\Support\Store\Shipping\CourierSettings;
+use App\Support\Store\ShippingQuote;
+use App\Support\Store\Zoho\ZohoSettings;
 use App\Support\ThemeOptions;
 use App\Support\UploadLimits;
 use App\Support\Visits\VisitSettings;
@@ -32,6 +45,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -97,6 +111,8 @@ class SettingController extends Controller
             'meta' => [
                 'uploads' => UploadLimits::describe(),
                 'payments' => self::payments(),
+                // The ids a theme's header and footer rows may name (0.160.0); which a theme draws is its manifest.
+                'theme_parts' => ['header' => ThemeOptions::HEADER_PARTS, 'footer' => ThemeOptions::FOOTER_PARTS, 'cta_label_max' => ThemeOptions::CTA_LABEL_MAX],
             ],
         ]);
     }
@@ -186,6 +202,44 @@ class SettingController extends Controller
     ];
 
     /**
+     * The corners and the breathing room of the public site and the portal
+     * (2026-10-05, docs/look-and-feel.md). The first of each is what the site
+     * drew before the setting existed, so an install that never opens the
+     * control renders byte for byte as it did. The frontend's `lib/look.ts`
+     * resolves them and falls back to the first.
+     */
+    public const RADII = [
+        ['value' => 'soft', 'label' => 'Soft', 'description' => 'Gently rounded corners — the site as it has always been.'],
+        ['value' => 'sharp', 'label' => 'Sharp', 'description' => 'Nearly square corners. Engineered, precise, corporate.'],
+        ['value' => 'round', 'label' => 'Round', 'description' => 'Generous curves on cards, buttons and pictures. Friendly, modern.'],
+    ];
+
+    /** How a card sits on the page: flat is the site as it was. */
+    public const SURFACES = [
+        ['value' => 'flat', 'label' => 'Flat', 'description' => 'A hairline border and a soft ground — the site as it has always been.'],
+        ['value' => 'elevated', 'label' => 'Elevated', 'description' => 'Cards float on a soft shadow that deepens under the pointer.'],
+        ['value' => 'outline', 'label' => 'Outline', 'description' => 'A crisp, firmer border and no shadow. Precise and technical.'],
+        ['value' => 'soft', 'label' => 'Soft', 'description' => 'No visible border — cards rest on a wide, gentle shadow.'],
+        ['value' => 'glow', 'label' => 'Glow', 'description' => 'A halo in the brand colour under every card, stronger under the pointer.'],
+    ];
+
+    /**
+     * How large the site's headings are set (0.121.0). One multiplier over
+     * the display type roles; `standard` is the site as it was.
+     */
+    public const TYPE_SCALES = [
+        ['value' => 'standard', 'label' => 'Standard', 'description' => 'The heading sizes the site has always had.'],
+        ['value' => 'compact', 'label' => 'Compact', 'description' => 'Smaller headings — quieter, and more on each screen.'],
+        ['value' => 'large', 'label' => 'Large', 'description' => 'Bigger headings — a bolder, more editorial page.'],
+    ];
+
+    public const DENSITIES = [
+        ['value' => 'comfortable', 'label' => 'Comfortable', 'description' => 'The spacing between sections the site has always had.'],
+        ['value' => 'compact', 'label' => 'Compact', 'description' => 'Sections closer together — more on each screen.'],
+        ['value' => 'airy', 'label' => 'Airy', 'description' => 'More room around every section. Calm and premium.'],
+    ];
+
+    /**
      * How a statistic's figure arrives the first time it scrolls into view.
      * Drawn by the frontend's `StatValue`; the list is here because the
      * console builds its select from `options`, the rule `stats_size` and
@@ -196,6 +250,16 @@ class SettingController extends Controller
         ['value' => 'count', 'label' => 'Count up', 'description' => 'Each number counts up from zero over a second and a half, keeping its sign, unit and decimal places. The default, and what every other figure on the site does.'],
         ['value' => 'rise', 'label' => 'Rise', 'description' => 'Each figure rises into place as it fades in, one after another along the row.'],
         ['value' => 'flip', 'label' => 'Flip', 'description' => 'Each character turns in like a split-flap board, one after another.'],
+    ];
+
+    /** A homepage hero's heading effect (0.171.0); `default` follows Motion → Hero heading. */
+    public const HERO_KINETIC = [
+        ['value' => 'default', 'label' => 'As the Motion settings say', 'description' => 'Whatever Motion → Hero heading is set to.'],
+        ['value' => 'none', 'label' => 'None', 'description' => 'The heading is simply there.'],
+        ['value' => 'rotate', 'label' => 'Rotating words', 'description' => 'The last word cycles through the words below, once, then rests on the original.'],
+        ['value' => 'type', 'label' => 'Typewriter', 'description' => 'The heading types itself in once.'],
+        ['value' => 'decode', 'label' => 'Decode', 'description' => 'Each letter flickers through random characters and settles.'],
+        ['value' => 'highlight', 'label' => 'Highlight', 'description' => 'A marker stroke draws itself under a word — the one below, or the last word.'],
     ];
 
     private static function optionsFor(string $key): ?array
@@ -262,10 +326,21 @@ class SettingController extends Controller
             'chatbot_animation' => ChatSettings::ANIMATIONS,
             'stats_size' => self::STAT_SIZES,
             'social_style' => self::SOCIAL_STYLES,
+            // Zoho Books: the data centre, when an invoice is made, and the
+            // state the business is registered in — `ZohoSettings` owns all three.
+            'zoho_books_dc', 'zoho_books_invoice_when', 'zoho_books_home_state' => ZohoSettings::options($key),
+            // Courier booking (0.143.0): manual or Shiprocket.
+            'store_courier_provider' => CourierSettings::options($key),
+            'theme_radius' => self::RADII,
+            'theme_density' => self::DENSITIES,
+            'theme_surface' => self::SURFACES,
+            'theme_type_scale' => self::TYPE_SCALES,
             'home_stats_block' => self::blockOptions(ContentBlockType::Stats),
+            'homepage_page_id' => self::homepageOptions(),
             'home_pricing_block' => self::blockOptions(ContentBlockType::Pricing),
             'home_stack_block' => self::blockOptions(ContentBlockType::Stack),
             'stats_animation' => self::STAT_ANIMATIONS,
+            'hero_kinetic' => self::HERO_KINETIC,
             'chatbot_model' => AiModel::options(
                 (string) Setting::query()->where('key', 'chatbot_model')->value('value'),
             ),
@@ -277,6 +352,23 @@ class SettingController extends Controller
             // Online meetings' switches and the slot step (docs/meetings.md).
             default => InboundMail::options()[$key] ?? BackupSettings::OPTIONS[$key] ?? MeetingSettings::OPTIONS[$key] ?? null,
         };
+    }
+
+    /**
+     * The homepage's choices: the theme's own, then every published builder
+     * page by title. A picker for the reason the block pickers are one — an id
+     * typed by hand would save and draw the theme's homepage regardless.
+     *
+     * @return list<array{value: string, label: string, description: string}>
+     */
+    private static function homepageOptions(): array
+    {
+        return [
+            ['value' => '', 'label' => 'The theme’s homepage', 'description' => 'The active theme’s own sections, arranged on the Themes screen.'],
+            ...Page::query()->published()->where('template', 'builder')->orderBy('title')->get(['id', 'title', 'slug'])
+                ->map(fn (Page $p) => ['value' => (string) $p->id, 'label' => $p->title, 'description' => 'The builder page at /'.$p->slug.', drawn at / instead.'])
+                ->all(),
+        ];
     }
 
     /**
@@ -322,6 +414,9 @@ class SettingController extends Controller
         // The sign-in panel's message: headings and lists are the point of
         // it, so the full `cms` profile rather than `inline`.
         'login_message' => HtmlSanitiser::PROFILE,
+        // The coming-soon page's message: a paragraph or two and perhaps a
+        // list of what is on its way, so the `cms` profile.
+        'coming_soon_message' => HtmlSanitiser::PROFILE,
     ];
 
     public function update(Request $request): JsonResponse
@@ -361,6 +456,7 @@ class SettingController extends Controller
         $this->validateAnnouncement($request, $existing);
         $this->validateMessaging($request, $existing);
         $this->validateVisits($request);
+        $this->validateShipping($request);
         BackupSettings::validate((array) $request->input('settings', []), $existing);
 
         /*
@@ -448,10 +544,11 @@ class SettingController extends Controller
             if (in_array($row['key'], ['seo_ai_model', 'chatbot_model'], true) && filled($row['value'])) {
                 $stored = (string) ($existing[$row['key']]->value ?? '');
 
-                if (AiModel::tryFrom($row['value']) === null && $row['value'] !== $stored) {
-                    throw ValidationException::withMessages([
-                        "settings.{$i}.value" => 'That is not one of the models offered. Set it directly if you mean it.',
-                    ]);
+                // 0.165.0: a typed OpenRouter id is accepted when it has the
+                // shape and is on OpenRouter's live list (or the list cannot
+                // be read) — `OpenRouterModels`. The stored value always passes.
+                if ($row['value'] !== $stored && ($message = OpenRouterModels::refusalFor((string) $row['value'])) !== null) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => $message]);
                 }
             }
 
@@ -553,6 +650,61 @@ class SettingController extends Controller
     }
 
     /**
+     * The three palettes a logo offers (0.173.0, `docs/theming.md` "Brand
+     * from a logo"). It reads a picture and answers colours; **it writes
+     * nothing** — the console fills the Custom colours fields and Save is
+     * what applies them, the AI assistant's rule.
+     *
+     * `role:admin` because a palette is a settings write, and settings are an
+     * administrator's. The media library is a content manager's screen, so
+     * its own button is drawn only for an account that may reach Themes.
+     */
+    public function paletteFromLogo(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'path' => ['nullable', 'string', 'max:2048'],
+        ]);
+
+        $path = trim((string) ($data['path'] ?? '')) ?: trim((string) Setting::get('logo_path', ''));
+
+        if ($path === '') {
+            throw ValidationException::withMessages([
+                'path' => ['Upload your logo first, under Settings → General.'],
+            ]);
+        }
+
+        $medium = Media::query()->where('path', $path)->first();
+
+        if (! $medium) {
+            throw ValidationException::withMessages([
+                'path' => ['That file is not in the media library.'],
+            ]);
+        }
+
+        if (! str_starts_with((string) $medium->mime, 'image/')) {
+            throw ValidationException::withMessages([
+                'path' => ['That file is not a picture, so it has no colours to read.'],
+            ]);
+        }
+
+        $absolute = Storage::disk($medium->disk ?: 'public')->path($medium->path);
+        $palette = BrandPalette::from(LogoColours::read($absolute));
+
+        if ($palette['readings'] === []) {
+            throw ValidationException::withMessages([
+                'path' => [$palette['colours'] === []
+                    ? 'That file could not be read as a picture.'
+                    : 'This logo is black, white or grey, so there is no brand colour to take from it. Type your colours in below.'],
+            ]);
+        }
+
+        return response()->json(['data' => [
+            ...$palette,
+            'from' => ['path' => $medium->path, 'url' => MediaUrl::for($medium->path)],
+        ]]);
+    }
+
+    /**
      * The blog's sidebar video, checked against YouTube's own hosts.
      *
      * It becomes an iframe `src`, and an unchecked one is somebody else's page
@@ -606,11 +758,27 @@ class SettingController extends Controller
                 }
             }
 
-            if (in_array($key, $fonts, true) && filled($value)
-                && ! preg_match('/^[a-z][a-z0-9-]{1,31}$/', (string) $value)) {
+            // A custom font's rows are written by the font endpoints, which
+            // check the file; a path typed here would be one nothing checked.
+            if (str_starts_with($key, 'custom_font_')) {
                 throw ValidationException::withMessages([
-                    "settings.{$i}.value" => 'Choose a font from the list.',
+                    "settings.{$i}.value" => 'Upload a font under Your own fonts, not through this form.',
                 ]);
+            }
+
+            if (in_array($key, $fonts, true) && filled($value)) {
+                $value = (string) $value;
+
+                // A Google font (0.179.0) must be installed here first: unlike
+                // a vendored id the website has no face to fall back to for a
+                // font it was never sent.
+                if (str_starts_with($value, 'g-')) {
+                    if (! GoogleFont::where('slug', substr($value, 2))->exists()) {
+                        throw ValidationException::withMessages(["settings.{$i}.value" => 'Install that font first.']);
+                    }
+                } elseif (! preg_match('/^[a-z][a-z0-9-]{1,31}$/', $value)) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a font from the list.']);
+                }
             }
         }
     }
@@ -627,7 +795,7 @@ class SettingController extends Controller
     {
         // The sign-in screen's three ids ride on the same rule: same shape,
         // same list-on-the-frontend reasoning (login-backdrop-choices.ts).
-        $ids = ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_hero', 'login_backdrop', 'login_intensity', 'login_speed'];
+        $ids = ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_hero', 'motion_cards', 'motion_progress', 'motion_headline', 'motion_micro', 'login_backdrop', 'login_intensity', 'login_speed'];
 
         foreach ($request->input('settings', []) as $i => $row) {
             $key = $row['key'] ?? '';
@@ -714,16 +882,25 @@ class SettingController extends Controller
             $key = $row['key'] ?? '';
             $value = $row['value'] ?? null;
 
-            if (in_array($key, ['chatbot_colour', 'chatbot_background', 'stats_colour'], true) && filled($value)) {
+            if (in_array($key, ['chatbot_colour', 'chatbot_background', 'chatbot_header', 'stats_colour'], true) && filled($value)) {
                 if (! preg_match('/^#[0-9a-f]{6}$/i', (string) $value)) {
                     throw ValidationException::withMessages(["settings.{$i}.value" => 'The colour must be a #rrggbb colour, or blank for the brand colour.']);
                 }
                 $rows[$i]['value'] = strtolower((string) $value);
             }
 
+            if ($key === 'homepage_page_id' && filled($value)
+                && ! Page::query()->published()->where('template', 'builder')->whereKey((int) $value)->exists()) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a published builder page, or the theme’s homepage.']);
+            }
             if (isset(self::HOME_BLOCKS[$key]) && filled($value)
                 && ! ContentBlock::query()->published()->where('type', self::HOME_BLOCKS[$key])->where('slug', $value)->exists()) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a published block of this kind, or None.']);
+            }
+            foreach (['theme_radius' => self::RADII, 'theme_density' => self::DENSITIES, 'theme_surface' => self::SURFACES, 'theme_type_scale' => self::TYPE_SCALES] as $lookKey => $choices) {
+                if ($key === $lookKey && filled($value) && ! in_array($value, array_column($choices, 'value'), true)) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose one from the list.']);
+                }
             }
             if ($key === 'social_style' && filled($value) && ! in_array($value, array_column(self::SOCIAL_STYLES, 'value'), true)) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a style from the list.']);
@@ -736,8 +913,59 @@ class SettingController extends Controller
                 }
                 $rows[$i]['value'] = strtoupper((string) $value);
             }
+            // The installed app's names (2026-10-05). The short name is what a
+            // phone prints under the icon, and a launcher cuts it off at about
+            // twelve characters — refused rather than truncated by somebody
+            // else's ellipsis. Plain text either way: both reach the manifest.
+            if ($key === 'pwa_short_name' && filled($value) && mb_strlen(trim((string) $value)) > 12) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'At most 12 characters — a phone cuts a longer name off under the icon.']);
+            }
+            if ($key === 'pwa_name' && filled($value) && mb_strlen(trim((string) $value)) > 45) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'At most 45 characters.']);
+            }
+            // The phone's action bar and the coming-soon page (0.122.0). The
+            // WhatsApp number becomes a `wa.me` address, which takes digits
+            // and nothing else; the enquiry link becomes an `href` on every
+            // public page, so it is held to the shape every editor-typed link
+            // is (`LinkPattern`).
+            if ($key === 'action_bar_whatsapp_number' && filled($value)) {
+                $digits = preg_replace('/\D+/', '', (string) $value) ?? '';
+
+                if (strlen($digits) < 8 || strlen($digits) > 15) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Enter the number with its country code, for example 919876543210.']);
+                }
+                $rows[$i]['value'] = $digits;
+            }
+            if ($key === 'action_bar_enquire_href' && filled($value) && ! LinkPattern::allows(trim((string) $value))) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Enter a path on this site (/contact), a full address, a mailto: or a tel: link.']);
+            }
+            if ($key === 'action_bar_enquire_label' && filled($value) && mb_strlen(trim((string) $value)) > 16) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'At most 16 characters — it shares a phone screen with two other buttons.']);
+            }
+            // The media CDN's address (0.124.0): an https origin on a public
+            // host, stored as the origin alone — it goes in front of every
+            // video and download the site links to.
+            if ($key === 'media_cdn_url' && filled($value)) {
+                if (($refusal = MediaUrl::refusalFor((string) $value)) !== null) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);
+                }
+                $rows[$i]['value'] = MediaUrl::clean((string) $value);
+            }
+            if ($key === 'coming_soon_heading' && filled($value) && mb_strlen(trim((string) $value)) > 120) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'At most 120 characters.']);
+            }
             if ($key === 'stats_size' && filled($value) && ! in_array($value, array_column(self::STAT_SIZES, 'value'), true)) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a size from the list.']);
+            }
+            if ($key === 'hero_kinetic' && filled($value) && ! in_array($value, array_column(self::HERO_KINETIC, 'value'), true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose an effect from the list.']);
+            }
+            if ($key === 'hero_kinetic_words' && filled($value)) {
+                $lines = array_values(array_filter(array_map('trim', preg_split('/\R/', (string) $value) ?: []), fn ($l) => $l !== ''));
+                if (count($lines) > 6 || collect($lines)->contains(fn ($l) => mb_strlen($l) > 40)) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Up to six words or short phrases, one per line.']);
+                }
+                $rows[$i]['value'] = implode("\n", $lines);
             }
             if ($key === 'stats_animation' && filled($value) && ! in_array($value, array_column(self::STAT_ANIMATIONS, 'value'), true)) {
                 throw ValidationException::withMessages([
@@ -907,6 +1135,9 @@ class SettingController extends Controller
             'google_analytics_id' => ['/^G-[A-Z0-9]+$/', 'A GA4 measurement id looks like G-XXXXXXXXXX.'],
             'google_tag_manager_id' => ['/^GTM-[A-Z0-9]+$/', 'A Tag Manager container id looks like GTM-XXXXXXX.'],
             'meta_pixel_id' => ['/^\d+$/', 'A Meta Pixel id is digits only.'],
+            // What gets pasted by mistake is the client *secret*, or the
+            // project id; a client id has one shape and Google refuses any other.
+            'google_login_client_id' => ['/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/', 'A Google client ID ends in .apps.googleusercontent.com — copy it from the OAuth client in Google Cloud.'],
             // The prefix on a ticket, visit or order number (App\Support\References),
             // read back upper-cased: it must stay something the email-to-ticket
             // reader and a person on the telephone can both parse.
@@ -914,6 +1145,7 @@ class SettingController extends Controller
             'visit_reference_prefix' => ['/^[A-Z][A-Z0-9]{1,5}$/i', 'Two to six letters or digits, starting with a letter — for example SV.'],
             'meeting_reference_prefix' => ['/^[A-Z][A-Z0-9]{1,5}$/i', 'Two to six letters or digits, starting with a letter — for example MT.'],
             'order_number_prefix' => ['/^[A-Z][A-Z0-9]{1,5}$/i', 'Two to six letters or digits, starting with a letter — for example ORD.'],
+            'return_reference_prefix' => ['/^[A-Z][A-Z0-9]{1,5}$/i', 'Two to six letters or digits, starting with a letter — for example RMA.'],
         ];
 
         foreach ($request->input('settings', []) as $i => $row) {
@@ -1023,14 +1255,51 @@ class SettingController extends Controller
      * refused with the reason rather than saved and quietly read as the
      * default (2026-09-26, docs/visits.md).
      */
+    /**
+     * How delivery is charged (0.142.0). `zones` is refused here as it is on
+     * the shipping screen until a default zone with a weight slab exists: this
+     * endpoint would otherwise be a way round the one check that stops
+     * customers being quoted from nothing.
+     */
+    private function validateShipping(Request $request): void
+    {
+        foreach ($request->input('settings', []) as $i => $row) {
+            $key = (string) ($row['key'] ?? '');
+            $value = $row['value'] ?? null;
+
+            if ($key === 'store_shipping_mode' && filled($value)) {
+                if (! in_array($value, [Fulfilment::MODE_FLAT, Fulfilment::MODE_ZONES], true)) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Delivery is charged flat or by zone.']);
+                }
+
+                if ($value === Fulfilment::MODE_ZONES && ! ShippingQuote::zonesReady()) {
+                    throw ValidationException::withMessages([
+                        "settings.{$i}.value" => 'Zones need a default zone that delivers and has a weight slab. Set them up under Store → Shipping first.',
+                    ]);
+                }
+            }
+
+            if ($key === 'store_default_weight_grams' && filled($value) && (! ctype_digit((string) $value) || (int) $value < 1)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'The default weight is a whole number of grams, at least 1.']);
+            }
+        }
+    }
+
     private function validateVisits(Request $request): void
     {
         foreach ($request->input('settings', []) as $i => $row) {
             $key = (string) ($row['key'] ?? '');
             // The `meetings` group is read the same way, by `MeetingSettings`
             // (2026-09-29, docs/meetings.md).
+            // And the `events` group's two numbers and its address, by
+            // `EventSettings` (0.118.0, docs/events.md).
             $refusal = VisitSettings::refusalFor($key, $row['value'] ?? null)
-                ?? MeetingSettings::refusalFor($key, $row['value'] ?? null);
+                ?? MeetingSettings::refusalFor($key, $row['value'] ?? null)
+                ?? EventSettings::refusalFor($key, $row['value'] ?? null)
+                // And the `zoho_books` group's choices (0.134.0, docs/store.md).
+                ?? ZohoSettings::refusalFor($key, $row['value'] ?? null)
+                // And the `shiprocket` group's (0.143.0, docs/store.md "Shiprocket").
+                ?? CourierSettings::refusalFor($key, $row['value'] ?? null);
 
             if ($refusal !== null) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);

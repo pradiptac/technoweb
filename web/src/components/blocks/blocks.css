@@ -14,6 +14,19 @@
 .blk-pricing[data-billing="monthly"] [data-period="yearly"],
 .blk-pricing[data-billing="yearly"] [data-period="monthly"] { display: none; }
 
+/*
+ * The banded layout's bars (0.180.0): the theme's own fills by position, each
+ * under the ink graded for it — brand, secondary, accent, then the info fill,
+ * whose ink is white as the toast's badge is. `--band-ink` is coloured text on
+ * a card (the ticks, "save"), the inverting ink tokens.
+ */
+[data-pricing-layout="banded"] [data-band="0"] { --band: var(--color-brand-600); --band-on: var(--color-brand-on); --band-ink: var(--color-brand-ink); }
+[data-pricing-layout="banded"] [data-band="1"] { --band: var(--color-secondary-600); --band-on: var(--color-secondary-on); --band-ink: var(--color-secondary-ink); }
+[data-pricing-layout="banded"] [data-band="2"] { --band: var(--color-accent-600); --band-on: var(--color-accent-on); --band-ink: var(--color-accent-ink); }
+[data-pricing-layout="banded"] [data-band="3"] { --band: var(--color-info-fill); --band-on: var(--color-white); --band-ink: var(--color-info); }
+/* The plan marked: outlined in its own colour, drawn over the hairlines beside it. */
+[data-pricing-layout="banded"] [data-highlighted] { outline: 2px solid var(--band); outline-offset: -2px; z-index: 1; }
+
 /* --- Stats: gradient text (feature_cards) ---------------------------------
  * The `color` stays a graded ink, so a browser without background-clip:text
  * paints readable words and the audit grades a real colour; the fill is a

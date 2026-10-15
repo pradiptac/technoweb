@@ -1,8 +1,8 @@
 import "server-only";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiUpload } from "@/lib/api";
 import { token } from "./_shared";
 import type {
-  MailTemplateIndex, MailTemplateDetail, MailStatus, HunterAccount, InboundMailStatus,
+  MailTemplateIndex, MailTemplateDetail, MailStatus, HunterAccount, InboundMailStatus, LogoPalette,
 } from "@/types/api";
 
 export async function getMailStatus(): Promise<MailStatus> {
@@ -123,7 +123,7 @@ export type SettingRow = {
    * `schema_type_options` follows, because two hand-written copies of one list
    * of strings is exactly the drift nothing type-checks across the wire.
    */
-  options?: { value: string; label: string; description: string }[] | null;
+  options?: { value: string; label: string; description: string; custom?: boolean }[] | null;
 };
 
 export type SettingGroups = Record<string, SettingRow[]>;
@@ -272,10 +272,42 @@ export async function testSearchConsole(): Promise<{ site: string; days: number;
   return res.data;
 }
 
+export type CustomFontSlot = { slot: number; id: string; name: string | null; regular: string | null; bold: string | null; variable: boolean };
+
+/** Upload a company's own font into a slot: multipart, so `apiUpload` — `apiFetch` would send `{}`. */
+export async function saveCustomFont(slot: 1 | 2, data: FormData): Promise<CustomFontSlot> {
+  const res = await apiUpload<{ data: CustomFontSlot }>(`/admin/settings/fonts/${slot}`, data, { token: await token() });
+  return res.data;
+}
+
+/** Empty a font slot; the API takes the site off it too. */
+export async function removeCustomFont(slot: 1 | 2): Promise<void> {
+  await apiFetch<void>(`/admin/settings/fonts/${slot}`, { method: "DELETE", token: await token() });
+}
+
+/** Prove the media CDN: one library file fetched through the saved address and compared with the server's copy. */
+export async function testMediaCdn(): Promise<{ message: string; url: string }> {
+  const res = await apiFetch<{ data: { message: string; url: string } }>("/admin/settings/media-cdn/test", {
+    method: "POST", body: {}, token: await token(),
+  });
+  return res.data;
+}
+
 /** Prove the GA4 property with the same account: one real report for yesterday, the page count, Google's words on refusal. */
 export async function testGoogleAnalytics(): Promise<{ property: string; days: number; pages: number }> {
   const res = await apiFetch<{ data: { property: string; days: number; pages: number } }>("/admin/settings/integrations/ga4/test", {
     method: "POST", body: {}, token: await token(),
+  });
+  return res.data;
+}
+/**
+ * The palettes the company's logo offers (0.173.0). `path` names another
+ * library file; without it the API reads the `logo_path` setting. It writes
+ * nothing — the Themes screen fills its colour fields and Save applies them.
+ */
+export async function paletteFromLogo(path?: string): Promise<LogoPalette> {
+  const res = await apiFetch<{ data: LogoPalette }>("/admin/settings/palette-from-logo", {
+    method: "POST", body: path ? { path } : {}, token: await token(),
   });
   return res.data;
 }

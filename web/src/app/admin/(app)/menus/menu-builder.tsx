@@ -51,6 +51,9 @@ type Row = {
   url: string | null;
   icon: string | null;
   description: string | null;
+  /** A status chip beside the entry (0.150.0) and its tone id. */
+  badge: string | null;
+  badge_tone: string;
   open_in_new_tab: boolean;
   is_active: boolean;
   /** What the API said this resolves to. Null means the destination is gone,
@@ -83,6 +86,8 @@ function flatten(items: MenuItemNode[], depth = 0): Row[] {
       url: item.url,
       icon: item.icon,
       description: item.description,
+      badge: item.badge ?? null,
+      badge_tone: item.badge_tone ?? "new",
       open_in_new_tab: item.open_in_new_tab,
       is_active: item.is_active,
       resolved_url: item.resolved_url,
@@ -110,6 +115,8 @@ function nest(rows: Row[]) {
     url: r.url,
     icon: r.icon || null,
     description: r.description || null,
+    badge: r.badge?.trim() || null,
+    badge_tone: r.badge_tone || "new",
     open_in_new_tab: r.open_in_new_tab,
     is_active: r.is_active,
   });
@@ -379,6 +386,28 @@ export function MenuBuilder({
                     */}
                     <IconField id={row.key} value={row.icon ?? ""} onChange={(icon) => update(row.key, { icon: icon || null })} />
 
+                    {/*
+                      A small status chip beside the entry in the top bar's
+                      columns panel, the mega menu and the phone drawer.
+                      Stored as typed, drawn upper-case; the tone picks a
+                      colour from the theme, never a hex.
+                    */}
+                    <Field label="Badge" htmlFor={`${row.key}-badge`} variant="float"
+                      hint="A short word such as Live, Beta or Soon, shown beside the label. Leave blank for none.">
+                      <Input id={`${row.key}-badge`} maxLength={12} value={row.badge ?? ""}
+                        onChange={(e) => update(row.key, { badge: e.target.value })} />
+                    </Field>
+
+                    <Field label="Badge colour" htmlFor={`${row.key}-badge-tone`} variant="float-static">
+                      <Select id={`${row.key}-badge-tone`} value={row.badge_tone} disabled={!row.badge?.trim()}
+                        onChange={(e) => update(row.key, { badge_tone: e.target.value })}>
+                        <option value="live">Live — green</option>
+                        <option value="beta">Beta — violet</option>
+                        <option value="soon">Soon — grey</option>
+                        <option value="new">New — brand colour</option>
+                      </Select>
+                    </Field>
+
                     <label className="flex items-center gap-2 text-13">
                       <input type="checkbox" checked={row.open_in_new_tab}
                         onChange={(e) => update(row.key, { open_in_new_tab: e.target.checked })} />
@@ -497,7 +526,7 @@ function AddPanel({
         target_id: target.id,
         target_key: null,
         target_label: target.label,
-        url: null, icon: null, description: null,
+        url: null, icon: null, description: null, badge: null, badge_tone: "new",
         open_in_new_tab: false, is_active: true,
         resolved_url: target.url,
       });
@@ -509,7 +538,7 @@ function AddPanel({
         label: label.trim() || list.label,
         type: "catalogue",
         target_id: null, target_key: list.value, target_label: list.label,
-        url: null, icon: null, description: null,
+        url: null, icon: null, description: null, badge: null, badge_tone: "new",
         open_in_new_tab: false, is_active: true,
         resolved_url: list.path,
       });
@@ -521,7 +550,7 @@ function AddPanel({
         label: label.trim() || section.label,
         type: "section",
         target_id: null, target_key: section.value, target_label: section.label,
-        url: null, icon: null, description: null,
+        url: null, icon: null, description: null, badge: null, badge_tone: "new",
         open_in_new_tab: false, is_active: true,
         resolved_url: section.path,
       });
@@ -532,7 +561,7 @@ function AddPanel({
         label: label.trim() || url.trim(),
         type: "custom",
         target_id: null, target_key: null, target_label: null,
-        url: url.trim() || null, icon: null, description: null,
+        url: url.trim() || null, icon: null, description: null, badge: null, badge_tone: "new",
         open_in_new_tab: false, is_active: true,
         resolved_url: url.trim() || null,
       });

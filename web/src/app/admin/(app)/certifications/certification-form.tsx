@@ -89,7 +89,8 @@ export function CertificationForm({ certification }: { certification?: AdminCert
             label="Certificate image"
             defaultPath={certification?.image_path ?? null}
             defaultUrl={certification?.image ?? null}
-            hint="A scan or photograph of the certificate itself. Portrait, 3:4 — the site draws it in a portrait well and crops anything else to fit."
+            spec="certificate"
+            hint="A scan or photograph of the certificate itself, drawn in a portrait well."
           />
         </aside>
       </div>

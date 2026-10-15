@@ -28,12 +28,27 @@ import "server-only";
  * the property.
  */
 export async function streamAttachment(token: string | null | undefined, apiPath: string, id: string): Promise<Response> {
+  return streamPrivateFile(token, `${apiPath}/${Number(id)}`, `attachment-${Number(id)}`);
+}
+
+/**
+ * The same stream for a private file that is not addressed by one numeric id
+ * — a form submission's upload is `admin/forms/{id}/submissions/{sid}/files/{field}`.
+ *
+ * `path` is everything after `/api/v1/` and is put into the URL as given, so
+ * **the caller checks every segment it took from a request** before calling:
+ * a number is passed through `Number()`, a name is held to its own alphabet.
+ * Nothing here can do that for it, because nothing here knows the shape.
+ */
+export async function streamPrivateFile(
+  token: string | null | undefined, path: string, fallbackName: string,
+): Promise<Response> {
   if (!token) {
     return new Response("Not signed in.", { status: 401 });
   }
 
   const base = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
-  const upstream = await fetch(`${base}/api/v1/${apiPath}/${Number(id)}`, {
+  const upstream = await fetch(`${base}/api/v1/${path}`, {
     headers: { Accept: "application/octet-stream", Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
@@ -54,7 +69,7 @@ export async function streamAttachment(token: string | null | undefined, apiPath
        */
       "Content-Disposition":
         upstream.headers.get("content-disposition")?.replace(/^inline/i, "attachment")
-        ?? `attachment; filename="attachment-${Number(id)}"`,
+        ?? `attachment; filename="${fallbackName}"`,
       "Cache-Control": "no-store",
     },
   });

@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
  * every CMS screen here is, and an empty string clears it.
  */
 export function DocumentField({
-  name, label, hint, defaultPath, defaultName, error,
+  name, label, hint, defaultPath, defaultName, error, accept = "application/pdf",
 }: {
   name: string;
   label: string;
@@ -27,6 +27,8 @@ export function DocumentField({
   /** The human filename, so the field shows what a reader will receive. */
   defaultName?: string | null;
   error?: string;
+  /** What the dialog's own uploader takes. A PDF unless said otherwise — the downloads centre takes any document. */
+  accept?: string;
 }) {
   const [path, setPath] = useState(defaultPath ?? "");
   const [filename, setFilename] = useState(defaultName ?? "");
@@ -72,7 +74,7 @@ export function DocumentField({
         open={browsing}
         kind="file"
         title="Choose a document"
-        accept="application/pdf"
+        accept={accept}
         onClose={() => setBrowsing(false)}
         onPick={(file) => {
           setPath(file.path);

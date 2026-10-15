@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkStoreProductsAction } from "../actions";
 import Image from "next/image";
 import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconSwitch } from "@/components/icons";
@@ -23,7 +26,7 @@ export const metadata = buildMetadata({ title: "Store products", path: "/admin/s
 const statusTone = { draft: "closed", published: "resolved", archived: "closed" } as const;
 
 type SearchParams = {
-  q?: string; status?: PublishStatus; type?: string; out_of_stock?: string; notices?: string;
+  q?: string; status?: PublishStatus; type?: string; out_of_stock?: string; notices?: string; no_weight?: string;
   page?: string; per_page?: string;
 };
 
@@ -44,6 +47,7 @@ export default async function StoreProductsPage({
       type: params.type,
       out_of_stock: params.out_of_stock === "1",
       notices: params.notices === "1",
+      no_weight: params.no_weight === "1",
       page: Number(params.page) || 1,
       per_page: Number(params.per_page) || undefined,
     });
@@ -56,7 +60,7 @@ export default async function StoreProductsPage({
   }
 
   const products = result.data;
-  const filtered = Boolean(params.q || params.status || params.type || params.out_of_stock || params.notices);
+  const filtered = Boolean(params.q || params.status || params.type || params.out_of_stock || params.notices || params.no_weight);
   // Whether the Meta feed answers; the public settings, cached like the site's.
   const metaEnabled = await getSiteSettings()
     .then((settings) => settingEnabled(settings, "meta_catalogue_enabled", true))
@@ -124,6 +128,14 @@ export default async function StoreProductsPage({
           </Select>
         </FilterField>
 
+        {/* Physical products weighed at the shop's default because nobody entered a weight (0.142.0). */}
+        <FilterField label="Weight" htmlFor="no_weight">
+          <Select id="no_weight" name="no_weight" defaultValue={params.no_weight ?? ""}>
+            <option value="">Any</option>
+            <option value="1">No weight entered</option>
+          </Select>
+        </FilterField>
+
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
           {filtered && <ButtonLink href="/admin/store/products" variant="ghost" size="sm">Clear</ButtonLink>}
@@ -131,16 +143,19 @@ export default async function StoreProductsPage({
       </FilterBar>
 
       {products.length === 0 ? (
-        <EmptyState icon={<IconSwitch />} title={filtered ? "Nothing matches those filters" : "The shop is empty"}>
+        <EmptyState icon={<IconSwitch />} title={filtered ? "Nothing matches those filters" : "The shop is empty"} action={<EmptyListAction filtered={filtered} clearHref="/admin/store/products" newHref="/admin/store/products/new" noun="product" />}>
           {filtered
             ? "Try a different term, or clear the filters."
             : "Add what you sell. Each product gets its own page under /store/products."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="store-products" ids={products.map((p) => p.id)} noun={{ one: "product", many: "products" }} action={bulkStoreProductsAction} />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[820px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="store-products" ids={products.map((p) => p.id)} noun="product" /></th>
                 <th scope="col" className="px-3 py-1.5">Product</th>
                 <th scope="col" className="px-3 py-1.5">Type</th>
                 <th scope="col" className="px-3 py-1.5">Price</th>
@@ -152,6 +167,7 @@ export default async function StoreProductsPage({
             <tbody>
               {products.map((p) => (
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="store-products" id={p.id} label={p.name} /></td>
                   <td data-label="Product" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded border border-line-strong bg-surface">
@@ -228,12 +244,13 @@ export default async function StoreProductsPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination
         meta={result.meta}
         basePath="/admin/store/products"
-        params={{ q: params.q, status: params.status, type: params.type, out_of_stock: params.out_of_stock, notices: params.notices, per_page: params.per_page }}
+        params={{ q: params.q, status: params.status, type: params.type, out_of_stock: params.out_of_stock, notices: params.notices, no_weight: params.no_weight, per_page: params.per_page }}
       />
     </>
   );

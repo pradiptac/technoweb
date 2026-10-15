@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\LandingPageKind;
+use App\Enums\PublishStatus;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\LandingPageRequest;
 use App\Http\Resources\Admin\LandingPageResource;
 use App\Models\Faq;
@@ -12,6 +15,7 @@ use App\Support\LandingPageOpportunities;
 use App\Support\LandingPageQuality;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Programmatic landing pages. Behind auth:sanctum + role:seo_manager.
@@ -28,6 +32,8 @@ use Illuminate\Http\Request;
  */
 class LandingPageController extends Controller
 {
+    use HandlesBulk;
+
     public function index(Request $request)
     {
         $pages = LandingPage::query()
@@ -126,9 +132,41 @@ class LandingPageController extends Controller
 
     public function destroy(LandingPage $landingPage): JsonResponse
     {
-        $landingPage->delete();
+        $this->remove($landingPage);
 
         return response()->json(['message' => 'Deleted.']);
+    }
+
+    /**
+     * `POST /admin/landing-pages/bulk` — publish, draft, archive or delete
+     * the ticked pages. Publishing runs the same gate an edit does
+     * (`LandingPageQuality`), page by page: one that has not earned it is
+     * refused with the gate's own sentences and the rest go on.
+     */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk(
+            $request,
+            LandingPage::query()->withContext(),
+            $this->remove(...),
+            function (LandingPage $page, PublishStatus $status) {
+                if ($status !== PublishStatus::Published) {
+                    return;
+                }
+
+                $reasons = LandingPageQuality::publishReasons($page);
+
+                if ($reasons !== []) {
+                    throw ValidationException::withMessages(['status' => implode(' ', $reasons)]);
+                }
+            },
+        );
+    }
+
+    /** What deleting a landing page does, for `destroy()` and the bulk path alike. */
+    private function remove(LandingPage $landingPage): void
+    {
+        $landingPage->delete();
     }
 
     /* ------------------------------------------------------------ plumbing */

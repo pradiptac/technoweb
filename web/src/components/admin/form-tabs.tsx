@@ -24,6 +24,14 @@ export type TabGroup = {
  * dropped. A field renamed on the server but not here would otherwise make an
  * error silently uncountable — the same failure this exists to prevent.
  */
+/**
+ * The tabs Simple view hides (docs/help-and-tours.md): search metadata, answer
+ * blocks and custom fields. By id for the first two, which every entity form
+ * names `seo` and `aeo`; by what it holds for custom fields, because the form
+ * builder has a "fields" tab of its own that is not this.
+ */
+const isAdvanced = (g: TabGroup) => g.id === "seo" || g.id === "aeo" || g.fields.includes("custom_fields");
+
 export function buildFormTabs(
   groups: TabGroup[],
   fieldErrors: Record<string, string[]> | undefined,
@@ -46,6 +54,7 @@ export function buildFormTabs(
   const tabs: TabDef[] = groups.map((g, i) => ({
     id: g.id,
     label: g.label,
+    ...(isAdvanced(g) ? { advanced: true } : {}),
     ...(counts[i] ? { badge: counts[i], tone: "err" as const } : {}),
   }));
 

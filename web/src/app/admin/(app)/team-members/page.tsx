@@ -5,6 +5,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconUsers } from "@/components/icons";
@@ -22,6 +23,7 @@ export default async function AdminTeamMembersPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q || params.status || params.department);
 
   let result;
   try {
@@ -75,7 +77,7 @@ export default async function AdminTeamMembersPage({
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconUsers />} title="Nobody listed yet">
+        <EmptyState icon={<IconUsers />} title={filtered ? "Nobody matches those filters" : "Nobody listed yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/team-members" newHref="/admin/team-members/new" noun="team member" />}>
           Add a team member with a photo, a designation and the certifications they hold.
         </EmptyState>
       ) : (

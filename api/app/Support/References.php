@@ -26,6 +26,8 @@ final class References
         'visit_reference_prefix' => 'TV',
         'meeting_reference_prefix' => 'MT',
         'order_number_prefix' => 'ORD',
+        // A return's reference (0.132.0): RMA-2026-00001.
+        'return_reference_prefix' => 'RMA',
     ];
 
     public static function ticket(): string
@@ -46,6 +48,11 @@ final class References
     public static function order(): string
     {
         return self::prefix('order_number_prefix');
+    }
+
+    public static function returns(): string
+    {
+        return self::prefix('return_reference_prefix');
     }
 
     /** A setting's prefix, upper-cased, or its default when the row is missing or malformed. */

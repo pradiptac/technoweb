@@ -8,11 +8,15 @@ export type WordPressImportStatus =
 
 export type WordPressImportSection = "content" | "catalogue" | "customers" | "custom";
 
-/** Why records were skipped, or written with something missing — grouped, largest first. */
+/**
+ * Why records were skipped, or written with something missing — grouped,
+ * largest first. `info` says what was made of something (0.110.0: the forms,
+ * pricing blocks and galleries a page held), neither a loss nor a refusal.
+ */
 export type WordPressImportReason = {
   reason: string;
   count: number;
-  kind: "skip" | "warn";
+  kind: "skip" | "warn" | "info";
   examples: string[];
 };
 
@@ -50,6 +54,8 @@ export type WordPressContentTypeChoice = {
 /** What the review asks a person to settle, as the API offers it. */
 export type WordPressImportOptions = {
   media_scope?: { value: "referenced" | "all"; library: number };
+  /** How pages arrive (0.109.0): laid out as builder sections, or one text body. */
+  page_layout?: { value: "sections" | "html"; pages: number };
   currency?: string;
   tax_basis?: { value: "keep" | "add_gst"; choices: string[] };
   content_types?: WordPressContentTypeChoice[];
@@ -61,6 +67,7 @@ export type WordPressImportOptions = {
 /** What a `PATCH` sends back. */
 export type WordPressImportDecisions = {
   media_scope?: "referenced" | "all";
+  page_layout?: "sections" | "html";
   tax_basis?: "keep" | "add_gst";
   type_slugs?: Record<string, string>;
   acf_kinds?: Record<string, Record<string, string>>;

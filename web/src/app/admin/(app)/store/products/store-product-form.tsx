@@ -18,16 +18,19 @@ import { RelationPicker } from "@/components/admin/relation-picker";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { SpecField } from "@/components/admin/spec-field";
 import { StringListField } from "@/components/admin/string-list-field";
+import { TagField } from "@/components/admin/tag-field";
 import { VariationField } from "@/components/admin/variation-field";
 import { VideoField } from "@/components/admin/video-field";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, SectionsUnavailable, useRecordSections } from "../../pages/builder/record-sections";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
-import { paiseToRupeeInput } from "@/lib/money";
+import { formatPaise, paiseToRupeeInput, rupeesToPaise } from "@/lib/money";
 import {
   createStoreProductAction, deleteStoreProductAction, updateStoreProductAction, type StoreFormState,
 } from "../actions";
-import type { CustomFieldGroupDefinition, AdminStoreCategory, AdminStoreProduct, AnswerBlockKindOption, PickerOption } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminStoreCategory, AdminStoreProduct, AnswerBlockKindOption, PageBuilderOptions, PickerOption } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: StoreFormState = {};
 
@@ -46,10 +49,12 @@ const initial: StoreFormState = {};
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["name", "slug", "sku", "type", "short_description", "description",
-             "specifications", "features", "warranty", "applications", "status", "store_category_id", "brand_id",
+             "specifications", "tags", "features", "warranty", "applications", "status", "store_category_id", "brand_id",
              "sort_order", "is_featured"] },
+  // Sections in place of the written body (0.130.0) — the choice and the builder.
+  SECTIONS_TAB,
   { id: "selling", label: "Selling",
-    fields: ["price_paise", "compare_at_paise", "track_stock", "stock", "returnable", "variations"] },
+    fields: ["price_paise", "compare_at_paise", "gst_percent", "hsn", "track_stock", "stock", "returnable", "variations"] },
   // Every field here, or its 422 is charged to the Content tab in silence.
   { id: "shopping", label: "Shopping",
     fields: ["gtin", "mpn", "condition", "google_product_category", "weight_grams", "feed_include"] },
@@ -75,8 +80,10 @@ const GROUPS: TabGroup[] = [
 ];
 
 export function StoreProductForm({
-  product, categories, brands, services, saved, kinds, fieldGroups,
+  product, categories, brands, services, saved, kinds, fieldGroups, builder, tax, tagNames = [],
 }: {
+  /** Every tag the shop already has, offered as you type in the Tags field. */
+  tagNames?: string[];
   product?: AdminStoreProduct;
   categories: AdminStoreCategory[];
   brands: PickerOption[];
@@ -85,10 +92,27 @@ export function StoreProductForm({
   saved?: boolean;
   /** `meta.answer_block_kinds` from this entity's admin index. */
   kinds: AnswerBlockKindOption[];
+  /**
+   * `meta.gst_rates`, `meta.gst_rate` and `meta.price_basis` from the index
+   * (0.176.0). The rates are the API's list — nothing here names one — and
+   * the other two are what the shop does, so the price field can say
+   * whether the figure being typed includes the tax or not.
+   */
+  tax?: { rates: { value: string; label: string }[]; rate: string; basis: string; entry?: string };
   /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
   fieldGroups?: CustomFieldGroupDefinition[];
+  /**
+   * `GET /admin/pages/builder`, for the Sections tab — or null when this
+   * account may not read it: the builder is a content manager's, and a store
+   * manager without that role is told so in the tab's place.
+   */
+  builder: PageBuilderOptions | null;
 }) {
   const editing = Boolean(product);
+  const rate = tax?.rate ?? "18";
+  // How the price field is typed (0.178.0). The stored price always has
+  // GST in it; the API converts what is typed here on save.
+  const entry = tax?.entry === "exclusive" ? "exclusive" : "inclusive";
   const [state, formAction, pending] = useActionState(
     editing ? updateStoreProductAction : createStoreProductAction, initial,
   );
@@ -98,7 +122,22 @@ export function StoreProductForm({
     "blank means ₹11,800", and it has to say the price being typed rather than
     the price that was stored when the page loaded.
   */
-  const [price, setPrice] = useState(paiseToRupeeInput(product?.price_paise));
+  const [price, setPrice] = useState(paiseToRupeeInput(product?.entry_price_paise ?? product?.price_paise));
+  // The rate the counterpart line under the price is worked out at: the
+  // product's own as it is chosen, else the shop's. The select stays
+  // uncontrolled — this only listens.
+  const [gstPick, setGstPick] = useState(product?.gst_percent ?? "");
+  const counterpart = (input: string): string | null => {
+    const paise = rupeesToPaise(input);
+    const bp = Math.round(parseFloat(gstPick || rate) * 100);
+
+    if (paise === null || !Number.isFinite(bp)) return null;
+
+    // The API's own arithmetic (`Tax::addTo`, `Money::taxable`), to the paisa.
+    return entry === "exclusive"
+      ? `The customer pays ${formatPaise(paise + Math.floor((paise * bp + 5000) / 10000), { withPaise: true })}.`
+      : `That is ${formatPaise(Math.floor((paise * 10000 + Math.floor((10000 + bp) / 2)) / (10000 + bp)), { withPaise: true })} before GST.`;
+  };
   const [trackStock, setTrackStock] = useState(product?.track_stock ?? true);
   /*
    * Once there is a variation, the product's own Stock field is dead — stock is
@@ -119,6 +158,15 @@ export function StoreProductForm({
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
+
+  // The body area: the written body, or builder sections (0.130.0).
+  const body = useRecordSections(product);
+
+  // With no list to choose from (an account that may not read it), the
+  // select still holds this product's own brand — the services picker's rule.
+  const brandOptions: PickerOption[] = brands.length > 0 || !product?.brand_id
+    ? brands
+    : [{ id: product.brand_id, name: product.brand_name ?? "This product’s brand" }];
 
   // Custom fields (docs/custom-content.md): the groups that apply, from the API.
   const customGroups = product?.custom_field_groups ?? fieldGroups ?? [];
@@ -166,10 +214,24 @@ export function StoreProductForm({
                 defaultValue={product?.short_description ?? ""} maxLength={500} />
             </Field>
 
+            <BodyReplacedNote state={body} />
+
             <EditorField name="description" label="Description"
               defaultValue={product?.description ?? ""} error={err("description")} />
 
             <SpecField defaultValue={product?.specifications ?? {}} error={rowErr("specifications")} />
+
+            {/*
+              Shop tags (0.141.0): the coloured pills under the shop's search
+              bar. A product that has none is tagged automatically on save,
+              once; this field is where a person takes over.
+            */}
+            <TagField
+              defaultValue={(product?.tags ?? []).map((t) => t.name)}
+              suggestions={tagNames}
+              auto={product?.tags_auto ?? false}
+              error={rowErr("tags")}
+            />
 
             <StringListField
               name="features"
@@ -231,10 +293,11 @@ export function StoreProductForm({
               </Select>
             </Field>
 
-            <Field label="Brand" htmlFor="brand_id" error={err("brand_id")} variant="float-static">
+            <Field label="Brand" htmlFor="brand_id" error={err("brand_id")} variant="float-static"
+              hint={brands.length === 0 ? "The full brand list needs the Content manager role. This product keeps the brand it has." : undefined}>
               <Select id="brand_id" name="brand_id" defaultValue={product?.brand_id ? String(product.brand_id) : ""}>
                 <option value="">No brand</option>
-                {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                {brandOptions.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </Select>
             </Field>
 
@@ -243,19 +306,34 @@ export function StoreProductForm({
               <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={product?.sort_order ?? 0} />
             </Field>
 
-            <Field label="Featured" htmlFor="is_featured" hint="Featured products lead the shop." variant="float-static">
-              <Select id="is_featured" name="is_featured" defaultValue={product?.is_featured ? "1" : "0"}>
-                <option value="0">No</option>
-                <option value="1">Yes</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="is_featured" defaultChecked={product?.is_featured ?? false} label="Featured"
+              hint="Featured products lead the shop." />
           </aside>
         </div>
 
+        {/* Sections in place of the written description. One child, always mounted. */}
+        {builder ? (
+          <RecordSectionsPanel
+            state={body}
+            builder={builder}
+            media={product?.blocks_media ?? {}}
+            errors={state.fieldErrors ?? {}}
+            bodyField="description"
+            storedBody={product?.description ?? ""}
+            noun="product"
+            keeps="Its pictures, price, buying panel, specifications, features, FAQs and reviews stay where they are."
+          />
+        ) : <SectionsUnavailable state={body} noun="product" />}
+
         <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
           <div className="min-w-0">
-            <Field label="Price" htmlFor="price" error={err("price_paise")}
-              hint="In rupees, and it includes 18% GST — the figure here is what the customer pays.">
+            <Field label={entry === "exclusive" ? "Price (before GST)" : "Price (with GST)"} htmlFor="price" error={err("price_paise")}
+              hint={[
+                entry === "exclusive"
+                  ? "In rupees, before GST. This product's rate is added when you save."
+                  : "In rupees, with GST in it: what the customer pays.",
+                counterpart(price),
+              ].filter(Boolean).join(" ")}>
               <Input
                 id="price" name="price" inputMode="decimal" required
                 value={price}
@@ -264,16 +342,39 @@ export function StoreProductForm({
               />
             </Field>
 
-            <Field label="Compare-at price" htmlFor="compare_at" error={err("compare_at_paise")}
+            <Field label={entry === "exclusive" ? "Compare-at price (before GST)" : "Compare-at price (with GST)"} htmlFor="compare_at" error={err("compare_at_paise")}
               hint="Struck through beside the price. Leave blank unless it was genuinely sold at this — the shop hides it when it is not higher.">
               <Input id="compare_at" name="compare_at" inputMode="decimal"
-                defaultValue={paiseToRupeeInput(product?.compare_at_paise)} />
+                defaultValue={paiseToRupeeInput(product?.entry_compare_at_paise ?? product?.compare_at_paise)} />
             </Field>
+
+            {/*
+              Tax (0.176.0). Both are about this product rather than about
+              the shop, which is why they sit under the price rather than on
+              Settings: the rate decides what is charged and the HSN code is
+              printed against every line on the invoice.
+            */}
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              <Field label="GST rate" htmlFor="gst_percent" error={err("gst_percent")} variant="float-static"
+                hint={`Leave it as the shop's unless this product is taxed differently.`}>
+                <Select id="gst_percent" name="gst_percent" defaultValue={product?.gst_percent ?? ""}
+                  onChange={(e) => setGstPick(e.target.value)}>
+                  <option value="">The shop&rsquo;s rate ({rate}%)</option>
+                  {(tax?.rates ?? []).map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </Select>
+              </Field>
+
+              <Field label="HSN or SAC code" htmlFor="hsn" error={err("hsn")}
+                hint="Printed against this product on every tax invoice. Four to eight digits; blank uses the shop's default.">
+                <Input id="hsn" name="hsn" inputMode="numeric" defaultValue={product?.hsn ?? ""} className="font-mono text-14" />
+              </Field>
+            </div>
 
             <VariationField
               defaultValue={product?.variations ?? []}
               error={rowErr("variations")}
-              productPricePaise={product?.price_paise}
+              productPricePaise={rupeesToPaise(price) ?? product?.entry_price_paise ?? product?.price_paise}
+              entry={entry}
               onSummaryChange={setVariations}
             />
 
@@ -295,14 +396,8 @@ export function StoreProductForm({
           </div>
 
           <aside className="grid content-start gap-0">
-            <Field label="Count stock" htmlFor="track_stock" variant="float-static"
-              hint="Off for anything that cannot run out — a service, or a licence bought to order.">
-              <Select id="track_stock" name="track_stock" value={trackStock ? "1" : "0"}
-                onChange={(e) => setTrackStock(e.target.value === "1")}>
-                <option value="1">Yes</option>
-                <option value="0">No</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="track_stock" checked={trackStock} onChange={setTrackStock} label="Count stock"
+              hint="Off for anything that cannot run out — a service, or a licence bought to order." />
 
             {/*
               Rendered disabled with the reason rather than hidden, the pattern
@@ -353,23 +448,12 @@ export function StoreProductForm({
               field beside it.
             */}
             {trackStock && variations.count === 0 && (
-              <Field label="Back-orders" htmlFor="allow_oversell" variant="float-static"
-                hint="Take orders when the shelf is empty. Stock goes below zero, which is what the shop owes.">
-                <Select id="allow_oversell" name="allow_oversell"
-                  defaultValue={product?.allow_oversell ? "1" : "0"}>
-                  <option value="0">Refuse when out of stock</option>
-                  <option value="1">Allow overselling</option>
-                </Select>
-              </Field>
+              <RecordSwitch className="mb-[18px]" name="allow_oversell" defaultChecked={product?.allow_oversell ?? false} label="Back-orders"
+                hint="Take orders when the shelf is empty. Stock goes below zero, which is what the shop owes." />
             )}
 
-            <Field label="Returnable" htmlFor="returnable" variant="float-static"
-              hint="“This product is non-returnable” is shown on the page, in the cart and at the checkout — before anybody pays.">
-              <Select id="returnable" name="returnable" defaultValue={product?.returnable === false ? "0" : "1"}>
-                <option value="1">Yes</option>
-                <option value="0">No — non-returnable</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="returnable" defaultChecked={product?.returnable !== false} label="Returnable"
+              hint="“This product is non-returnable” is shown on the page, in the cart and at the checkout — before anybody pays." />
           </aside>
         </div>
 
@@ -432,13 +516,8 @@ export function StoreProductForm({
               </Select>
             </Field>
 
-            <Field label="In the shopping feed" htmlFor="feed_include" variant="float-static"
-              hint="Being on sale here and being advertised on Google are separate decisions. Turn this off to clear a Merchant Center disapproval without taking the product off sale.">
-              <Select id="feed_include" name="feed_include" defaultValue={product?.feed_include === false ? "0" : "1"}>
-                <option value="1">Yes</option>
-                <option value="0">No — sold here only</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="feed_include" defaultChecked={product?.feed_include !== false} label="In the shopping feed"
+              hint="Being on sale here and being advertised on Google are separate decisions. Turn this off to clear a Merchant Center disapproval without taking the product off sale." />
           </aside>
         </div>
 

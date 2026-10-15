@@ -32,6 +32,119 @@ enum PageSectionType: string
     case Testimonial = 'testimonial';
     case Video = 'video';
     case Divider = 'divider';
+    /*
+     * Five self-contained bands added on 2026-10-05 (0.107.0): figures,
+     * a numbered process, tabs, a checklist and a call to action drawn in
+     * the theme's own closing-band style.
+     */
+    case Stats = 'stats';
+    case Steps = 'steps';
+    case Tabs = 'tabs';
+    case Checklist = 'checklist';
+    case Cta = 'cta';
+    /*
+     * Four more on 2026-10-05 (0.109.0): plans compared feature by feature,
+     * dated milestones, two pictures with a divider between them, and a set
+     * of quotations.
+     */
+    case Comparison = 'comparison';
+    case Timeline = 'timeline';
+    case BeforeAfter = 'before_after';
+    case Testimonials = 'testimonials';
+    /*
+     * Five more on 2026-10-06 (0.111.0): the team as a live list, files to
+     * download, a countdown to a date, two or three columns of text, and a
+     * map that loads when pressed.
+     */
+    case Team = 'team';
+    case Downloads = 'downloads';
+    case Countdown = 'countdown';
+    case Columns = 'columns';
+    case Map = 'map';
+    /**
+     * Steps that scroll past a picture held in place (2026-10-06, 0.114.0):
+     * each step carries its own picture, and the held one changes as the
+     * steps pass.
+     */
+    case Story = 'story';
+    /**
+     * A row of connected steps whose joining lines draw themselves as the
+     * page scrolls (2026-10-06, 0.115.0): a network, a process, how data
+     * moves. Plain text and an icon per step; nothing to resolve.
+     */
+    case Flow = 'flow';
+    /**
+     * A menu of the page's own sections (0.126.0): a sticky strip of links
+     * to every section on the page that has been given an anchor. It stores
+     * only its label; the links are worked out when the page is read, so the
+     * menu cannot name a section that has since been removed.
+     */
+    case Subnav = 'subnav';
+    /**
+     * The shop's "shop the videos" row (0.140.0): a live list of the products
+     * that carry a video, a tile each with the product under it. Stores a
+     * heading, an optional shop category, a count and a shape; the tiles are
+     * `VideoShelf`'s, resolved when the page is read.
+     */
+    case ProductVideos = 'product_videos';
+    /** The support network's map and centres (0.170.0, docs/support-network.md), live. */
+    case SupportNetwork = 'support_network';
+    /**
+     * One of the active theme's own homepage sections (2026-10-06, 0.113.0):
+     * the hero, the solutions, the partner strip… — stored as the section's
+     * id, drawn by the theme that is active when the page renders, so it
+     * changes with the theme. What lets the homepage be a builder page.
+     */
+    case ThemeSection = 'theme_section';
+    /**
+     * Rows and columns arranged by hand, filled with widgets (0.147.0): the
+     * one section whose data is a tree. `App\Support\PageSections\LayoutRules`
+     * says what it may hold, `LayoutPresenter` how it is read.
+     */
+    case Layout = 'layout';
+    /**
+     * Code pasted in as it is (0.158.0): HTML, CSS and script from a widget
+     * vendor. Stored **unsanitised** by design, so by default it runs in a
+     * sandboxed frame that cannot reach the page, the cookies or the API;
+     * only an administrator can let it run on the page itself.
+     * `docs/page-builder.md` "Custom code".
+     */
+    case CustomCode = 'custom_code';
+    /**
+     * A section from the library, placed linked (2026-10-05): it stores only
+     * `saved_id`, and the presenter draws the library's section in its place,
+     * so an edit to it reaches every page that places it.
+     */
+    case Saved = 'saved';
+    /*
+     * Record blocks (0.161.0, docs/page-builder.md "Detail templates"): parts
+     * of a record's own page — its heading, its body, its specification, its
+     * buy panel — that only a **detail template** may place. The API never
+     * presents their content; the website draws each from the record the
+     * route already loaded. `isRecordBlock()` is what every other rule asks.
+     */
+    case RecordHero = 'record_hero';
+    case RecordBody = 'record_body';
+    case RecordHighlights = 'record_highlights';
+    case RecordSpecs = 'record_specs';
+    case RecordGallery = 'record_gallery';
+    case RecordCustomFields = 'record_custom_fields';
+    case RecordAnswerBlocks = 'record_answer_blocks';
+    case RecordFaqs = 'record_faqs';
+    case RecordRelated = 'record_related';
+    case RecordEnquiry = 'record_enquiry';
+    case RecordBuy = 'record_buy';
+    case RecordDownloads = 'record_downloads';
+    case RecordReviews = 'record_reviews';
+    case RecordComments = 'record_comments';
+    /*
+     * Lottie and 3D (0.172.0): an animation and a model from the media
+     * library, drawn by two client islands that load their libraries only when
+     * the section nears the screen. Appended last because PageBuilderTest
+     * pins the first two cases.
+     */
+    case Lottie = 'lottie';
+    case Model = 'model';
 
     public function label(): string
     {
@@ -50,6 +163,45 @@ enum PageSectionType: string
             self::Testimonial => 'Testimonial',
             self::Video => 'Video',
             self::Divider => 'Divider',
+            self::Stats => 'Figures',
+            self::Steps => 'Steps',
+            self::Tabs => 'Tabs',
+            self::Checklist => 'Checklist',
+            self::Cta => 'Call to action',
+            self::Comparison => 'Comparison table',
+            self::Timeline => 'Timeline',
+            self::BeforeAfter => 'Before and after',
+            self::Testimonials => 'Testimonials',
+            self::Team => 'Team',
+            self::Downloads => 'Downloads',
+            self::Countdown => 'Countdown',
+            self::Columns => 'Columns of text',
+            self::Map => 'Map',
+            self::Story => 'Scroll story',
+            self::Flow => 'Diagram',
+            self::Subnav => 'In-page menu',
+            self::ProductVideos => 'Product videos',
+            self::SupportNetwork => 'Support network',
+            self::ThemeSection => 'From the theme',
+            self::Layout => 'Custom layout',
+            self::CustomCode => 'Custom code',
+            self::Saved => 'Saved section',
+            self::RecordHero => 'Record heading',
+            self::RecordBody => 'Record body',
+            self::RecordHighlights => 'Record highlights',
+            self::RecordSpecs => 'Record specification',
+            self::RecordGallery => 'Record pictures',
+            self::RecordCustomFields => 'Record details',
+            self::RecordAnswerBlocks => 'Record answers',
+            self::RecordFaqs => 'Record questions',
+            self::RecordRelated => 'Record related',
+            self::RecordEnquiry => 'Record enquiry form',
+            self::RecordBuy => 'Record buy panel',
+            self::RecordDownloads => 'Record downloads',
+            self::RecordReviews => 'Record reviews',
+            self::RecordComments => 'Record comments',
+            self::Lottie => 'Animation',
+            self::Model => '3D model',
         };
     }
 
@@ -62,8 +214,9 @@ enum PageSectionType: string
                 .'shortcodes, exactly as a page body.',
             self::MediaText => 'A picture or a video on one side and words on the other, with buttons.',
             self::Features => 'Up to twelve short points in two, three or four columns, each with an icon.',
-            self::Cards => 'A live list — solutions, services, industries, case studies, posts, articles or '
-                .'products — drawn as the theme draws its grids. It follows the catalogue as it changes.',
+            self::Cards => 'A live list — solutions, services, industries, case studies, posts, articles, products, '
+                .'categories, vacancies, events or your own content types — drawn as the theme draws its grids. '
+                .'It follows the catalogue as it changes.',
             self::ContentBlock => 'A published CTA banner, stat bar, pricing table or technology stack.',
             self::Slider => 'A published slider, in whatever layout it was built with.',
             self::Gallery => 'A published gallery with its tabs and lightbox.',
@@ -74,20 +227,87 @@ enum PageSectionType: string
             self::Testimonial => 'One quotation, with who said it and a photo.',
             self::Video => 'A YouTube video, played only when somebody presses it, or a video from the library.',
             self::Divider => 'Space between two sections, with or without a rule.',
+            self::Stats => 'Up to eight figures that count up as they arrive — as plain numbers, rings or bars.',
+            self::Steps => 'A numbered process, down the page with a line joining the steps or across it.',
+            self::Tabs => 'Two to eight panels behind tabs, each with words and an optional picture.',
+            self::Checklist => 'A list of short points with a tick or an icon, in one to three columns.',
+            self::Cta => 'A closing band — a heading, a line and buttons — drawn the way the theme draws its own.',
+            self::Comparison => 'Two to four plans side by side, feature by feature, with a tick, a cross or a few words in each cell.',
+            self::Timeline => 'Dated milestones joined by a line — a company history, a project, a roll-out.',
+            self::BeforeAfter => 'Two pictures of one place with a divider somebody drags across — a rack before and after, a site before and after.',
+            self::Testimonials => 'Two to nine quotations as cards, each with who said it and an optional photo.',
+            self::Team => 'The people from Company → Team, as the theme draws its team cards — everybody, or one department. It follows the team as it changes.',
+            self::Downloads => 'Files from the media library — brochures, datasheets, price lists — each with its size and a download button.',
+            self::Countdown => 'Days, hours, minutes and seconds to a date — a launch, an offer ending, an event — with a line for when it has passed.',
+            self::Columns => 'Two or three columns side by side, each with a heading and a body from the editor.',
+            self::Map => 'A Google map, loaded only when somebody presses it, with the address beside it.',
+            self::Story => 'Two to six steps that scroll past a picture held in place, the picture changing with each step — a product tour, a process, a project told in stages.',
+            self::Flow => 'A row of connected steps — a network, a process, how data moves — whose connecting lines draw themselves as the page scrolls.',
+            self::ProductVideos => 'A row of the shop’s product videos, each with its product under it — picture, name, price and an Add to basket button. Whole shop or one category; it follows the videos on the products.',
+            self::SupportNetwork => 'Your service centres on a map, with their addresses and telephone numbers — every country, or opened on one. It follows Site → Support network as it changes.',
+            self::ThemeSection => 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.',
+            self::Subnav => 'A strip of links to the sections of this page, which stays at the top of the screen as it scrolls. '
+                .'It lists every section you have given an anchor to (Style → Anchor), in page order.',
+            self::Layout => 'Rows and columns you arrange yourself, filled with headings, text, pictures, buttons, icon boxes, questions and lists.',
+            self::CustomCode => 'HTML, CSS and script pasted in as it is, such as the widget a vendor supplies, a booking tool, a calculator. It runs in a sandboxed frame that cannot reach the rest of the page.',
+            self::Saved => 'A section from the library, kept in step with it: edit it once and every page that places it changes.',
+            self::RecordHero => 'The record’s heading, summary and breadcrumbs, drawn the way the theme draws its page headings. It carries the page’s one title.',
+            self::RecordBody => 'The record’s written body — or, when the record is laid out as sections, those sections. Every template has exactly one.',
+            self::RecordHighlights => 'The list of points the record carries: benefits, key features, results.',
+            self::RecordSpecs => 'The specification sheet, as a table.',
+            self::RecordGallery => 'The record’s pictures, drawn as its page draws them.',
+            self::RecordCustomFields => 'The custom fields filled in for this record.',
+            self::RecordAnswerBlocks => 'The record’s answer blocks — definition, who it is for, key facts, steps — and its FAQs unless a questions block is placed too.',
+            self::RecordFaqs => 'The record’s FAQs and question blocks as one list of questions that open.',
+            self::RecordRelated => 'What the record is connected to: the lists beside or under its body, and its related links.',
+            self::RecordEnquiry => 'The enquiry form the record’s page carries, already knowing which record it is about.',
+            self::RecordBuy => 'The pictures and the buy panel — price, stock, options, basket — exactly as the shop page draws them, as one block.',
+            self::RecordDownloads => 'The datasheets, drivers and firmware attached to the record.',
+            self::RecordReviews => 'The customers’ reviews and the form to leave one.',
+            self::RecordComments => 'The comments under the article, and the form to add one.',
+            self::Lottie => 'A Lottie animation from the media library, played when it comes into view. Still under reduced motion.',
+            self::Model => 'A 3D model (.glb) from the media library that visitors can turn with a finger or the mouse.',
         };
     }
 
+    /** Whether this is a part of a record's own page, which only a detail template may place. */
+    public function isRecordBlock(): bool
+    {
+        return str_starts_with($this->value, 'record_');
+    }
+
     /**
-     * The list, as the console's picker draws it.
+     * The list, as the console's picker draws it — the sections a page, a
+     * record's body area and the library may hold. Record blocks are not in
+     * it: they belong to detail templates alone (`recordOptions()`).
      *
      * @return list<array{value: string, label: string, blurb: string}>
      */
     public static function options(): array
     {
+        return self::describe(array_values(array_filter(self::cases(), fn (self $c) => ! $c->isRecordBlock())));
+    }
+
+    /**
+     * The record blocks, for a detail template's picker.
+     *
+     * @return list<array{value: string, label: string, blurb: string}>
+     */
+    public static function recordOptions(): array
+    {
+        return self::describe(array_values(array_filter(self::cases(), fn (self $c) => $c->isRecordBlock())));
+    }
+
+    /**
+     * @param  list<self>  $cases
+     * @return list<array{value: string, label: string, blurb: string}>
+     */
+    private static function describe(array $cases): array
+    {
         return array_map(fn (self $c) => [
             'value' => $c->value,
             'label' => $c->label(),
             'blurb' => $c->blurb(),
-        ], self::cases());
+        ], $cases);
     }
 }

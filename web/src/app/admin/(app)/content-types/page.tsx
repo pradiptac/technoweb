@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconGrid } from "@/components/icons";
@@ -45,7 +46,7 @@ export default async function ContentTypesPage({
       </PageHeader>
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconGrid />} title="No content types yet">
+        <EmptyState icon={<IconGrid />} title="No content types yet" action={<EmptyListAction filtered={false} clearHref="/admin/content-types" newHref="/admin/content-types/new" noun="content type" />}>
           Create one, then add its entries under Custom content.
         </EmptyState>
       ) : (

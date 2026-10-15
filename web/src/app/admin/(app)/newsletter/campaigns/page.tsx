@@ -3,6 +3,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconMail } from "@/components/icons";
@@ -33,6 +34,7 @@ export default async function CampaignsPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q || params.status);
 
   let result: CampaignIndex;
 
@@ -87,7 +89,7 @@ export default async function CampaignsPage({
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconMail />} title="No campaigns yet">
+        <EmptyState icon={<IconMail />} title={filtered ? "No campaigns match those filters" : "No campaigns yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/newsletter/campaigns" newHref="/admin/newsletter/campaigns/new" noun="campaign" />}>
           Start one from a template, write it, send a test to yourself, and then send it.
         </EmptyState>
       ) : (

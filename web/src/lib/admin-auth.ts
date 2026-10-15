@@ -4,7 +4,7 @@ import { cache } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { AdminAuthResponse, StaffUser } from "@/types/api";
 
-const COOKIE = "tw_admin_session";
+import { ADMIN_COOKIE as COOKIE } from "@/lib/admin-cookie";
 
 /**
  * Staff session handling — separate cookie from the customer portal's

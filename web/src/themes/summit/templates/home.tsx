@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
 import { CatalogueTabs } from "../catalogue-tabs";
+import { HeroTitle } from "@/lib/hero-heading";
 
 /**
  * Summit's front page: the product company's launch page, centred.
@@ -60,7 +61,7 @@ export function Home({
             <i aria-hidden className="size-1.5 rounded-full bg-brand-300" />
             {kicker}
           </span>
-          <h1 className="display-1 mt-6 max-w-[22ch] text-balance">{heading}</h1>
+          <HeroTitle className="display-1 mt-6 max-w-[22ch] text-balance">{heading}</HeroTitle>
           <p className="lede mt-5 max-w-[60ch] text-dark-muted">{lede}</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <ButtonLink href="/contact" size="lg">Book a demo <IconArrowRight /></ButtonLink>

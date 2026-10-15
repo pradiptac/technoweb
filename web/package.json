@@ -15,11 +15,15 @@
     "themes": "node --experimental-strip-types scripts/theme-contrast.mjs",
     "themes:check": "node --experimental-strip-types scripts/themes-check.mjs",
     "theme-shots": "node --experimental-strip-types scripts/theme-shots.mjs",
-    "neon": "node scripts/neon-contrast.mjs"
+    "neon": "node scripts/neon-contrast.mjs",
+    "help": "node scripts/build-help.mjs"
   },
   "dependencies": {
+    "@google/model-viewer": "^4.4.0",
     "clsx": "^2.1.1",
+    "fflate": "^0.8.3",
     "jquery": "^3.7.1",
+    "lottie-web": "^5.13.0",
     "lucide-react": "^1.46.0",
     "motion": "^13.3.0",
     "next": "16.3.5",
@@ -29,6 +33,7 @@
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
+    "@material-symbols/svg-300": "0.48.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24.13.4",
     "@types/react": "^19.3.0",

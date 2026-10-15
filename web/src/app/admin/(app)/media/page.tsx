@@ -20,6 +20,7 @@ import { UploadProvider } from "./upload-context";
 import type { MediaFolder } from "@/types/api";
 import type { MediaListResponse } from "@/lib/admin";
 import { requireScreen } from "@/lib/admin-screen";
+import { getCurrentStaffOrNull } from "@/lib/admin-auth";
 
 export const metadata = buildMetadata({ title: "Media", path: "/admin/media", seo: noIndex });
 
@@ -77,6 +78,14 @@ export default async function AdminMediaPage({
   searchParams: Promise<SearchParams>;
 }) {
   await requireScreen();
+
+  /*
+   * Whether to offer "make the site's colours from this" (0.173.0). A palette
+   * is a settings write and settings are an administrator's, so a content
+   * manager is not offered a link to a screen that would 404 for them.
+   */
+  const staff = await getCurrentStaffOrNull();
+  const canTheme = (staff?.roles ?? []).some((r) => r.slug === "admin");
   const params = await searchParams;
   const kind = params.kind === "file" ? "file" : "image";
   const trashed = params.trashed === "1";
@@ -387,7 +396,7 @@ export default async function AdminMediaPage({
                     : "Use Upload above, or drop images anywhere on this page. You can also add one from any record's cover picker."}
             </EmptyState>
           ) : (
-            <MediaGrid items={items} returnTo={returnTo} folders={folders} trashed={trashed}
+            <MediaGrid items={items} returnTo={returnTo} folders={folders} trashed={trashed} canTheme={canTheme}
               columns={TILE_SIZES[size]} />
           )}
 

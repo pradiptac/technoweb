@@ -1630,3 +1630,1257 @@ Business Manager → Catalogue → connect the same catalogue.
 ## Add to basket on one line (2026-09-28)
 
 Every Add to basket in a row of product cards sits on one line, in every theme (the client, 2026-09-28): the actions row is the card's last part with `mt-auto` (it used to be the price, and a wrapped discount badge moved the button); a theme that lays the card out itself stretches the body to the row's height (Editorial, and Datacenter's column) and never sets a `margin-top` on `[data-tile-actions]`. `scripts/probes/store-cart-level.mjs` measures all twelve themes.
+
+## A store manager can open a shop product (0.130.0)
+
+The shop product's edit and new screens load the brand list from
+`GET /admin/brands`, a `role:content_manager` route — so an account holding
+**only** `store_manager` got a 403 inside `Promise.all` and the screen was an
+error boundary, for exactly the role the screen belongs to. Found by opening
+the form as a throwaway store manager to check the Sections tab's note; no
+audit signs in as one.
+
+Both pages now catch **a 403 and nothing else** on that one read
+(`getBrandOptions().catch(...)`, the shape `getPageBuilderOptionsIfAllowed`
+has) and hand the form an empty list. The form then offers the product's own
+brand (`brand_id` + `brand_name` from the admin read) so the select still
+holds it and a save cannot clear it — the rule the services picker beside it
+already followed — and says under the box that the full list needs the
+Content manager role. A new product made by that account has no brand until
+somebody with the list sets one.
+
+The API was not widened: the brand list stays a content manager's. Checked
+by saving the form as that account and reading `brand_id` back unchanged.
+
+## Returns (0.132.0)
+
+A customer asks to send delivered goods back; the desk approves or declines,
+marks the goods received — putting what is fit to sell back in stock — and
+records the refund. Three tables (`order_returns`, `order_return_items`,
+`order_return_photos`), one status enum and one class that moves it.
+
+**A return is a request about lines of one order, never a new kind of
+order.** `order_return_items` points at `order_items` with a quantity, so the
+name, SKU and price a return shows are the order line's own snapshot — a
+product renamed or deleted since still reads as what was bought. The
+reference is `RMA-YYYY-NNNNN` under `return_reference_prefix`
+(`References::returns()`, the ticket prefix's rules), and the console binds
+`{order_return}` by it.
+
+**`ReturnPolicy` is the one answer to "may this come back".** Four things,
+all read from what the shop already records:
+
+- the switch — `store_returns_enabled`, on by default. Off, the order page
+  says to get in touch and the endpoint refuses;
+- the order — dispatched or completed, not cancelled or refunded;
+- the window — `store_return_days` (the setting the Merchant Center feed and
+  the product page already read, so the promise made before the sale is the
+  one kept after it) counted from `completed_at`, or from `dispatched_at`
+  plus the longest transit time while nobody has marked it delivered, to the
+  **end of that day**;
+- the line — shipped (a licence key or a service has nothing to send back)
+  and `returnable` on the order line, less what other returns of the order
+  already hold. A **rejected** return holds nothing, so the customer may ask
+  again; every other status does, a closed one included.
+
+`describe()` is what the customer's order resource carries as
+`return_policy`: `open`, the one sentence to show when it is not, the last
+day in the API's words, and how many of each line are left. The frontend
+works none of it out.
+
+**`ReturnActions` is the only place a return moves.** The request (from the
+order link or the portal — two routes, one method) locks the **order** row,
+so two tabs asking for the same last unit are settled in turn. Each desk
+move locks the **return** row and re-reads its status before `canTransitionTo()`,
+so two presses of "Mark as received" restock once — the control run removing
+that check fails two of `ReturnsTest`'s cases by name. Every move writes a line on the
+**order's** trail, which is where somebody reading the order later looks.
+
+| From | May become |
+|---|---|
+| requested | approved, rejected, closed |
+| approved | received, closed |
+| received | refunded, closed |
+| rejected | approved |
+| refunded, closed | — |
+
+**Receiving is where stock comes back, and only when somebody says so.** The
+desk enters how many of each line arrived and ticks the ones fit to sell;
+a line not ticked is not restocked, because putting stock back is a
+judgement about the condition of what came back. A restock is a
+`StockLedger::record()` with `StockMovementReason::Return` and the return's
+reference as its note, written on the affected row count like every other
+movement, to the variation when the line was one. A product deleted since,
+or one that does not track stock, has no shelf and takes nothing.
+
+**A refund is `ManualRefund`, linked to the return.** Nothing calls a
+gateway; the desk records the amount and the reference of money already sent
+back, and `ManualRefund` keeps its own rules (never more than was paid less
+what has gone back; the amount completing it moves the *order* to
+`refunded`). The form starts on the price of what arrived
+(`suggestedRefundPaise()`), with no share of an order-level discount taken
+off — the refusal names what is left when that is too much. An unpaid order
+(cash on delivery, refused at the door) has nothing to refund: the panel
+says so and the return is closed instead. **Close** is the way out for a
+return that ended some other way, and mails nobody.
+
+**Photographs are the third unauthenticated upload**, after the CV and a
+form's file field, and follow their rules: private disk
+(`returns/{return id}/`), hashed names, extension **and** content checked
+(jpg, png, webp), four at most, 5 MB each, stored last inside the
+transaction so a refused request leaves no file. No address anywhere — the
+customer's resource carries `photos_count` only, and staff read one through
+`GET /admin/store/returns/{reference}/photos/{id}`, always as an attachment.
+Deleting a return (only the order's cascade does) removes its folder through
+the model's `deleting` hook.
+
+**Six emails, one class for the customer's five.** `ReturnStatusChanged($return, $key)`
+is `return_requested`, `return_approved` (with `store_return_instructions`,
+plain text, and the desk's own message), `return_rejected` (the reason),
+`return_goods_received` and `return_refunded` (the amount and reference);
+`ReturnRequestReceived` goes to `support_email`. All through `Notifier`,
+after the commit, all editable under Email templates. The `return.requested`
+webhook carries the admin resource less `staff_note`.
+
+**On the page.** `ReturnsSection` (`components/store/`) is drawn on both the
+guest's order page and the portal's: the order's returns with a `Stepper`,
+then the form inside a closed `<details>` — most people opening an order are
+not returning it. Nothing is drawn for an order that has not left yet. The
+form posts through a Server Action until a photograph is attached, then
+`useUploadForm` sends multipart to a route handler. **The guest's handler
+lives at `/order/{n}/returns`, under the order's own path**, because the
+order's token cookie is scoped to `/order/{n}` and would not be sent to
+`/api/…`; the portal's is `/api/portal/orders/{n}/returns`. One map,
+`RETURN_TONE`, colours the status badge on the customer's page and both
+console screens.
+
+**The console.** Store → Returns (`role:store_manager`) lists what is
+waiting first, oldest first. A return's screen draws a panel per move the
+API's `allowed_next` offers and nothing else; each success redirects with
+`?done=return-…`, because the panel that was pressed is gone by then. The
+store overview's attention strip counts `returns_requested`, and an order's
+own screen lists its returns.
+
+**Courier pickup (0.159.0)**: with Shiprocket on, an approved return can have
+the courier collect it from the customer — see "Return pickups" under
+Shiprocket below. **Not built, on purpose**: exchanges as a transaction (close
+the return and place the replacement order), store credit, and a restocking
+fee — the desk types the amount it actually sent back.
+
+`ReturnsTest` (22). `scripts/probes/returns.mjs` drives the whole path
+through the real screens.
+
+## Zoho Books invoices (0.134.0)
+
+Optional and off by default. Connected, each order's GST invoice is made in
+the client's own Zoho Books and its PDF is stored where an uploaded invoice
+always was — so the customer's order page, the portal and the console's
+download needed no change. Switched off, or never connected, nothing here
+runs and the invoice is uploaded by hand as before.
+
+**The invoice lives in Zoho; this application keeps a pointer and a copy.**
+`orders.zoho_invoice_id` is the pointer, `invoice_number` / `invoice_date`
+are Zoho's own, and the PDF is `orders/{order_number}/zoho-{id}.pdf` on the
+private disk at `invoice_path`. Numbering, the GST split and the books are
+Zoho's — which is the reason for the integration at all: an invoice
+generated here would be a second numbering series beside the accountant's.
+
+### The connection
+
+`OAuthConnection::zohoBooks()`, a slot of its own (`zoho_books_oauth_*`), on
+a new `OAuthProvider::Zoho`. Zoho's accounts and API hosts differ per data
+centre — `accounts.zoho.in` and `www.zohoapis.in` for India, `.com` for the
+US — so `zoho_books_dc` is read when the consent URL is built and on every
+call; a client registered at one data centre is refused at the other, which
+is the first thing to check when Connect fails. The client is a
+**Server-based Application** from the Zoho API Console. Scopes:
+`ZohoBooks.invoices.CREATE,READ,UPDATE`, `ZohoBooks.contacts.CREATE,READ`,
+`ZohoBooks.settings.READ` — nothing that can delete, and nothing outside
+Books. `access_type=offline` and `prompt=consent`, for the reason Google's
+needs them: no refresh token otherwise.
+
+The callback is `/admin/store/settings/zoho/callback`, checked exactly by
+`CallbackPath::assert()` like every other connection's — a consent started
+for Zoho cannot be finished on another slot's path, or the reverse.
+
+**Three choices only Zoho can list**, read when the settings tab opens: the
+organisation (`GET /organizations`; a single one is chosen automatically on
+connecting) and the two taxes (`GET /settings/taxes`, groups included). They
+are stored as Zoho's ids and checked for shape only — digits. The home state
+is ours: `IndianStates`, Zoho's two-letter codes.
+
+`ZohoSettings::ready()` is the one answer to "will an invoice be made": the
+switch, a connected account, an organisation, a home state and both taxes.
+`missing()` lists what is not there yet, in the order somebody would do it,
+and the settings panel, the test button and a refused manual press all quote
+it.
+
+### When, and exactly once
+
+`ZohoInvoices::consider()` runs from the order's own `updated` hook when
+`status` or `paid_at` changes. `due()` is the rule: with **When dispatched**
+(the default) an order with something to ship is due at `dispatched_at` and
+one with nothing to ship — a licence, a service — at `paid_at`; with **When
+paid**, every order at `paid_at`. Never while the order is waiting for an
+online payment, cancelled or refunded. A cash-on-delivery order under "When
+dispatched" is invoiced at dispatch, unpaid, which is correct: the invoice
+goes in the box.
+
+**One invoice per order, however often it is tried**, held three ways
+because there are three ways to get two:
+
+- `zoho_status` (null → `pending` → `creating` → `created` | `failed` |
+  `skipped`) is claimed with a conditional UPDATE, so the queued job, the
+  five-minute sweeper and a press of the button cannot both be making it. A
+  `creating` claim older than ten minutes was abandoned and may be retaken.
+- Before creating, Zoho is asked for an invoice whose `reference_number` is
+  this order's number, and one that exists is **adopted**. A crash between
+  "Zoho made it" and "we wrote that down" therefore finishes on the next
+  attempt instead of repeating. The id is written to the order the moment
+  Zoho returns it, before the invoice is marked sent or the PDF fetched.
+- An order that already has an uploaded invoice is `skipped`.
+
+`consider()` swallows everything: a dispatch that is saved is not undone
+because an accounts system is down — `Notifier`'s rule. Writes go through
+the query builder (`finish()`), because this runs inside the order's own
+hook and a model save there would re-enter it.
+
+A refusal is retried by `technoware:sync-zoho-invoices` (every five minutes)
+after 5, 30, 120 and 720 minutes — five attempts, then it is a person's.
+`zoho_error` holds Zoho's own words (they name the field), the order's screen
+shows them with **Try again now**, `attention.zoho_failed` puts a tile on the
+store overview, and `?zoho=failed` is the list behind it. A manual press
+ignores the attempt count. A 401/403 also writes `zoho_books_error`, the
+`mail_error` pattern, shown on the settings tab and cleared by a success.
+
+### What the invoice says
+
+- **Prices include GST**, so `is_inclusive_tax: true` and each line's rate is
+  the price the customer saw. A coupon is one `entity_level` discount with
+  `is_discount_before_tax` — how the checkout extracted the GST. Rupees are
+  made from integer paise at the last moment.
+- **One tax per invoice**: the intra-state tax (the CGST+SGST group) when the
+  place of supply is the home state, the inter-state one (IGST) otherwise.
+  Place of supply is the delivery address's state, else the billing one;
+  `IndianStates::code()` reads a name or a code in any case, and an address
+  it cannot place sends no `place_of_supply` and takes the intra-state tax —
+  Zoho then applies the contact's own.
+- **The customer** is found by email (`GET /contacts?email=`) and reused **as
+  it is** — an existing contact's address and GSTIN are the accountant's and
+  are not overwritten. Otherwise one is created from the order: the company
+  as the name when there is one, the GSTIN and `business_gst` when given,
+  `consumer` otherwise. Zoho wants display names unique, so a clash is
+  retried once with the email address appended.
+- **The date** is the day the sale became invoiceable (`dispatched_at` or
+  `paid_at`), never the day a retry happened to succeed.
+- The invoice is **marked sent**, so it is a receivable rather than a draft.
+  Zoho does not email it: the customer gets it from their order.
+- When Zoho's total differs from the order's by more than a rupee — a tax of
+  the wrong rate chosen in settings, usually — the order's history says so.
+  The invoice is still made: hiding the difference would be worse.
+
+### What it does not do
+
+- **Payments and credit notes were not sent in 0.134.0.** They are since
+  0.136.0 — see "Zoho Books: payments and credit notes" below. Gateway fees
+  still are not.
+- Orders from before the switch was turned on are not back-filled; the
+  button on an order makes one.
+- One GST rate, the shop's own (`Money::GST_BASIS_POINTS`). There is no
+  per-product tax or HSN code to send.
+
+**Not driven against a real Zoho account.** `ZohoBooksTest` (25) fakes
+Zoho's HTTP: the request shapes are from Zoho's published API and a first
+connection may still surface a field it wants differently — its refusal is
+shown in its own words on the order, which is what that screen is for.
+`scripts/probes/zoho-books.mjs` drives the console side: the settings tab,
+the callback page's three answers, and the order panel in each state.
+
+## Zoho Books: payments and credit notes (0.136.0)
+
+The client, 2026-10-08: "payments and credit notes need to sent to Zoho".
+Every row in `payments` that says money moved is told to Zoho once: a `paid`
+row becomes a **customer payment** applied to the order's invoice, a
+`refunded` row a **credit note** against it.
+
+`App\Support\Store\Zoho\ZohoPayments` is `ZohoInvoices` again on a different
+row, and reads the same way:
+
+- **State is on the payment row** (`2026_10_09_100000`): `zoho_status`
+  (`pending`, `sending`, `sent`, `failed`, `skipped`), `zoho_id` (the
+  customer payment's id, or the credit note's), `zoho_number` (the credit
+  note's number), `zoho_refund_id`, attempts, error, claim and next-attempt
+  times. Claimed by a conditional UPDATE; written through the query builder.
+- **Called from two places.** `Payment::created` → `consider()`, and the end
+  of `ZohoInvoices::create()` → `forOrder()`. A payment needs its order's
+  invoice to exist in Zoho, and a card order is paid before it is dispatched
+  — so the usual case is the payment waiting, unmarked, and following the
+  invoice the moment it is made. `consider()` never throws.
+- **`ZohoSettings::paymentsReady($method)`** is the one answer to "may this be
+  sent": invoices ready, `zoho_books_send_payments` on, the consent current,
+  and an account chosen for the order's way of paying
+  (`zoho_books_account_{gateway,cod,bank_transfer,upi}`). None of it is part
+  of `missing()` — an invoice needs none of it, and `paymentsMissing()` is a
+  separate list the tab shows.
+- **A way of paying with no account is not sent, and not marked.** The row
+  stays null, so choosing the account later sends it: the sweep looks for
+  unmarked rows on invoiced orders, narrowed **in SQL** to the ways of
+  paying that have an account, or rows that can never be sent would fill the
+  window and starve the ones that can.
+- **Once.** The reference Zoho is given — `{order}-P{payment id}` or
+  `{order}-R{payment id}` — is asked for before anything is created, and
+  what Zoho made is written to the row before the next call, so a retry
+  resumes at the step that failed (`test_a_half_finished_credit_note_is_resumed_not_made_again`).
+- **Zoho's books are the truth about Zoho.** What is still owed on the
+  invoice and what of a credit note is unused are read from Zoho each time,
+  never remembered. An invoice with nothing owed means somebody recorded the
+  payment there by hand: the row becomes `skipped` and the order's trail says
+  so, rather than leaving the customer in credit.
+- **A credit note says what it can** (`creditNotePayload()`): the invoice's
+  own lines and discount when the whole order is refunded in one go; the
+  received items when the refund is linked to a return
+  (`order_returns.refund_payment_id`) and they add up to exactly the amount
+  on an undiscounted order; otherwise one line, "Refund — order N", for the
+  amount, taxed as the order was. Never an invented item list.
+- **Then it is used as Zoho's balances say**: set against whatever is still
+  owed on the invoice, and anything beyond that paid back out of the account
+  the money went into (`refundCreditNote`). The usual case — invoice paid,
+  money returned — is all refund; an invoice Zoho never took the payment for
+  is all applied.
+- **The money in before the money out.** A refund first sends any earlier
+  paid row on the order that has not reached Zoho, so the invoice is paid
+  there before a credit note is set against it.
+- **The consent grew**, and `ZohoSettings::SCOPE_VERSION` (2) records which
+  one a connection holds: `customerpayments` and `creditnotes` create/read,
+  and `accountants.READ` for the chart of accounts. The callback stamps
+  `zoho_books_scope_version`; a connection from before it is not asked for
+  payments at all, the tab says "Connect Zoho again", and invoices carry on.
+- **The tab** (`ZohoBooksPanel`) draws one select per way of paying from
+  Zoho's bank, cash and other-current-asset accounts, with a blank first
+  option — the 0.134.0 lesson — and the keys are in `HIDDEN`. Unconnected,
+  none is drawn or posted. `zoho_books_send_payments` is an ordinary boolean
+  row, so it is a switch.
+- **On an order**, `ZohoPaymentLine` under each payment says where it stands,
+  and `POST …/orders/{n}/payments/{id}/zoho` (`role:store_manager`) sends one
+  on request. `Order::scopeZohoFailed()` is the one definition behind
+  `attention.zoho_failed` and `?zoho=failed`: a refused invoice **or** a
+  refused payment or credit note.
+- Retries are the invoice's own schedule, swept by the same
+  `technoware:sync-zoho-invoices`.
+
+Not done, and said to the client: gateway fees are not recorded. Imported
+WooCommerce orders have no Zoho invoice, so nothing of theirs is sent.
+
+**Not driven against a real Zoho account.** `ZohoPaymentsTest` (17) runs on
+`tests/Support/FakesZohoBooks`, the fake both Zoho tests share, which keeps
+the invoice's balance and each credit note's because the code reads them
+back. The two things most likely to need a correction on a first real run are
+Zoho's names for a payment mode (`cash`, `banktransfer`, `creditcard`,
+`others` are sent) and which fields an Indian GST organisation requires on a
+credit note; either refusal arrives in Zoho's own words on the payment's
+line.
+
+One trap found in the probe's first screenshot, and it is not about Zoho: the home state has no
+default, and the generic settings select starts on its first option — so the
+tab showed "Andaman and Nicobar Islands" and a save from any tab would have
+stored it. The panel draws that select itself, with a blank first option.
+
+## Tax, and the shop's own GST invoice (0.176.0)
+
+Three things that are one thing, because they are one piece of arithmetic:
+a rate per product over a store-wide default, a choice about whether a
+listed price contains the tax, and a tax invoice generated here.
+
+**This reverses a recorded decision**, and the reversal is worth stating
+with its reasoning rather than quietly replacing it. `CLAUDE.md`'s scope
+limits said the invoice is uploaded, or made in the customer's own Zoho
+Books, "never generated here, a decision about GST compliance rather than
+about scope." The client asked for it on 2026-10-14. What that decision was
+protecting against, in three parts, two of which still bite:
+
+| The hazard | Where it stands |
+|---|---|
+| The CGST/SGST against IGST split | **Safe.** Arithmetic over `gst_paise`, which every order has always stored. No new figure, nothing that can drift. |
+| A single hard-coded rate | **Fixed, and bounded.** `store_gst_percent` plus a rate per product. A shop still cannot sell one *product* at two rates, and nothing here pretends it can. |
+| HSN codes | **Was the real gap.** A tax invoice is not one without them. `store_products.hsn` and `invoice_hsn_default`; a line with neither prints a dash rather than a guess. |
+
+### The arithmetic moved, and the old comment was right at the time
+
+The original schema stored one tax figure on the order and said why:
+
+> GST is stored at the order, not per line. Apportioning tax across lines
+> means rounding each one, and rounded lines do not add up to the rounding
+> of the total — so the invoice would disagree with the amount charged.
+
+That is correct **while there is one rate**, because the only way to get a
+per-line figure is then to divide a rounded total. With a rate per product
+the arithmetic runs the other way round: each line's tax is computed from
+that line's own money at that line's own rate, and the order's
+`taxable_paise` and `gst_paise` are the **sum** of the lines. They add up by
+construction, and nothing is apportioned after rounding.
+
+`App\Support\Store\Tax` is the one implementation, and `Basket` and
+`Checkout` make the same call on the same lines — which is what makes the
+figure on the screen the figure that is charged.
+
+**The discount is apportioned across the lines**, pro-rata, in paise, by the
+largest-remainder rule, so the parts sum exactly to the discount before any
+tax is taken. `(int) round($amount * $w / $total)` per share is the obvious
+spelling and is wrong: three equal shares of 100 paise come back as
+33+33+33, and the shop is a paisa short on every such order for ever.
+
+**Delivery is a line of its own**, at the highest rate among the goods. The
+first cut apportioned it across the lines the way the discount is, which is
+arithmetically fine and prints badly: every line on the invoice then shows a
+value a few rupees above the price in the catalogue, and a reader comparing
+the two concludes the invoice is wrong. GST taxes a composite supply at the
+rate of the principal supply, and where a parcel holds two rates the higher
+is the answer that cannot under-collect.
+
+### A stored price includes GST; two settings say how it is typed and shown
+
+**Since 0.178.0 `price_paise` is always what the customer pays.** In 0.176.0
+`store_price_basis` decided what the stored number *meant*, so switching it
+re-read every price in the shop: ₹1,180 typed under "includes GST" became
+₹1,392.40 overnight, and a shop with fifty products could not change its mind
+without retyping them. Now two settings move no money:
+
+- **`store_price_basis`** — how the **website shows** prices: `inclusive`
+  with GST, `exclusive` before it with the GST a row at the checkout. Public
+  resources send the shown figure as `price_paise` plus `price_includes_gst`
+  and `gst_rate`; the basket sends `shown_*` figures beside the real ones.
+  The feed, the schema, the basket's money, the checkout and Zoho read the
+  **model**, so they always charge and declare the price with GST.
+- **`store_price_entry`** — how the **console takes** prices: `exclusive`
+  means typed before GST and converted on save at the product's rate (its own
+  `gst_percent` from the request, else the stored one, else the shop's; a
+  variation uses its parent's). The product form labels the field and shows
+  the other figure live, worked out with the API's own arithmetic. The admin
+  resource adds `entry_price_paise`/`entry_compare_at_paise`; the catalogue
+  CSV is written and read in the entry basis.
+
+**Why the price with GST and not a base price.** A figure before GST kept in
+paise does not survive the trip back: ₹999 with GST at 18% is a base of
+₹846.61, and ₹846.61 plus 18% is ₹999.01. The inclusive figures reachable from
+whole paise of base are 1.18 paise apart, so about one typed price in seven
+would come back a paisa off. The other direction is exact — a price typed
+before GST, stored with it and read back out is always the figure typed (the
+error is at most 0.5 ÷ 1.18 of a paisa). The client chose this on
+2026-10-14. It also means a GST rate change keeps what the customer pays and
+changes the tax inside it.
+
+**`Tax::keep()` is the one guard that matters.** A stored price with GST does
+not always survive the trip to "before GST" and back, so under exclusive
+entry an untouched form would move some prices by a paisa on every save.
+When the figure sent equals `Tax::entered(stored)` and the rate has not
+changed, the stored price is kept. `PriceEntryTest` finds such a price by
+brute force and saves it untouched.
+
+The arithmetic has one form now, because the money in it always includes the
+tax:
+
+    taxable = gross × 10000 ÷ (10000 + rate);  tax = gross − taxable
+
+- The checkout draws the tax as a **row** when the website shows prices
+  before GST and as a **note under the total** when it shows them with GST.
+  Under the row, every figure is before tax and taken from the breakdown —
+  lines, subtotal, the discount (subtotal less the taxable after it) and
+  delivery — so subtotal − discount + delivery + GST = total exactly. A
+  discount printed at its with-GST amount beside before-GST lines would not.
+- **Every threshold is judged on what is paid**: a coupon's minimum, free
+  delivery and the cash-on-delivery ceiling.
+- **`PricesIncludeGst`** (upgrade step) converts a 0.176 shop that was set to
+  `exclusive` — its prices, compare-at prices, variation prices and wishlist
+  saved prices — once, at each product's rate, and sets
+  `store_price_entry=exclusive`. Any other shop is untouched.
+
+`gst_rate` on the basket is **null when the basket holds two rates**: "18%"
+over a basket of 18% and 5% goods is simply false.
+
+### `Money` stayed pure, and that is not tidiness
+
+The first cut had `Money::rate()` reading the setting, which broke
+`MoneyTest` with "a facade root has not been set" — a unit test with no
+application behind it. The fix was not to make the test a feature test: it
+was to put the settings read in `Tax` and leave `Money` as integer
+arithmetic with no container. That is the property that lets the rounding be
+*proved* rather than exercised, and `Money::GST_BASIS_POINTS` is the
+fallback for a call that passes no rate.
+
+`Money::rateOf($taxable, $gst)` derives the rate an order was charged at
+from its own two columns, snapped to the nearest quarter of a per cent
+(every real slab is one). Derived rather than stored, so an invoice for an
+order placed under the old constant prints 18% with no backfill, and a
+stored `gst_rate` column is not a third figure free to disagree with the two
+that settle it.
+
+### The invoice
+
+`App\Support\Store\Invoice\GstInvoice` is the document model — seller,
+buyer, place of supply, lines with HSN, the split, the rate-wise summary,
+the totals and the amount in words — and it holds no markup, writes no file
+and decides nothing twice. One Blade template renders it as the console's
+print view and, through dompdf, as the stored PDF, so the page and the
+attachment cannot say different things.
+
+**Every figure comes off the order; none is recomputed.** The columns were
+written at checkout under the rates in force that day, so an invoice issued
+a year later says what was charged, and changing the shop's rate cannot
+reach backwards. The only thing derived is the split:
+
+    intra-state   cgst = ⌊gst ÷ 2⌋,  sgst = gst − cgst
+    inter-state   igst = gst
+
+Floor-and-difference, the shape `Money` already uses: halving twice and
+rounding each half gives two halves that do not add back, and the one thing
+an invoice may not do is fail to add up.
+
+**The place of supply is the delivery address, then the billing one.** An
+address with no state on it is treated as a **local** sale — the
+conservative reading, since CGST and SGST are what a shop charges in its own
+state and a blank state is almost always a local address typed carelessly.
+
+**Delivery's tax is the difference**, not a stored figure: the order's
+totals less the sum of the lines'. Exact whatever the lines did, and it
+comes out as zero for an order placed before this existed, which is the
+truth — the delivery's tax was never separated then.
+
+**An order with no per-line figures still prints.** `GstInvoice` reads the
+one rate from the order's two columns and apportions its taxable value and
+tax across the lines, so the printed lines sum exactly to the printed total.
+That *is* an apportionment, and it is the honest one: the alternative is an
+invoice for a real order that cannot be printed at all.
+
+**There is no round-off line.** The total on an invoice must be the amount
+taken, and rounding it to the rupee would make the document disagree with
+the payment beside it.
+
+### Issuing
+
+`invoice_enabled`, off by default, and `Invoices::ready()` is the switch
+**and** everything the switch needs — the registered name, a well-formed
+GSTIN, the state and the address. An invoice missing the seller's GSTIN is
+not a document with a gap in it; it is a tax document that is not one.
+
+Issued when an order is **paid**, from the `updated` hook Zoho Books already
+rides, guarded the same way. Three things it will not do:
+
+- **Never over an uploaded invoice.** Somebody who attached a PDF has made a
+  decision. `orders.invoice_source` (`uploaded` / `zoho` / `generated`) is
+  what tells the three apart; null on an older order reads as uploaded,
+  which is the safe side.
+- **Never while Zoho Books is ready.** Two systems numbering one series is
+  two series, and the one that files the return is the accounting system's.
+- **Never fails the order.** `consider()` is guarded like `Notifier`: a paid
+  order must still be paid when the PDF library throws. `GstInvoiceTest`
+  makes the renderer throw outright to prove it — the first cut of that test
+  set an over-long prefix, which `InvoiceSettings::prefix()` quietly falls
+  back from, so it threw nothing and passed while proving nothing.
+
+**The number is its own series by financial year** — `INV/2026-27/00001`,
+April to March, nothing to do with the order number. Two problems, solved
+separately: *one invoice per order* is the conditional
+`whereNull('invoice_number')` update with the row count checked; *no number
+twice* is `lockForUpdate` on the read of the highest, which the new index on
+`orders.invoice_number` makes a range lock rather than a table scan.
+
+Re-issuing from the console **keeps the number** — once issued it is in
+somebody's books — and re-renders the document under it, which is what
+somebody wants after correcting the registered address.
+
+### The customer can download it, at last
+
+`has_invoice` has been on the customer's order resource since the store
+shipped and **there was no route behind it**: a flag telling a buyer their
+invoice exists, on a page with no way to open it. Two doors now, sharing
+`CheckoutController::streamInvoice()` so they cannot drift on what they
+check — the guest's with the order's token, the portal's scoped by
+`customer_id` — and both only for a **paid** order, because an invoice is a
+record of money received.
+
+`has_invoice` now carries that paid check too. It is the only thing the
+order page draws the link from, and a link that 404s on press is the same
+defect as no link at all.
+
+### The console
+
+Store → **Tax and invoicing**, `role:store_manager`: the promo banner's
+narrow door onto the settings table, fifteen named keys, anything else
+refused **by name** rather than ignored. Settings as a whole stay
+`role:admin`; the rate a shop charges is not an administrator's decision.
+The group is in `STANDALONE_GROUPS`, so it is not also a tab on System →
+Settings.
+
+A product's own rate and HS code are on its **Selling** tab, under the
+price, because both are about the product rather than about the shop.
+
+### Not built, and say so when it is asked for
+
+- **Two rates inside one product.** A rate per *line* of one product needs a
+  line-level choice at checkout, and nothing asks for one.
+- **A separate rate for delivery.** It takes the goods' highest, which is
+  the composite-supply rule and needs no setting.
+- **E-invoicing (IRN, the government portal) and e-way bills.** Required
+  above turnover thresholds this shop does not assume. They are an API
+  integration with the NIC portal, not a template change.
+- **A credit note for a refund.** `ManualRefund` records the money; Zoho
+  Books issues the credit note when it is connected. Generated credit notes
+  here would need their own series and their own screen.
+
+## Product videos row (0.140.0)
+
+"Shop the videos": the videos already on shop products (`store_products.videos`,
+up to four each, a YouTube link or a library file — `ProductVideos`) drawn as a
+scroll-snap row of tiles, each a video well with the product under it (picture,
+name, SKU, price, the cart button) and the video's title beneath. There is no
+second list of videos.
+
+**One definition of the list.** `App\Support\Store\VideoShelf` feeds both
+`GET /store/videos` and the page builder's `product_videos` section
+(`SectionPresenter::productVideos()`), so the shop front, the homepage, a
+builder page and a product page cannot disagree. Published products only
+(the tail query as well as the head — a draft's video is in neither); a row is
+`{id, video, product}` where `product` is the shop's *list* `ProductResource`
+(resolved against a bare request, because a builder page's route is
+`pages.show` and would read as a detail view) — so no stock count, no
+description, and the video carries a file's public URL but never its path.
+`?limit=` (1–24, default `store_videos_limit`), `?category=<slug>`,
+`?order=newest|featured`, `?product=<slug>`: that product's own videos first,
+each its own tile, then its category-mates, then the rest — one tile per
+product, and the product itself excluded from the tail. `?others=0` returns
+only the head: the website sends it when `store_videos_product_others` is off,
+so the setting is read once, there.
+
+**Settings.** Public group `store_videos` (eleven rows, `SettingsSeeder`),
+edited at Store → Product videos (`/admin/store/videos`) through
+`PATCH /admin/store/videos` (`VideoSettingsController`, `role:store_manager`):
+the promo band's door — any key outside `KEYS` is refused by name, switches are
+`0`/`1`, shape and order are held to `VideoShelf::SHAPES`/`ORDERS` (sent as
+`options`), the count is 4–24, the heading 80 and the line 200 characters.
+`meta.products_with_video` says what the shelf will draw from. The shop front
+and the product page ship **on**; a shelf with no rows renders nothing at all,
+so an install without product videos is unchanged and one with them gains the
+row (one switch each turns it off). The homepage ships off and the autoplay
+switch ships off.
+
+**Playing.** The default is a facade: the poster (the video's, else the
+product's first picture, else a panel this site draws) and `PlayDisc`; a press
+mounts the `youtube-nocookie.com` iframe (`YouTubeFrame` in
+`product-video.tsx`, shared with the gallery's player) or a `<video>`. Nothing
+is requested from any YouTube host before that press and **never
+`i.ytimg.com`** (not in `img-src`, and the privacy rule). One tile plays at a
+time — "which tile is active" is a module-level store read with
+`useSyncExternalStore`, so a second shelf on the page shares it. Autoplay
+(`store_videos_autoplay`) mounts a muted, looping, control-less player in a
+tile at least 60% on screen, at most four, and unmounts it on leaving; it is
+off under reduced motion and Save-Data (`navigator.connection.saveData`), and
+where the cookie banner is in use (`cookie_consent_enabled` and an analytics id
+— the layout's own condition, `videoShelfConfig().consentGated`) it waits for
+`useConsent() === "granted"`, because it contacts YouTube without a press. A
+visible **Pause videos** button unmounts every autoplaying player; a press on a
+tile gives it the full player with sound. No YouTube script API: iframes only.
+
+**Placements.** The shop front (`/store`, after Top Picks and before the promo
+band); the product page's small "Watch" row (`size="small"`, top of the left
+column's second row) — which stays ISR-cached because its read is
+`publicApi.storeVideos()`, a cached fetch tagged `store-products` and
+`store-videos`, and autoplay/consent are decided in the browser; the homepage
+(`videos` in `HOME_SECTIONS`, entered through `homeBlockSections()` via
+`blocks.videos`, so all twelve themes have it with no template changed); and
+the builder's "Product videos" section (`category_id`, `limit`, `shape`).
+`CompactAdd` takes `inline` for the tile's strip — the same code as the card's
+corner button. Shop product save/delete/bulk actions and the settings action
+`updateTag("store-videos")`.
+
+**Why a tile's picture is not YouTube's thumbnail:** fetching it is a request
+to a Google host before any press. Give the video a poster (a tall 9:16 one
+looks best); without one the product's first picture stands in.
+
+Demo: `SampleProductVideoSeeder` (create-only, first three published shop
+products, only while none has a video). Tests: `StoreVideosTest`. Probe:
+`web/scripts/probes/store-videos.mjs` (the nothing-before-a-press rule, one at
+a time, the cart button, autoplay and Pause).
+
+## Tags (0.141.0)
+
+A row of small coloured pills under the shop's search bar (2026-10-09, the
+client): collected on the product form, tidied on Store → Tags, and created
+"intelligently" — a product with none is tagged once by a rule, and a button
+asks the AI assistant for more.
+
+**Tables.** `store_tags` (`name` ≤ 32, `slug` unique, `is_visible`,
+`sort_order`) and `store_product_tag` (unique pair, both cascade).
+`store_products.tags_set_at` and `tags_auto` — the second is not in the plan:
+it is what the form's "Added automatically" line is drawn from, and it needs a
+column because "are these the rule's tags, untouched" cannot be worked out
+from the tags alone (the rule's output changes with the catalogue).
+`StoreTag` is in the morph map (the Tags screen binds it).
+
+**`App\Support\Store\Tags` is the one implementation** — the product
+controller, the CSV import, the WordPress step, the seeder and the Tags
+screen's button all call it. `sync()`, `suggestByRules()`, `autoTag()`,
+`autoTagUntagged()`, `merge()`.
+
+- **A slug is the identity.** `Str::slug`, so "Wi-Fi 6", "wi-fi  6" and
+  "WI-FI 6" are one tag; the first spelling seen is kept as its name. A name
+  whose slug is empty (`!!!`) is no tag and is refused on the form (422 on
+  `tags.N`), dropped by the importers. Twelve a product (422 on `tags`),
+  thirty-two characters a name.
+- **The automatic rule runs once.** `tags_set_at` is stamped the first time
+  tags are decided: by a request that sends `tags` (even `[]`) or by the rule
+  applying some. `autoTag()` runs only while it is null, the product has no
+  tags and `store_tags_auto` is on (the Tags screen's button passes `force`: an
+  explicit press ignores the switch, never the stamp). **A product the rule
+  found nothing for is not stamped** — nothing was decided, and the rule may
+  try again once a brand or a category exists. The stamp is written through
+  the query builder, not `save()`, so it fires none of the product's hooks
+  (the spec index, the price-drop watch, IndexNow) and does not move
+  `updated_at`.
+- **The rule's output**: the brand, the category, `Digital` for a licence or
+  a download, and the values of the specifications the category already
+  offers as filters (`filter_specs`, the first four, matched on
+  `SpecIndex::key()` so "ports" finds "Ports") — a bare number takes its label
+  ("24 Ports"), yes/no values are skipped, nothing over 24 characters, six at
+  most.
+- **It never fails a save.** `autoTag()` is guarded and logs at `warning`; the
+  controller calls it after the transaction.
+- **The form does not "decide" by merely being saved.** The product form
+  always draws a Tags field, so a form that posted its untouched, empty list
+  would stamp every new product and the rule would never run. The field posts
+  `tags_changed` (`0`/`1`) beside the list and the Server Action sends `tags`
+  only when it is `1`. Saving the rule's tags exactly as they were keeps them
+  "automatic".
+- **Merge** moves the source's products onto the target with the target's
+  existing rows excluded (a product holding both ends with one row) and
+  deletes the source, in one transaction.
+
+**Public.** `GET /store/tags?category=&limit=` — visible tags carried by
+**published** products (of that category), each with `count`; curated tags
+(`sort_order` above 0) first, then the most used, then name; `{data: []}` in a
+200 when none or when `store_tags_enabled` is off (the `/menus/*` lesson).
+New tags are made with `sort_order` 0, and the Tags screen's arrows place
+*every* tag (1..n), so the row is "the screen's order, then most used" without
+a hand-kept number. `GET /store/products?tag=<slug>` filters (a hidden tag
+still filters — the Shown switch decides what the row offers, not what a link
+finds); `?q=` also matches a tag's name. Rows and the detail carry
+`tags[{name, slug}]`, visible ones only. The website's `publicApi.storeTags()`
+is tagged `store-products` + `store-tags`; the product save and every Tags
+action purge them.
+
+**Settings** are the public `store_tags` group (`store_tags_enabled`,
+`store_tags_limit` 4–30, `store_tags_auto`) in `STANDALONE_GROUPS` — edited on
+Store → Tags through `PATCH /admin/store/tags/settings`, which refuses any
+other key by name (the promo band's door). `PATCH /admin/settings` still
+accepts them for an administrator.
+
+**Suggest** (`POST /admin/store/products/tag-suggest`, `role:store_manager`,
+10/min): `App\Support\Seo\Ai\ProductTags`, the `AltText` shape. It shares the
+SEO assistant's switch, key, model, daily cap and counter. The product's words
+go inside a `---PRODUCT---` fence (marker stripped until none is left), the
+model is shown the shop's existing tag names and told to reuse them, and every
+answer is tidied: one to three words, 24 characters, no currency, `%`, `#` or
+claim word ("best", "cheapest", "50% off"), one per slug, eight at most.
+Anything that cannot be used — off, no key, cap, a silent provider, an answer
+with nothing usable — falls back to the rule, and `source` says which
+answered. Nothing is saved; tags the product already has are not offered.
+
+**Website.** The row is drawn **only once a category is chosen** — on a
+category page, or on `/store?category=…` — never on the bare shop front (the
+client's call, 2026-10-10: the front is browsed by category first). A
+product page's own chips link to `/store?category=<its category>&tag=…`, so
+they land where the row is. `components/store/tag-row.tsx` is a *sibling* of `StoreFilterBar`,
+not part of it — the strip must stay a direct child of the shop wrapper to keep
+sticking. Every chip links to `/store`: the category pages are ISR and must not
+read `searchParams`, so a chip there opens `/store?category=…&tag=…`. The
+colour is `tagIndex(slug)` (`lib/tag-colour.ts`, shared with the blog's
+category chips) into `--color-tag-fill-N` under white — a hash, never random,
+so a tag is one colour on every page and the server's HTML and the browser's
+agree. Phone: one scrolling line (`w-0 min-w-full overflow-x-auto`); `sm`
+and up: centred, wrapping. Chips are 26px (the tap-target floor is 24) at
+12px. A tag-filtered `/store` is `noindex, follow`.
+
+**CSV.** A `tags` column, last, `;`-separated; a blank cell leaves a product's
+tags alone, a filled one replaces them, a name a tag cannot be (over 32
+characters, no letter or number) refuses the line. A line with no tags cell
+goes through the rule. **WordPress**: a WooCommerce product's `tags` come
+across (entities decoded); only a name that cannot be kept is warned about.
+
+`StoreTagsTest` pins all of it; the once-only rule, the published-only count
+and the twelve-tag cap were each control-run. Not built: tags on the marketing
+catalogue, tags as a menu item, tag pictures.
+
+### Tag pages (0.157.0)
+
+A tag is also a page, `/store/tags/{slug}` (the client's decision, 2026-10-10,
+reversing the earlier "no landing page per tag").
+
+- **The record.** `store_tags` gains `heading` (160) and `intro` (rich text,
+  named in `TagRequest::richTextFields()` or it would bypass the sanitiser);
+  `StoreTag` is `HasSeo` (`store_tag` was already in the morph map), so the
+  page has the SEO panel, a score and a row on `/admin/seo` ("Store tags",
+  `SeoController::ENTITIES`, depth 60 words).
+- **The read.** `GET /store/tags/{slug}` answers `{name, slug, heading, intro,
+  count, indexable, updated_at, seo, schema}`: 404 for a hidden tag, an
+  unknown slug **and while `store_tags_enabled` is off** (the feature is the
+  row *and* the pages); a tag nothing published carries answers with `count: 0`.
+  `count` is published products only. `schema` is a `CollectionPage`
+  (`StructuredData::storeTag`).
+- **Indexing: three or more published products** (`StoreTag::MIN_INDEXABLE`).
+  Under it the website sets `robots: noindex, follow` (unless the SEO tab has
+  already said noindex) and `GET /store/tags?all=1` — the sitemap's read:
+  every shown tag with a published product, no limit, no category, adding
+  `updated_at`, `indexable` and `seo.sitemap_include` to each row — marks it
+  `indexable: false`, and `sitemap.ts` lists only `indexable` rows whose
+  `sitemap_include` is not false. The plain `/store/tags` row is unchanged.
+- **Caching.** The page is ISR: `generateStaticParams` returns `[]`, it reads
+  no `searchParams`, cookie or header, and its fetches carry `store-tags`,
+  `store-tag:<slug>` and `store-products` — so a product save and every Tags
+  action refresh it, and `updateTagPageAction` purges the tag's own key. It
+  shows the first page of `/store/products?tag=<slug>` and, when there are
+  more, a link to `/store?tag=<slug>`; it renders `StoreFilterBar` itself like
+  every page under `/store`.
+- **A rename moves the address, and the 301 is written.** `StoreTag` is still
+  not `Sluggable` (the slug is the identity the vocabulary is merged on, never
+  derived from the name), so `TagController::redirect()` writes the `redirects`
+  row on a rename and on a merge (old tag -> the tag it joined), and deletes any
+  redirect that *starts* at the address now live, so renaming a tag back cannot
+  loop. Deleting a tag leaves a 404; its `seo_metadata` row goes with it.
+- **Links.** The chips on a **product page** open the tag page; the row on the
+  shop and category pages still link to `/store?…&tag=…` (they sit on pages
+  that must not read `searchParams`, and a filter is what they are for).
+- **Console.** `/admin/store/tags/{id}` (`GET`/`PATCH`, `role:store_manager`):
+  heading, introduction and SEO; name and the Shown switch stay on the list.
+  `StoreTagPageTest` pins the 404s, the published-only count, the threshold, the
+  sanitiser, the SEO override, the redirects and the role gate - the threshold
+  and the sanitiser were control-run.
+
+## Delivery charges and shipping zones (0.142.0)
+
+**The behaviour change, first: the charge shown is now the charge taken.**
+`store_shipping_paise` was displayed on every product page, declared in the
+feed and written into the Offer markup — and read by nothing that built a
+total. `Basket` never added it, `Checkout` never charged it and `orders` had
+no column for it. A shop left at 0 (the seed, and every install so far) is
+byte-for-byte what it was; a shop that had typed a figure starts charging it
+with the first basket after the update. The existing cart, checkout, feed,
+Zoho and report tests pass untouched in flat mode at 0.
+
+**Two modes**, `store_shipping_mode` (`store` group, public): `flat` — the
+setting is added to any order that ships something — and `zones`. Both are
+written from `/admin/store/shipping` (`role:store_manager`), not the settings
+strip (`HIDDEN`); `PATCH /admin/settings` and `PUT /admin/store/shipping/settings`
+both refuse `zones` until `ShippingQuote::zonesReady()` — exactly one active
+default zone that delivers and has a slab. `Fulfilment::shippingMode()` reads
+a stored `zones` with nothing to quote from as `flat` rather than as free
+delivery, and every zone write ends with `afterWrite()`, which rolls the
+transaction back if zones mode is on and the arrangement could no longer
+quote (deleting the default zone, taking its slabs, un-marking it).
+`store_default_weight_grams` (500) stands in for a weight nobody entered.
+
+**Tables.** `shipping_zones` (name, `states` as a list of two-letter codes,
+`delivers`, `free_above_paise`, `extra_per_kg_paise`, `is_default`,
+`sort_order`, `is_active`) and `shipping_rates` (`up_to_grams`,
+`charge_paise`, unique per zone). `carts.ship_state` and `orders.shipping_paise`
+(default 0), `shipping_zone` (the zone's *name* as it was), `shipping_weight_grams`.
+`shipping_zone` is in the morph map. Rules, all the controller's, all judged on
+what the zone *will be* after the write: one default zone; a state in at most
+one **active** non-default zone; a zone that delivers needs a slab and an
+`extra_per_kg_paise` (0 is an answer); no two slabs end at one weight; a
+non-default zone needs a state; the default is always on, always delivers and
+holds no states; a zone that does not deliver holds no slabs.
+
+**`ShippingQuote::for(lines, ?stateCode, payablePaise)`** is the only place a
+delivery figure is worked out. Weight is Σ quantity × (variation weight, else
+product weight, else the default) over **physical lines only** — zero means
+unset at either level. The first slab whose limit is **at or above** the
+weight applies (1000 g belongs to "up to 1000 g"); above the top slab it is
+that slab's charge plus `extra_per_kg_paise` per *started* kilogram of the
+excess, in integers. `free_above_paise` is judged `>=` on **subtotal less
+discount**: a code that drags a basket under the line should not leave it
+free, and a basket exactly on the line is free. A state belongs to the first
+active non-default zone listing it, else the default. A deliverable zone with
+no slabs cannot quote and reads as undeliverable (the console cannot save
+one; this keeps a database edit from becoming free delivery). Flat mode
+charges the setting on a basket that ships; a basket with nothing physical
+has no delivery and no destination question in either mode.
+
+**GST.** Delivery is **GST-inclusive like every other figure**, and the tax is
+extracted over the whole total: `total = (subtotal − discount) + delivery`,
+`taxable = Money::taxable(total)`, `gst = Money::gst(total)`, stored once on
+the order as before. The catalogue has one rate (`Money::GST_BASIS_POINTS`), so
+delivery at 18% is identical to a composite supply taxed at the principal
+rate; if a multi-rate catalogue ever arrives, delivery follows the principal
+supply and this is the place to revisit. Coupons never touch delivery.
+
+**The destination.** `PATCH /cart/destination {state}` (name or code; blank
+clears; anything else is a 422 on `state` — a misspelling must never select
+the cheaper zone) saves `carts.ship_state` through a no-timestamps save, so a
+form field does not reset the idle clock the reminders read. The basket
+summary gains `shipping_mode`, `shipping_paise` (**null** in zones mode until
+a state is known — "Worked out at checkout", and left out of the total),
+`shipping_label`, `shipping_zone`, `shipping_weight_grams`, `shipping_state`,
+`shipping_deliverable` and — in zones mode only — `shipping_states`, the
+API's own list of names for the form's select. `total_paise` includes
+delivery once it is known. **The basket strip and the reminder emails quote
+subtotal less discount, never `total_paise`**: a half-typed destination is not
+a figure to email (`CartReminder::summary()` and `CartReminders::send()` read
+`subtotal_paise - discount_paise`).
+
+**The checkout re-quotes under its lock and the request supplies nothing.**
+`Checkout::quoteDelivery()` weighs the rows it just locked and reads the state
+of the block actually used for delivery (`shipping_address` when "deliver
+somewhere else" is ticked, else `address`). In zones mode: an unresolved state
+is a 422 on `{block}.state` (free text is refused — the form is a select, and
+the server does not trust it); a zone that does not deliver is a 422 on the
+same key with a sentence naming the state; and a destination that differs
+from `carts.ship_state` throws `DestinationChanged`, which `place()` catches
+**outside** the transaction (a save made inside it would roll back with the
+refusal), saves the new state and answers 422 on `shipping` with the new
+figure and total, so nobody confirms a total they did not see. Delivery is
+added **before** the cash-on-delivery ceiling is judged. The order snapshots
+`shipping_paise`, `shipping_zone` (the name) and `shipping_weight_grams`;
+nothing downstream re-quotes — gateways, `Settlement`, `ManualPayment`,
+`ManualRefund`, returns and the reports read `total_paise` and follow.
+
+**Where it shows.** A Delivery row on the basket, the checkout (`data-delivery-row`,
+re-quoted by `saveCartDestinationAction` as the state changes — typed,
+chosen, or set by the PIN lookup, which dispatches `input`), the public order
+page, the portal's and the console's (`DeliveryRow`, drawn only when the order
+was charged or priced from a zone, so an old order reads as it did), the
+order emails (`OrderMail::delivery()`, also omitted at a zero flat charge),
+the sales CSV (a `Delivery (INR)` column) and `SalesReport` (`delivery_paise`,
+its own figure). The customer's order resource carries `shipping_paise` and
+`shipping_zone` and **not** the weight; the console's carries all three.
+
+**Zoho.** `ZohoInvoices::lines()` appends a "Delivery — <zone>" line at the
+charge with the goods' tax, omitted at 0, so the invoice's total still equals
+the order's; the whole-refund credit note lists it too. A partial refund or a
+return whose lines add up exactly stays what it was (delivery is not
+refunded by a return unless the refund says so).
+
+**Feed and markup.** In zones mode `ProductFeed::shippingBlock()` leaves out
+`shipping_price`, `shipping_country`, `shipping_service` and the transit
+times, and `StructuredData::storeProduct` omits `shippingDetails` — a single
+figure would be a price the landing page does not charge, the mismatch that
+suspends Merchant Center accounts. Handling time stays. **Set shipping rules in
+Merchant Center itself** (the manual says so); the product page and the trust
+strip say delivery is worked out at checkout. `feed.xml` draws `<g:shipping>`
+only when the row has a price.
+
+**The console.** `/admin/store/shipping` (Store → Shipping): the mode, the flat
+charge, the default weight, the count of physical products with no weight
+(`StoreProduct::scopeWithoutWeight()`, also `?no_weight=1` on the products
+list — a product counts as weighed when it or any option has a weight), and
+the zones as cards with a dialog (a `Modal`, refusals drawn inside it because a
+toast behind an open `<dialog>` is inert). States already held by another
+active zone are shown with whose they are and cannot be ticked. A save of the
+mode or the flat charge purges `settings` and `store-products`: the product
+page's wording and the cached JSON-LD both change with the mode.
+
+**Fixes carried.** `ProductController::saveVariations()` no longer writes null
+over a variation's weight when the key is absent (the editor never posted it;
+it does now, and sends blank as null). The PIN directory files Telangana under
+Andhra Pradesh and Ladakh under Jammu & Kashmir; `lib/pincode.ts` re-files
+`500–509` and `194` and spells six old names (Pondicherry, Chattisgarh,
+`Dadra & Nagar Haveli`, `Daman & Diu`, `Jammu & Kashmir`, `Andaman & Nicobar
+Islands`) as the shop's own state list does, because in zones mode the state is
+a select of those names and an option must match. `PincodeAutofill` fills a
+`<select>` only with an option of exactly that value. `IndianStates` moved to
+`App\Support`; `App\Support\Store\Zoho\IndianStates` remains as a subclass so the
+old import still resolves.
+
+**Not changed, on purpose.** Orders imported from WooCommerce keep delivery as
+a service line (their total is history and is never re-quoted). The basket
+strip and the reminders are untouched. Handling time and the transit window are
+still one pair of settings, whatever the zone. There is no per-product shipping
+class and no courier rate lookup — Shiprocket is a later release.
+
+**Tests.** `ShippingZonesTest` — slab edges, quantity × weight and the
+fallbacks, mixed and digital-only baskets, a 100% coupon, `free_above` after a
+discount, an undelivered zone on both address modes, an unresolved state, the
+COD ceiling crossed only by delivery, a stale and a never-quoted destination,
+a request that tries to supply the charge, the gateway asked for the total,
+the sales CSV and report, the order email, the Zoho line and credit note, the
+reminder total, the zones-mode feed and markup, and every console rule.
+`scripts/probes/shipping-zones.mjs` drives the checkout at 360 and 1280 and
+puts everything back.
+
+## Shiprocket: booking and tracking a parcel (0.143.0)
+
+**Optional, off, and "By hand" stays the default.** `store_courier_provider`
+(private `shiprocket` group) is `manual` or `shiprocket`. On `manual`, or on
+`shiprocket` with the sign-in or the pickup location unsaved
+(`CourierSettings::active()` is false), no control is drawn, no call is made
+and the existing tracking form works exactly as it did. Every existing order
+test passes untouched; `ShiprocketTest::test_a_manual_install_asks_nothing_of_anybody`
+pins that nothing is asked, in both directions.
+
+**There is no Shiprocket sandbox, and that decides the whole shape.** The
+documentation says "any requests made using the valid API credentials will
+affect the real-time data in your Shiprocket account". So: every test fakes the
+service (`tests/Support/FakesShiprocket`, a routed `Http::fake()` under
+`Http::preventStrayRequests()`, modelled on `FakesZohoBooks`); "Test the
+connection" signs in and lists the pickup locations — the only two read-only
+calls — and books nothing; `scripts/probes/courier.mjs` never switches the
+provider on and never presses Book or Test. **It has not been driven against a
+real account.** Every assumption about a shape the documentation leaves open is
+one small place, commented `unverified against a real account:`, and listed
+below.
+
+### The client
+
+`App\Support\Store\Shipping\Shiprocket` over Laravel's HTTP client, no SDK, base
+`https://apiv2.shiprocket.in/v1/external`. Sign in, pickup locations, create
+order, assign courier and AWB, request pickup, label, track by AWB, cancel.
+
+- **The token** is cached for 9 days (it is good for 10), keyed on a hash of the
+  API user's email. A 401 forgets it and signs in once more; a second 401 is the
+  account's answer and is reported. A failed sign-in caches nothing.
+- **A 200 can be an error.** Shiprocket answers HTTP 200 with `status: 404`, an
+  empty label URL, `label_created: 0`, `track_status: 0`. Each method tests for
+  the field it needs and treats its absence as a refusal in Shiprocket's words
+  (`message`, then the first validation error); a body carrying an integer
+  `status` of 400 or more is a refusal too. `track_status: 0` is *not* — it means
+  no scans yet.
+- **`shiprocket_error`** is the `mail_error` pattern: any refusal writes
+  Shiprocket's words, the next success clears it, and it is written only when it
+  changes. The settings panel shows it.
+- **Ids.** `order_id` and `shipment_id` come back from create and are stored
+  separately (`orders.shipment_order_id`, `orders.shipment_id`): AWB, pickup and
+  label want the shipment id (as an array), cancel wants Shiprocket's order id.
+  The webhook's own `order_id` is our reference "as Shiprocket holds it" and may
+  carry a suffix, so it is never used to match; `sr_order_id`, then the AWB, is.
+
+### Booking: once, in the right units, with only what a courier needs
+
+`Shipments::book()`:
+
+1. **A conditional claim** on `orders.shipment_booking` (the `ZohoInvoices`
+   pattern): null, `failed` or `cancelled` → `creating`, in one UPDATE, so two
+   presses cannot both create the order — a duplicate `order_id` has no
+   documented safe response. A claim older than ten minutes is taken over. A
+   courier-cancelled or returned parcel may be booked again.
+   `ShiprocketTest` re-enters `book()` from inside the create call to prove the
+   second is refused with the first still in flight.
+2. **Every attempt after the first sends `{number}-{attempt}`** as the reference
+   (`shipment_attempts`). Shiprocket will not take the id of a cancelled order,
+   and a booking that failed with no usable answer may or may not exist there;
+   a server fault says so in the order's error ("Shiprocket may still have
+   received the order — check its panel before booking again").
+3. **Units are converted at the edge on integers.** Weight is a three-place
+   decimal *string* of kilograms built from grams by `intdiv` and a remainder
+   (`Shipments::kg`, 1750 → `"1.750"`); money is rupees from paise (a whole
+   number when it is one, else `Money::toRupeeString`'s exact decimal); sizes
+   are whole centimetres, each at least 1 (Shiprocket requires above 0.5).
+4. **Weight** is `orders.shipping_weight_grams` when the checkout recorded one,
+   else `ShippingQuote::unitWeight()` per shipped line — the same rule a basket
+   is weighed by — and the console's form can override it.
+5. **Only what a courier needs leaves**: the name, the phone as ten digits, the
+   delivery address (sent as the billing address too, with `shipping_is_billing`,
+   so the billing address never travels), each *shipped* line's name, SKU,
+   quantity and price, and the order number. Not the customer's note, not the
+   GSTIN (the documentation does not require it), not a licence line.
+6. **COD or Prepaid**: an order with `paid_at` is `"Prepaid"`; an unpaid
+   cash-on-delivery order is `"COD"`; anything else unpaid is refused with a
+   sentence, as are a digital-only order, a cancelled/refunded/refund-requested
+   one and one with no address.
+
+The courier, AWB and tracking link go into the existing `courier`,
+`tracking_number` and `tracking_url` columns, so the emails, the timeline and
+both order pages read a booked parcel without knowing where it came from. The
+AWB step runs straight after create; if *it* fails (a low wallet, an
+unserviceable pincode) the booking stands, `shipment_error` says why, and
+**Assign a courier** can be pressed again without making a second order.
+
+### Status: one place, never backwards
+
+`ShipmentStatus::apply()` is where a webhook and the tracker both end. **It reads
+`shipment_status_id`, never `current_status_id`**: Shiprocket has two numberings
+(7 is Delivered in both, 8 is Canceled for a shipment and 5 for an order, 17 is
+Out for delivery and 19 is) and a webhook carries both, the second unexplained.
+
+- Every mapped id has a rank; an update below the stored rank, or the same id
+  again, changes nothing (the `MessageDelivery::rank()` rule). An id not in the
+  table is ignored, because storing it would let a label we cannot place
+  outrank one we can. The order row is locked while it is applied.
+- *Picked up, shipped, handed over, in transit, out for delivery* → the order
+  moves to **Dispatched** through `moveTo()` — and from Paid through Ready for
+  dispatch, because Paid may not go straight there — then `DispatchNotice::send()`
+  sends the dispatch email and message. That helper is the one place
+  `OrderDispatched` is sent (the console's status action calls it too), so a
+  scan and a click cannot send it twice or from two places. Only a move *we* make
+  sends it; an order already dispatched, completed or further is left alone.
+- *Delivered* → `delivered_at` (the courier's time when it gave one), through
+  Dispatched if the scans were missed, to **Completed**. `ReturnPolicy::deadline()`
+  now counts from `delivered_at` first, then `completed_at`, then dispatch plus
+  the transit window.
+- *RTO (initiated, acknowledged, failed again, out for delivery, in transit,
+  delivered) and cancelled* → **no status change**. `shipment_problem` is set
+  (`returning`, `returned`, `cancelled`), a line goes in the order's trail, and
+  `attention.shipments_in_trouble` counts it (`Order::scopeShipmentTrouble()`,
+  the list `?shipment=problem` opens). A person decides what an order whose
+  parcel came back becomes; the system will not guess at a refund.
+
+### The webhook
+
+`POST /store/shipping/webhooks/courier` (`CourierWebhookController`). **The
+address must not contain "shiprocket", "kartrocket", "sr" or "kr"** — Shiprocket
+refuses such a URL — so it names the role, not the vendor, and
+`ShiprocketTest::test_the_webhook_address_names_neither_the_vendor_nor_its_short_forms`
+reads the route's URI for all four. The settings panel prints the full address
+and warns when the API's own domain contains one.
+
+It follows the messaging webhooks: **200 always** (Shiprocket wants a bare 200),
+**fails closed**, un-throttled. The payload carries no signature, only an optional
+token in `x-api-key`, so `shiprocket_webhook_token` is compared with
+`hash_equals` and *no token saved accepts nothing, even an empty header*. A forged
+call could otherwise dispatch and complete orders and email customers about it.
+Scans of the return leg (`is_return: 1`) are ignored; the provider being `manual`
+makes it inert.
+
+### The tracker
+
+`technoware:track-shipments`, every 30 minutes (`routes/console.php`, above the
+pause loop, so an update or a restore holds it). The webhook is the fast path
+and this is the one that cannot be missed. Booked parcels with an AWB, not
+delivered, returned or cancelled, oldest `shipment_checked_at` first, at most 40
+a run (`--limit`). A parcel is stamped as checked *before* it is asked about, so
+one that always fails cannot hold the front of the queue; a refusal stops the run
+(a refused sign-in would be refused for every parcel) and is written to
+`shiprocket_error`. **Always exits 0.** Does nothing while the provider is manual.
+
+### The console and the customer
+
+`GET /admin/settings/shiprocket` (`role:admin`, with `POST …/test`) reads the
+pickup locations from Shiprocket **only while the provider is on and a sign-in is
+saved**; on "By hand" the screen is opened as often as anybody likes and asks
+nothing. The pickup location is a select with a blank first option (the 0.134.0
+lesson), posted under `setting__shiprocket_pickup_location` only when drawn. The
+order resource carries a `shipment` block on the detail read — null while manual
+and nothing was ever booked — whose `can_*` flags are the answers the API will
+give to the press, so a button is drawn only when it will be taken. The five
+routes under `/admin/store/orders/{n}/shipment/*` are `role:store_manager`,
+throttled, and 422 in Shiprocket's words. One `pending` governs the panel's
+buttons, so the pressed one spins and its neighbours are disabled.
+
+The customer's order carries `shipment_status` (only while it goes well — a
+parcel coming back is for the desk to word) and `delivered_at`. `OrderTimeline`
+gains a fifth **Delivered** step *only* for a parcel Shiprocket is following; a
+hand-typed order keeps four, because a step nothing could ever reach is a promise.
+
+### Unverified against a real account
+
+1. That `payment_method: "COD"` collects `sub_total + shipping_charges`. There is
+   no COD-amount field; the discount is taken off `sub_total` and `total_discount`
+   sent as 0 so it cannot be subtracted twice. Check on the first real COD order.
+2. That the money fields accept a decimal (they are typed `integer`); a whole
+   rupee is sent as an integer.
+3. That an expired token answers 401 on `apiv2` (only the serviceability host's
+   body is documented), and the shape of a failed AWB assignment (wallet,
+   unserviceable) — read through `message` and a few likely paths.
+4. That the first `courier_id`-less assignment uses the account's default courier
+   (the documentation says "the default courier").
+5. The public tracking page's address (`https://shiprocket.co/tracking/{awb}`)
+   and the time zone of every date Shiprocket sends.
+6. That an unverified pickup location can be booked from (`phone_verified` is read
+   and not enforced), and that a nickname rather than a code is what
+   `pickup_location` takes.
+7. Webhook retries, timeouts and whether a non-200 disables it; whether the
+   `x-api-key` header is omitted when no token is set (we require one).
+8. The label URL's lifetime (it is stored, and "Make the label" re-asks).
+
+### Rate quotes, manifests and return pickups (0.159.0)
+
+All three are the console's, behind the same `CourierSettings::active()`, the
+same `store_manager` role and the same rule: **nothing here is ever called by a
+test or a probe against a real account** (`FakesShiprocket` gained the routes;
+`ShiprocketMoreTest`, 27 tests; `scripts/probes/shiprocket-more.mjs` presses no
+button that reaches Shiprocket).
+
+**Rate quotes.** `Shiprocket::serviceability(pickupPin, deliveryPin, grams, cod,
+declaredRupees, isReturn)` → `GET /courier/serviceability/`, parsed from
+`data.available_courier_companies[]` into `{courier_id, name, rate_paise,
+cod_charges_paise, etd, days, rating, recommended}`. Shiprocket's rupees are
+turned into paise through a two-place string (`Money::fromRupeeString`), never
+multiplied. A 200 with `status: 404` is already a refusal in `send()`, and an
+empty list is one too ("No courier can take a parcel between those two PINs"),
+both in Shiprocket's words. The pickup PIN is the chosen pickup location's,
+read from `pickupLocations()` and cached five minutes (`pickupLocation()`); the
+delivery PIN is the order's address; COD is "the order is unpaid"; the declared
+value is the order total in whole rupees. `POST …/orders/{n}/shipment/rates`
+answers `{data: [...], meta: {weight_grams, pickup_pin, delivery_pin, cod}}`. **It
+is a quote for the desk's choice of courier, not a delivery charge**: the
+checkout keeps charging the zones'. The console's "See couriers and prices"
+(`CourierRates`, inside the panel's form) lists them with a "Shiprocket's
+default" first; the chosen radio is the `courier_id` that Book or Assign
+already accepted. Offered before booking, and after a booking that lacks a
+courier.
+
+**Manifests.** `POST /manifests/generate` then `POST /manifests/print`, always
+both: generate wants shipment ids and answers "already generated" as a **400
+that lists the ones that are** (`ShiprocketRefused::$body` now carries the
+decoded body, so `generateManifest()` reads the list and treats it as success;
+any shipment not on it is generated by a second call), and print wants
+Shiprocket's *order* ids and gives the one PDF. An empty `manifest_url` on a 200
+is a refusal. A parcel is eligible only after an AWB **and** a requested pickup
+(`Shipments::refusalToManifest()`, in words); the PDF's address is stored on the
+order (`shipment_manifest_url`, `shipment_manifest_at`). `POST
+…/shipment/manifest` is one order; `POST /admin/store/orders/manifest {numbers[]
+≤ 50}` is one manifest for the ready ones and answers 200 `{url, included[],
+refused[{number, message}]}` (unknown numbers are refused as "No such order."; if
+none is ready it is a 422). The orders list draws ticks and a "Make a manifest"
+bar only while `meta.courier_active` (`components/admin/row-selection.tsx`'s
+store, scope `store-orders`); the PDF opens as a plain link in a new tab.
+
+**Return pickups.** `App\Support\Store\Returns\ReturnPickups`, `Shipments` the
+other way round, on `order_returns.pickup_*`. `book()` is for an **approved**
+return while Shiprocket is the provider. The claim is a conditional UPDATE on
+`pickup_booking` (null/failed/cancelled, or `creating` for over ten minutes);
+the reference sent is `{RMA}` then `{RMA}-{attempt}`. Three steps, each stored
+and resumable: `POST /orders/create/return`, `POST /courier/assign/awb` with
+`is_return: 1`, `POST /courier/generate/pickup` on the return's shipment id. A
+refusal at the second or third step keeps the booking, writes `pickup_error`,
+and pressing Book again ("Carry on booking") continues from the step that failed
+without creating a second order. **The roles are swapped from a forward
+parcel**: `pickup_*` is the customer, from the order's delivery address (billing
+as the fallback), name, email and mobile; `shipping_*` is the seller, the chosen
+pickup location's address, city, state, PIN, contact name, phone and email as
+Shiprocket lists them. `order_items` are the return's lines at the price the
+order sold them for (units = the return's quantity, `selling_price` in rupees
+including GST, name and SKU from the order line's snapshot), `payment_method`
+PREPAID, `sub_total` their sum, weight from the lines by the same unit-weight
+rule a basket uses, the default parcel size, `order_date` today. Cancelling is
+`POST /orders/cancel` (and the AWB first, as for a forward parcel) and frees the
+return to be booked again.
+
+**A scan with `is_return: 1` belongs to the pickup and to nothing else.** The
+webhook finds the return by `sr_order_id`, else by AWB, and `ReturnPickups::apply()`
+writes `pickup_status_*` only — monotonic, idempotent, from `ShipmentStatus::MAP`
+— plus a line in the order's trail. It never changes the return's own status
+(**Receive stays a person's tick**, and "delivered at the seller" is not "the
+goods were checked"), never the order's status or its forward shipment; the
+courier cancelling the pickup sets `pickup_booking` to `cancelled` so it can be
+booked again. `technoware:track-shipments` asks about open pickups too (an
+approved or received return with an AWB and no settled status), oldest check
+first, after the forward parcels. The admin return carries a `pickup` block
+(null while Shiprocket is off and nothing was booked) with `can_book`, `resume`,
+`can_rates`, `can_cancel` and `book_refusal`; the customer's return carries only
+`pickup_status`, the courier's label.
+
+Unverified against a real account, in addition to the list above: (a) that
+`/orders/create/return` accepts the fields as the collection tabulates them and
+that the seller's `shipping_*` may be filled from a pickup location's `name`,
+`phone` and `email`; (b) that a return needs `POST /courier/generate/pickup` as a
+separate step (the wrapper has a `request_pickup` flag, which suggests it does);
+(c) that `/courier/serviceability/` with `is_return=1` and `declared_value`
+quotes from the customer's PIN to the seller's; (d) that `/manifests/generate`'s
+"already generated" 400 lists the ids in `already_manifested_shipment_ids` and
+that a mixed batch leaves the unlisted ones to a second call; (e) the lifetime of
+a manifest's URL; (f) that `/orders/cancel/shipment/awbs` applies to a return's
+AWB; (g) that the tracker's `/courier/track/awb/` answers for a return AWB.
+
+### Not built
+
+Several parcels for one order, the wrapper "forward shipment" call, cancelling a
+shipment when the order is cancelled, Shiprocket's quote in the checkout's
+charge (the delivery charge stays the zones').

@@ -101,7 +101,7 @@ export async function seoAiContextAction(
 /**
  * The one action that reports the provider's own words.
  *
- * "The model `gpt-5-turbo` does not exist" is what tells somebody what to fix;
+ * "`openai/gpt-5-turbo` is not a valid model ID" is what tells somebody what to fix;
  * "could not connect" tells them nothing. Safe here in a way it is not on a
  * visitor-facing path: the caller is an authenticated SEO manager and the only
  * thing they influence is the model name.

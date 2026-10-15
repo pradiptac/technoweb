@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Ring } from "@/components/ui/ring";
 import { StatFigure } from "@/components/ui/stat";
 import { splitNumber } from "@/components/ui/count-up";
-import { IdentityIcon, iconMap } from "@/components/icons";
+import { IdentityIcon, isIdentityIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { ContentBlock, StatItem, StatsContent } from "@/types/blocks";
 
@@ -111,7 +111,7 @@ function BlockHeader({ content, center = false }: { content: StatsContent; cente
 }
 
 function iconKey(icon: string | null | undefined): string | undefined {
-  return icon && icon in iconMap ? icon : undefined;
+  return icon && isIdentityIcon(icon) ? icon : undefined;
 }
 
 /**

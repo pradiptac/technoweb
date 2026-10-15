@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\MessageChannel;
 use App\Enums\TemplateApproval;
 use App\Support\Mail\Placeholders;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -94,7 +95,7 @@ class MessageTemplate extends Model
 
     public function mediaUrl(): ?string
     {
-        return filled($this->media_path) ? asset('storage/'.$this->media_path) : null;
+        return filled($this->media_path) ? MediaUrl::for($this->media_path) : null;
     }
 
     /** @return HasMany<MessageAutomation, $this> */

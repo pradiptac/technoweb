@@ -318,6 +318,65 @@ class MenuTest extends TestCase
     }
 
     /**
+     * A status chip beside an entry (0.150.0): stored as typed, sent on the
+     * public tree beside the tone, and the tone falls back to `new`.
+     */
+    public function test_a_badge_is_saved_and_sent_on_the_public_tree(): void
+    {
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus', [
+                'name' => 'Top bar',
+                'location' => 'topbar',
+                'items' => [[
+                    'label' => 'Customer Zone', 'type' => 'custom', 'url' => '#',
+                    'children' => [
+                        ['label' => 'Compute', 'type' => 'custom', 'url' => '#', 'children' => [
+                            ['label' => 'Cloud servers', 'type' => 'custom', 'url' => '/cloud', 'badge' => 'Beta', 'badge_tone' => 'beta'],
+                            ['label' => 'Backups', 'type' => 'custom', 'url' => '/backups', 'badge' => ' Soon '],
+                            ['label' => 'Plain', 'type' => 'custom', 'url' => '/plain', 'badge' => ''],
+                        ]],
+                    ],
+                ]],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.items.0.children.0.children.0.badge', 'Beta')
+            ->assertJsonPath('data.items.0.children.0.children.0.badge_tone', 'beta')
+            ->assertJsonPath('data.items.0.children.0.children.1.badge', 'Soon')
+            ->assertJsonPath('data.items.0.children.0.children.1.badge_tone', 'new')
+            ->assertJsonPath('data.items.0.children.0.children.2.badge', null);
+
+        $leaves = $this->getJson('/api/v1/menus/topbar')
+            ->assertOk()
+            ->assertJsonPath('data.0.children.0.children.0.badge', 'Beta')
+            ->assertJsonPath('data.0.children.0.children.0.badge_tone', 'beta')
+            ->assertJsonPath('data.0.children.0.children.2.badge', null)
+            // No badge, no tone: a tone beside nothing says nothing.
+            ->assertJsonPath('data.0.children.0.children.2.badge_tone', null)
+            ->json('data.0.children.0.children');
+
+        $this->assertSame('new', $leaves[1]['badge_tone']);
+    }
+
+    public function test_a_badge_that_is_too_long_or_has_an_unknown_tone_is_refused_at_its_path(): void
+    {
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus', [
+                'name' => 'Main',
+                'items' => [[
+                    'label' => 'Zone', 'type' => 'custom', 'url' => '/zone',
+                    'children' => [
+                        ['label' => 'A', 'type' => 'custom', 'url' => '/a', 'badge' => 'THIRTEEN CHARS'],
+                        ['label' => 'B', 'type' => 'custom', 'url' => '/b', 'badge' => 'Live', 'badge_tone' => 'purple'],
+                    ],
+                ]],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.children.0.badge', 'items.0.children.1.badge_tone']);
+
+        $this->assertSame(0, MenuItem::count());
+    }
+
+    /**
      * One level past the limit is refused, and the refusal writes nothing.
      *
      * `range(1, MAX_DEPTH)` builds a tree exactly one deeper than allowed, so

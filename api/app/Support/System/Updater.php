@@ -941,7 +941,12 @@ final class Updater
         }
 
         if (! @rename($from, $to)) {
-            throw new RuntimeException('Could not rename '.basename($from).' to '.basename($to).'.');
+            // Windows refuses to rename a folder a running program has open —
+            // on a test PC, the website started by hand from inside web/.
+            throw new RuntimeException('Could not rename '.basename($from).' to '.basename($to).'.'
+                .(PHP_OS_FAMILY === 'Windows'
+                    ? ' On Windows this means a program still has files open in that folder — usually the website (node start.js) still running from it. Stop it and press Try this step again.'
+                    : ''));
         }
     }
 

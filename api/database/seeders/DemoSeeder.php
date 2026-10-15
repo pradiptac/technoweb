@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\Store\Tags;
 use Illuminate\Database\Seeder;
 
 /**
@@ -40,9 +41,33 @@ class DemoSeeder extends Seeder
             // One draft builder page with a section of every type, after the
             // blocks, sliders and forms it points at. Create-only.
             SampleBuilderPageSeeder::class,
+            // Three placeholder events — a seminar, a webinar and a trade
+            // show — dated from today. Created only while there are none.
+            SampleEventSeeder::class,
+            // Two categories and three placeholder tenders — one open, one
+            // closing within days, one closed. Created only while there are
+            // none, and never on a fresh install: a tender is an invitation
+            // to bid on a deadline somebody could act on.
+            SampleTenderSeeder::class,
+            // Three shelves and three placeholder files for the downloads
+            // centre, after the products they are attached to. Created only
+            // while there are none.
+            SampleDownloadSeeder::class,
+            SampleSupportCentreSeeder::class,
+            // One placeholder YouTube video on each of the first three shop
+            // products, for the "shop the videos" row. Created only while no
+            // shop product carries a video.
+            SampleProductVideoSeeder::class,
             // A worked support desk: a portal login, tickets across every
             // status and a couple of enquiries.
             DemoSupportSeeder::class,
         ]);
+
+        // The shop's tag row (0.141.0): tag whatever shop products now exist
+        // by the automatic rule, so a demo install shows the row. Once per
+        // product, and only while the switch is on.
+        if (Tags::autoEnabled()) {
+            Tags::autoTagUntagged();
+        }
     }
 }

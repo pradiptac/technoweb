@@ -3,6 +3,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconClock } from "@/components/icons";
@@ -121,7 +122,7 @@ export default async function AdminActivityPage({
       </FilterBar>
 
       {rows.length === 0 ? (
-        <EmptyState icon={<IconClock />} title={filtered ? "Nothing matches those filters" : "Nothing recorded yet"}>
+        <EmptyState icon={<IconClock />} title={filtered ? "Nothing matches those filters" : "Nothing recorded yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/activity" noun="entry" />}>
           {filtered
             ? "Try a different term, or clear the filters."
             : "Sign-ins and changes to accounts, settings and records will appear here."}

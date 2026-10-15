@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -33,12 +34,14 @@ import { cn } from "@/lib/utils";
  * pointing at the card.
  */
 export function CardImages({
-  images, alts, focuses, sizes, priority = false,
+  images, alts, focuses, blurs, sizes, priority = false,
 }: {
   images: string[];
   alts?: (string | null)[];
   /** Parallel to `images`: each file's focal point, or null for the centre. */
   focuses?: (string | null)[];
+  /** Parallel to `images`: each file's blurred preview. Only the first is used — the rest arrive on hover. */
+  blurs?: (string | null)[];
   sizes: string;
   priority?: boolean;
 }) {
@@ -94,6 +97,7 @@ export function CardImages({
             i === index ? "opacity-100" : "opacity-0",
           )}
           style={focalStyle(focuses?.[i])}
+          {...(i === 0 ? blurProps(blurs?.[0]) : {})}
         />
       ))}
 

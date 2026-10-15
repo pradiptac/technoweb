@@ -66,12 +66,45 @@ theme, so trying another theme and coming back loses nothing.
   narrow list), *Semi mega* (two compact columns with icons), *Mega* (three
   columns with icons and summaries) or *Big mega* (a panel the width of the
   header).
+- **Top bar panel** — how a link in the strip above the header opens when it
+  has a menu under it (a *Customer Zone*, say). *Same as the menu* follows the
+  menu style above. *Columns* opens a wide panel under a thin brand line, a
+  heading over each column of links with its badges and descriptions. Every
+  theme draws it in its own idiom.
 - **Inner page heading** — how pages open: *Banner* (the section's picture
   behind the heading), *Cover* (taller, words centred), *Split* (words left,
   picture framed on the right) or *Compact* (headline only, no picture).
 - A few themes offer an option of their own, shown only for that theme
   (Sentinel's **Category card heading**, for example).
 - A theme that does not use an option shows it greyed out.
+
+### Header & footer
+
+**Site → Header & footer** chooses which parts of the header and footer a theme
+shows. Pick the theme at the top (it starts on the one the site uses); the list
+shows only the parts *that theme* has, because each theme draws its own header
+and footer and this does not change how they look.
+
+- **Switch a part off** — the top bar, the phone number, the email address, the
+  search field, the top-bar links, the main button, a second button, the
+  basket mark beside Store; in the footer the logo, tagline, address, phone
+  number, social icons, link columns, newsletter signup, policy links, credit
+  line and the light / dark switch. Switching a part off only frees the room; the
+  rest of the header stays where the theme puts it.
+- **Move a part** — the up and down arrows appear on parts that share a row or a
+  block and that the theme can reorder (the search and the phone number in the
+  header, say, or the tagline and the address in the footer).
+- **The main button** has its own *Words* (up to 30 characters) and *Links to*
+  (a page such as `/contact`, a full `https://` address, `mailto:` or `tel:`).
+  Leave either blank to keep the theme's own. On a phone a long label is cut short
+  with an ellipsis so the header still fits.
+- **A light / dark switch in the header** is off until you switch it on, and shows
+  from 1600px wide; the footer's switch shows at every width.
+- The preview beside the list is the theme's real homepage as last saved, at
+  desktop or phone width. **Restore defaults** puts a theme back as it came.
+
+The phone number and the search in the mobile menu are not affected by these
+switches.
 
 ### Homepage sections
 
@@ -119,6 +152,73 @@ everywhere — the public site, the customer portal and the console.
   of the nineteen are for headlines only, so the body list is shorter).
 - A preview below the fields shows the choice in both light and dark.
 
+### Colours from your logo
+
+Under **Custom colours** there is a button, **Take our colours from the
+logo**. Press it and we read the logo you uploaded under
+**Settings → General** and offer up to three palettes made from its colours:
+the colour there is most of, the boldest one, and the darkest one. Press the
+one you like and its colours drop into the boxes above — **nothing changes on
+the site until you save**.
+
+Worth knowing:
+
+- It fills **Primary**, **Secondary**, **Accent** and the **top bar**. Your
+  Background and Text are left alone, because a logo says nothing about the
+  colour of the page behind it.
+- **A logo with one colour** is still used: that colour becomes Primary and
+  the other two are worked out from it. The screen says when it has done that.
+- **A black, white or grey logo** has no colour to take, and it says so rather
+  than making the site grey.
+- Whatever it offers, every colour is still adjusted to stay readable, exactly
+  as a colour you type is.
+
+You can also do this from a picture that is not your logo: open it in
+**Content → Media**, press **Edit**, and use *Make the site's colours from
+this*. That is for administrators, since the colours are a site setting.
+
+### Google Fonts
+
+Below the two font lists, **Browse Google Fonts for headlines…** and **…for
+body text** open Google's whole library (about 1,700 fonts). Search by name,
+narrow by style, and see each one as a sample line. Press **Install and use**
+and the font is copied to your own site once and chosen in the list; then
+press **Save**.
+
+- Visitors get the font from your own site, never from Google, so no cookie
+  banner or privacy note is needed for it.
+- Very large fonts (Japanese and Chinese ones especially) are refused: they
+  come in hundreds of pieces. Noto fonts are not offered.
+- **Google fonts on this site** lists the ones copied, with their size. Remove
+  one you no longer use; the one chosen in either list cannot be removed until
+  you choose another.
+
+### Your own fonts
+
+If your company has its own typeface, open **Your own fonts** under the two
+font lists.
+
+1. Type the font's **name** as it should appear in the lists.
+2. Choose the font file. It must be a **WOFF2** file (ending `.woff2`). If
+   you were given a TTF or OTF, convert it first — free online converters do
+   this.
+   - If the font came as one file that holds every weight (a *variable*
+     font), tick **This is a variable font** and upload that one file.
+   - Otherwise upload the **regular** weight and, if you have it, the
+     **bold** weight. Headings use the bold one.
+3. Press **Upload font**.
+
+The font now appears at the end of the **Headline font** and **Body font**
+lists, marked *(your font)*. Choose it there and press **Save site
+settings** — uploading alone does not change the site.
+
+You can keep two fonts. **Remove** deletes one; if the site was using it, it
+goes back to the default font.
+
+Check that your licence for the font allows use on a website. Some themes
+set their headings in a typeface of their own and keep it whatever you
+choose here.
+
 The colours you type are treated as a direction rather than exact values:
 every shade the site needs — for buttons, links, borders, hover states and the
 dark mode — is generated from them and adjusted until all text passes
@@ -129,6 +229,27 @@ darker or lighter than typed; that is deliberate.
 device" themselves (the control is in the footer). The console remembers its
 own choice separately. You do not need to design a dark version: it is
 derived from the same palette.
+
+### Looks, corners, spacing, cards and headings
+
+On the same screen:
+
+- **Looks** — six ready-made combinations (Corporate, Modern, Bold, Calm,
+  Editorial, Statement). Pressing one sets the palette, the two fonts and the
+  four choices below together; adjust anything afterwards before saving.
+- **Corners** — *Soft* (the default), *Sharp* or *Round*, for cards, buttons,
+  pictures and fields.
+- **Spacing** — *Comfortable* (the default), *Compact* or *Airy*: the room
+  between the site's sections.
+- **Cards** — how every card sits on the page: *Flat* (the default),
+  *Elevated* (a soft shadow), *Outline* (a firmer border), *Soft* (no border,
+  a wide shadow) or *Glow* (a halo in your brand colour).
+- **Headings** — *Standard* (the default), *Compact* or *Large*: the size of
+  every heading, in any theme.
+
+The preview beside the fields is your real site in the look you are
+choosing; nothing is saved until you press **Save site settings**. These
+apply to the public site and the customer portal, not to the console.
 
 ## Motion
 
@@ -143,9 +264,34 @@ move. The console keeps its own quieter motion whatever you choose.
 | **While the next page loads** | What shows while it loads | None, Bar, Pulse |
 | **First-visit splash** | A small loader for about a second on the first page of a visit | Off, On |
 | **Behind a heading** | The backdrop behind the homepage hero, plain page headings and the closing band | Grid, Aurora, Dots, Plain |
+| **Hero heading** | How a hero's heading arrives when the page opens | None, Typewriter, Decode, Highlight |
+| **Small interactions** | Links, arrows, switches, tick boxes, copy buttons and card icons answering the pointer with a small movement | Lively (the default), None |
 
 A section's own **Appear** choice (above) overrides **Sections arriving** for
 that section.
+
+### Moving hero headings
+
+A hero's heading can arrive in one of four ways:
+
+- **Typewriter** — the heading types itself in once, with a caret that fades
+  when it finishes.
+- **Decode** — each letter flickers through random characters and settles,
+  left to right. It suits the more technical themes.
+- **Highlight** — a marker stroke draws itself under one word: the last word,
+  or the word you name.
+- **Rotating words** — the heading's last word turns into each word you list,
+  once, then rests on its own word. A small pause button sits beside the
+  heading while it moves. Because it needs a list of words, it is chosen on
+  a hero, not site-wide.
+
+**Hero heading** above sets the effect for every hero that does not choose its
+own. The homepage hero chooses its own under **Site → Settings → Homepage →
+Hero headline effect**, with the words under **Effect words** (one per line,
+up to six). A page-builder hero has the same two settings on its card (see
+chapter 5). The words are always on the page as plain text for search engines
+and screen readers, and visitors who asked their device for less motion see
+the heading still.
 
 ## Page banners
 
@@ -204,6 +350,38 @@ registration and password forms — for staff and customers alike:
   background in place of the tagline.
 
 The panel is hidden on phones, where the form takes the whole screen.
+
+## The phone action bar
+
+**Site → Settings → Phone action bar**. Switch it on and a bar stays at the
+bottom of the screen on phones, with up to three buttons:
+
+- **Call** — rings the phone number under System → Settings → Contact.
+- **WhatsApp** — opens a chat with the number you enter here (with the
+  country code, digits only). Left blank, it uses the chat assistant's
+  WhatsApp number.
+- **A third button** of your own — "Enquire" and `/contact` to start with.
+  Change the wording and where it goes; clear the link to hide it.
+
+A button with nothing to use is left out. Nothing changes on a tablet or a
+computer.
+
+## The coming-soon page
+
+**Site → Settings → Coming soon**. Switch it on and every visitor sees a
+holding page — your heading, message and an optional picture, with your phone
+number and email — instead of the website. Use it before launch, or while
+you rework the site.
+
+- You still see the real website in any browser where you are signed in to
+  the console, and the console shows a reminder that visitors do not.
+- The console, the customer portal and the links in emails customers already
+  have (orders, visits, meetings) keep working.
+- To check the wording before switching it on, open `/coming-soon` on your
+  site while signed in.
+- Allow up to a minute for the switch to take effect, on and off.
+- It keeps visitors and search engines away; it is not a way to protect
+  confidential pages.
 
 ## The chat assistant's look
 

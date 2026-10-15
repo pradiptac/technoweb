@@ -51,6 +51,24 @@ export type MediaListResponse = Paginated<MediaItem> & {
   meta: Paginated<MediaItem>["meta"] & { library?: MediaLibraryMeta };
 };
 
+/**
+ * The largest picture an upload may be, in KB — the library's own limit or
+ * php.ini's, whichever is lower — for the hint under every image field and
+ * the crop step's size check (0.169.0). Null when this account cannot read
+ * the library (a 403) or the API did not answer: the hint then states no size.
+ */
+export async function getUploadLimitKb(): Promise<number | null> {
+  try {
+    const res = await getMediaList({ per_page: 1 });
+    const lib = res.meta.library;
+    if (!lib) return null;
+    const kb = [lib.max_kb, lib.php_ceiling_kb].filter((n) => n > 0);
+    return kb.length ? Math.min(...kb) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getMediaFolders() {
   const res = await apiFetch<{ data: MediaFolder[] }>("/admin/media-folders", { token: await token() });
   return res.data;
@@ -220,3 +238,18 @@ export async function deleteMedia(id: number): Promise<void> {
   await apiFetch<void>(`/admin/media/${id}`, { method: "DELETE", token: await token() });
 }
 
+/**
+ * Copies a file at a public address into the library (0.172.0,
+ * `POST /admin/media/import-url`): the API downloads it once, through
+ * `SafeHttp`, and checks it exactly as an upload — so a pasted LottieFiles or
+ * Sketchfab link becomes a library file and no visitor's browser ever fetches
+ * from that site.
+ */
+export async function importMediaUrl(url: string): Promise<MediaItem> {
+  const res = await apiFetch<{ data: MediaItem }>("/admin/media/import-url", {
+    method: "POST",
+    token: await token(),
+    body: { url },
+  });
+  return res.data;
+}

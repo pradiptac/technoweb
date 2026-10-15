@@ -73,6 +73,8 @@ revokes the previous token of the same name.
 | `POST` | `/auth/verify-code` | Customer. Public, throttled 10/min. Answers exactly like `login` |
 | `POST` | `/admin/auth/request-code` | Staff. Public, throttled 5/min |
 | `POST` | `/admin/auth/verify-code` | Staff. Public, throttled 10/min |
+| `POST` | `/auth/google/authorize` | Customer. Public, throttled 20/min. Where to send a browser for "Continue with Google" |
+| `POST` | `/auth/google/callback` | Customer. Public, throttled 20/min. Spends what Google sent back; answers exactly like `login` |
 | `POST` | `/auth/forgot-password` | Customer. Public, throttled. Answers the same whatever the address |
 | `POST` | `/auth/reset-password` | Customer. Public. Spends a token and revokes every session |
 | `POST` | `/auth/login` | Customer. Public, throttled |
@@ -179,6 +181,55 @@ and a spent token: one 202 or one 422, one sentence. The audit line is logged at
 `info` line would be discarded — which is what was happening while a comment
 claimed an operator could read it.
 
+### Signing in with Google
+
+Customers only (0.133.0, `docs/auth.md`). Both routes are called by the
+website's two route handlers, never by a browser, and both answer **403**
+`reason: google_login_disabled` unless `google_login_enabled` is on and a
+client ID and secret are saved.
+
+**`POST /auth/google/authorize`** takes `redirect_uri` — this site's own
+`/portal/auth/google/callback`, on the host of `FRONTEND_URL` or localhost,
+a 422 otherwise — and `binding`, 32–128 lower-case hex characters the
+website has just put in an httpOnly cookie. It answers `{data: {url}}`:
+Google's consent address with this client, the redirect, `response_type:
+code`, scope `openid email profile`, a `state`, a `nonce` and
+`prompt: select_account`. The state lives ten minutes.
+
+**`POST /auth/google/callback`** takes `code`, `state`, `redirect_uri` and
+`binding`. The state is spent by the first call that names it. It answers:
+
+- **200** `{token, customer}`, the login's shape — and merges a guest's
+  wishlist when `X-Wishlist-Token` is forwarded.
+- **422** with a `reason`: `google_expired` (an unknown or spent state, or a
+  `redirect_uri` or `binding` that is not the one the attempt began with —
+  refused before Google is asked anything), `google_failed` (Google refused
+  the code, could not be reached, or its ID token's issuer, audience, expiry
+  or nonce did not check out — in one plain sentence, never Google's words,
+  which go to the log), `google_unverified` (Google has not verified the
+  account's address).
+- **403** with the login's own `reason`: `registration_closed` (no account
+  uses that address and `registration_enabled` is off), `pending_approval`,
+  `rejected`, `suspended`, `email_unverified` (a linked account since moved
+  to an address nobody has confirmed), `portal_disabled`.
+
+**Who is signed in**: the customer whose `google_sub` is the token's `sub`;
+else the customer at the token's verified `email`, linked from then on; else
+a new account — the name Google gives, a random password, confirmed, and
+`pending` or `active` by `customer_approval_required`. Confirming an address
+this way does what every first confirmation does (the password nobody proved
+is replaced, sessions end, paid guest orders are joined) and sends
+`CustomerRegistered` to `support_email` with the `customer.registered`
+webhook.
+
+**Settings**: the private `google_login` group — `google_login_enabled`
+(`0`/`1`, off by default), `google_login_client_id` (must end
+`.apps.googleusercontent.com`, a 422 on the row otherwise) and
+`google_login_client_secret` (secret). The public `/settings` map carries
+`google_login_live` (`"1"`/`"0"`): the switch and a whole client. Both
+customer resources carry `google_linked`; Google's identifier is in no
+response.
+
 ### Roles
 
 `admin`, `support_engineer`, `content_manager`, `seo_manager`,
@@ -281,13 +332,20 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/popups` | Every live popup, as a **collection**. Ordered, and empty is the ordinary answer |
 | `GET` | `/galleries/{slug}` | One picture set, its tabs and its items. 404 when unpublished **or empty** |
 | `GET` | `/menus/{location}` | The navigation for `topbar`, `primary`, `footer` or `bottom`. **`data: null` when nothing is assigned**; 404 for an unknown location |
-| `GET` | `/forms/{slug}` | An editor-built form's definition. 404 when unpublished **or fieldless** |
-| `POST` | `/forms/{slug}` | A submission. Throttled 10/min, honeypot field `website` |
+| `GET` | `/forms/{slug}` | An editor-built form's definition: `redirect_url`, `has_files`, `steps`, and `fields[]` each with `settings` and `show_if`. 404 when unpublished **or fieldless** — a form of nothing but headings and step breaks is fieldless |
+| `POST` | `/forms/{slug}` | A submission, as JSON or `multipart/form-data` (required when the form has a file field). Throttled 10/min, honeypot field `website`. **201** `{message, redirect_url, data: {id}}` |
 | `GET` | `/careers` | Open vacancies. `?department=`, `?type=`. Plain collection |
 | `GET` | `/landing-pages` | Published programmatic pages. `?kind=`. Plain collection |
 | `GET` | `/landing-pages/lookup?path=/brands/cisco` | One page, or 404 |
 | `GET` | `/careers/{slug}` | 404 when unpublished **or past its closing date** |
 | `POST` | `/careers/{slug}/apply` | multipart. Throttled 5/min, honeypot `website`, CV required |
+| `GET` | `/events` | Published events. `?when=upcoming` (default, soonest first) or `past` (newest first), `?format=`, `?featured=1`, `?page=`, `?per_page=` (max 50, default 12). Paginated. See "Events" |
+| `GET` | `/events/{slug}` | One event's page. 404 for a draft or archived one; a past one stays readable. **Never carries `online_url`** |
+| `GET` | `/events/{slug}/availability` | `{state, few_left, message}`. `Cache-Control: no-store`. No count |
+| `GET` | `/events/{slug}/calendar` | `text/calendar`, an attachment named `{slug}.ics`. No join link |
+| `POST` | `/events/{slug}/register` | Free registration. Throttled 10/min, honeypot `website`. **201** `{message, data: {status, seats}}` — no manage link. An address that has registered before is answered exactly as a new one would be, and nothing is written |
+| `GET` | `/events/registrations/{token}` | A registrant's own registration. Throttled 30/min. 404 unless the token is 64 hex and somebody's. **Declared above `/events/{slug}`** |
+| `POST` | `/events/registrations/{token}/cancel` | Throttled 10/min. Idempotent; promotes the waiting list |
 | `GET` | `/solutions` | Plain collection. `?in_menu=1` narrows it to the mega menu's items |
 | `GET` | `/solutions/{slug}` | Includes benefits, technologies, related products, industries, FAQs |
 | `GET` | `/services` | Plain collection. `?in_menu=1` as above. Each carries `category {id, name, slug}` (null when in none), `image`, `image_alt`, `image_focus`, and `highlights` — the chips on its card, a list of strings, `[]` when none |
@@ -307,14 +365,16 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/knowledge-base/{slug}` | |
 | `POST` | `/knowledge-base/{slug}/helpful` | "Was this helpful?" Throttled 10/min. **204 always** — a draft counts nothing and answers the same, and so does a slug nobody wrote (it used to 404, which made a draft's 204 the tell) |
 | `GET` | `/pages` | Published CMS pages, **without bodies**. For the sitemap |
-| `GET` | `/pages/{slug}` | CMS pages — `/privacy`, `/terms`, `/downloads`. A `builder` page adds `sections` (see "The section page builder") |
+| `GET` | `/pages/{slug}` | CMS pages — `/privacy`, `/terms` and anything an editor adds. A `builder` page adds `sections` (see "The section page builder") |
 | `GET` | `/ticket-categories` | Powers the submit-a-ticket form |
 | `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
 | `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, **max 100** (422 above), 5 per group. `%` and `_` match themselves. Throttled 240/min under the `search` key — every visitor reaches it through the one Next server |
 | `GET` | `/companies/suggest?q=` | Company names already on file. Prefix, min 3 chars, max 5. Throttled 20/min |
-| `GET` | `/redirects` | Every active redirect as `{from,to,status}` rows. `Cache-Control: max-age=60`. What the frontend proxy holds in memory |
+| `GET` | `/redirects` | Every active redirect as `{from,to,status}` rows, plus `meta.coming_soon` (boolean — the `coming_soon_enabled` setting, which the proxy acts on) and `meta.media_cdn` (the media CDN's origin while it is switched on, else null). `Cache-Control: max-age=60`. What the frontend proxy holds in memory |
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404. **Records the hit** — the proxy calls it only on a match |
 | `POST` | `/enquiries` | Contact form. Throttled 10/min, honeypot field |
+| `POST` | `/not-found` | The 404 page reporting an address: `path`, `referrer`. Throttled 30/min, **answers 204 always**, including for a payload it records nothing from. One row per address with a count; never records `/`, `/admin`, `/portal`, `/api`, `/_next`, a path a secret addresses (`/order/`, `/visit/`, `/meeting/`, unsubscribe and the other token pages), scanner noise, static files, or an address an active redirect starts at. See "Admin — SEO and redirects" |
+| `GET` | `/preview/{token}` | A draft opened from its share link (0.138.0). Throttled 30/min; the token is 64 lower-case hex characters or a 404 before any controller runs, and **unknown, expired, revoked and replaced are one 404**. `{data: {type, slug, type_slug, path, record}, meta: {title, status, status_label, published, expires_at, expires_label}}`, `Cache-Control: no-store`. `record` is exactly what the record's public detail endpoint answers as `data` — the same resource and eager loads — without `schema` and `faq_schema`, and with no check that it is published, active or still open. See "Admin — draft share links" |
 | `POST` | `/chat/conversations` | Starts a conversation. Throttled 6/min. Returns the token **once** |
 | `GET` | `/chat/conversations/{token}` | The transcript. Throttled 30/min |
 | `POST` | `/chat/conversations/{token}/messages` | Ask something. Throttled 12/min |
@@ -586,7 +646,71 @@ A filled honeypot returns the normal success response and stores nothing:
 telling a bot it was caught is telling it what to change.
 
 **Submissions outlive their form.** `form_id` is `nullOnDelete` and the slug is
-stored alongside it, so deleting a form keeps what people sent through it.
+stored alongside it, so deleting a form keeps what people sent through it —
+and what they uploaded with it.
+
+**Sixteen field kinds since 0.117.0** (`FormField::KINDS`; `docs/forms.md`).
+The seven it shipped with — `text`, `email`, `tel`, `number`, `textarea`,
+`select`, `checkbox` — and `url`, `date`, `radio`, `checkboxes`, `rating`,
+`file`, `hidden`, `heading`, `step`. What a submission may send for each, and
+what is stored:
+
+| Kind | Answer | Stored as |
+|---|---|---|
+| `text`, `tel`, `select`, `radio` | a string ≤ 255; `tel` loosely a phone number; `select`/`radio` one of the field's option values | the string |
+| `email` | `email:rfc`, ≤ 255 | the string |
+| `textarea` | a string ≤ 5000 | the string |
+| `number` | numeric, within `settings.min`/`settings.max` when set | a number |
+| `url` | an `http`/`https` URL ≤ 2048 | the string |
+| `date` | `Y-m-d`, on or after `settings.min` and on or before `settings.max` — each null, a `Y-m-d`, or `"today"` (the server's day, in the app timezone) | the string |
+| `checkbox` | a boolean; `1/true/on/yes` and `0/false/off/no` are read as one. **Required means ticked** (`accepted`) — a posted `false` is a 422 | `true`/`false` |
+| `checkboxes` | an **array** of option values, none twice; a lone string is read as a list of one. Required means at least one. A bad choice is a 422 on the field's own key, never on `name.1` | the array |
+| `rating` | an integer 1–5 | an integer |
+| `file` | one uploaded file — see below | its original filename in `data`, the record in `files` |
+| `hidden` | **nothing is read from the request.** The answer is `settings.value` from the definition, whatever is posted | the string, or nothing when it is blank |
+| `heading`, `step` | layout rows: nothing is read, validated or stored | — |
+
+**The public read's `settings` and `show_if`.** `settings` is null for a kind
+that keeps none; `{min?, max?}` for `number` and `date`; `{accept, extensions,
+max_kb}` for `file` — `accept` the groups an editor ticked, `extensions` what
+those admit, `max_kb` the limit **in force** (the field's own, never above
+what php.ini accepts); and **null for `hidden`**: its value is never sent to a
+page, since the server fills it. `show_if` is `{field, op, value?}` or null.
+The form carries `redirect_url` (a path or an http(s) URL, or null — where to
+send the visitor instead of showing `message`), `has_files` (post as
+multipart) and `steps` (its step breaks plus one). A `heading`'s `label` is
+the heading and its `help` an optional paragraph; a `step`'s `label` is the
+title of the step it opens.
+
+**A condition is evaluated on the server, against the submitted answers.**
+`show_if.field` names an earlier field; `op` is `equals`, `not_equals`,
+`includes`, `filled` or `empty`. A field its condition hides is **skipped**:
+not required, and whatever was posted for it is dropped, never stored —
+hiding it in the browser is presentation, and this is the decision. A field
+whose source is itself hidden is hidden too, whatever its own operator says
+(`empty` included). The comparison is exact, case and all; two numbers are
+compared as numbers (`4`, `"4"` and `4.0` are one answer); a tick box as a
+source is "filled" when ticked and equals any of `1/true/on/yes` when ticked,
+`0/false/off/no` when not; on a `checkboxes` source `equals` and `includes`
+both mean "is among those ticked" and `not_equals` means "is not". A hidden
+`file` field's upload is not stored; a hidden `hidden` field's value is not
+either.
+
+**An upload is private, hashed and checked by content.** A `file` answer is
+held to the field's extensions **and** to the type its bytes sniff as
+(`extensions:` and `mimes:` together — a script renamed `brief.pdf` and a real
+PDF arriving as `brief.php` are both a 422), and to `max_kb`. It is stored on
+the private disk under `form-uploads/{form id}/` under a random name with the
+extension the bytes earn; nothing is written for a submission that is refused.
+`image` admits jpg, jpeg, png, webp, gif; `pdf` admits pdf; `document` admits
+doc, docx, xls, xlsx, csv, txt — no SVG and no archives. The file is never
+attached to an email and has no URL: it is read through
+`GET /admin/forms/{id}/submissions/{sid}/files/{field}` and deleted with its
+submission.
+
+**The submit's 201 is `{message, redirect_url, data: {id}}`.** `redirect_url`
+is the form's, or null. A filled honeypot gets the same `message` and
+`redirect_url` and stores nothing.
 
 **`?in_menu=1` is a navigation filter, not a publishing one.** The four
 endpoints that feed the mega menu accept it; without it they return everything,
@@ -680,7 +804,10 @@ probing a chatbot asks. `visibleMessages` is the boundary — structural, the wa
 **A provider failure never reaches the visitor in the provider's words**, which
 carry model names, quota messages and organisation ids. What comes back is the
 pages that were found: a worse answer than the model would have given, and a far
-better one than an apology.
+better one than an apology. The provider is OpenRouter (0.116.0; the key and
+the model list are under "Admin — the AI SEO assistant"), and the model is
+`chatbot_model`, an OpenRouter id — blank means `AI_MODEL`, then
+`google/gemini-2.5-flash`.
 
 **The assistant asks who it is talking to before it answers anything.** After
 the greeting it collects the visitor's details one question at a time — name,
@@ -725,7 +852,7 @@ default install greeted nobody.
 `chatbot_name`, `chatbot_welcome`, `chatbot_quick_actions`, `chatbot_fallback`,
 `chatbot_auto_open`, `chatbot_auto_open_delay`, `chatbot_whatsapp_number`, and
 the widget's appearance — `chatbot_colour` (`#rrggbb` or blank, lower-cased),
-`chatbot_background` (the thread's ground, same shape), `chatbot_icon`, `chatbot_font_size` and `chatbot_animation` (choices the admin
+`chatbot_background` (the thread's ground, same shape), `chatbot_header` (the panel's top bar, same shape; blank is the theme's brand colour), `chatbot_icon`, `chatbot_font_size` and `chatbot_animation` (choices the admin
 index lists as `options` and `PATCH` refuses outside of) and `chatbot_show_name` — are
 named in `ChatSettings::PUBLIC_KEYS`, because the widget is drawn before anybody
 speaks. The model, the context window, the spend ceiling, the intake questions
@@ -891,6 +1018,14 @@ key is not wrapped, so the block's content travels as `content` and every
 read keeps its `{data: …}` envelope. Its shape is per type and layout
 (`App\Support\Blocks\BlockRules`); 422s are keyed `content.items.0.value`.
 
+**Pricing** layouts are `three_tier`, `comparison`, `single_focus` and
+`banded` (0.180.0). Every pricing layout takes `promo` (string ≤ 40),
+`guarantees` (≤ 6 strings of ≤ 60) and `sets.*.plans.*.cta.copy` (boolean —
+the banded layout draws a copy button beside a `mailto:` button). All three
+are passed through on the public read unchanged; the banded layout's yearly
+figures are worked out by the website from `price_monthly_paise` and
+`price_yearly_paise`, never stored.
+
 **The admin read** carries `content` as stored (paths, brand ids), `media`
 (a URL for every stored `*_path`), `preview` (the public shape), `status`,
 `is_default` and `shortcode`. **The public read** resolves paths to URLs with
@@ -915,7 +1050,7 @@ Scan, review, commit (2026-09-27). See `docs/wordpress-import.md`.
 | `GET` | `/admin/imports/wordpress` | The last twenty imports, newest first. `meta.active` — the import in flight, ready or failed, in full, or null; `meta.delivering`; `meta.sections` |
 | `POST` | `/admin/imports/wordpress` | `site_url`, `sections[]` of `content`, `catalogue`, `customers`, `custom`, `wp_user`, `wp_password` (an application password — it reads WooCommerce too, from a shop manager or an administrator), `wc_key` (`ck_…`) and `wc_secret` (`cs_…`, optional, together; used instead of the application password for `wc/v3`). **202**; the scan and then the dry run run on the queue. 422 on `site_url` for a private, numeric or unresolvable host or plain http, on `queue` when nothing drains it, and while another import is in flight. Throttled 6/min. An import of any site still `ready` is cancelled |
 | `GET` | `/admin/imports/wordpress/{id}` | The import: `status` (`pending`, `scanning`, `analysing`, `ready`, `running`, `completed`, `failed`, `cancelled`, `expired`), `progress`, `site` (name, WooCommerce/ACF/Yoast found, counts, `missing` — optional endpoints the site refused, in its words), `analysis` (`steps[]` of `{key, label, create, update, skip, warn, reasons[{reason, count, kind, examples}]}`, `notices[]`, `decisions` — the review's options), `result` (the commit's steps), `can_resume` |
-| `PATCH` | `/admin/imports/wordpress/{id}` | `decisions`: `media_scope` (`referenced`/`all`), `tax_basis` (`keep`/`add_gst`), `type_slugs{wp slug: address or ""}`, `acf_kinds{target: {field: kind or "skip"}}`. `ready` only; **202**, the dry run re-runs |
+| `PATCH` | `/admin/imports/wordpress/{id}` | `decisions`: `media_scope` (`referenced`/`all`), `page_layout` (`sections`, the default, or `html` — 0.109.0), `tax_basis` (`keep`/`add_gst`), `type_slugs{wp slug: address or ""}`, `acf_kinds{target: {field: kind or "skip"}}`. `ready` only; **202**, the dry run re-runs. `analysis.decisions.page_layout` is `{value, pages}`. Since 0.110.0 `analysis.steps` holds `page_parts` — the forms, pricing blocks and galleries the pages hold, counted once per run, with reasons of kind `info` (`skip`, `warn` and now `info`) |
 | `POST` | `/admin/imports/wordpress/{id}/commit` | `ready`, or `failed` with a commit cursor (resume). **202**. Throttled 6/min |
 | `DELETE` | `/admin/imports/wordpress/{id}` | Cancels a scan or a commit, or discards a review; deletes the harvest. What a commit already wrote stays. 422 on a completed import |
 
@@ -938,6 +1073,71 @@ under a key only its job chain carries, forgotten when it stops, and never
 on the import row or in a job payload. Every request to the site — and to
 its upload URLs — goes through `SafeHttp`: public addresses, pinned, at most
 three redirects checked hop by hop, credentials never sent to another host.
+
+## Importing a website (`role:admin`)
+
+A site with no API, from a live address or an uploaded ZIP (0.163.0; sorting
+pages into pages, blog posts and products, the AI fallback and the site's
+colours and fonts, 0.164.0): scan, review, commit. See `docs/site-import.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/imports/site` | The last twenty imports, newest first. `meta.active` — the import in flight, ready or failed, in full, or null; `meta.delivering`; `meta.sections` (`pages`, `menus`, `redirects`); `meta.chunk_bytes` (1,572,864 — the piece size an upload is sliced to); `meta.limits` `{depth, pages, zip_bytes}` |
+| `POST` | `/admin/imports/site/upload` | One piece of a ZIP, appended in order: multipart `name` (`*.zip`, 120), `index`, `total`, `chunk` (≤ `meta.chunk_bytes`). `index` 0 starts again; the last piece is checked to begin `PK` and renamed into place. `{data: {received, complete, file}}`. 422 on `chunk` over the ZIP cap (200 MB) or not a ZIP. Held at `site-imports/uploads/{user id}-{name}` on the private disk. Throttled 600/min |
+| `POST` | `/admin/imports/site` | Starts a scan. `source` `url` or `zip`; `start_url` (required for `url`; https is assumed when nothing is said; http is allowed), `zip` (the `name` just uploaded), `depth` 0–6 (default 3), `max_pages` 1–1000 (default 300), `sections[]` of `pages`, `menus`, `redirects` (default all; pages are always imported). **202**. 422 on `start_url` for a private, numeric or unresolvable host, on `zip` for an upload that is gone or while another import is in flight, and on `queue` when nothing drains the queue. A `ready` import of any site is cancelled. Throttled 6/min |
+| `GET` | `/admin/imports/site/{id}` | The import: `status` (`pending`, `scanning`, `analysing`, `ready`, `running`, `completed`, `failed`, `cancelled`, `expired`), `source`, `site_url` (the start address, or the ZIP's name), `settings`, `decisions`, `progress` `{phase (crawl, zip, assets, chrome), pages, queued, requests, current, capped, zip_files, analyse_step, analyse_percent, commit_step, commit_percent}`, `site` once read `{name, url, pages, home_path, chrome_blocks, menus {primary: n, footer: n}, capped, skipped[{reason, count, examples}], notes[]}`, `analysis` once analysed `{steps[], notices[], pages[], decisions, analysed_at}`, `result`, `can_resume` |
+| `PATCH` | `/admin/imports/site/{id}` | `decisions` — `set_homepage` (bool), `menus` (a subset of the keys the review offers, `primary` / `footer`), `kinds` (`{old path: page \| post \| product \| skip}`, each path beginning `/`, replaced as a whole), `ai_assist` (bool), `brand` (`{accept, colours, fonts}`, booleans, merged key by key), and 0.163.0's `skip` (old paths to leave out) as an alias that adds `skip` entries to `kinds`. `ready` only; **202**, the dry run re-runs. A list is replaced, not merged. A kind outside the four is a 422 on `kinds` |
+| `POST` | `/admin/imports/site/{id}/commit` | `ready`, or `failed` with a commit cursor (resume). **202**. Throttled 6/min |
+| `DELETE` | `/admin/imports/site/{id}` | Cancels a scan or a commit, or discards a review; deletes the harvest and the ZIP. What a commit already wrote stays. 422 on a completed import |
+
+**`analysis.steps`** is the WordPress import's shape (`{key, label, create,
+update, skip, warn, reasons[{reason, count, kind, examples}]}`) for keys `pages`,
+`posts`, `products`, `media`, `page_parts`, `menus`, `links`, `redirects` and
+(only when the brand was accepted) `brand`. **`analysis.pages`** is one row per
+page read: `{path, title, action (create, update, skip), sections, types
+{section type: n}, ai (how many sections the AI placed), kind (what it becomes),
+detected (what was found), by (rules, ai, you), note}`. **`analysis.decisions`**
+is what the review offers: `set_homepage {value, page {path, title} | null}`,
+`menus[{key, label, items, value}]`, `kinds[{value, label}]`, `ai_assist {value,
+available, reason}` and `brand {found, sheets, colours {primary, secondary,
+accent, background, text, topbar: "#rrggbb" or null}, fonts {display, body: {family,
+id (a vendored face) | null, custom {regular, bold} | null} | null}, accept,
+use_colours, use_fonts}`.
+
+**A page is a page, a post or a product** (`PageKind`): structured data
+(`BlogPosting`/`Article`/`NewsArticle`… or `Product`), `og:type`, an `<article>`
+with a `<time>` and an author, a `/blog/…` or `/news/…` address, or a SKU beside
+a specification table decide first; a page with some of the signs and not enough
+is *ambiguous* and goes to the AI when `ai_assist` is on and the assistant is
+available (a page otherwise). A post becomes a draft `BlogPost` (`body_layout`
+`sections`, the date from the page, the cover from `og:image`, the excerpt from
+the meta description) and a product a draft catalogue `Product` (no price, the
+spec table as `specifications` in order, its pictures, the meta description as the
+summary). The map keys are `page`, `post` and `product`; a redirect, a link and
+a menu item point at wherever each landed.
+
+**`ai_assist`** defaults to on only while the SEO assistant is switched on with a
+key. It shares that assistant's model, key and daily cap (`seo_ai_daily_cap`), counts one
+run per block used, is bounded to `SITE_IMPORT_AI_MAX_BLOCKS` (150) asks per
+import, and keeps every answer in the import's ledger, so the commit makes the
+review's sections without asking again — including the blocks a limit stopped.
+The model is shown text, never markup, and an answer is used only if it passes
+the section's rules and is the block's own words.
+
+**`brand`** is never applied unless `brand.accept` is true. The commit then
+writes `theme` (`custom`), the six `theme_*` colours and `theme_font_display` /
+`theme_font_body` through `SettingController::update()` — the settings screen's
+own validation — and a font that arrived as a WOFF2 file into a free custom font
+slot. A role the stylesheets did not settle is left alone.
+
+**Everything arrives as a draft** (`pages.template` `builder`, `status` draft),
+menus unassigned, nothing mailed. The import map is `wordpress_import_map`,
+keyed by a hash of `static:` and the host (or the ZIP's name), so a second import
+of the same site updates what the first made, never changes a slug, and leaves a
+page edited here alone. Every request the crawler makes goes through `SafeHttp`;
+`SITE_IMPORT_ALLOW_PRIVATE=true` lets a site on this machine be read under
+`APP_ENV=local` only. The ZIP is unpacked to the private disk, held to an
+extension allowlist and size caps, and never served or run.
 
 ## Backups (`role:admin`)
 
@@ -992,7 +1192,7 @@ other API route answers **503** with `{message, updating: true}` and
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/system/status` | `version` `{version, commit, built_at}` (from `api/version.json`, else `web/src/lib/version.ts`), `code_schema`, `database_schema`, `installed` (`config/install.json`, null on a checkout), `php` `{version, checks[{key,label,ok,required,detail}], max_execution_time, memory_limit}`, `scheduler`, `disk` `{free,total}`, `website` `{reachable, version, api, url, error}` — the website's own `/api/health`, asked from here (`WEB_INTERNAL_URL`, else `FRONTEND_URL`) |
+| `GET` | `/admin/system/status` | `version` `{version, commit, built_at}` (from `api/version.json`, else `web/src/lib/version.ts`), `code_schema`, `database_schema`, `installed` (`config/install.json`, null on a checkout), `php` `{version, checks[{key,label,ok,required,detail}], max_execution_time, memory_limit}`, `scheduler` (`{known, last_run_seconds, running, setup}` — `setup`, 0.128.0, is the scheduler's command worked out for this server: `os`, `panel` (`plesk`, `cpanel` or null), `php` (the command-line PHP's path, or `php` when none was found), `php_checked` (true when running it answered a `cli` PHP new enough; false when it ran and was wrong or would not run; **null** when this host will not let a web request start a program), `php_version`, `artisan`, `user` (who owns the code, when readable), `command` (for a control panel's command box), `cron` (the whole crontab line; null on Windows), `work` (`schedule:work`, for a terminal left open), `windows_task` (a `schtasks` line; null elsewhere), `dev` (true on a checkout)), `disk` `{free,total}`, `website` `{reachable, version, api, url, error}` — the website's own `/api/health`, asked from here (`WEB_INTERNAL_URL`, else `FRONTEND_URL`), and `speed` (see below) |
 | `GET` | `/admin/system/updates` | `installed`, `updatable` (false on a checkout), `packages_dir`, `packages[]` `{file, size, version, built_at, signed, refusal, same_version, changes_database, new_migrations, changelog[]}` — the zips in `updates/`, newest first, each read and signature-checked, the changelog newer than what is installed — `run` (the run file, or null), `history[]` (newest first, 20), `rollback` `{from, to, database}` or null, `chunk_bytes` |
 | `POST` | `/admin/system/updates/upload` | multipart `name` (`*.zip`), `index`, `total` (≤ 2000), `chunk` (≤ `chunk_bytes`, 1.5 MB). Appended to `<name>.part`; `index` 0 starts again; the last renames it into place. Throttled 600/min |
 | `POST` | `/admin/system/updates/apply` | `file`. Starts a run at `preflight`: 422 on `update` with a sentence when the zip is unsigned or altered, a test build, older than installed, installed is below its `min_from`, PHP is too old, a run is already going, or a backup or restore is in flight. Recorded in the activity log (`update_started`). Throttled 6/min |
@@ -1002,6 +1202,34 @@ other API route answers **503** with `{message, updating: true}` and
 | `POST` | `/admin/system/updates/rollback` | The `.prev` folders back and, when the update ran migrations, its `pre_update` safety copy restored. 422 with nothing to go back to, or while a step runs. Activity `update_rolled_back`. Throttled 6/min |
 | `POST` | `/admin/system/updates/abandon` | Forgets a run that stopped before the swap (the unpacked folders deleted, the site reopened). 422 once the application was replaced |
 | `DELETE` | `/admin/system/updates/packages/{file}` | A zip in `updates/`. 204 |
+
+**The `speed` block on `GET /admin/system/status`** (`App\Support\System\SpeedChecks`,
+`docs/distribution.md` "Speed suggestions"): what on this install slows the
+site down, answered from the server that is answering.
+
+```
+speed: {
+  measured: { boot_ms: int|null, db_ms: float|null, website_ms: int|null },
+  summary:  { good: int, attention: int, unknown: int },
+  checks:   [ { key, group, impact, state, label, detail, fix, snippet } ]
+}
+```
+
+`group` is `server`, `app` or `content`; `impact` `high`, `medium` or `low`;
+`state` `good`, `attention`, `unknown` (this host would not let us look — never
+a guess) or `info` (a fact, nothing to fix; **not** in `summary`). `label` is at
+most 60 characters, `detail` says what was found with the figure, `fix` where to
+change it (empty when there is nothing to do), `snippet` a generic line to copy
+or null — never this server's own `.env` or a path. Checks are listed high
+impact first; one that does not apply (OPcache's memory while OPcache is off,
+the splash while it is off) is absent. A check whose probe throws is `unknown`.
+`boot_ms` is null where the entry point did not define `LARAVEL_START`,
+`website_ms` where the website did not answer. No network call is made beyond the
+website health call the endpoint already makes. Keys today: `opcache`,
+`opcache_memory`, `opcache_timestamps`, `xdebug`, `optimize`, `debug`,
+`cache_store`, `queue`, `log_level`, `autoloader`, `database`, `realpath_cache`,
+`php_version`, `media_cdn`, `large_images`, `third_party`, `splash`; the website
+adds `next_build` and `cdn_in_front` itself.
 
 **The run file, not a table.** `storage/app/private/update/run.json` holds a
 run: the database is migrated and the code replaced mid-run, and the file is
@@ -1152,14 +1380,123 @@ A CMS page whose `template` is `builder` is a stack of typed sections
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/pages/builder` | `role:content_manager`. `section_types`, `section_presets`, `hero_layouts`, `card_sources`, and the **published** `content_blocks`, `sliders`, `galleries`, `forms`, plus `product_categories` and `store_categories`. Declared above `pages/{page:id}` |
+| `GET` | `/admin/pages/builder` | `role:content_manager`. `section_types`, `section_presets`, `hero_layouts`, `ai_section` (0.127.0 — `{available, reason, types[], modes[{value, label, blurb, needs_brief}]}`: whether the assistant on a section can be asked now, the sentence when it cannot, the section types it words and what it can do), `inline_fields` (0.128.0 — `{<section type>: [{path, max, widget?}]}`; the `layout` type's specs (0.156.0) add the single-line `text`-kind fields of its widgets, read from the widget table — never `html` — as `rows.*.columns.*.widgets.*.<key>`, in a list as `….items.*.<key>`, one level down as `….slots.*.widgets.*.<key>`, and a container's slot names as `….slots.*.label`/`.title`, each with `widget`, the type it applies to: the plain-text fields the live preview lets an editor change in place, a path with `*` for a row such as `items.*.title`, and the length the save holds it to; derived from the section rules — a field whose rules are `string`, a `max:` and presence rules only, less stored paths, filters and the rich-text bodies — and absent for a type with none), `card_sources`, and the **published** `content_blocks`, `sliders`, `galleries`, `forms`, plus `product_categories` and `store_categories`, and `library: {sections[{id, name, type}], templates[{id, name, description, count}]}`. Declared above `pages/{page:id}` |
+| `GET` | `/admin/saved-sections` | `role:content_manager`. The section library and page templates, by kind then name. `?kind=section\|template`, `?category=` (templates), `?q=`, `?per_page=` (max 100). Rows: `id`, `kind`, `name`, `description`, `category`/`category_label` (a template's; null on a section), `type`/`type_label` (a section's), `count`, `author`, `updated_at`. `meta.kinds`, `meta.categories` (`[{value, label}]`: `landing`, `about`, `services`, `product`, `contact`, `event`, `other`). `GET /admin/pages/builder`'s `library.templates` rows carry `category`/`category_label` too, beside `library.categories` |
+| `POST` | `/admin/saved-sections` | `kind`, `name` (120), `description?` (300), `category?` (a template's; 422 outside `meta.categories`, ignored on a section), `blocks` (1–40, the page's shape and rules). A `section` is exactly one block and never of type `saved` (422 on `blocks`/`blocks.0.type`). **201** |
+| `GET` | `/admin/saved-sections/{id}` | Adds `blocks`, `blocks_media`, `sections` (presented) and `linked_from[{id, title, kind}]` |
+| `PATCH` | `/admin/saved-sections/{id}` | `name`, `description`, `category` (a template's; null files it under none), `blocks`; `kind` is fixed. A linked section's pages show the change on their next render |
+| `DELETE` | `/admin/saved-sections/{id}` | 204, or **422** `{message, linked_from}` while a page or template places the section linked |
+| `POST` | `/admin/pages/sections-from-body` | `role:content_manager`, throttled 30/min. `{body}` (required). The body cleaned as a saved one is and split into `rich_text` sections at its `<h2>`s (its `<h3>`s when it has none) — `{data: {sections}}` in the stored shape, ids included; **nothing written**. 0.109.0 |
 | `POST` | `/admin/pages/preview` | `role:content_manager`, throttled 60/min. `{blocks, page_id?}` — validated exactly as a save is, presented, **nothing written**. 200 `{data: {sections}}`, or a 422 keyed `blocks.N.data.field` |
+| `POST` | `/admin/pages/ai-draft` | `role:content_manager`, throttled 6/min, declared above `pages/{page:id}`. `{brief (10–1500), length? (short/standard/long, default standard), pictures? (default true), icons? (≤ 400 ids)}`. The assistant lays out a **draft** builder page from the brief. **201** `{data: {id, title, slug, admin_path: "/admin/pages/{id}?tab=builder", sections (count), dropped: [{type, reason}]}}`; a refusal is **422** `{message, errors: {brief: [sentence]}}`. 0.116.0 — see below |
+| `POST` | `/admin/pages/ai-section` | `role:content_manager`, throttled 20/min, declared above `pages/{page:id}`. `{mode (write, rewrite, shorten, expand), type, data, brief? (≤ 600; required for write), icons? (≤ 400 ids)}`. **200** `{data: {section_data}}` — the `data` sent with its wording replaced; **nothing is written**. A refusal is **422** on `brief` or `section`. 0.127.0 — see below |
+
+**Sections in a record's body area (0.129.0; seven more types in 0.130.0).**
+`POST`/`PATCH` on `/admin/solutions`, `/admin/services`, `/admin/industries`
+and `/admin/case-studies` — and, since 0.130.0, `/admin/blog-posts`,
+`/admin/knowledge-articles`, `/admin/products`, `/admin/store/products`
+(`role:store_manager`), `/admin/events`, `/admin/job-openings` and
+`/admin/content-types/{type-slug}/entries` — take `body_layout` (`body` or `sections`; anything else
+a 422, a blank stored as `body`) and `blocks` — the page builder's list, at
+most 40, validated row by row exactly as a page's is (a 422 keyed
+`blocks.N.data.field`), with three things refused that a page may hold: a
+`hero` or a `theme_section` (422 on `blocks.N.type`), an FAQ section whose
+`source` is `page` (422 on `blocks.N.data.source`), and a linked library
+section that is one of those (422 on `blocks.N.data.saved_id`). Rich text
+inside the sections is cleaned on write. Absent leaves each alone; `blocks:
+[]` clears the list; choosing one never clears the other. Every admin row
+carries `body_layout`; the detail read adds `blocks` as stored and
+`blocks_media` (a URL for every stored `*_path`). **The public detail read
+of each carries `sections`** — presented as a builder page's are — only on
+the record's own page and only while `body_layout` is `sections` and the
+list is not empty; a list row, a record nested in another's read, and a
+record on its written body carry no key. The written body (`overview`,
+`body`, or `description` on a product, a shop product and a vacancy) is
+still sent. The public reads are `GET /blog/{slug}`, `/knowledge-base/{slug}`,
+`/products/{slug}`, `/store/products/{slug}`, `/events/{slug}`,
+`/careers/{slug}` and `/types/{type}/{slug}`; a vacancy has no `faq_schema`,
+so questions typed into a section on one join no graph. Questions typed into a `faq` section join the
+record's `faq_schema` while the sections are showing. `GET
+/admin/pages/builder` adds `record_sections: {excluded_types[], layouts[{value,
+label, blurb}]}`, and `linked_from` on a library section (and the 422 that
+refuses its delete) names records too: `kind` is `page`, `template`,
+`solution`, `service`, `industry`, `case_study`, `blog_post`,
+`knowledge_article`, `product`, `store_product`, `event`, `job_opening` or
+`entry`.
+
+**`POST /admin/pages/ai-section` words one section and saves nothing**
+(0.127.0, `App\Support\Seo\Ai\SectionDraft`). `type` is one of `hero`,
+`rich_text`, `media_text`, `features`, `cards`, `form`, `faq`, `steps`,
+`tabs`, `checklist`, `cta`, `timeline`, `flow`, `story`, `columns` and
+`countdown` (any other is a 422 on `type`); `data` is that section's `data`
+as the console holds it. The model is shown only the section's text fields —
+plain fields, a rich-text field as a list of paragraphs, a button's label,
+the text fields of each row — and its answer is laid over `data`: text
+fields replaced, cut to the length the section's own rules allow, and every
+other key returned exactly as sent (a picture, a layout, a button's `href`,
+an icon, ids). `rewrite`, `shorten` and `expand` change only fields that
+already hold words and keep a list's rows by position; `write` may fill any
+text field and, for `features`, `faq`, `steps`, `tabs`, `checklist` and
+`flow`, replace the rows with between the rule's minimum and twelve new ones
+(an `icon` only for `features` and `flow`, and only one of the `icons`
+sent). A rich-text field comes back as `<p>` paragraphs built from escaped
+text and cleaned like a typed body. It shares the AI SEO assistant's switch,
+key, model, daily cap and counter — one run counted per answer used — and
+refuses on `section` with the same sentences as the page draft, plus: the
+section has nothing written (for the three rewording modes); its rich text
+"has formatting the assistant would lose" (a list, a link, a picture, a
+table, a heading or a shortcode — rewording modes only); the answer was
+unusable, unchanged, or did not pass the section's rules. `write` without a
+`brief` is a 422 on `brief`.
 
 **`blocks` on `POST`/`PATCH /admin/pages`** is a list of at most 40
-`{id (uuid), type, hidden, background, reveal, data}`; `template` accepts `builder`
+`{id (uuid), type, hidden, background, reveal, data}`; `type: saved` with `data: {saved_id}` places a library section linked — it must name a library *section* that exists, and the public read draws that section in its place (the page's `id` and `hidden` kept); `template` accepts `builder`
 beside `default` and `wide`. `type` is `App\Enums\PageSectionType` — `hero`,
 `rich_text`, `media_text`, `features`, `cards`, `content_block`, `slider`,
-`gallery`, `form`, `faq`, `logos`, `testimonial`, `video`, `divider` — and
+`gallery`, `form`, `faq`, `logos`, `testimonial`, `video`, `divider`, and since
+0.107.0 `stats` (`display` figures/rings/bars, items `{value, label, icon?,
+percent?}` — `percent` required for rings and bars, dropped for figures),
+`steps` (`layout` vertical/horizontal, 2–8 items), `tabs` (2–8 items
+`{label, heading?, body (plain text), image_path?}`, each picture resolved on
+the public read to `image`/`image_alt`/`image_focus`), `checklist` (`columns`
+1–3, up to 24 items) and `cta` (`heading`, `tone` brand/accent, `call`,
+buttons), and since 0.109.0 `comparison` (2–4 `plans` `{name, note?}`,
+`highlight?` a plan's position, 1–20 `rows` `{label, cells[]}` — a cell is
+`yes`, `no`, up to 60 characters or null, kept by position), `timeline` (2–12
+items `{date, title, body?}`), `before_after` (`before_path`, `after_path`,
+both library pictures, `before_label?`, `after_label?`, `start?` 10–90,
+`caption?`; read as `before`/`after` with `_alt`/`_focus`) and `testimonials`
+(2–9 items `{quote, name, role?, photo_path?}`, each photo read as
+`photo`/`photo_alt`/`photo_focus`), and since 0.111.0 `team` (`department?`,
+`limit?` 1–48, `group?`; read with `members` in `GET /team`'s shape, dropped
+when nobody matches), `downloads` (1–20 items `{title, file_path, note?}`, each
+file in the library; read as `{title, note?, url, size, extension}`, a missing
+file left out), `countdown` (`heading`, `ends_at` as `Y-m-d\TH:i` in the site's
+timezone, `done_text?`, buttons; read with `ends_at` as an instant with its
+offset and `ends_label`), `columns` (2–3 `{heading?, body}`, each body rich
+text — `blocks.*.data.columns.*.body` is cleaned on write) and `map` (`url`
+beginning `https://www.google.com/maps/embed`, `address?`), and since 0.113.0
+`theme_section` (`section`, an id of the shape `^[a-z][a-z0-9_-]{0,31}$` —
+one of the active theme's homepage sections, the list being the frontend's
+`HOME_SECTIONS`; the theme's `hero` is refused anywhere but first, a 422 on
+`blocks.N.data.section`; passed through unchanged on the public read), and
+since 0.114.0 `story` — "Scroll story", steps that scroll past a picture held
+in place (`kicker?` ≤ 60, `heading?` ≤ 120, `lede?` ≤ 300, and 2–6 `items`
+`{title (≤ 100), body (plain text, ≤ 600), image_path}`, every step's picture
+required and a library picture, a 422 on `blocks.N.data.items.M.image_path`
+otherwise; read with each step's picture as `image`/`image_alt`/`image_focus`,
+the tabs' rule), and since 0.115.0 `flow` — "Diagram", a row of connected
+steps whose joining lines draw themselves as the page scrolls (`kicker?` ≤ 80,
+`heading?` ≤ 120, `lede?` ≤ 300, 2–6 `items` `{icon?, title (≤ 60), note?
+(plain text, ≤ 160)}` — `icon` an id of the features' shape — and `caption?`
+≤ 200; passed through unchanged on the public read). Also since 0.115.0 a
+`hero` may carry `video_path`, a library video (`video/*`, in practice mp4 or
+webm), on the **`cover`** layout only — on `split` or `centered` it is a 422 on
+`blocks.N.data.video_path` ("A background video plays behind a cover hero
+only — choose the Cover layout."), a file that is not a video is "That file is
+not a video.", and `image_path` stays required, as the poster and what a
+visitor who asked for less motion sees; the public read carries it as `video`
+(a URL) with `video_path` removed — and
 `data` is checked by that type's own rules (`SectionRules`), so a 422 names the
 field: `blocks.3.data.heading`. A picture or video must be in the media
 library and of the right kind; a content block, slider, gallery or form is
@@ -1168,15 +1505,190 @@ its id; a background is the Themes screen's section background, checked by
 the same rule; ids are unique. `data.body` on `rich_text` and `media_text` is
 rich text, cleaned on write like any body; every other field is plain text.
 Only declared keys are stored. Absent leaves the sections alone; `[]` clears
-them. `reveal` is how the section arrives on scroll — an id checked for
+them. A section may also carry **`style`** (0.104.0): `pad_top`/`pad_bottom`
+of `none`/`s`/`l`/`xl`, `width` of `medium`/`narrow`, `align` of `center`,
+`heading` of `s`/`l`, since 0.114.0 `headline` of `rise`/`wipe`/`shimmer`
+(how the section's heading moves as it scrolls into view) and `scroll` of
+`parallax`/`zoom`/`fade` (an effect tied to the scroll itself) — a value
+outside a list is a 422 on `blocks.N.style.<key>` — `anchor` (`^[a-z][a-z0-9-]{0,47}$`, a 422 on
+`blocks.N.style.anchor` when another section has it) and `show_on` (a
+non-empty subset of `phone`, `tablet`, `desktop`). Values that are the
+section's own (`default`, all three devices) are not stored, and `style` is
+null when nothing differs; both reads carry it. `reveal` is how the section arrives on scroll — an id checked for
 shape only (`^[a-z][a-z0-9-]{0,15}$`, the list is the frontend's
 `SECTION_REVEALS`), 422 on `blocks.N.reveal` otherwise; `default` and a blank
 are stored as null, and both the admin and the public reads carry it.
 
+**Since 0.146.0.** `style` also takes `min_h` (`default`, `s`, `m`, `l`,
+`screen`), `heading_color` (`default`, `brand`, `secondary`, `accent`) and
+`responsive`: an object keyed `phone`, `tablet`, `desktop`, each holding any of
+`pad_top`, `pad_bottom` (`none`, `s`, `m`, `l`, `xl`), `align` (`start`, `center`,
+`end`) and `min_h` (`none`, `s`, `m`, `l`, `screen`) — a value outside its list is a
+422 on `blocks.N.style.responsive.<device>.<key>`. A missing key inherits the
+base; `m` is a real step here and an override is stored even when it equals the
+base; an unknown device is ignored, and an empty device or an empty
+`responsive` is not stored. `GET /admin/pages/builder` adds `style_options:
+{heading_color_except: [...]}` — the section types whose heading colour the
+website ignores (`hero`, `cta`, `theme_section`, `subnav`). Every door that takes
+`blocks` (pages, records, the library, the preview) validates the same keys.
+
+**Since 0.153.0.** `style` also takes `mt` and `mb` (`default`, `none`, `s`, `m`,
+`l`, `xl` — space above and below the section, outside its ground; `default` not
+stored), `border` (`default`, `line`, `strong`, `brand`) and `shadow` (`default`,
+`s`, `m`, `l`); each `responsive.<device>` takes `mt` and `mb` (`none`, `s`, `m`,
+`l`, `xl`, stored even when equal to the base). Values outside a list are a 422 on
+`blocks.N.style.<key>` or `blocks.N.style.responsive.<device>.<key>`.
+
+**Since 0.126.0.** `style` takes `edge_top` and `edge_bottom`, each one of
+`wave`, `slant`, `curve`, `peak` (422 on `blocks.N.style.edge_top` otherwise;
+`default`, the straight edge, is not stored). A `background` — on a section
+here and in `site_theme_options` alike — may be `{kind: "scene", scene}`, a
+moving background: `scene` is an id checked for shape only (the list is the
+frontend's), required for that kind, and nothing else is kept beside it — a
+colour or a texture sent with it is dropped. A `cards` section's `source`
+may also be `product_categories`, `store_categories` (active ones),
+`vacancies` (open ones; `kicker` the department, `meta` the location or
+"Remote") or `entry:<type-slug>` for an **active** custom content type
+(its published entries, `index_path` `/<type-slug>`); the list a save
+accepts is `card_sources` on `GET /admin/pages/builder`, which now names
+each content type as "<plural> (your content)", and a type that does not
+exist or is switched off is a 422 on `blocks.N.data.source`. And the type
+`subnav` ("In-page menu") stores `{label?}` (≤ 40); on the public read it
+carries `items: [{anchor, label}]` — one per *drawn* section that has a
+`style.anchor`, in page order, the label that section's heading (else its
+title or kicker, else the anchor in words) — and is **left out of
+`sections` when fewer than two sections qualify**. A background or style
+sent on a `subnav` is stored and not drawn.
+
+**Container widgets in a layout (0.154.0).** Four more widget types hold other
+widgets, one level deep: `box` (`surface` of `card` (default) `raised` `tint`,
+`pad` s/m/l, `align`; exactly one slot), `tabs` (2–6 slots), `panels` (1–8
+slots) and `inner_row` (2–4 slots; `split`, `gap`, `valign`, `stack_from` as a
+row's). The children are `slots: [{id, widgets: […]}]`, a slot adding
+`label` (≤ 40, required) on `tabs`, `title` (≤ 120, required) and `open` on
+`panels`; a slot holds at most 8 widgets, each `{id, type, …}` of any type
+**except** `box`, `tabs`, `panels`, `inner_row`, `form`, `slider` and `gallery` — a
+422 on the child's `…widgets.N.slots.S.widgets.M.type`. Slot ids follow the
+widget id rule and are unique across the section. Children count toward the 40
+widgets and 150,000 characters. Errors are keyed at the nested path
+(`…slots.1.widgets.0.html`, `…slots.1.label`, `…slots` for a count outside
+`min`/`max`); a split on other than two slots is a 422 on the widget's
+`split`. A text child's `html` is sanitised by every door. On the public read
+a slot with nothing left in it is dropped, and a container with no slot left.
+`GET /admin/pages/builder`'s `layout.widgets[]` gains `container: {key, label,
+min, max, fields[], child_types[]}` for these four.
+**`custom_code` — "Custom code" (0.158.0)** stores `{label, html, height?,
+mode?}`: `label` required, <= 80; `html` required, <= 50,000 characters, **stored
+and sent exactly as pasted** — it is in no sanitiser path, so a `<script>`
+survives the round trip; `height` one of `auto` (default), `s`, `m`, `l`;
+`mode` `frame` (default) or `page`. Defaults are not stored. A 422 is keyed
+`blocks.N.data.label` / `.html` / `.height` / `.mode`. **`mode: "page"` — the
+code running on the page itself, not in a sandboxed frame — is accepted only
+from an administrator**: anybody else gets a 422 on `blocks.N.data.mode`
+("Only an administrator can let code run on the page itself.") unless the
+block is already stored with the same id, code and mode, which is how a content
+manager re-saves a page holding an administrator's. The same check runs on a
+page's, a library item's and every record's `blocks` (`POST|PATCH
+/admin/pages`, `/admin/saved-sections` and the records of "Sections in a
+record's body area"); `POST /admin/pages/preview` does not call it, since
+nothing is stored. A save that adds or changes a custom code block is written
+to the activity log with `context.custom_code: true`, an edit of a page being
+otherwise unlogged. `GET /admin/pages/builder` adds `custom_code: {page_mode}`
+— whether the signed-in account may choose page mode. The public read sends the
+section as `{label, html, height?, mode?}`, the `html` raw.
+
+**`lottie` — "Animation" and `model` — "3D model" (0.172.0).** `lottie` stores
+`{heading?, lede?, file_path, alt?, loop?, size?, align?}`: `file_path` a
+library file whose mime starts `application/lottie` (a `.json` or `.lottie`
+the library has checked), `alt` ≤ 200 (blank is decorative), `loop` boolean,
+`size` `s`/`m`/`l` (default `m`), `align` `center`/`start`. `model` stores
+`{heading?, lede?, file_path, alt, poster_path?, rotate?, height?}`:
+`file_path` a `model/gltf-binary` library file, `alt` required ≤ 200,
+`poster_path` a library picture, `rotate` boolean (default true), `height`
+`s`/`m`/`l`. Defaults are not stored; a wrong file is a 422 on
+`blocks.N.data.file_path` ("Choose an animation from the media library." /
+"Choose a 3D model (.glb) from the media library."). The public read gives
+`file` (a URL) in place of `file_path`, plus `format` (`json`/`lottie`) and
+`ratio` (width ÷ height, else 1) on an animation and `poster`/`poster_alt` on a
+model, and drops the section when the file has gone or is no longer that kind.
+The layout section takes the same two as widgets: `lottie` (`file_path`,
+`alt`, `loop` as `yes`/`no`) and `model` (`file_path`, `alt` required,
+`poster_path`, `rotate` as `yes`/`no`), presented the same way.
+`media.library` (on `GET /admin/media`'s `meta`) lists `json`, `lottie` and
+`glb` and adds `max_lottie_kb` and `max_model_kb`.
+
+**`layout` — "Custom layout" (0.147.0)** stores `{kicker?, heading?, lede?,
+rows}`: 1–8 rows `{id, split?, gap?, valign?, stack_from?, reverse_stacked?,
+columns}`, each of 1–4 columns `{surface?, pad?, align?, valign?, widgets}`, each
+of at most 8 widgets `{id, type, show_on?, …}` of type `heading` (`text`, `size`,
+`align`), `text` (`html`, rich, ≤ 20,000, `lead`), `button` (`label`, `href`,
+`variant`, `align`), `image` (`image_path`, `ratio`, `rounded`, `href`, `caption`),
+`spacer` (`size`), `divider` (`short`), `video` (0.149.0: `source` of `youtube`
+or `mp4`, `youtube` stored as the 11-character id, `video_path` a library
+`video/*`, `poster_path`, `ratio` 16:9/4:3/1:1/9:16, `caption`; only the field
+that applies to the source is required or stored), `form` (`form_id`), `slider`
+(`slider_id`) and `gallery` (`gallery_id`) — each of the three a published
+record, refused on the widget's own id field if it is missing or a draft, and at
+most one slider and one gallery to a section — `icon_box` (`icon`, `title`, `body`, `href`,
+`link_label`, `layout`), `accordion` (`items` 1–12 `{question, answer}`) and `list`
+(`items` 1–12 `{text, icon?}`, `marker`). Ids (rows and widgets) match
+`^[a-z0-9]{6,12}$` and are unique within the section — a container's slots and
+children included. Only a container holds widgets (0.154.0, below).
+A 422 is keyed at the nested path, `blocks.0.data.rows.1.columns.0.widgets.2.href`.
+Refused: more than 8 rows, 4 columns or 8 widgets in a column (on the list's own
+key), more than 40 widgets or 150,000 characters (on `rows`), a split on other
+than two columns (on `rows.N.split`), a repeated id, a picture that is not an
+image in the library (on `…image_path`; a video widget's file must be a video and
+its link a YouTube one, on `…video_path` and `…youtube`). Defaults are never stored and a key the
+widget's type does not declare is dropped. Rules are generated per index over the
+first 8 rows, 4 columns, 8 widgets and 12 items only. `GET /admin/pages/builder`
+adds `layout`: `{widgets: [{value, label, blurb, fields[], list?}], row[],
+column[], limits}`, each field `{key, kind, label, max?, required?, multiline?,
+hint?, default?, choices?, when?, record?, single?}` (`kind` also `youtube`,
+`video` and `ref`) — the whole table the validation is read from. On the
+public read the section's `rows` carry a picture as `image`/`image_alt`/
+`image_focus`/`image_blur`; a video widget carries `youtube` (the id) or `video`
+(a URL), and `poster`/`poster_alt` when it has a cover; a form, slider or gallery
+widget carries `slug` and not its id; a widget with a missing picture or video,
+a record no longer published, an empty widget,
+column, row or section is dropped. Its `inline_fields` are the head's and its widgets' single-line words (0.156.0).
+
 **The admin detail read** carries `blocks` as stored, `blocks_media` (a URL
 for every stored `*_path`) and `sections` — the public shape, hidden ones
 left out — for the saved preview. The index's `meta` carries
-`section_types` and `section_presets`.
+`section_types` and `section_presets`, and since 0.116.0 `ai_draft:
+{available, reason}` — whether `POST /admin/pages/ai-draft` can be asked now,
+and when not, the sentence it would refuse with (switched off, no key, the
+day's cap reached).
+
+**`POST /admin/pages/ai-draft` writes a draft and nothing else** (0.116.0,
+`App\Support\Seo\Ai\PageDraft`, modelled on the chat's article brief). It
+shares the AI SEO assistant's switch, key, model, daily cap and counter — one
+run counted per page made, nothing for a refusal or a failure — and refuses
+with the same sentences, plus "The AI service did not answer. Try again
+shortly.", "…answered in a form we could not read…" and "…answered, but
+nothing in it was usable…", all on `brief`. The model is told, outside a
+`---BRIEF---` fence (the marker stripped from the brief), to write
+`[CHECK: what to confirm]` wherever a fact, figure, price, model number, date,
+certification, client or guarantee would go — kept verbatim — and never to
+write testimonials, quotations, statistics or prices. It may use `hero`,
+`rich_text`, `media_text`, `features`, `steps`, `checklist`, `faq`, `flow`,
+`cards` and `cta`, and it names **nothing by address**: a button's link is a
+number into the assistant's list of real published pages plus `/contact`, a
+picture a number into up to 40 library images (raster, not SVG, with alt
+text, newest first; none when `pictures` is false), an icon one of the
+`icons` the console sent. A number outside its list is dropped (a button
+loses itself; a `split`/`cover` hero without a picture becomes `centered`; a
+`media_text` without one is left out), an icon not sent is stripped. Every
+field is read by name and bounded, rich text is built from escaped
+paragraphs and cleaned like a typed body, a hero that is not first is left
+out, and **each section is then validated by the rules a save runs**
+(`SectionRules::forPayload`, its messages and `after()`) and normalised as a
+save stores it — anything that fails is left out and listed in `dropped` with
+the first reason. The page is `template: builder`, `status: draft`, a free
+slug from its title (never a frontend route), the model's SEO title (≤ 60) and
+description (≤ 160) as the override, and a body holding an editor's note and
+the brief, escaped. Nothing is published.
 
 **The public read `GET /pages/{slug}`** carries `sections` **only for a
 builder page**: hidden sections omitted; `*_path` → a URL with `*_alt` and
@@ -1189,6 +1701,57 @@ FAQs. A section whose reference has been unpublished or deleted, or whose
 list is empty, is dropped. `faq_schema` counts the visible custom questions
 of `faq` sections beside the FAQs and question blocks — still one
 `FAQPage`, absent under two entries. The body is still sent.
+
+## Detail templates
+
+How every page of one kind of record is laid out (0.161.0,
+`docs/page-builder.md` "Detail templates"). Seven kinds: `solution`, `service`,
+`industry`, `case_study`, `product`, `store_product`, `blog_post`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/detail-templates/options` | `role:content_manager,store_manager`. The page builder's own options (`GET /admin/pages/builder`'s `data`, so an account that cannot reach it can still build) plus `detail_templates`: `types[]` — the kinds **this account owns** — each `{value, label, noun, role, tag, today[], blocks[{value, label, blurb, heading, limit}]}` (`today` the record blocks in the order that kind's page draws them now; `label` what that kind knows the block by; `heading`/`limit` whether the block honours that setting on that kind), `required_block` (`record_body`) and `record_block_types[]`. **Declared above `{detailTemplate}`** |
+| `GET` | `/admin/detail-templates/records` | `?type=` (required), `?q=`. Up to fifty `{id, title, slug}` by title, for the preview's picker. 403 for a kind the account does not own |
+| `POST` | `/admin/detail-templates/preview` | `type`, `record_id`, `blocks`. The blocks validated exactly as a save is, around the record's public read **whatever its status** (a draft included), without its structured data. `{data: {type, record, detail_template: {id: 0, sections}}}`. Writes nothing. 422 on `record_id` for a record that has gone. Throttled 60/min |
+| `GET` / `POST` | `/admin/detail-templates` | `GET`: `?type=`, `?per_page=`; only the kinds the account owns, by kind, active first. `POST`: `type`, `name` (120), `blocks` (1–40). **201**, always inactive whatever is sent |
+| `GET` / `PATCH` / `DELETE` | `/admin/detail-templates/{id}` | Bound by **id**. `type` is prohibited on `PATCH`. Deleting the active template puts its kind's pages back to the layout they have in code |
+| `POST` | `/admin/detail-templates/{id}/activate` | Makes this the kind's template and deactivates the others of the kind, in one transaction |
+| `POST` | `/admin/detail-templates/{id}/deactivate` | |
+
+**Roles.** The routes sit behind `role:content_manager,store_manager`; the
+controller narrows by kind: `store_product` is a store manager's, the other six a
+content manager's, an administrator has all, and another kind is a 403 (and
+absent from the list and the options).
+
+**A template** is `{id, type, type_label, name, is_active, count, cache_tag,
+author, updated_at}` and, on a read, create, update, activate and deactivate,
+`blocks` as stored and `blocks_media` (a URL for every stored `*_path`).
+`cache_tag` is the public tag a change should purge (`solutions`, `services`,
+`industries`, `case-studies`, `products`, `store-products`, `blog`).
+
+**Record blocks.** `blocks[].type` may be any section type the body area
+accepts — a `hero` and a `theme_section` are refused, as is a `faq` section
+reading "this page's FAQs" — and fourteen `record_*` types that **only a template
+accepts**: `record_hero`, `record_body`, `record_highlights`, `record_specs`,
+`record_gallery`, `record_custom_fields`, `record_answer_blocks`, `record_faqs`,
+`record_related`, `record_enquiry`, `record_buy`, `record_downloads`,
+`record_reviews`, `record_comments`. A record block's `data` is `heading`
+(≤ 160) and `limit` (1–12) and nothing else; its `background`, `style` and
+`reveal` are not stored. Refused on `blocks.N.type`: a record block on a page, a
+record's body area, the library or the page preview; one the kind has no part for
+("A service page has no “Record buy panel” to place."); the same one twice. Refused
+on `blocks`: no `record_body`; on `blocks.N.hidden`: a hidden one.
+
+**The public read.** `GET /solutions/{slug}`, `/services/{slug}`,
+`/industries/{slug}`, `/case-studies/{slug}`, `/products/{slug}`,
+`/store/products/{slug}` and `/blog/{slug}` gain `detail_template`:
+`{id, sections}` — the ordinary sections presented as a builder page's are
+(hidden ones gone, a path a URL, a live list resolved), the record blocks as
+`{id, type, background: null, reveal: null, style: null, data}` — **only on the
+record's own page and only while a template is active for the kind**; with none
+the key is absent. A list row and a record nested in another's read never carry
+it. The website draws each record block from the record it already has. The active
+template is held five minutes and forgotten on any change.
 
 ## Engineer visits
 
@@ -1295,6 +1858,499 @@ and `trail`. Emails: `meeting_scheduled`, `meeting_booked_internal`,
 private `meetings_google` group holds the OAuth client, the token and
 `meetings_google_calendar_id` (blank = `primary`). `meeting_reference_prefix`
 is in `references`.
+
+## Events
+
+Something with a date that people attend, with a page and — optionally — a
+free registration with a capacity and a waiting list (0.118.0). The rules
+are `docs/events.md`; **every body and answer shape is
+`docs/events-contract.md`**, kept with `web/src/types/events.ts` and the
+mock — this section is the route list and what is not obvious from it.
+
+Every time on the wire is ISO 8601 **with the offset** of `APP_TIMEZONE`,
+and every label (`date_label`, `time_label`, `format_label`, `status_label`,
+`closes_label`, `day`/`month`/`year`) is the API's. `format` is `in_person`,
+`online` or `hybrid`; `registration_mode` is `none`, `open` or `external`; a
+registration's `status` is `confirmed`, `waitlisted`, `cancelled`, `attended`
+or `no_show`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/events` | Published only. `?when=upcoming` (default; soonest first) or `past` (newest first), `?format=` (an unknown one is ignored), `?featured=1`, `?page=`, `?per_page=` (max 50, default 12). Each row carries `seo` |
+| `GET` | `/events/{slug}` | The row plus `body`, `venue_address`, `map_url`, `speakers[]`, `agenda[]`, `registration {mode, external_url, closes_at, closes_label, max_seats, has_capacity, waitlist}`, `calendar_path`, `faqs[]`, `faq_schema` (absent under two FAQs) and `schema` (a schema.org `Event`) |
+| `GET` | `/events/{slug}/availability` | `{data: {state, few_left, message}}`, `Cache-Control: no-store`. `state` is `none`, `external`, `open`, `waitlist`, `full`, `closed` or `ended` |
+| `GET` | `/events/{slug}/calendar` | The event as a `.ics`: `Content-Type: text/calendar`, `Content-Disposition: attachment; filename={slug}.ics` |
+| `POST` | `/events/{slug}/register` | `name` (required, 120), `email` (required, `email:rfc`), `phone?` (30, loosely a number), `company?` (160), `seats?` (integer ≥ 1, default 1, at most the event's `max_seats`), `note?` (plain text, 1000), honeypot `website`, the `_source_*` envelope. Throttled 10/min. **201** `{message, data: {status, seats}}` |
+| `GET` | `/events/registrations/{token}` | `{status, status_label, seats, name, can_cancel, event {…}}`. Throttled 30/min |
+| `POST` | `/events/registrations/{token}/cancel` | The same shape with `status: cancelled`. Throttled 10/min |
+| `GET` | `/admin/events` | `role:content_manager`. `?status=`, `?when=upcoming\|past`, `?format=`, `?q=` (title, summary, body, venue), `?sort=starts\|title\|status` with `?dir=`, `?per_page=` (max 100, default 20). Default: what is coming, soonest first, then what has been, newest first. Every row carries `counts` |
+| `POST` | `/admin/events` | **201** |
+| `GET`/`PATCH`/`DELETE` | `/admin/events/{id}` | Bound by **id**. `PATCH` takes `notify_registrants`. `DELETE` answers 200 `{"message": "Event deleted."}`, or a 422 on `event` while the event has registrations |
+| `POST` | `/admin/events/{id}/duplicate` | **201**: a draft copy, "(copy)", a free slug, the FAQs, no registrations and no SEO override |
+| `GET` | `/admin/events/{id}/registrations` | `role:content_manager,sales_manager`. `?status=`, `?q=` (name, email, company, phone), `?per_page=` (max 100, default 50). Confirmed first, then the waiting list oldest first, then the rest newest first. `meta.event {id, title, status, date_label, time_label, has_started, counts, capacity, max_seats, waitlist_enabled}`, `meta.statuses` |
+| `GET` | `/admin/events/{id}/registrations/export` | The same rows and filters as a CSV, every cell escaped. **Declared above `{registration}`** |
+| `POST` | `/admin/events/{id}/registrations` | The public fields plus `force` and `notify` (default true). **201**, with `meta` beside `data` |
+| `PATCH` | `/admin/events/{id}/registrations/{registration}` | `status`, `seats` (1–20), `staff_note`, `force`. `meta` beside `data` |
+| `DELETE` | `/admin/events/{id}/registrations/{registration}` | For good. **204**. No email |
+
+**`online_url` is never on a public read.** The join link is sent to people
+who registered — in the confirmation, the reminder, the "details changed"
+message and the calendar file attached to them — and is on the admin
+resource only. The public resources do not name the column; the `schema`
+graph's `VirtualLocation` carries the page's URL; the public `.ics`, the
+webhook and the chatbot's retrieval do not read it.
+
+**The venue is null for an `online` event** on every public read, whatever
+the row still holds from an earlier draft.
+
+**An event is upcoming until it ends**, or until the end of the day it
+starts on when it has no `ends_at`; `is_past` is the same rule.
+
+**`availability` publishes a state and never a count.** `few_left` is true
+when a capacity is set and a fifth of it or less — but at least one seat —
+remains. `message` is a sentence for `full` ("This event is full."),
+`closed` ("Registration for this event has closed.") and `ended` ("This
+event has already started, so registration has closed." / "This event has
+taken place."), and null otherwise. `ended` means the event has **started**.
+`waitlist` is a full event with its waiting list on — and also one with
+seats free while somebody is already waiting, because the list is a queue.
+
+**Registering: who is confirmed, who waits, who is refused.** Decided inside
+a transaction that opens by locking the event row, and counted in **seats**
+over the registrations that hold one:
+
+- `status` is `confirmed` ("You are registered. We have emailed your
+  confirmation to {email}.") or `waitlisted` ("This event is full, so you
+  are on the waiting list. We have emailed {email} and will write again if a
+  place opens."). A party larger than what is left waits whole when there is
+  a waiting list.
+- **422 on `registration`**, one sentence, when the mode is not `open`
+  ("This event does not take registrations here."), registration has closed,
+  the event has started, or it is full with no waiting list.
+- **422 on `seats`** when more are asked for than the event's `max_seats`
+  ("You can register up to 5 seats at once…"), or than are left with no
+  waiting list ("Only 1 seat is left.").
+- **The same address again writes nothing.** A typed address is not proof
+  of whose it is, so when it already holds a live registration (`confirmed`,
+  `waitlisted`, `attended`, `no_show`) no column changes and no lead, webhook
+  or desk notice follows. That registration's own confirmation (or
+  waiting-list message) is sent again to the address on file — at most once
+  every 10 minutes per address per event (`EventActions::RESEND_MINUTES`, an
+  atomic `Cache::add`); `attended`/`no_show` are sent nothing.
+- **A repeat is answered exactly as a brand-new address sending the same
+  body would be at that moment**: the same 201 `status` and message from the
+  current count, or the same 422 on `registration` or `seats`. The response
+  therefore cannot say whether an address is registered. So a double press
+  on the last seat reads "This event is full." the second time, with the
+  confirmation in the inbox both times; that is the price of a response
+  that tells a stranger nothing.
+- **A cancelled registration is no registration**: the row is revived with
+  the details sent, subject to room like a newcomer, **under a new token**,
+  and it is an arrival like any other (a lead, the desk's notice, the
+  webhook).
+- **There is no update path here**, a signed-in customer included. Changing
+  a party's size is cancelling from the manage link and registering again,
+  or the desk editing the row.
+- **A filled `website`** is answered 201 in the same shape — `status:
+  confirmed` and the seats sent; nothing is stored or sent.
+- A portal `Authorization: Bearer` stamps `customer_id` on a first
+  registration or a revival, read with the `sanctum` guard named and
+  narrowed to a `Customer`; an impersonated token does not.
+
+**The manage link is in the emails and nowhere else.** It is
+`/events/registration/{token}` on the site, the token 64 lower-case hex
+characters — in the confirmation, the waiting-list message, the reminder and
+the "details changed" message, sent to the address that registered, and in
+**no response**: not the register 201, not the admin resource, not the
+webhook. The two registrant routes hold the token to that shape in the route,
+so anything else is a 404 before a controller runs; a well-formed token that
+is nobody's is the same 404, and so is one rotated away by a revival. The
+manage read has no email, phone, note or staff field. `registration` and
+`registrations` are refused as an event's slug.
+
+**Cancelling** is a 422 on `registration` once the event has started or the
+registration is `attended`/`no_show`; cancelling one already cancelled
+answers the same shape and sends nothing. A confirmed registration cancelled
+promotes the waiting list, oldest first, **stopping at the first party that
+does not fit**. So does a party shrinking, a registration deleted and a
+capacity raised or removed.
+
+**Admin datetimes are wall-clock `Y-m-d\TH:i`** in `APP_TIMEZONE`, written
+and read back (`starts_at`, `ends_at`, `registration_closes_at`), with
+`starts_at_iso` as the instant. Seconds are accepted and dropped.
+
+**Admin `meta`** — on the index, the read, both writes and the duplicate:
+`formats[{value,label}]`, `statuses[{value,label}]`,
+`registration_modes[{value,label,blurb}]`,
+`registration_statuses[{value,label}]`, `max_speakers` (12), `max_agenda`
+(30), `timezone` (`"IST"`). No `custom_field_groups`.
+
+**Write rules** are the contract's. The ones that span two fields are
+checked against what the event *will be* — a `PATCH` naming one half is
+compared with the stored other: `ends_at` after `starts_at`;
+`registration_closes_at` not after the start; `venue_name` unless the format
+is `online`; `external_url` when the mode is `external`; `online_url` before
+an `online` or `hybrid` event whose mode is `open` can be **published**;
+`capacity` not below the seats already held ("7 seats are already taken, so
+the capacity cannot be lower than 7."). `cover_image_path` and a speaker's
+`photo_path` must be library **images**. `status`, `registration_mode`,
+`is_featured` and `waitlist_enabled` default to `draft`, `none`, false and
+false on create; `max_seats` to the `event_max_seats` setting. `speakers`,
+`agenda` and `faqs` are replaced wholesale; absent leaves them alone, `[]`
+clears.
+
+**`notify_registrants: true`** sends `event_changed` to each confirmed
+registrant — only when the save changed `starts_at`, `ends_at`, `format`,
+the venue, `map_url` or `online_url`. A new start resets every confirmed
+registration's `reminded_at`.
+
+**The registrations desk goes through the public door's implementation.**
+`POST` for an address that already holds a live registration is a **422 on
+`email`** naming its status ("This address already has a registration for
+this event (Confirmed). Edit that one instead."); a cancelled one is revived
+under a new token. `force`
+goes past the capacity, a closing date and the start (never past a mode that
+is not `open`), and `notify: false` skips the registrant's confirmation —
+the desk's own notice and the lead are still made. `PATCH status` follows
+`EventRegistrationStatus::canTransitionTo()` (422 on `status` naming both
+states otherwise): `cancelled` emails the registrant and promotes the
+waiting list; `confirmed` from `waitlisted` or `cancelled` is held to the
+room unless `force` and emails `event_waitlist_promoted` or the
+confirmation; `waitlisted` from `cancelled` emails the waiting-list message;
+`attended` and `no_show` are a 422 on `status` before the event has started,
+and correct to each other and back to `confirmed`. `seats` growing on a
+registration that holds seats is a 422 on `seats` past the room unless
+`force`. A registration addressed through another event's id is a 404. The
+admin resource carries `lead_id` with `lead_path`, `source` (`public` or
+`staff`) and **no token**.
+
+**`allowed_next` on every admin registration** is what the status select may
+offer now, itself first, as `[{value, label}]`:
+`EventRegistrationStatus::canTransitionTo()` plus the clock — `attended` and
+`no_show` appear only once the event has started. A dropdown offers only
+what a `PATCH` accepts; what it cannot promise is room, and that refusal
+names the seats. It is not in the webhook payload.
+
+**`meta.event` rides on the list and beside every registration write**
+(`POST`, `PATCH`), because a sales manager cannot read `/admin/events/{id}`:
+the event's `status`, `date_label`, `time_label`, `counts`, `capacity`,
+`max_seats`, `waitlist_enabled`, and `has_started` — the same clock the
+status rule and `allowed_next` use, so it is the one place that screen
+learns whether Attended and No-show may be offered.
+
+**The join link and the venue follow the format wherever they are sent.**
+The console keeps what was typed when the format changes: an `in_person`
+event that still holds an `online_url` never emails it or puts it in a
+registrant's `.ics`, and an `online` event that still holds a hall reads
+"Online" in every message and calendar file and null on every public read.
+
+**The admin event's `body`, `faqs`, `seo` and `seo_defaults` are on the
+detail shape only** — the read, both writes and the duplicate; an index row
+carries none of them. The waiting-list status is labelled "On the waiting
+list".
+
+**Where else**: `GET /search` gains a group of type `event` (label
+"Events", each result with its date as `kicker`); `GET /admin/search` gains
+one for a content manager; `GET /admin/menus` offers the item type `event`
+and the section `events` (dropped at render until an event is published);
+`GET /admin/menu-targets?type=event`; `GET /admin/faq-owners` and
+`/admin/seo` list events (`type: event`, `admin_path: /admin/events/{id}`);
+`seo.schema_type` accepts `Event`, `BusinessEvent` and `EducationEvent`; the
+page builder's `cards` section takes `source: events` (upcoming, soonest
+first; `kicker` the date, `meta` the place or "Online", `index_path`
+`/events`), listed in `meta.card_sources`; a lead from a registration has
+`channel: event`. `events` is a reserved slug for a custom content type —
+and **a CMS page can no longer be created at, or moved to, one of the site's
+own top-level routes** (`events`, `blog`, `store`…): `POST`/`PATCH
+/admin/pages` answer a 422 on `slug`, or on `title` when the slug is blank
+and would be derived as one (`ReservedSlugs::pageSlugRule()`). A page already
+sitting on such a slug can still be saved under it.
+
+**Settings**: the private `events` group (`role:admin`) — `events_email`
+(blank = `sales_email`; an address or a 422), `event_reminder_hours` (0–168,
+default 24; 0 sends no reminder) and `event_max_seats` (1–20, default 5).
+Nothing in it reaches the public `/settings` map.
+`technoware:remind-events`, every fifteen minutes, sends `event_reminder`
+once to each confirmed registrant of a published event starting within that
+many hours; somebody confirmed inside the window is not reminded.
+
+## Tenders
+
+Notices inviting bids (0.174.0). The rules are `docs/tenders.md`. Four public
+routes, none of which writes: a bid is not submitted here.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/tenders` | Published only. `?when=open` (default), `closed`, `upcoming` or `all` — **an unknown value is ignored, not refused**; `?category=<slug>`; `?q=` (trimmed to 100 characters, matching the reference, title, summary and scope, plus the reference with its punctuation stripped); `?page=`, `?per_page=` (max 100, default 20). Paginated. Order: open first and closing soonest, then closed and most recently closed first, ending on `id` so a page boundary cannot show one row twice |
+| `GET` | `/tender-categories` | The categories holding a published tender, in order: `{id, name, slug, description, count}`. Plain collection, **`{data: []}` in a 200** when there are none. `meta`: `total` (published tenders), `open`, `updated_at` (the newest change, for the sitemap's `lastmod`) |
+| `GET` | `/tenders/{slug}` | One notice. 404 for a draft, an archived one, one whose category is switched off, and an unknown slug. **A closed one is readable** — the archive is the point |
+| `GET` | `/tenders/{slug}/state` | `{data: {state, state_label, closes_in_label, closed}}`, `Cache-Control: no-store`. What the page's badge asks after it mounts |
+
+**`tender-categories` and `{slug}/state` are declared above `{slug}`**, or the
+slug route swallows both; the slug is bound in the controller rather than by
+route-model binding for that reason.
+
+**The row** (`TenderResource`) carries `id`, `reference`, `title`, `slug`,
+`summary`, `category` (`{name, slug}` or null), the four instants
+(`opens_at`, `closes_at`, `opening_at`, `prebid_at` — ISO 8601 with the app
+zone's offset), the four labels (`opens_label`, `closes_label`,
+`opening_label`, `prebid_label`), `fee_paise`/`fee_label`,
+`emd_paise`/`emd_label`, the window (`state`, `state_label`,
+`closes_in_label`, `closed`), `documents_count`, `is_featured`, `updated_at`
+and `seo`. **The detail** adds `description`, `prebid_place`, `documents`,
+`submission` (`{email, url, address}`), `contact` (`{name, phone, email}`) and
+`schema`. An index row carries none of those five and no graph.
+
+**Every label is the API's**, in `APP_TIMEZONE` — `closes_label` is "Tuesday
+10 November 2026, 6:00 pm IST". Nothing downstream formats a tender's date: a
+closing date is a deadline, and a date rendered in the reader's own zone is a
+bid missed by a day. The instants are for `<time dateTime=…>` and for sorting.
+
+**The state is computed, never stored.** `App\Support\Tenders\TenderWindow` is
+the one definition of `upcoming`, `open`, `closing_soon` (within
+`Tender::CLOSING_SOON_DAYS`, 3) and `closed`, and it is the state **when the
+response was read** — so a cached listing is as old as the response.
+`{slug}/state` exists because the notice's page is in the ISR cache and cannot
+say; it is `no-store` on both sides. `closes_in_label` counts **calendar days**
+in the app's zone ("3 days left", "Closes tomorrow", "Closes today"), never
+blocks of 24 hours, and is null unless the tender is open.
+
+**`fee_paise` and `emd_paise` are paise as integers**, and **null is not
+zero**: null means no fee is stated and the label is null; `0` means the
+document is free and the label reads "Free". `fee_label` groups the Indian way
+— `₹1,50,000`.
+
+**A document whose file has gone is absent**, not drawn: each is `{title,
+note?, url, size, extension?}`, resolved from a media-library path in one
+query. They are public files, so there is no streaming route and no access
+rule — anybody may bid.
+
+**The graph is a `WebPage` and nothing more**: schema.org has no tender type
+and Google has no tender rich result, so there is no `Offer` (which would say
+this company is selling something at a price) and no `validThrough` (an
+`Offer` property). It carries the name, the description, the URL,
+`datePublished`, `dateModified`, the Organization as publisher, and the
+category as `about`.
+
+### Admin — tenders (`role:content_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/tenders` | `?status=`, `?when=open\|closed\|upcoming`, `?category=<id>` or `none` (filed nowhere), `?q=`, `?sort=closes\|opens\|reference\|title\|status` with `?dir=`, `?per_page=` (max 100, default 20). Default order: still open and closing soonest, then closed and most recent, ending on `id`. `meta`: `statuses`, `categories` (**every one, active or not** — a tender filed under a switched-off category must still show which), `max_documents` (10), `closing_soon_days` (3), `timezone` |
+| `POST` | `/admin/tenders` | **201** |
+| `POST` | `/admin/tenders/bulk` | `publish`, `draft`, `archive`, `delete`. **200 always**, with `updated` and `refused`. Publishing is refused per tender by the same rule an edit is held to. **Declared above `{tender:id}`** |
+| `GET`/`PATCH`/`DELETE` | `/admin/tenders/{id}` | Bound by **id** — the edit form changes the slug it is addressed by. `DELETE` answers 200 `{"message": "Tender deleted."}` and leaves the documents in the media library |
+| `POST` | `/admin/tenders/{id}/duplicate` | **201**: a draft copy, "(copy)", a free slug, and the reference suffixed `-copy` — never reused. The SEO override is not copied |
+| `GET`/`POST` | `/admin/tender-categories` | Up to 100, in order, each with `tenders_count` |
+| `GET`/`PATCH`/`DELETE` | `/admin/tender-categories/{id}` | A blank slug on an edit derives it again. Deleting keeps the tenders, unfiled |
+
+**Write rules.** `reference` is required, at most 80 characters and **unique**
+("Another tender already has that number."): it is the buyer's own number, not
+`App\Support\References`'s generated one, because it is often prescribed and is
+quoted on paperwork this application does not own. `opens_at` and `closes_at`
+are required; all four datetimes are **wall-clock `Y-m-d\TH:i` in
+`APP_TIMEZONE`**, which is what `datetime-local` posts, and come back the same
+way with `*_iso` beside them. `description` is rich text and is sanitised on
+write; every other text field is plain. `documents` is at most 10 rows of
+`{title, file_path, note}`, each `file_path` a media-library path that exists.
+
+The cross-field rules are checked against **what the tender will be**, so a
+`PATCH` naming one half is compared with the stored other half — a 422 on the
+field a person would look at:
+
+- `closes_at` after `opens_at`.
+- `opening_at` not before `closes_at` — bids are opened once they are in.
+- `prebid_at` before `closes_at` and not before `opens_at`.
+- `prebid_place` required when `prebid_at` is set.
+- **Publishing with no `submission_email`, `submission_url` or
+  `submission_address`** is a 422 on `submission_email` naming all three. A
+  draft may be as unfinished as it likes.
+
+**The admin resource** adds the stored path beside each document's URL, with
+`missing: true` when its file has gone from the library — the console says so
+rather than hiding it, because the editor is the only one who can fix it.
+`description`, `seo` and `seo_defaults` are on the read, both writes and the
+duplicate only.
+
+**Where else**: `GET /search` and `GET /admin/search` gain a `tender` group
+(the state and the closing date as the kicker, the reference searched with its
+punctuation stripped); `GET /admin/menus` offers the item type `tender` and the
+section `tenders`, both dropped until a tender is published — and a tender is
+dropped from a menu for its **publish status only**, never for its deadline;
+`GET /admin/seo?type=tender`; `GET /admin/pages/builder` offers the `cards`
+source `tenders` (**open ones only**, closing soonest first, the reference as
+the kicker and the deadline as the meta); `tenders` is a reserved slug for a
+CMS page and a content type; share links and page history take `tender`.
+
+## Downloads
+
+The downloads centre (0.131.0): datasheets, drivers and firmware, filed by
+category, attachable to products, public or customers-only. The rules are in
+`docs/downloads.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/downloads` | Published downloads that have a file, on a category that is switched on. `?q=` (title, summary, version, file name; `%` and `_` match themselves; at most 100 characters), `?category=<slug>`, `?access=public\|customers` (an unknown value is ignored), `?page=`, `?per_page=` (max 100, default 24). Ordered by category, then `sort_order`, then newest release, then title; uncategorised last. Paginated |
+| `GET` | `/download-categories` | The active categories that hold a published download, in order: `{id, name, slug, description, count}`. Plain collection, 200 when empty. `meta: {total, updated_at}` — every published download, and the newest change among them (null with none) |
+| `GET` | `/downloads/{id}/file` | The file. `{id}` is digits only. Throttled 60/min. See below |
+| `GET` | `/admin/downloads` | `role:content_manager`. `?q=`, `?status=`, `?access=`, `?category=<id>\|none`, `?sort=title\|released\|count\|status\|updated` with `?dir=`, `?per_page=` (max 100, default 25). Newest change first. `meta` adds the form's vocabulary (below) |
+| `GET` | `/admin/downloads/options` | The form's vocabulary plus `categories[{id, name, is_active}]`, `products[{id, name}]` and `store_products[{id, name}]` (up to 500 each). **Declared above `{download:id}`** |
+| `POST` | `/admin/downloads` | **201**. JSON, or `multipart/form-data` with `file` |
+| `GET` | `/admin/downloads/{id}` | The detail shape |
+| `PATCH` | `/admin/downloads/{id}` | JSON; or a multipart `POST` carrying `_method=PATCH`, with `file` |
+| `DELETE` | `/admin/downloads/{id}` | **204**. A private upload is deleted with it; a library file stays in the library |
+| `GET` | `/admin/downloads/{id}/file` | Streams a private upload to staff. 404 for a library download or a missing file |
+| `GET`/`POST` | `/admin/download-categories` | `role:content_manager`. Up to 100, in order, each with `downloads_count` |
+| `GET`/`PATCH`/`DELETE` | `/admin/download-categories/{id}` | Deleting keeps the downloads, uncategorised |
+
+**The public download** is `{id, title, summary, version, released_on,
+released_label, access, locked, category: {id, name, slug} | null, file:
+{name, extension, size} | null, updated_at}`. `released_label` is the API's
+words for the date ("8 October 2026"); `locked` is true for `customers`.
+**It never carries a file's address, a path or `download_count`** — for a
+library file either.
+
+**`GET /downloads/{id}/file` is the only door to a file.** It answers:
+
+- **404** for a draft, an archived download, one with no file, one whose
+  file has gone, one on a switched-off category, and an id nobody has.
+- **401** `{message, reason: "sign_in_required"}` for a customers-only
+  download unless the request carries a portal bearer of a customer who may
+  sign in, while the portal is open. The route is public, so the customer is
+  read with the `sanctum` guard named. A staff token is not a customer.
+  Nothing is counted.
+- **200** `{data: {url}}` for a library file — the file's public address
+  (versioned once edited, on the media CDN when one is on).
+- **200** with the bytes for a private upload: `Content-Disposition:
+  attachment` under the name it was uploaded as, `Content-Type:
+  application/octet-stream`, `X-Content-Type-Options: nosniff`,
+  `Cache-Control: private, no-store`.
+
+Each 200 adds one to the download's count, without changing its
+`updated_at`.
+
+**Writing a download.** `title` (required, 160), `summary` (500),
+`download_category_id`, `version` (40), `released_on` (`Y-m-d`), `access`
+(`public`, `customers`), `source` (`library`, `upload`), `file_path` (a path
+the media library holds), `file` (an upload), `status` (`draft`, `published`,
+`archived`), `sort_order` (0–65535), `product_ids[]` and
+`store_product_ids[]` (each replaced wholesale when sent, left alone when
+absent, at most 200). Defaults on create: `public`, `library`, `draft`.
+
+- `file` must have one of `meta.extensions` and be no larger than
+  `meta.max_upload_kb`; it is stored on the private disk under a random
+  name, its own name kept as a label. Sent with `source: library` it is a
+  422 on `file`.
+- **422 on `access`**: `customers` with `source: library` — a library file
+  has a public address.
+- **422 on `status`**: `published` with no file.
+- Both are checked against what the download will be: a `PATCH` naming one
+  half is compared with the stored other half.
+- `source: upload` clears `file_path`; `source: library` deletes the private
+  upload. A new upload replaces the old one, which is deleted after the save.
+- A multipart body cannot carry an empty list: `relations_sent=1` makes an
+  absent `product_ids` / `store_product_ids` mean none.
+
+**The admin download** adds `access_label`, `source`, `source_label`,
+`file_path` (library only), `file` (with `mime`), `has_file`, `file_missing`
+(it names a file nothing answers for), `status`, `sort_order`,
+`download_count`, `download_category_id`, `category: {id, name, is_active}`,
+`attached_count` and — on the detail shape — `product_ids`,
+`store_product_ids`, `products[{id, name}]`, `store_products[{id, name}]`.
+The private path is never returned.
+
+**The form's vocabulary** rides on the index's `meta`, on `options`, and
+beside every read and write: `accesses[{value, label, blurb}]`,
+`sources[{value, label, blurb}]`, `statuses[{value, label}]`, `extensions[]`
+and `max_upload_kb` — `DOWNLOADS_MAX_UPLOAD_KB` (default 524288) or php.ini's
+ceiling when that is lower.
+
+**A category** is `name` (required, 120), `slug` (lower-case letters, digits
+and single dashes, unique; derived from the name when blank, on create and
+on edit), `description` (500), `sort_order`, `is_active` (default true).
+Switching one off takes its downloads off every public read.
+
+**Where else.** `GET /products/{slug}` and `GET /store/products/{slug}`
+carry `downloads` — the product's published downloads in the public shape,
+by `sort_order`, newest release, title; list rows carry no key. `GET
+/search` gains a group of type `download` (label "Downloads"; each result's
+`path` is `/downloads?q=<title>` and its `kicker` the category);
+`GET /admin/search` gains one for a content manager. `GET /admin/menus`
+offers the section `downloads`, dropped at render until a download is
+published. `downloads` cannot be a CMS page's or a content type's slug.
+`GET /admin/pages/builder` adds `download_categories[{id, name, slug}]`, and
+a builder `downloads` section's `data` takes `source` (`custom`, the default
+and not stored, or `centre`), `category_id` (must exist, 422 on
+`blocks.N.data.category_id`) and `limit` (1–50, default 12): with `centre`,
+`items` is not required and not kept, and the public read carries the
+centre's published downloads as `items[{title, note?, version?,
+released_label?, download_id, locked?, size, extension}]` with `index_path:
+"/downloads"` — no `url` — and drops the section when there are none.
+
+## Support network (0.170.0)
+
+Service centres, offices and partners with an address, a telephone and a pin,
+and the staff who work at each. See `docs/support-network.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/support-centres` | Public. Active centres, country → city → order. Each: `{name, slug, kind, kind_label, country_code, country, region, city, address, phone, phone_alt, email, hours, latitude, longitude, staff: [{name, title}], updated_at}` — staff only where shown and the account is active, **never** their email or mobile. `meta.schema` is the page's `ItemList` graph (null when empty). `{data: []}` in a 200 when there are none |
+| `GET` | `/admin/support-centres` | `role:admin`. `?q=` (name, city, region), `?country=`, `?active=`, `?per_page=` (max 100). Rows add `id`, `location_id`, `sort_order`, `is_active`, `staff_count`. `meta.kinds` (`service_centre`, `office`, `partner`), `meta.countries` (`App\Support\Countries`) |
+| `POST` | `/admin/support-centres` | `name`, `slug` (blank → from the name; unique), `kind`, `country_code` (ISO alpha-2 in the list), `region`, `city`, `address`, `phone`, `phone_alt` (digits, spaces, `+()-./`), `email`, `hours`, `latitude` −90..90 and `longitude` −180..180 (both or neither — a 422 on the missing one), `location_id`, `sort_order`, `is_active`, `staff: [{user_id, title, is_public}]` (replaced wholesale; absent leaves it, `[]` clears). **201** with `meta` |
+| `GET` / `PATCH` / `DELETE` | `/admin/support-centres/{id}` | The read adds `staff: [{user_id, name, email, is_active, title, is_public}]`. Delete is **204** and leaves the staff accounts alone |
+
+`GET /admin/staff` takes `?centre=<id>` and each row carries
+`support_centres: [{id, name}]`. The page builder's `support_network`
+section stores `{kicker, heading, lede, country}`; the public read adds
+`centres` (the shape above) and drops the section while none is shown;
+`GET /admin/pages/builder` sends `support_countries: [{value, label}]`.
+`support_network` is a menu site section (dropped while no centre is shown).
+
+## Shiprocket: booking and tracking (0.143.0)
+
+Optional courier booking for the shop's orders (`docs/store.md` "Shiprocket").
+`store_courier_provider` in the private `shiprocket` group is `manual` (the
+default: every route below that books answers 422 and nothing is asked of
+anybody) or `shiprocket`. **Shiprocket has no sandbox: every call it is asked
+acts on the live account.**
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/store/shipping/webhooks/courier` | Shiprocket reporting a scan. **Public, un-throttled, 200 `{ok: true}` always, fails closed.** The address contains none of "shiprocket", "kartrocket", "sr", "kr" (Shiprocket refuses such a URL). The payload has no signature, only an optional token Shiprocket sends as `x-api-key`, compared with `hash_equals` to `shiprocket_webhook_token`; with none saved, nothing is accepted. Matches the order by `sr_order_id`, then `awb`; reads `shipment_status_id` (never `current_status_id`); ignores `is_return: 1`, an id it cannot place, an earlier or repeated status |
+| `GET` | `/admin/settings/shiprocket` | `role:admin`. `{provider, active, missing[], credentials_saved, email, pickup_location, locations[], parcel{length,breadth,height}, webhook_url, webhook_url_ok, webhook_token_set, error, booked, in_trouble}`. `locations` is read from Shiprocket **only while the provider is `shiprocket` and a sign-in is saved** |
+| `POST` | `/admin/settings/shiprocket/test` | `role:admin`, 6/min. Signs in afresh and lists the pickup locations — nothing else; books nothing. 200 `{locations[], pickup_location_found, message}`; 422 in Shiprocket's words |
+| `POST` | `/admin/store/orders/{n}/shipment/book` | `role:store_manager`, 20/min. `weight_grams?`, `length?`, `breadth?`, `height?` (whole cm), `courier_id?`. Claims the booking (one order at Shiprocket however often pressed), creates it, assigns the courier and AWB. Answers the order. 422 when the provider is manual or incomplete, the order has nothing to ship, is unpaid and not cash on delivery, is cancelled/refunded, has no address, is already booked or being booked, or Shiprocket refuses (its words) |
+| `POST` | `…/shipment/assign` | `courier_id?`. After a refused assignment, or to choose a courier |
+| `POST` | `…/shipment/pickup` | Requests the courier's pickup. Needs an assigned courier |
+| `POST` | `…/shipment/label` | Makes the label; `shipment.label_url` |
+| `POST` | `…/shipment/cancel` | Cancels the AWB and the order at Shiprocket and clears the courier and tracking from the order |
+| `POST` | `…/shipment/track` | Asks Shiprocket where it is now, through the same path the webhook uses |
+| `POST` | `…/shipment/rates` | 0.159.0, `role:store_manager`, 30/min. `weight_grams?`. A **quote**, books nothing: couriers from the pickup location's PIN to the delivery PIN. `{data: [{courier_id, name, rate_paise, cod_charges_paise, etd, days, rating, recommended}], meta: {weight_grams, pickup_pin, delivery_pin, cod}}`. 422 in Shiprocket's words (including its 200-with-`status: 404`). The checkout's delivery charge does not read it; the chosen `courier_id` goes to `book` or `assign` |
+| `POST` | `…/shipment/manifest` | 0.159.0, 20/min. Generates then prints the manifest for this parcel and stores its PDF address on the order. 422 unless a courier is assigned **and** the pickup requested. "Already generated" is success. Answers the order |
+| `POST` | `/admin/store/orders/manifest` | 0.159.0, `role:store_manager`, 10/min. `numbers[]` (1–50 order numbers). One manifest for the ready parcels: 200 `{url, included[], refused[{number, message}]}`; 422 when none is ready or Shiprocket refuses. **Declared above the `{order}` routes** |
+
+The admin order's detail read carries `delivered_at` and `shipment`: `null`
+while the provider is manual and nothing was booked, else `{provider, active,
+booking (creating|created|failed|cancelled), attempts, shiprocket_order_id,
+shipment_id, has_courier, pickup_requested_at, label_url, status_id, status,
+status_at, problem (returning|returned|cancelled), error, checked_at,
+delivered_at, can_book, book_refusal, can_assign, can_pickup, can_label,
+can_cancel, can_track, defaults{weight_grams,length,breadth,height}|null}`; since
+0.159.0 it also has `manifest_url`, `manifest_at`, `can_manifest` and `can_rates`.
+`GET /admin/store/orders` adds `meta.courier_active` (Shiprocket is on).
+Every `can_*` is the answer the API will give to the press.
+`GET /admin/store/orders?shipment=problem` lists parcels the courier is bringing
+back or cancelled; `/admin/store/dashboard` adds `attention.shipments_in_trouble`.
+The customer's order (`GET /orders/{n}?token=`, `/my/orders/{n}`) carries
+`shipment_status` — the courier's own label, only while it goes well — and
+`delivered_at`.
+
+The `shiprocket` settings group (private): `store_courier_provider`,
+`shiprocket_email`, `shiprocket_password` (secret), `shiprocket_pickup_location`,
+`shiprocket_parcel_length|breadth|height` (whole cm, 1–300),
+`shiprocket_webhook_token` (secret, 16–120 characters, no spaces) and
+`shiprocket_error` (Shiprocket's last refusal in its own words).
+`technoware:track-shipments` runs every 30 minutes.
 
 ## The store
 
@@ -1598,6 +2654,7 @@ whatever status it has.
 | `POST` | `/cart/coupon` | Applies a discount code. Throttled 15/min. An off, expired or not-yet-started code is answered exactly like an unknown one ("That code is not recognised.") |
 | `DELETE` | `/cart/coupon` | Takes it off |
 | `PATCH` | `/cart/contact` | `email`, `phone` — what the checkout has typed, saved on blur before any order exists. Each optional and written only when sent; a blank clears it. `phone` is held to the checkout's mobile rule. Throttled 20/min. Answers the basket |
+| `PATCH` | `/cart/destination` | `state` (required key; a name or a two-letter code, blank or null clears it) — where the checkout says the basket is going, saved on `carts.ship_state` so delivery can be quoted. A string that is no Indian state is a 422 on `state`. Does not move the basket's idle clock. Throttled 60/min. Answers the basket (0.142.0, "Delivery charges") |
 | `GET` | `/cart/restore/{token}` | A basket reminder's link: `{data: {token}}`, the basket's own cart token, for the frontend to put in the cookie. **404** for an unknown token and for a basket that has already become an order. Throttled 30/min |
 | `POST` | `/orders/{number}/items/{item}/reveal` | Hands over an activation code. Throttled 20/min |
 | `GET` | `/my/orders` | The signed-in customer's orders |
@@ -1711,6 +2768,44 @@ with an address, skip the suppression list and a stopped list (leaving the
 line owed), and outside `QuietHours` re-dispatch themselves to its next
 opening. `Messenger::notify()` is called beside each email.
 
+### Shop tags (0.141.0)
+
+The coloured row under the shop's search bar. See `docs/store.md` "Tags".
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/store/tags` | `?category=<slug>`, `?limit=` (1–30, default `store_tags_limit`). `{data: [{name, slug, count}]}` — **visible** tags carried by **published** products (of that category), curated tags first in the Tags screen's order, then the most used. **`{data: []}` in a 200** when there are none or `store_tags_enabled` is off |
+| `GET` | `/store/tags/{slug}` | A tag's page (0.157.0): `{data: {name, slug, heading, intro, count, indexable, updated_at, seo, schema}}`. `count` is **published** products; `indexable` is `count >= 3`; `schema` a `CollectionPage`. **404** for a hidden tag, an unknown slug and while `store_tags_enabled` is off; a tag nothing published carries still answers (`count: 0`). Declared after `store/tags` |
+| `GET` | `/store/tags?all=1` | The sitemap's read: every shown tag with a published product, no limit and no category; each row adds `updated_at`, `indexable` and `seo: {sitemap_include}` |
+| `GET` | `/store/products` | gains `?tag=<slug>` (a hidden tag still filters), and `?q=` also matches a tag's name |
+
+Product rows and `GET /store/products/{slug}` carry `tags: [{name, slug}]` —
+visible tags only, in the Tags screen's order. The three settings
+(`store_tags_enabled`, `store_tags_limit`, `store_tags_auto`) are the public
+`store_tags` group.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/store/tags` | `role:store_manager`. Every tag: `{id, name, slug, is_visible, sort_order, products_count}` (drafts included in the count), curated first then most used. `meta`: `settings` `{store_tags_enabled, store_tags_limit, store_tags_auto}`, `untagged` (products with no tags the rule has never decided), `max_per_product` (12), `name_max` (32) |
+| `POST` | `/admin/store/tags` | `name`. **201**. 422 on `name` for an empty slug, over 32 characters, or a slug that exists |
+| `PATCH` | `/admin/store/tags/reorder` | `ids[]` — every tag in the order drawn; renumbered 1..n. **Declared above `{id}`** |
+| `PATCH` | `/admin/store/tags/settings` | `settings: [{key, value}]` — the three keys and **no other** (422 by name); the switches `0`/`1`, the limit 4–30 |
+| `POST` | `/admin/store/tags/auto` | Runs the automatic rule over every product with no tags that was never decided. `{data: {tagged, untagged}}`. Throttled 6/min |
+| `GET` | `/admin/store/tags/{id}` | One tag with `heading`, `intro`, `public_path`, `seo` (the override) and `seo_defaults` |
+| `PATCH` | `/admin/store/tags/{id}` | `name` (the slug follows it; 422 if another tag has it; **a 301 from the old `/store/tags/…` address is written**), `is_visible`, `heading` (160), `intro` (rich text, sanitised on write), `seo` (the override block every record takes). Answers the detail shape |
+| `POST` | `/admin/store/tags/{id}/merge` | `into`. Moves its products onto `into` without duplicates, deletes it and writes a 301 from its address to `into`'s. `{data: {moved, into}}` |
+| `DELETE` | `/admin/store/tags/{id}` | **204**. Its products keep everything else |
+| `POST` | `/admin/store/products/tag-suggest` | `name`, `short_description`, `description`, `specifications`, `brand_id`, `store_category_id`, `type`, `current[]`. `{data: {tags[], source: "ai"\|"rules"}}` — the AI assistant when it is on, has a key and the day's cap is not reached, otherwise the rule; anything the AI cannot answer falls back to the rule. Nothing is saved. Throttled 10/min |
+
+`POST`/`PATCH /admin/store/products` take `tags[]` — names, replaced
+wholesale; **absent leaves them alone, `[]` clears them**, and sending the key
+at all stamps `tags_set_at`, so the automatic rule never puts back what was
+removed. At most 12 (422 on `tags`), each 1–32 characters with a letter or
+number (422 on `tags.N`). A product saved without the key and with no tags is
+tagged by the rule, once. The admin product carries `tags: [{id, name, slug}]`
+and `tags_auto` (true while they are the rule's, untouched); the products
+index carries `meta.tags`, every tag's name.
+
 ### Admin — the store (`role:store_manager`)
 
 | Method | Path | Notes |
@@ -1775,6 +2870,9 @@ the selectors on the product page would shuffle between two loads.
 | `POST` | `/admin/store/orders/{number}/status` | Checked against the enum |
 | `PATCH` | `/admin/store/orders/{number}/shipping` | Courier, number, link, notes |
 | `POST`/`GET` | `/admin/store/orders/{number}/invoice` | Upload and stream the manual invoice |
+| `POST` | `/admin/store/orders/{number}/invoice/generate` | Make the shop's own GST invoice, or make it again under the same number (0.176.0). Throttled 20/min. **422** with one sentence — the same sentence `invoice.refusal` carries — when invoicing is off or unfinished, Zoho Books owns the invoices, the order has an uploaded one, or it is not paid |
+| `GET` | `/admin/store/orders/{number}/invoice/print` | The invoice as a page, for printing. `no-store`. Renders for an order with **no** invoice too, which is how the document is checked before the feature is switched on |
+| `GET`/`PATCH` | `/admin/store/invoicing` | Tax and invoicing: fifteen named keys in the settings row shape, with `meta` (below) |
 | `POST` | `/admin/store/orders/{number}/notes` | Staff-only |
 | `POST` | `/admin/store/orders/{number}/fulfil` | Issue outstanding activation codes |
 | `GET`/`POST` | `/admin/store/products/{id}/codes` | The code inventory. The listing never contains a code |
@@ -1790,6 +2888,8 @@ the selectors on the product page would shuffle between two loads.
 | `GET`/`PATCH`/`DELETE` | `/admin/store/coupons/{id}` | Deleting a used code is refused |
 
 | `POST` | `/admin/store/orders/{number}/payments` | Record money that arrived without a gateway |
+| `POST` | `/admin/store/orders/{number}/zoho-invoice` | Make this order's Zoho Books invoice now. 200 `{data: {status, invoice_number}}` — `status` is `created`, `skipped` (the order already has an uploaded invoice) or `creating` (another attempt holds it). **422** with a sentence when Zoho Books is off or not fully set up, when the order already has its Zoho invoice, and — in Zoho's own words, also on `errors.zoho` — when Zoho refuses. Throttled 20/min |
+| `POST` | `/admin/store/orders/{number}/payments/{id}/zoho` | Send one payment or refund on the order to Zoho Books now (0.136.0). 200 `{data: {status, number}}` — `status` is `sent`, `skipped` (the invoice is already paid in Zoho) or `sending` (another attempt holds it); `number` is a credit note's number. **404** for a payment of another order. **422** with a sentence when the row is not a payment that arrived or a refund, when Zoho already has it, when Zoho Books is off, not set up, connected under the older consent, has no invoice for the order yet or no account chosen for the order's way of paying, and — in Zoho's own words, also on `errors.zoho` — when Zoho refuses. Throttled 20/min |
 | `POST` | `/admin/store/orders/{number}/refunds` | Record money that went back: `amount_paise`, `reference`, `note`. A `payments` row with status `refunded`; partial refunds add up, and the amount that completes what was paid moves the order to `refunded`. 422 on an unpaid order, past the ceiling, or an order already refunded in full. Calls no gateway |
 
 **Nothing here can mark an order paid *from a dropdown*.** `PendingPayment` may
@@ -1806,8 +2906,131 @@ recorded and flagged in the trail rather than refused.
 because an edit form changes the slug it is addressed by, and nothing about an
 order can change its number.
 
-**The invoice is uploaded, not generated**, to the private disk, streamed by an
-authorised route. `invoice_path` never appears in a response.
+**Every admin order carries `zoho`** (0.134.0) — `{status, invoice_id, attempts, error, next_attempt_at, synced_at, can_create}`, or **null** while Zoho Books is not set up and nothing was ever asked of it for that order. `status` is `pending`, `creating`, `created`, `failed`, `skipped` or null; `error` is Zoho's own words; `next_attempt_at` is null once the five automatic attempts are spent; `can_create` says whether `POST …/zoho-invoice` will be taken. `GET /admin/store/orders?zoho=failed` lists the orders whose invoice was refused, and `/admin/store/dashboard` carries `attention.zoho_failed`. An invoice Zoho made is stored as an uploaded one is: `invoice_number`, `invoice_date`, `has_invoice`, and the same download route. See "Zoho Books" under the settings.
+
+**Every payment on an admin order carries `zoho`** (0.136.0) — `{kind, status, number, error, attempts, synced_at, can_send}`, or **null** for a row that is neither a payment that arrived nor a refund, and for one nothing was ever asked of Zoho for while it could not be sent now. `kind` is `payment` (a customer payment on the order's invoice) or `credit_note` (a refund); `status` is `pending`, `sending`, `sent`, `failed`, `skipped` or null; `number` is the credit note's; `error` is Zoho's own words; `can_send` says whether `POST …/payments/{id}/zoho` will be taken. `?zoho=failed` and `attention.zoho_failed` count an order with a refused payment or credit note as well as one with a refused invoice. The customer's own read of an order carries none of this.
+
+**What is sent** (`docs/store.md`). A `paid` row: `POST /customerpayments` with the invoice's customer, the amount, the day it was paid, `payment_mode` (`cash`, `banktransfer`, `creditcard` or `others`), the account chosen for the order's way of paying, and the invoice with `amount_applied` — never more than Zoho says is still owed; an invoice with nothing owed is `skipped`. A `refunded` row: `POST /creditnotes` (the invoice's lines and discount for a whole refund, a return's received items when they add up to the amount, otherwise one line for the amount), then `POST /creditnotes/{id}/invoices` for whatever is still owed on the invoice and `POST /creditnotes/{id}/refunds` from the same account for the rest. Each carries the reference `{order number}-P{payment id}` or `{order number}-R{payment id}`, and an existing one with that reference is adopted rather than repeated. A payment waits for its order's invoice; rows already on the order follow it when it is made. Retried at 5, 30, 120 and 720 minutes by `technoware:sync-zoho-invoices`.
+
+**The invoice is uploaded, made in Zoho Books, or generated here** (0.176.0),
+to the private disk, streamed by an authorised route. `invoice_path` never
+appears in a response; `invoice_source` (`uploaded` / `zoho` / `generated`,
+null on an order that predates the column) is what tells the three apart.
+
+**An uploaded invoice always wins.** Nothing generated replaces one, whoever
+asks — and nothing is generated at all while Zoho Books is ready, because two
+systems numbering one series is two series.
+
+**`invoice` on the admin order** is `{can_generate, refusal, print_path}`, and
+is **absent while Zoho Books owns the invoices**. `refusal` is the one
+sentence the generate endpoint would answer with, so the console draws exactly
+that under a disabled button rather than keeping its own copy of the rules.
+
+**The invoice number is its own series by financial year** — `INV/2026-27/00001`,
+April to March, nothing to do with the order number, and the prefix is
+`invoice_prefix`. One invoice per order is the conditional
+`whereNull('invoice_number')` update; no number issued twice is a row lock on
+the read of the highest, which the index on `orders.invoice_number` makes a
+range lock. **Re-issuing keeps the number** — once issued it is in somebody's
+books — and re-renders the document under it.
+
+**Issued when the order is paid**, from the `updated` hook Zoho rides, guarded
+the same way: a failure anywhere inside leaves the payment recorded and writes
+one `warning` line. `GstInvoiceTest` makes the renderer throw to prove it.
+
+### Tax: a rate per product, and whether prices include it (0.176.0)
+
+`App\Support\Store\Tax` is the one implementation, and `Basket` and
+`Checkout` make the same call on the same lines.
+
+- **`store_gst_percent`** is the shop's rate, one of `0`, `0.25`, `3`, `5`,
+  `12`, `18`, `28`. **`store_products.gst_percent`** is a product's own and
+  beats it; blank means the shop's, which is not the same claim as zero.
+- **A stored price always includes GST** (0.178.0). **`store_price_basis`**
+  is only how the website **shows** prices (`inclusive` with GST, `exclusive`
+  before it) and **`store_price_entry`** only how the console **takes** them
+  (`exclusive`: typed before GST, converted on save at the product's rate).
+  Neither moves money.
+- **The order's `taxable_paise` and `gst_paise` are the sum of the lines**,
+  and every line placed since 0.176.0 carries `gst_basis_points`,
+  `taxable_paise` and `gst_paise` of its own. This reverses the schema's
+  original "GST is stored at the order, not per line": that was right while
+  one rate applied, because the only way to a per-line figure was dividing a
+  rounded total. With a rate per product the arithmetic runs the other way
+  and the figures add up by construction.
+- **The discount is apportioned** across the lines pro-rata, in paise, by
+  the largest-remainder rule. **Delivery is a line of its own**, at the
+  highest rate among the goods — the composite-supply rule, and it keeps
+  every printed line equal to the catalogue's price.
+- **`total_paise` is what is charged**, and it is the same whichever way the
+  website shows prices. Every threshold — a coupon's minimum, free delivery,
+  the cash-on-delivery ceiling — is judged on what is paid.
+- **Changing either setting cannot rewrite an order already placed.** Each
+  order keeps the tax it was charged, and `Money::rateOf()` derives the rate
+  it was charged at from its own two columns.
+
+**The basket** gains `gst_basis` (how prices are shown), `gst_added_paise`
+(the GST printed as a row — all of it when prices are shown before GST,
+**zero when shown with GST**, where a checkout prints the note) and
+`gst_rate`, which is **null when the basket holds two rates**: "18%" over a
+basket of 18% and 5% goods is false. Since 0.178.0 it also carries
+`shown_subtotal_paise`, `shown_discount_paise`, `shown_shipping_paise` and,
+on each item, `shown_unit_price_paise`/`shown_line_total_paise` — equal to
+the real figures when prices are shown with GST, the values before tax when
+shown before it, built so subtotal − discount + delivery + `gst_added_paise`
+= `total_paise`.
+
+**Public product reads** (`/store/products`, a variation, the wishlist, the
+`cards` section, the chat's product card) send `price_paise` and
+`compare_at_paise` **as shown**, plus `price_includes_gst` and, on a
+product, `gst_rate` ("18%"). **The admin product** keeps `price_paise` as
+stored (with GST) and adds `entry_price_paise`, `entry_compare_at_paise`
+and each variation's `entry_price_paise`; `POST`/`PATCH` take prices in the
+entry basis, and a figure sent back exactly as given (rate unchanged) keeps
+the stored price. `meta.price_entry` on `GET /admin/store/products`. The
+catalogue CSV export and import use the entry basis.
+
+**`GET`/`PATCH /admin/store/invoicing`** (`role:store_manager`) is the promo
+screen's narrow door onto the settings table: `store_gst_percent`,
+`store_price_basis`, `store_price_entry`, `invoice_enabled`, `invoice_legal_name`,
+`invoice_gstin`, `invoice_state`, `invoice_address`, `invoice_email`,
+`invoice_phone`, `invoice_prefix`, `invoice_hsn_default`, `invoice_terms`,
+`invoice_declaration`, `invoice_signatory`, `invoice_signature_path` — and
+**any other key is a 422 naming it** rather than being ignored. The GSTIN is
+held to its fifteen-character shape (and **never checked against a
+government API**, which the brief rules out), the state is stored as its
+code however it was typed, and `meta` carries `ready`, `missing` (what is
+still wanted, as sentences), `zoho_active`, `rates`, `bases` (display),
+`entries` (entry), `states`,
+`rate`, `products_with_own_rate`, `products_without_hsn`, `issued` and
+`financial_year`. Settings as a whole stay `role:admin`; `PATCH
+/admin/settings` still accepts all sixteen for an administrator.
+
+**`store_products` takes `hsn`** (four to eight digits — the HS code printed
+against that product's lines, blank falling back to `invoice_hsn_default`)
+**and `gst_percent`**. Both are on the product rather than the variation:
+each classifies what the thing *is*, and two sizes of one switch are one
+classification. `GET /admin/store/products` carries `meta.gst_rates`,
+`meta.gst_rate` and `meta.price_basis`.
+
+### The customer's invoice
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/orders/{number}/invoice?token=` | The guest's. Throttled 30/min. A wrong token is the same 404 a wrong number is |
+| `GET` | `/my/orders/{number}/invoice` | Portal. Scoped by `customer_id`; another customer's is a 404 |
+
+Both stream from the private disk through `CheckoutController::streamInvoice()`
+— shared so the two doors cannot drift on what they check — as
+`attachment`, `private, no-store`, and **only for a paid order**: an invoice
+is a record of money received, and handing one to somebody who has not paid
+is handing them a document their accountant may act on.
+
+**`has_invoice` on the customer's order now means "there is one you can
+download"**, carrying that paid check. It is the only thing the order page
+draws the link from, and it had **no route behind it at all** from the day
+the store shipped until these two existed — a flag telling a buyer their
+invoice exists, on a page with no way to open it.
 
 **A used coupon cannot be deleted.** Its usage rows explain why an order's total
 is what it is. Switching it off is the alternative, and the refusal says so.
@@ -1993,7 +3216,7 @@ existence is what an integration is told. The subject is never sealed.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/dashboard` | Counts, high priority, status breakdown, and a `metrics` block: 30-day volume, trend, median first response and resolution, SLA rate, open by priority and category. `?volume=month\|quarter\|half\|year` picks what `metrics.volume_series` covers — `{period, bucket, points[{date, end, created, resolved}]}` in 30 days, 13 or 26 Monday weeks, or 12 months, every bucket present, an unknown period a month; `metrics.volume` stays the 30-day daily series. `?since=<iso>` adds `new_since` — tickets, enquiries and (for a sales role) leads created after that moment; null when not asked |
+| `GET` | `/admin/dashboard` | Counts, high priority, status breakdown, and a `metrics` block: 30-day volume, trend, median first response and resolution, SLA rate, open by priority and category, and `arrivals` — `{days: 90, cells[7][24], peak, total}`, tickets opened by weekday (0 = Monday) and hour in IST, every cell present. `metrics.volume_series.previous` is the same number of buckets immediately before `points`, aligned by position (2026-10-05). `leads` adds `series` (new leads a day, 30 days, spam out) and `funnel` `{days: 90, received, contacted, won}` — what happened to the leads that arrived, never a status snapshot. `?volume=month\|quarter\|half\|year` picks what `metrics.volume_series` covers — `{period, bucket, points[{date, end, created, resolved}]}` in 30 days, 13 or 26 Monday weeks, or 12 months, every bucket present, an unknown period a month; `metrics.volume` stays the 30-day daily series. `?since=<iso>` adds `new_since` — tickets, enquiries and (for a sales role) leads created after that moment; null when not asked |
 | `GET` | `/admin/new-since?since=<iso>` | The sidebar's poll: `{since, tickets, leads, enquiries}` created after that moment — each **null for a role that cannot open the screen**, never zero. Staff-wide; three counts and nothing else, where `/admin/dashboard` builds thirty days of metrics. 422 without `since` |
 | `GET` | `/admin/search?q=` | The console's command palette. Groups of five — tickets, customers, leads, products, posts, pages, orders, shop products — **each present only for a role that may open it**. Staff-wide, not role-gated; the controller filters. Two-character floor. `admin_path` is a console route |
 | `GET` | `/admin/users` | Active staff, for assignment pickers |
@@ -2309,6 +3532,7 @@ answers people who have already bought.
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/admin/activity` | `?action=`, `?q=` (actor name, address, record label), `?per_page=` (max 100). Newest first. `meta.retention_days` and `meta.actions` |
+| `GET` | `/admin/onboarding` | The dashboard's "Getting started" checklist (2026-10-05, `App\Support\Onboarding`): `{steps: [{key, label, hint, href, done}], done, total}`. Every step is answered from real state — the seeded phone, address, figures and social URLs are recognised by their exact values — and `href` is a console path |
 
 **Read-only, and there is deliberately no write path.** No store, update or
 destroy. The only thing that removes rows is the scheduled
@@ -2516,7 +3740,7 @@ mid-save.
 | Team members | `/admin/team-members` | `designation`, `department`, `photo_path`, `bio`, `email`, `linkedin_url`, `certifications[{name,issuer,credential_id,issued_on,expires_on}]` — **replaced wholesale**, `[]` clears. `meta.departments` on the index and the read. Titled `name`; no slug, no `seo`, **no phone** |
 | Sliders | `/admin/sliders` | `layout` (`full`, `split`, `cards`, `fan` — sent as `meta.layouts`; `cards` is the stacked-cards carousel and `fan` the fanned photo gallery, under both of which `transition` is ignored and two slides are the minimum), `transition`, `caption_animation` (how the words arrive: `none`/`fade`/`rise`/`slide`/`zoom`, refused outside the list, sent as `meta.caption_animations`), `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one. `meta.transitions` carries the options, defaulting to `slide` rather than `fade` as Galleries does — see below |
 | Galleries | `/admin/galleries` | `subtitle`, `transition`, `autoplay`, `interval_ms`, `groups[]`, `items[]`. Titled `name`, and **no `seo`** — same reason as a slider. `meta.transitions` carries the options |
-| Forms | `/admin/forms` | `submit_label`, `success_message`, `notify_email`, `embed_enabled`, `fields[]`. Plus `GET /admin/forms/{id}/submissions`. Titled `name`, and **no `seo`** |
+| Forms | `/admin/forms` | `submit_label`, `success_message`, `redirect_url`, `notify_email`, `embed_enabled`, `fields[]` (each with `settings` and `show_if`). Titled `name`, and **no `seo`**. Its submissions, uploads and export are under "Forms: the builder, submissions and uploads" below |
 | Popups | `/admin/popups` | `image_path`, `body` (rich text — a picture, a message, or both; neither is a 422 on `body`), `link_url`, `link_new_tab`, `sections[]`, `paths[]`, `size`, `frequency`, `trigger` (`delay`, the default, or `exit` — exit intent; refused outside the list), `delay_ms`, `starts_at`, `ends_at`, `sort_order`. Titled `name`, and **no `slug` and no `seo`** — a popup has no URL of its own and is not embedded by shortcode either. `meta` carries `sections`, `sizes`, `frequencies` and `triggers`; the admin resource adds `match_paths`, what the two lists resolve to |
 
 **A slider a page reads by name is deleted only on a confirmed request.**
@@ -2592,6 +3816,86 @@ to be named `/admin/industry-records` — a URL that exists only to dodge a
 collision is a sign the collision should not exist. `/admin/products` was the
 same shape until products gained full CRUD, and went the same way.
 
+### Forms: the builder, submissions and uploads
+
+`role:content_manager`, like the rest of the forms routes (0.117.0,
+`docs/forms.md`).
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET`/`POST` | `/admin/forms` | `?q=`, `?per_page=` (max 100). `meta` carries the builder's vocabulary beside the pagination (below) |
+| `GET`/`PATCH`/`DELETE` | `/admin/forms/{id}` | Bound by **id**. The read and both writes carry the same `meta`. Deleting keeps the submissions **and their files** |
+| `GET` | `/admin/forms/{id}/submissions` | Newest first, `?per_page=` (max 100). Each row: `id`, `form_id`, `form_slug`, `data`, `files`, `ip_address`, `read_at`, `created_at` |
+| `GET` | `/admin/forms/{id}/submissions/export` | Every submission as a streamed CSV, newest first. **Declared above `submissions/{submission}`** |
+| `GET` | `/admin/forms/{id}/submissions/{submission}/files/{field}` | Streams one upload as an attachment under its original name. 404 when the field has no file, the key is not a field key, or the submission belongs to another form |
+| `DELETE` | `/admin/forms/{id}/submissions/{submission}` | 204. Deletes the submission **and its files**; the lead made from it stays. 404 for another form's submission |
+
+**`meta` on the index, the read and both writes** is `{kinds, ops,
+file_accepts, max_upload_kb, max_file_fields}`, so the console lists nothing
+itself. `kinds` is `[{value, label, blurb, takes_options, is_layout, is_file,
+is_condition_source}]` in `FormField::KINDS` order; `ops` is `[{value, label,
+takes_value}]`; `file_accepts` is `[{value, label, extensions[]}]` for
+`image`, `pdf` and `document`; `max_upload_kb` is the largest file this server
+will take for a form upload — 20480, or php.ini's ceiling when that is lower;
+`max_file_fields` is 3.
+
+**`fields[]` on a write** is at most 50 rows of `{kind, name, label,
+placeholder?, help?, required?, width?, options?, settings?, show_if?}`,
+replaced wholesale. What is checked beyond the shape of each key, each a 422
+on the row it names:
+
+- `fields.N.name` — required for every kind but `heading` and `step`, which
+  the server names (`section_1`, `step_1`, …) when it is blank; two rows
+  sharing a key are refused.
+- `fields.N.label` — required for every kind but `step`, which is titled
+  "Step N" when blank.
+- `fields.N.options` — at least **one** option for `select`, at least **two**
+  for `radio` and `checkboxes`, no value twice. Options are kept only on those
+  three kinds.
+- `fields.N.kind` — a fourth `file` field.
+- `fields.N.settings.<key>` — `hidden`: `value`, a string ≤ 255. `number`:
+  `min`, `max`, numeric, `min` ≤ `max`. `date`: `min`, `max`, each `"today"`
+  or a `Y-m-d`, not backwards. `file`: `accept`, a non-empty subset of
+  `image`/`pdf`/`document` (default `["image","pdf"]`), and `max_kb`, an
+  integer 100–20480 (default 5120). Only the kind's own keys are stored — a
+  number turned into a date does not keep `min: 5` — and `settings` is null
+  for every other kind.
+- `fields.N.show_if.field` — must name a field **earlier in the list** that
+  has an answer to read: an unknown key, a later field, the field itself, and
+  a `file`, `hidden`, `heading` or `step` are each refused with their own
+  sentence. `fields.N.show_if.op` — one of the five, and `includes` only on a
+  `checkboxes` source. `fields.N.show_if.value` — required for `equals`,
+  `not_equals` and `includes`, ≤ 150 characters. An empty object, or one whose
+  `field` and `op` are both blank, means no condition and is stored as null.
+
+`required` is stored `false` on a `hidden`, a `heading` and a `step` whatever
+is sent. `redirect_url` is a path on this site or an http(s) URL — `//host`,
+`/\host`, `javascript:`, `mailto:` and `tel:` are a 422 — and null clears it.
+
+**The admin read carries `settings` as stored**, a hidden field's `value`
+included; the public read withholds it (see "Public endpoints"). A file
+field's `settings.max_kb` is the figure that was asked for; the limit in force
+is `min(max_kb, meta.max_upload_kb)`, which is what the public read sends.
+
+**`files` on a submission row** is an object keyed by field —
+`{field, name, size, mime, submission_id, download_path}` — and `{}` when
+nothing was uploaded, never `[]`. `download_path` is **this API's route,
+relative to `/api/v1`**: `/admin/forms/{form id}/submissions/{id}/files/{field}`;
+it is null once the form itself has been deleted, since the route is addressed
+through the form. `data[field]` for a file is its original filename. The
+stored path appears in no response — this resource is also the body of the
+`form.submitted` webhook, which therefore carries `form_id` and `files` too.
+
+**The export** is one row per submission: `Submitted at`, then one column per
+field that has an answer (headings and step breaks have none), headed by its
+label and in the form's order, then `Source page` (the page recorded on the
+lead made from that submission) and `IP`. A choice is written as the option's
+**label**, a `checkboxes` answer joined by `"; "`, a rating as `4 / 5`, a tick
+box as `Yes`/`No`, an upload as its filename. Written by the application's one
+CSV writer, so a cell beginning `=`, `+`, `-` or `@` is prefixed with `'`. The
+columns are today's fields: an answer to a field since removed stays on the
+submission and is not in the file. The file is `form-{slug}-{Y-m-d}.csv`.
+
 ### Media
 
 | Method | Path | Notes |
@@ -2599,8 +3903,9 @@ same shape until products gained full CRUD, and went the same way.
 | `GET` | `/admin/media-folders` | `{id, name, media_count}` |
 | `POST` | `/admin/media-folders` | `name`, unique |
 | `DELETE` | `/admin/media-folders/{id}` | **Keeps the files** — they become unfiled |
-| `GET` | `/admin/media` | Paginated. `?q=` on filename, **alt text, description and tags**, `?folder=` (an id, or `unfiled`), `?kind=image\|file`, `?sort=`, `?direction=`, `?trashed=1`, `?per_page=` (default **10**, max 100) |
+| `GET` | `/admin/media` | Paginated. `?q=` on filename, **alt text, description and tags**, `?folder=` (an id, or `unfiled`), `?kind=image\|file\|lottie\|model` (the last two 0.172.0), `?sort=`, `?direction=`, `?trashed=1`, `?per_page=` (default **10**, max 100) |
 | `POST` | `/admin/media` | multipart `file` + optional `alt_text`, `folder_id` |
+| `POST` | `/admin/media/import-url` | 0.172.0, throttled 10/min. `url` (http(s), ≤ 2048), `folder_id?`. Downloads the file once through `SafeHttp` (public hosts only, redirects checked hop by hop) and stores it exactly as an upload. **201** with the media resource; **422 on `url`** with one sentence when the address is refused, unreachable, too large, of a type the library does not take, or fails the content check. Declared above `media/{id}` |
 | `PATCH` | `/admin/media/{id}` | `filename`, `alt_text`, `description`, `tags[]`, `folder_id`, `focal_x` + `focal_y` (0–100, **together or not at all**; both null is the centre) |
 | `POST` | `/admin/media/move` | `ids[]`, `folder_id` (null means Unfiled) |
 | `POST` | `/admin/media/copy` | `ids[]`, optional `folder_id`. Duplicates the bytes |
@@ -2609,7 +3914,7 @@ same shape until products gained full CRUD, and went the same way.
 | `POST` | `/admin/media/{id}/crop` | `x`, `y`, `width`, `height`, optional `out_width`/`out_height`, `as_copy` |
 | `POST` | `/admin/media/{id}/transform` | `operation` of `rotate`/`flip`/`adjust`, plus `degrees`, `axis`, `brightness`, `contrast`, `greyscale`, `as_copy` |
 | `POST` | `/admin/media/{id}/replace` | multipart `file`, held to the upload's `mimes:` list by content; the stored `mime` is the detected type. **Same path** |
-| `POST` | `/admin/media/{id}/alt-suggest` | Alt text proposed by the AI SEO assistant (`App\Support\Seo\Ai\AltText`): the picture goes to a vision-capable model as a `data:` URL, one sentence under 125 characters comes back as `{data: {alt}}` — empty for a decorative picture. **Suggest-only**: the field is written through `PATCH`. 422 with the assistant's sentence when it is off, has no key, has hit the day's cap (the same counter), or the file is not a JPEG/PNG/WebP/GIF under 4MB. Throttled 10/min |
+| `POST` | `/admin/media/{id}/alt-suggest` | Alt text proposed by the AI SEO assistant (`App\Support\Seo\Ai\AltText`): the picture goes to a vision-capable model as a `data:` URL, one sentence under 125 characters comes back as `{data: {alt}}` — empty for a decorative picture. **Suggest-only**: the field is written through `PATCH`. 422 with the assistant's sentence when it is off, has no key, has hit the day's cap (the same counter), or the file is not a JPEG/PNG/WebP/GIF under 4MB. A GIF is sent as a PNG of its first frame, since the Gemini models read no GIF; the file itself is untouched. Throttled 10/min |
 | `GET` | `/admin/media/{id}/versions` | Superseded copies, newest first |
 | `POST` | `/admin/media/{id}/versions/{version}/restore` | Puts an archived copy back |
 | `GET` | `/admin/media/{id}/download` | Streams it under its human filename |
@@ -2789,6 +4094,48 @@ theme options' `image_focus` rides beside `image_url`. A focal point only ever
 moves the crop — nothing is resized, padded or letterboxed by it — and it
 applies to a vector as much as to a photograph, since it is a rule about
 cropping rather than pixels.
+
+**A public media URL is versioned once the file has been edited** (0.124.0,
+`App\Support\MediaUrl`). Every picture, video and document URL in a public
+response is built in one place. For a file nobody has edited it is what it
+always was, `<api>/storage/<path>`; once its bytes have been changed in place
+— a resize, crop, rotate, flip or adjust, a replacement, a version restore —
+`media.revision` is bumped and the URL carries `?v=<revision>`, so the address
+moves exactly when the bytes do. A brand's logo is versioned by the brand's
+`updated_at` instead, as before. The admin media resource is unchanged
+(`?v=<updated_at>`).
+
+**With the media CDN switched on**, the URL of a file a browser fetches
+itself — anything but `jpg`, `jpeg`, `png`, `webp`, `gif` and `avif` — is
+`<media_cdn_url>/storage/<path>`; a raster stays on this server, because the
+website's image optimiser is what fetches it. The private `media_cdn` group
+holds `media_cdn_enabled` (`0`/`1`, off by default) and `media_cdn_url`: an
+https origin with nothing after the host, on a public host name and not this
+server's own, a 422 on the row otherwise, stored lower-cased without a
+trailing slash. Neither is on the public `/settings` map; `GET /redirects`
+carries the origin as `meta.media_cdn` while the switch is on, and null
+otherwise.
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/admin/settings/media-cdn/test` | `role:admin`, throttled 6/min. Fetches the newest library file a browser would fetch from the CDN (else any) through the **saved** address — switch on or off — and compares it byte for byte with this server's copy. 200 `{data: {message, url}}`; **422 on `cdn`** with a sentence: no address saved, an empty library, the CDN's status, or that what came back is not the file |
+
+**The blurred loading preview lives with the file too** (0.123.0).
+`media.blur` is a twelve-pixel-wide WebP of the picture as a `data:` URL, a
+couple of hundred characters, made when the row is created and re-made by
+every in-place edit, replacement and version restore. Every public resource
+that carries a `*_focus` carries a `*_blur` beside it — `cover_image_blur`,
+`hero_image_blur`, `image_blur`, `logo_blur`, `photo_blur`, `blur` on a slide
+and a gallery item, `image_blurs` parallel to `images`, `<name>_blur` on a
+page-builder section's pictures and a `cards` item — the `data:` URL, or
+**null when there is none**: a vector, a path with no library row, a picture
+the backfill has not reached. Never an empty string. The public `/settings`
+adds `<prefix>_blur` for the pictures drawn large only — the banners, the
+sign-in picture, the coming-soon picture and the shop's promo band and tiles
+— and never for the logo, the favicon or the app icon. The admin media
+resource does not return it. `technoware:backfill-media-blur` (hourly, 250 a
+run; `--all` re-makes every one) works through the pictures that predate the
+column.
 
 Strictly, alt text describes an image *in context*, and the same photograph can
 warrant different wording in two places. For a hardware catalogue the answer is
@@ -3275,6 +4622,17 @@ listing them, the rule `schema_type_options` follows.
 is editorial work, and it is the same role that already owns every record those
 links point at.
 
+**A menu item carries a badge (0.150.0).** `badge` (plain text, at most 12
+characters, stored as typed and drawn upper-case; a blank or whitespace-only
+value is no badge) and `badge_tone` (`live`, `beta`, `soon` or `new`; default
+`new`) on every item of `POST`/`PATCH /admin/menus`, a 422 at the nested path
+(`items.0.children.1.badge`, `...badge_tone`) when too long or not one of the
+four. The admin read returns both (`badge_tone` is `new` beside a null badge);
+the public `GET /menus/{location}` returns `badge` and `badge_tone` on every
+node — `badge_tone` is **null whenever `badge` is**, and a live list's
+expanded rows carry neither. The colour behind each tone is the frontend's
+token; no colour is stored or sent.
+
 **Items arrive nested and are replaced wholesale**, the rule `faqs` and `slides`
 follow. `parent_id` and `sort_order` are read off the *shape* of the payload,
 never trusted from it — which is also what makes a cycle unrepresentable rather
@@ -3404,6 +4762,7 @@ the portal toggle, support addresses, SEO fallbacks — not page content, and
 the `Role` enum already placed configuration under administrator.
 
 | `POST` | `/admin/settings/clear-secret` | `key`. Removes a stored credential |
+| `POST` | `/admin/settings/palette-from-logo` | 0.173.0, throttled 20/min. `path?` — a media-library path; absent means the `logo_path` setting. Reads the picture (GD for a raster, the markup for an SVG) and answers up to three candidate palettes: `{data: {readings: [{key, label, primary, secondary, accent, topbar, derived}], colours: [{hex, share}], from: {path, url}}}`. `key` is `used`/`bold`/`deep`; each fills Primary, Secondary, Accent and the top bar and **never the background or the text**; `topbar` is `""` where the logo gives no second colour, which means the generator derives the bar; `derived` says Secondary or Accent was turned out of Primary's hue rather than found. Two identical readings are collapsed. **It writes nothing** — the console fills its colour fields and Save applies them. **422 on `path`**, one sentence: no logo is set, the path is in no media row, the file is not a picture, it could not be read, or every colour in it is a grey ("This logo is black, white or grey…"). A colour counts as a brand colour at 0.04 OKLCH chroma or above |
 | `GET` | `/admin/settings/mail` | Which transport, what each needs, and whether a mailbox is connected |
 | `POST` | `/admin/settings/mail/authorize` | `transport`, `redirect_uri`. Returns the Google consent URL |
 | `POST` | `/admin/settings/mail/callback` | `code`, `state`. Exchanges the code for a refresh token |
@@ -3416,7 +4775,14 @@ the `Role` enum already placed configuration under administrator.
 | `POST` | `/admin/settings/tickets/inbound/authorize` | `provider` of `google` or `microsoft`, `redirect_uri` checked exactly against `/admin/settings/tickets/callback` on this site's host. Returns the consent URL |
 | `POST` | `/admin/settings/tickets/inbound/callback` | `code`, `state`. Exchanges the code, stores the `inbound_oauth_*` rows, settles `inbound_mail_provider` and fills a blank `inbound_mail_address` from the connected account |
 | `POST` | `/admin/settings/tickets/inbound/disconnect` | Forgets the inbound token only; the outgoing mailbox is untouched |
+| `GET` | `/admin/settings/zoho-books` | Zoho Books (0.134.0, `docs/store.md`): `enabled`, `ready` (the switch and everything it needs), `missing[]` (sentences, in the order to do them), `is_connected`, `account`, `connected_at`, `client_configured`, `data_centre`, `organization_id`, `organizations[{id, name}]` and `taxes[{id, name, percentage, kind}]` (read from Zoho now; empty when unconnected, or when no organisation is saved), `error` (Zoho's last refusal), `callback_path`, `waiting`, `failed` (order counts), and since 0.136.0 `payments`: `{enabled, reconnect_needed, accounts[{id, name, type}], methods[{value, label, setting, account_id, offered}], missing[], waiting, failed}` — `accounts` are Zoho's bank, cash and other-current-asset accounts (empty until an organisation is saved, and never asked for under the older consent); `methods` is one row per way of paying (`gateway`, `cod`, `bank_transfer`, `upi`) with the settings key its account is saved under and whether the shop offers it; `missing` is sentences, never part of `ready` |
+| `POST` | `/admin/settings/zoho-books/authorize` | `redirect_uri`, checked exactly against `/admin/store/settings/zoho/callback` on this site's host. Returns the consent URL at the saved data centre. 422 until a client ID and secret are saved |
+| `POST` | `/admin/settings/zoho-books/callback` | `code`, `state` → `{account}`. Stores the `zoho_books_oauth_*` rows and `zoho_books_scope_version`; a single organisation is chosen automatically. The consent asked for since 0.136.0 adds `ZohoBooks.customerpayments.CREATE,READ`, `ZohoBooks.creditnotes.CREATE,READ,UPDATE` and `ZohoBooks.accountants.READ`; a connection made before it reports `payments.reconnect_needed` and sends no payments until connected again |
+| `POST` | `/admin/settings/zoho-books/disconnect` | Revokes the token at Zoho and forgets it. Invoices already made are untouched |
+| `POST` | `/admin/settings/zoho-books/test` | One real read with what is saved — the chosen organisation's taxes: 200 `{taxes, ready, missing}` (`taxes` a count), clearing `zoho_books_error`. **422** with one sentence in `message`: nothing connected, no organisation saved, Zoho's own refusal, or a saved tax Zoho no longer lists. Throttled 6/min |
 | `POST` | `/admin/settings/tickets/inbound/test` | Connects with what is saved, selects the folder, counts what is unread: 200 with `account`, `folder`, `unseen`; 422 with the server's own words, written to `inbound_mail_error`. Reads only — nothing is flagged, moved or piped. Throttled 6/min |
+
+**The `zoho_books` group is private** (0.134.0): `zoho_books_enabled` (`0`/`1`, off), `zoho_books_dc` (`in` or `com`), `zoho_books_oauth_client_id`, `zoho_books_oauth_client_secret` (secret), `zoho_books_invoice_when` (`dispatched`, the default, or `paid`), `zoho_books_home_state` (a two-letter Indian state code), `zoho_books_organization_id`, `zoho_books_tax_intra`, `zoho_books_tax_inter` (Zoho's ids — digits), and since 0.136.0 `zoho_books_send_payments` (`0`/`1`, on) and `zoho_books_account_gateway`, `_cod`, `_bank_transfer`, `_upi` (Zoho account ids — digits; blank means that way of paying is not sent). The three with a fixed list are offered as `options`; a value outside its list, or an id that is not digits, is a 422 on the row. The token, the account, the connection time and `zoho_books_error` are written by the endpoints above. The connection and its test are `role:admin`; `POST /admin/store/orders/{number}/zoho-invoice` is `role:store_manager`.
 
 **The `tickets` group is the support mailbox and is not public.** Off by
 default (`inbound_mail_enabled`); `inbound_mail_provider` is `imap`, `google`
@@ -3553,6 +4919,48 @@ the form can never show the current value and treating blank as a delete would
 wipe the SMTP password on every unrelated save. Clearing one is the separate
 endpoint above.
 
+**A company's own fonts** (0.125.0, `role:admin`, `docs/theming.md`). Two
+slots, each a name and one or two WOFF2 files on the public disk under
+`fonts/`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/settings/fonts` | Both slots: `[{slot, id, name, regular, bold, variable}]` — `id` is `custom-1`/`custom-2`, `regular`/`bold` a stored path or null. `meta.max_kb` (2048) |
+| `POST` | `/admin/settings/fonts/{slot}` | multipart. `name` (required, ≤ 40, letters, digits, spaces and `. ' & -`), `regular` and `bold` (files, ≤ 2 MB each), `variable` (boolean). A file must have the `.woff2` extension **and** open with the WOFF2 signature, a 422 on its field otherwise; `regular` is required while the slot has none; `bold` with `variable` is a 422. A file not sent is kept; a replaced file is deleted; `variable` deletes a stored bold. Answers the slot. `slot` other than 1 or 2 is a 404. Throttled 20/min |
+| `DELETE` | `/admin/settings/fonts/{slot}` | Deletes the files, blanks the slot, and puts `theme_font_display` / `theme_font_body` back to `instrument` / `inter` when either was this slot's id |
+
+The slot's rows — `custom_font_{1,2}_name`, `_regular`, `_bold`, `_variable`
+— are in the public `appearance` group, so `/settings` carries them (blank
+ones dropped). **`PATCH /admin/settings` refuses any `custom_font_*` key**
+with a 422 on its row. `theme_font_display` and `theme_font_body` accept
+`custom-1` and `custom-2` like any other font id. The website serves a font
+file from its own origin at `/font/<name>` (Next, not this API).
+
+**Google fonts** (0.179.0, `role:admin`, `docs/theming.md`). Copied to this
+server once and served from the website's origin; a visitor never contacts
+Google.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/settings/google-fonts` | The installed fonts: `[{id, slug, family, category, faces, bytes, in_use}]`, `id` being `g-<slug>` |
+| `GET` | `/admin/settings/google-fonts/catalogue` | `?q=` (≤ 60), `?category=` (`sans-serif`, `serif`, `display`, `handwriting`, `monospace`), `?page=`. 40 a page, prefix matches first: `{data: [{family, slug, category, weights, subsets, installed}], meta: {total, categories}}`. The committed list; Noto is not in it |
+| `POST` | `/admin/settings/google-fonts` | `{slug}`. Downloads 400/600/700 (those the family has; none of them, the nearest to 400) from Google. **201** `{data: {id, slug, family, faces, bytes}}`, **200** when already installed (nothing downloaded). **422 on `slug`**, one sentence: not in the list; over 60 pieces ("That font comes in N pieces and is too big to copy here…", refused before any download); Google's status; a file off `fonts.gstatic.com`, not WOFF2 or over 2 MB. Nothing is left behind on a refusal. Throttled 10/min |
+| `DELETE` | `/admin/settings/google-fonts/{slug}` | **204**, the files deleted. **422 on `slug`** while `theme_font_display` or `theme_font_body` holds it ("The body font uses this. Choose another first.") |
+| `GET` | `/admin/settings/google-fonts/preview/{slug}` | The family's regular Latin face as `font/woff2`, cached on the private disk for a week. Throttled 120/min |
+
+`theme_font_display` and `theme_font_body` accept `g-<slug>`; **saving one
+that is not installed is a 422** ("Install that font first."). The public
+`/settings` map carries **`google_fonts`**, a JSON string of every installed
+font — `[{id, slug, family, category, faces: [{weight, range, path}]}]`,
+paths only — absent while none is installed.
+
+**Icon keys** (0.179.0, `docs/icons.md`). Every field that stores an icon —
+solutions, services, industries, product and service categories, content
+types, menu items, builder sections, layout widgets, content blocks — takes
+either a site icon name (`shield`) or a Google icon, `ms:` and a Material
+Symbols name of `[a-z0-9_]` at most 37 characters (`ms:router`). Only the
+shape is checked: `^(?:ms:[a-z0-9_]{1,37}|[a-z0-9-]{1,40})$`.
+
 **The `appearance` group is nine keys and all of them are public**, because
 the site cannot paint itself without them. `theme` is a preset id
 (`technoware`, `ocean`, `forest`, `sunset`, `midnight`, `corporate`, `rose`,
@@ -3571,16 +4979,24 @@ every ramp, both schemes, the identity hues — is derived on the frontend from
 these five colours; see `CLAUDE.md` for the rules that make any input pass
 WCAG AA.
 
-**The `motion` group is six keys and all of them are public**, for the same
+**The `motion` group is eight keys and all of them are public**, for the same
 reason. `motion_reveal` (`lift`, `float`, `fade`, `zoom`, `blur`, `none`),
 `motion_buttons` (`lift`, `glow`, `scale`, `shine`, `ripple`, `flat`),
-`motion_page` (`none`, `fade`, `rise`, `zoom`), `motion_loader` (`none`,
-`bar`, `pulse`) and `motion_hero` (`grid`, `aurora`, `dots`, `none`) are ids
+`motion_page` (`none`, `fade`, `rise`, `zoom`, and since 0.115.0 `crossfade`
+and `slide` — React view transitions on client navigations), `motion_loader` (`none`,
+`bar`, `pulse`), `motion_hero` (`grid`, `aurora`, `dots`, `none`),
+`motion_cards` (below) and, since 0.114.0, `motion_progress` (`none`, the
+default, or `bar` — a reading-progress bar along the top of public pages) are ids
 from the frontend's `lib/motion-choices.ts`, checked here for *shape* only —
 the fonts' rule, for the fonts' reason — and resolved there with a fallback
 to the first of each list, which is the site as it moved before the group
 existed. `motion_splash` is `0` or `1` and is refused otherwise. They apply
 to the public site and the customer portal; the console reads none of them.
+
+**Two motion keys were added in 0.171.0**, checked for shape like the rest:
+
+- **`motion_headline`**: how a hero's heading arrives — `none` (the default), `type`, `decode` or `highlight`. `rotate` needs a hero's own word list, so the frontend never offers it site-wide and resolves it as `none` here.
+- **`motion_micro`**: small interactions — `lively` (**the default**, the client's exception to the first-entry rule) or `none`.
 
 **The `login` group is public and holds four rows** — the sign-in screens
 render before anybody is authenticated. `login_backdrop` is `image` or one
@@ -3620,7 +5036,7 @@ holding every theme's choices, `{ "<theme id>": { "menu_style": "big",
 **shape** by `App\Support\ThemeOptions` — a kind is `default`, `solid`,
 `gradient` or `image`; colours are `#rrggbb`, lower-cased on the way in; an
 angle is 0–360; an `image` needs a media-library `image_path` and carries an
-`overlay` of 0–90 — and the cleaned document is what is stored, never the
+`overlay` of 0–90; any kind but `default` may carry a `texture` of `grain`, `mesh`, `glow`, `grid` or `dots` (2026-10-05; `none` stores nothing, anything else is refused) — and the cleaned document is what is stored, never the
 request's bytes (a `default` section is dropped, a blank angle is dropped, a
 solid keeps no second colour). A section row may carry `enabled: false` —
 only an explicit false switches it off, and a `default` row is kept for
@@ -3632,6 +5048,45 @@ the lists live with the frontend that renders them. Both responses that
 publish it add an `image_url` beside every `image_path`, because a path
 buried in JSON cannot ride the `_path` → `_url` rule below. A blank value
 clears the row.
+
+**`homepage_page_id`** (`homepage` group, 0.113.0) chooses what `/` draws:
+blank for the theme's own homepage, or a published builder page's id —
+offered as `options` (the theme's homepage, then every published builder
+page by title) and a 422 on anything else. It is not on the public
+`/settings` map; **`homepage_page_slug`** is, derived on every read and
+present only while the id still names a published builder page.
+
+**`hero_kinetic` and `hero_kinetic_words`** (`homepage` group, public, 0.171.0) are the homepage hero's heading effect.
+
+- **`hero_kinetic`** is `default` (follow `motion_headline`; seeded), `none`, `rotate`, `type`, `decode` or `highlight`. It is offered as `options`, and anything else is a 422 on the row.
+- **`hero_kinetic_words`** holds the rotating alternatives, or the word to underline, one per line:
+  - at most six lines of at most 40 characters each, else a 422 "Up to six words or short phrases, one per line.";
+  - blank lines are dropped before it is stored;
+  - blank is absent from the public map.
+
+A builder `hero` section takes the same pair as `data.kinetic` and `data.kinetic_words`:
+
+- **`kinetic`** is checked for the shape of an id (`^[a-z][a-z0-9-]{1,31}$`); `default` and blank are not stored.
+- **`kinetic_words`** is at most 300 characters and held to the same six × 40 rule (422 on `blocks.N.data.kinetic_words`). It is not an inline-editable field.
+
+Both reads pass the pair through unchanged.
+
+**Header and footer parts (0.160.0).** Each theme's object in `site_theme_options`
+also takes `header` and `footer`: `{parts: {<id>: {on: bool}}, order: [<id>…]}`,
+and for the header `cta` and `cta2`: `{label, href, on}`. Ids are
+`ThemeOptions::HEADER_PARTS` (`topbar phone email search utility cta cta2 cart
+scheme`) and `FOOTER_PARTS` (`brand tagline address phone social columns signup
+legal credit scheme`), sent by `GET /admin/settings` as
+`meta.theme_parts: {header, footer, cta_label_max}`. A button's switch is
+`header.cta.on` and `header.cta2.on` — `cta` and `cta2` are not keys of `parts`
+(a 422) though they may appear in `order`. `label` is plain text of at most 30
+characters (trimmed; markup, or longer, is a 422), `href` a `LinkPattern` value;
+a blank label or link means the theme's own. A switch must be a boolean, an
+unknown id, key or a non-list `order` is a 422 keyed to the row
+(`settings.N.value`), and duplicates in `order` are dropped. Empty objects store
+nothing: **absent means the theme's default**, which the frontend's manifests
+define (the API cannot know the themes), so the console writes only what
+differs.
 
 **The `banners` group is public**, and is nine media paths plus a switch: the
 picture behind each section's page heading. Public for the same reason
@@ -3703,7 +5158,9 @@ triple or, for Cashfree, nothing it trusts — it asks Cashfree's API;
 
 **The `mail` and `integrations` groups are not public.** They are absent from
 the `/settings` whitelist. Anything added to them stays server-side.
-`integrations` holds the OpenAI key, the Hunter key, and Search Console's
+`integrations` holds the OpenRouter key (`openrouter_api_key`, the one key
+every AI feature calls with — see "Admin — the AI SEO assistant"), the Hunter
+key, and Search Console's
 `gsc_service_account` (the whole JSON key file of a service account added to
 the property as a user, encrypted), `gsc_site_url` (the property as Search
 Console names it; derived from `FRONTEND_URL` as `sc-domain:` when blank) and
@@ -3732,6 +5189,37 @@ LinkedIn, X, Facebook, Instagram, YouTube, WhatsApp and, since 2026-09-24,
 `dock`, offered as `options`, refused outside them) and `social_flip_word`
 (letters and digits, at most 7 — one tile each — stored in capitals). A blank URL hides its
 icon.
+
+**`theme_radius` and `theme_density`** (2026-10-05) are `appearance` rows,
+public: `soft`/`sharp`/`round` and `comfortable`/`compact`/`airy`, offered as
+`options` and a 422 outside them; seeded `soft` and `comfortable`, which are
+the site as it was. **`theme_surface`** (`flat`/`elevated`/`outline`, the
+same rules, seeded `flat`) joined them in 0.103.0 — with `soft` and `glow`
+since 0.121.0 — and **`theme_type_scale`** (`standard`/`compact`/`large`,
+the same rules, seeded `standard`) in 0.121.0: how large the site's headings
+are set. **`motion_cards`**
+(`lift`, `tilt`, `float`, `still`; seeded `lift`) the `motion` group, checked
+for the shape of an id like the other motion keys.
+
+**The `action_bar` and `coming_soon` groups are public** (0.122.0,
+`docs/site-chrome.md`). `action_bar_enabled` (`0`/`1`, off by default),
+`action_bar_call` (`0`/`1`, on — the Call button, which rings the `phone`
+setting), `action_bar_whatsapp_number` (stored as digits; 8–15 of them or a
+422; blank falls back to `chatbot_whatsapp_number` on the frontend),
+`action_bar_enquire_label` (≤ 16 characters) and `action_bar_enquire_href`
+(a path, an http(s) URL, a `mailto:` or a `tel:` — `LinkPattern`; a 422
+otherwise). `coming_soon_enabled` (`0`/`1`, off), `coming_soon_heading`
+(≤ 120), `coming_soon_message` (rich text, cleaned on write through the
+`cms` profile) and `coming_soon_image_path` (a media path, published with
+`coming_soon_image_url` and its size by the `_path` rule). The switch is
+also published as `meta.coming_soon` on `GET /redirects`.
+
+**The `pwa` group is public** (2026-10-05, `docs/pwa.md`): `pwa_enabled` and
+`pwa_install_prompt` (`0`/`1`, both on by default), `pwa_name` (≤ 45),
+`pwa_short_name` (≤ 12 — what a launcher prints under the icon; a 422 above
+it), and `pwa_icon_path` (a media path, published with `pwa_icon_url` and its
+size by the `_path` rule). The manifest, the icons and the service worker are
+built from them before anybody signs in.
 
 **The `consent` group is public too**, for the same reason — the banner is
 rendered client-side and needs every string in it.
@@ -3770,7 +5258,7 @@ the truth about it.
 
 ### Email templates
 
-Every one of the 40 system emails, editable.
+Every one of the 63 system emails, editable.
 
 | Method | Path | Notes |
 |---|---|---|
@@ -3865,6 +5353,13 @@ Their admin detail reads carry `faqs`; their public detail reads carry
 | `GET` | `/admin/redirects` | `?q=`, `?source=automatic\|manual`, `?active=` |
 | `POST` | `/admin/redirects` | `from_path`, `to_path`, `status_code`, `is_active` |
 | `GET`/`PATCH`/`DELETE` | `/admin/redirects/{id}` | |
+| `GET` | `/admin/not-found` | Missing pages (0.137.0): addresses visitors asked for that do not exist, `{id, path, hits, referrer, first_seen_at, last_seen_at, ignored_at, redirect_path}`. The waiting list by default; `?ignored=1` lists the ignored instead. `?q=` (a LIKE on the path; `%` and `_` match themselves), `?sort=hits\|last_seen` with `?dir=` (default: most asked for, then most recent), `?page=`, `?per_page=` (max 100, default 50). `meta.live`, `meta.ignored`, `meta.retention_days` (90) |
+| `POST` | `/admin/not-found/{hit}/ignore` | "Not worth a redirect". Idempotent; answers the row. The address stays ignored while it goes on being asked for |
+| `POST` | `/admin/not-found/{hit}/restore` | Undoes it |
+
+**An address leaves the waiting list when a redirect starts at it, and nothing else marks it handled.** `live` is "not ignored and no active redirect has this `from_path`", so making a redirect clears the row, switching that redirect off brings it back, and there is no write for "done". `redirect_path` is a console path (`/admin/redirects/new?from=%2Fold`), never a URL. Rows age out ninety days after the address was last asked for (`technoware:prune-not-found`).
+
+**`to_path` on a redirect is checked.** `POST`/`PATCH /admin/redirects` hold the destination to a path on this site or an `http(s)://` URL (`LinkPattern::PAGE_RULE`); `javascript:`, `//host`, `/\host`, `data:` and `mailto:` are a 422 on `to_path`. It was never checked before, so `javascript:` saved.
 
 **Every row carries `ai_pending`** — suggestions on that record nobody has decided on — and `?ai=pending` filters to the records holding one: the review queue a bulk run produces. `meta.ai` is the assistant's state (the same block `seo/ai/suggestions` sends), so the overview can offer "Draft for these N" only when the assistant is on and has a key; `meta.ai.usage` is what each model produced in the last ninety days and how much of it was accepted — `acceptance` is applied over decided and **null while nothing has been decided**, never zero.
 
@@ -3987,6 +5482,118 @@ are telemetry it writes, and are read-only here.
 
 ---
 
+---
+
+## Admin — bulk actions on the content lists
+
+Tick several rows, do one thing to them (0.139.0, `docs/admin-console.md` "Bulk actions").
+
+| Method | Path | Role |
+|---|---|---|
+| `POST` | `/admin/blog-posts/bulk`, `/admin/knowledge-articles/bulk`, `/admin/case-studies/bulk`, `/admin/solutions/bulk`, `/admin/services/bulk`, `/admin/pages/bulk`, `/admin/products/bulk`, `/admin/events/bulk`, `/admin/job-openings/bulk`, `/admin/downloads/bulk`, `/admin/content-types/{type-slug}/entries/bulk` | `content_manager` |
+| `POST` | `/admin/store/products/bulk` | `store_manager` |
+| `POST` | `/admin/landing-pages/bulk` | `seo_manager` |
+| `POST` | `/admin/industries/bulk`, `/admin/brands/bulk`, `/admin/product-categories/bulk`, `/admin/service-categories/bulk` | `content_manager`, delete only |
+| `POST` | `/admin/store/categories/bulk` | `store_manager`, delete only |
+
+Body: `{ids: [1..100 integers, none twice], action: "publish" | "draft" | "archive" | "delete"}`.
+Throttled 30/min per route. Each route is declared above its list's `{id}` route.
+
+**It answers 200 always:** `{updated: [ids], refused: [{id, title, message}]}`, the shape of
+`POST /admin/tickets/bulk`. An id that does not exist (or, for entries, belongs to another content
+type) is in neither list. Anything the request itself gets wrong is a 422: no ids, more than a
+hundred, an id twice or not an integer (`ids`, `ids.N`), an unknown action (`action`).
+
+**A list without a status is delete-only.** Industries, brands, product categories, service
+categories and shop categories have no `status` (a shop category has `is_active`), so `publish`,
+`draft` and `archive` are a 422 on `action` there.
+
+**Each record is handled on its own, in its own transaction, by the code the single-record path
+uses** — `destroy()` and an ordinary `update()` — never a mass `UPDATE` or `DELETE`, so every model
+hook fires: a deleted product's slug is released (`<slug>-deleted-<id>`), a deleted category's children
+move up to its parent, `published_at` is stamped on publish (an existing date is kept), a deleted
+download's private file goes with it. Asking for the status a record already has is counted as updated
+and changes nothing.
+
+**A record that may not move is refused in the words the edit screen uses**, and the rest go through:
+a landing page that fails `LandingPageQuality` (the gate's sentences, joined), a download with no file
+("Choose the file before publishing this download." / "Upload the file …"), an online event that
+registers here with no join link ("Add the join link before publishing …"), an event that has
+registrations on delete ("People have registered for this event, so it cannot be deleted. Archive it
+instead."). `title` is the record's `title` or `name`.
+
+**A bulk delete is written to the activity log** — action `destroy`, context `{action: delete, count}`
+(no ids, no titles), only when at least one record was deleted. A status change is not logged.
+
+---
+
+## Admin — draft share links
+
+A private link to a draft that anyone holding it can read signed out
+(0.138.0, `docs/admin-console.md` "Draft share links").
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/preview-links?type=&id=` | `{data: <link>\|null, meta: {days: [1, 7, 30], default_days: 7}}`. `type` is a morph alias — `page`, `blog_post`, `knowledge_article`, `case_study`, `solution`, `service`, `product`, `store_product`, `event`, `job_opening`, `entry`, `landing_page`; anything else is a 422 on `type`. An expired link is still returned (`is_expired: true`) |
+| `POST` | `/admin/preview-links` | `type`, `id`, `days` (1, 7 or 30, default 7; anything else is a 422 on `days`). **201** `{data: <link>, meta}`. **Deletes any link the record already had** — one live link per record. An id that is no record of that kind is a 422 on `id` |
+| `DELETE` | `/admin/preview-links/{id}` | **204**. The link stops working at once |
+
+Under `role:content_manager,store_manager,seo_manager`, **narrowed per type
+by the controller**: `content_manager` owns every kind but two, `store_manager`
+owns `store_product` and `seo_manager` owns `landing_page`, and an
+administrator passes every one — the same rule `EnsureUserHasRole` applies. A
+role that owns a different kind is a 403, as is a customer token. The list is
+`App\Support\PreviewLinks`.
+
+**The link** is `{id, type, subject_id, path, expires_at, expires_label,
+is_expired, views, last_viewed_at, created_by}`. `path` is `/preview/<token>` —
+**a path, never a URL**, because `FRONTEND_URL` is the production domain on
+every machine; the console puts the browser's own origin in front. The token
+appears nowhere else in any response and is hidden on the model. `views` is
+counted through the query builder, so `updated_at` does not move.
+
+**The public read is the public read.** Each of the twelve public detail
+controllers' `show()` now ends in a `present…()` method that does the
+relation loading and builds the resource; `GET /preview/{token}` calls the
+same method, so a field added to a detail page is in the preview without
+anybody remembering to. Nothing the public read withholds is sent — an
+event's `online_url`, a download's file address — because it is the same
+resource. A knowledge-base preview is not counted as a view.
+
+## Admin — page history
+
+Saved versions of a page, a library item (0.145.0) and every other record that
+carries a share link (0.148.0, `docs/page-builder.md` "Page history"). Read-only: a restore is the console loading a snapshot into
+the edit form, so Save answers for it with the current rules.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/revisions?type=&id=` | `type` is `page`, `saved_section`, or one of the eleven other share-link aliases — `blog_post`, `knowledge_article`, `case_study`, `solution`, `service`, `product`, `store_product`, `event`, `job_opening`, `entry`, `landing_page` — and anything else is a 422 on `type`. Newest first, at most 30, **no snapshots**: `{id, saved_at, created_at, actor_name, changed[], blocks_count, size}`. `meta`: `labels` (key → words for `changed`, including `created`), `keep` (30), `coalesce_minutes` (5), and since 0.148.0 `fields` (column → the edit form's control, only where they differ; `{}` today), `body_columns` (the columns that are the kind's written body, in the order a preview draws them) and `restorable` (false would mean History offers Preview only; true for every kind) |
+| `GET` | `/admin/revisions/{id}` | Digits only (a 404 otherwise). Throttled 60/min. The same row plus `type`, `subject_id`, `snapshot` and `blocks_media` (every `*_path` in the sections → its URL, `{}` when none) |
+
+Under `role:content_manager,store_manager,seo_manager`, **narrowed per kind by
+the controller** to the role that owns the record — the same owners as
+`/admin/preview-links` (`App\Support\Revisions` mirrors `PreviewLinks`): `store_product` is
+`store_manager`, `landing_page` is `seo_manager`, every other kind is
+`content_manager`. An administrator passes; any other role, and a customer
+token, is a 403 — so a store manager has a shop product's history and gets a 403
+on a blog post's, and a content manager the reverse.
+
+**A version is the post-save state of the content columns**: a page's `title`,
+`slug`, `body`, `blocks` and `template`; a library item's `name`, `description`
+and `blocks`; and, for the other eleven kinds, the title or name, the address
+(not a landing page's, which is derived), the written body (`body`, a
+solution's `overview`, `description` on a product, shop product and vacancy; a
+landing page's `heading`, `intro` and `body`) and `body_layout` + `blocks` where the
+record can lay its body out as sections. `status` and `published_at` are never held. `saved_at` is when the
+version was last saved (a folded run of saves keeps moving it); `created_at`
+when it began. `changed` lists the keys that differ from the version before, or
+`["created"]` for the first. Saving identical content adds nothing; a save by the
+same person within five minutes of the previous version's creation updates that
+version instead; the newest 30 are kept. `technoware:prune-revisions` (03:42)
+deletes history whose record has gone and anything over a year old beyond each
+record's newest five.
+
 ## Admin — the AI SEO assistant (`role:seo_manager`)
 
 | Method | Path | Notes |
@@ -3996,12 +5603,102 @@ are telemetry it writes, and are read-only here.
 | `POST` | `/admin/seo/ai/suggestions/{id}/status` | `applied` or `rejected`. Reversible |
 | `GET` | `/admin/seo/ai/context?type=&id=` | Exactly what the model would be told, and its token count. `&action=` picks the action's own prompt, `&block_id=` names the block for `improve_answer` |
 | `POST` | `/admin/seo/ai/bulk` | `{action, type, ids[]}` (max 25). Queues one `RunSeoSuggestion` job per record; **202** with `queued`, `skipped_pending`, `skipped_cap`, `delivering`. The three refusals (off, no key, cap) are made before anything is queued; a record with a `pending` suggestion for that action is skipped; never queues past what is left of the day's cap. `improve_answer` is refused on `action` — it works on one block. Throttled 10/min |
-| `POST` | `/admin/seo/ai/test-model` | One real call, to prove a model id works. Throttled 6/min |
+| `POST` | `/admin/seo/ai/test-model` | `{model?}` (an OpenRouter id, max 64; blank tests the SEO assistant's own). One real call through OpenRouter, to prove this key can call that model. 200 `{data: {model, ok: true, tokens}}`; **422 in the provider's own words** on `message` and `errors.model`. Answered whether or not the assistant is switched on; refused only with no key. Spends none of the daily cap. Throttled 6/min |
+| `GET` | `/admin/seo/ai/models` | What "Test a model" offers. `data` is the model list — `[{value, label, description}]`, the rows `meta.models` carries, a stored value from outside the list appended as its own marked option — and `meta` is `{seo_model, chatbot_model, key_configured}`: the model each feature would call now (after its fall-through) and whether an OpenRouter key is saved. Reads settings only: no provider is called and the key's value is never returned. Answered with the assistant off. Throttled 60/min |
 
 **Declared above `seo/{type}/{id}`**, or `{type}` binds the literal `"ai"` and
 every one of these answers 404 from model binding — the `media/move` trap, which
 reads as a missing record rather than a routing mistake. `seo/ai/{action}` is
 last within the block for the same reason one level in.
+
+**Every AI feature calls OpenRouter** (0.116.0) — the SEO assistant, alt text,
+the article and page drafts, the website assistant and its intake judge — at
+`https://openrouter.ai/api/v1/chat/completions`, through the one provider
+`App\Support\Chat\Providers\OpenRouterProvider`. The key is the
+`openrouter_api_key` setting (`integrations`, secret), then
+`OPENROUTER_API_KEY` in `api/.env` (`AI_API_KEY` is still read as the older
+name; either must hold an OpenRouter key). Each request carries OpenRouter's
+attribution headers, `HTTP-Referer: FRONTEND_URL` and `X-Title: <company
+name>` (the `company_name` setting, else `APP_NAME`). The client's own Google
+AI Studio and OpenAI keys are saved **at OpenRouter** (bring your own key),
+never here, so a model answers only when its maker's key is configured there
+or the OpenRouter account has credit.
+
+**A model is an OpenRouter id, `maker/model`.** `App\Enums\AiModel` is the
+list both pickers offer (`seo_ai_model`, `chatbot_model` — both rows are in
+the `integrations` group since 0.116.0, drawn on Settings → API keys beside
+the key and the model test), Google's first:
+`google/gemini-2.5-flash` (**the default**), `google/gemini-2.5-flash-lite`,
+`google/gemini-2.5-pro`, then `openai/gpt-4o-mini`, `openai/gpt-4.1-mini`,
+`openai/gpt-4o`, `openai/gpt-4.1`, and since 0.164.0 Anthropic's
+`anthropic/claude-haiku-5.5`, `anthropic/claude-sonnet-5.5`,
+`anthropic/claude-opus-5.5`, and since 0.165.0 two free Google models,
+`google/gemma-4-31b-it:free` and `google/gemma-4-26b-a4b-it:free` (listed after
+the Gemini ones; free at OpenRouter with tight per-minute and per-day limits,
+free providers may keep prompts for training, and a free model can be
+withdrawn — "Test this model" is the check) — all of which read pictures, which alt
+text needs. **An Anthropic model needs an Anthropic key, or credit, in the
+OpenRouter account**, the OpenAI rule. The default is a Google model because a Google AI Studio key is
+free to create and, added at OpenRouter, is enough to call it; **an OpenAI
+model needs an OpenAI key, or credit, in the OpenRouter account**, and each
+OpenAI option's `description` says so. A blank `seo_ai_model` falls through
+to `chatbot_model`, a blank `chatbot_model` to `AI_MODEL`, and that to the
+default. A stored value outside the list is still kept, offered back and
+sent exactly as written.
+
+**Any OpenRouter model id may be typed** (0.165.0). `PATCH /admin/settings` for
+`seo_ai_model` and `chatbot_model`, and the `model` of `POST
+/admin/seo/ai/test-model` (now `max:100`), accept a value outside `AiModel` when
+it matches `^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._:-]*$`, is at most 100
+characters, **and** is on OpenRouter's live list (`GET
+https://openrouter.ai/api/v1/models`, no key, 10 s timeout, cached for an hour
+by `App\Support\Chat\OpenRouterModels`). A bad shape is a 422 ("That is not a
+model id. Copy it from openrouter.ai/models…"); a well-formed id the list lacks
+is a 422 on the row ("OpenRouter has no model called “…”. Copy the id from
+openrouter.ai/models."), and for `test-model` on `model`, before any call is
+made. **When the list cannot be fetched the id is accepted on its shape alone**
+(a failure is remembered for a minute). The value already stored always passes.
+The `options` row for a stored id outside the list carries `custom: true`, and
+`GET /admin/seo/ai/models` adds `meta.custom` — whether either saved model is
+outside the list. `seo_suggestions.model` is 100 characters.
+
+**Each request is pinned to the maker's own provider, with no fallback** (`OpenRouterProvider::routing()`): `google/*` (`:free` included) is sent with `provider: {only: ["google-ai-studio"], allow_fallbacks: false}`, `anthropic/*` with `anthropic` and `openai/*` with `openai`; a model from any other maker is sent unpinned. It exists because OpenRouter once routed a request away from the client's own (BYOK) key and charged the OpenRouter wallet. The consequence for a typed id: an account-level guardrail at OpenRouter that allows only those three providers refuses a model from another maker (a free NVIDIA one, say) with OpenRouter's own words — Test this model shows them.
+
+**The `MoveAiToOpenRouter` upgrade step** (0.116.0) renames a stored bare id
+— `gpt-4o-mini` → `openai/gpt-4o-mini`, the same model under OpenRouter's
+name, never the default — leaves a blank blank (so it now resolves to the
+Google default), and deletes the old `openai_api_key` row. An OpenAI key is
+not copied into `openrouter_api_key`, because OpenRouter refuses one.
+
+**`test-model` reports three kinds of refusal, each a 422.** A non-2xx from
+OpenRouter; a 200 carrying an `error` object, which is how it reports a maker
+failing after the request was accepted; and a 200 with no choices or an empty
+one. The message is OpenRouter's `error.message` and, when present, what the
+maker itself said — `error.metadata.raw`, with `metadata.provider_name` in
+front: `Provider returned error — Google AI Studio: API key not valid.`, or
+`No endpoints found for openai/gpt-9.` for an id nobody serves.
+
+**A rate limit is a 429 reported in the maker's words and never retried.** A
+free Google AI Studio key is limited per minute and per day; past the limit
+`test-model` answers 422 with the sentence whole — which limit, and how long
+to wait — and every other AI endpoint answers its ordinary "The AI service
+did not answer. Try again shortly." (the website assistant falls back to the
+pages it found). The refusal is logged at `warning` with the status, code,
+maker and raw message. No request is sent a second time on a refusal.
+
+**A model that thinks before it answers is given headroom.** For
+`google/gemini-2.5-flash` and `google/gemini-2.5-pro` the `max_tokens` sent
+is the caller's cap plus the same again, and never less than 1,024 more: the
+thinking is drawn from the same allowance as the answer, so a small cap (5 to
+prove a model, 120 for an alt text) could otherwise be spent before a word
+is written. An empty reply that ran out this way is the failure "The model
+used its whole allowance of tokens before writing an answer."
+
+**A reply asked for as JSON is read through its wrapping.** A Gemini model
+fences its object (```` ```json ````) or introduces it with a sentence where
+a GPT model does not; `App\Support\Chat\JsonReply` reads the object out of
+either and never repairs a truncated one. Page and article drafts are given
+90 seconds to answer, not the 30 a visitor's question gets.
 
 **Nothing here writes an SEO field.** A run stores a suggestion; the status
 endpoint records a decision. The values reach the record through its own form
@@ -4055,6 +5752,50 @@ that has none, so the shape does not change with the data.
 
 ---
 
+## Admin — the console copilot
+
+Ask ALTIS (0.177.0, `docs/copilot.md`): a question typed in the console,
+answered out of this install's own figures. **Staff-wide, not role-gated** —
+the `/admin/search` rule, since every role has questions of its own — and the
+controller narrows the list to the ones this account may ask before anything
+else happens.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/copilot/questions` | What **this account** may ask: `{data: [{key, label}], meta: {ai}}`, in the drawer's suggestion order. `meta.ai` is whether a phrasing the words miss can still be matched — the SEO assistant switched on, with a key, under its daily cap. It is drawn as a note and never as a refusal: the copilot answers either way |
+| `POST` | `/admin/copilot/ask` | `question` (required, max 300). Throttled 30/min. **200 always** with the answer below; a blank or over-long question is the ordinary 422 on `question` |
+
+**The answer** is `{matched, key, question, source, figure, sentence, href,
+suggestions}`:
+
+- `matched` true: `key` and `question` name the question that was answered —
+  **the label is sent back so the console can print what it answered above the
+  figure**, which is what makes a misclassification visible rather than silent.
+  `figure` is the number (or a formatted amount, e.g. `"₹2,45,000"`),
+  `sentence` repeats it in words, `href` is the console path to the list that
+  produced it, and `suggestions` is `[]`.
+- `matched` false: `key`, `question`, `figure` and `href` are null, `sentence`
+  says so, and `suggestions` is the list of what this account **can** ask —
+  the answer to "I cannot answer that" is the list, not an apology.
+- `source` is `words`, `model` or `none`, so the console can be honest about
+  which answered.
+- **`href` is null whenever `figure` is 0**, and the sentence is a written-out
+  zero sentence rather than the plural one with a 0 in it. "Open the list" on
+  a list with nothing in it is not an answer to "is anything waiting".
+
+**The model's entire output is an index.** It is shown the labels of the
+questions this account may ask and answers `{"index": n}` or `{"index": null}`;
+it never sees a figure, a record or a word of anybody's data, cannot compose a
+query, and nothing it returns is executed, interpolated or rendered. Every
+figure and every sentence is built in PHP from an **existing scope** — the same
+expression the screen the answer links to uses, so the two cannot drift.
+
+**The rules go first and usually win**, so neither route needs a key: the words
+are matched first (noise dropped, crudely singularised, scored against the
+asking's own length), the model is the fallback below `SURE` (0.45), and a weak
+word match is the last resort. A refusal, an outage, an unreadable reply and an
+index out of range are all free and all fall through — a run is counted against
+the SEO assistant's daily cap only when it is used.
 ## Admin — staff (`role:admin`)
 
 | Method | Path | Notes |
@@ -4111,9 +5852,12 @@ decision as the SMTP settings beside it.
 `ticket.created`, `ticket.replied` (a customer-visible message from either
 side — never an internal note), `ticket.status_changed` (adds `from`/`to`),
 `order.placed`, `order.paid` (`paid_at` going from null to set, whoever set
-it), `order.status_changed` (adds `from`/`to`), `customer.registered` (the
-address confirmed), `form.submitted`, `subscriber.joined` and `visit.requested`
-(an engineer visit request, never its token). `ping` is sent
+it), `order.status_changed` (adds `from`/`to`), `return.requested` (a customer asking to send items back: the admin return's detail shape less `staff_note` and `pickup`), `customer.registered` (the
+address confirmed), `form.submitted`, `subscriber.joined`, `visit.requested`
+(an engineer visit request, never its token) and `event.registered` (a new
+registration for an event: the admin registration resource less `staff_note`,
+plus `event: {id, title, slug, starts_at, ends_at, format, public_path}` —
+never the manage token or the join link). `ping` is sent
 by the ping endpoint only and cannot be subscribed to — a 422 on `events.*`.
 
 **The envelope** is `{id, event, created_at, data}`, where `id` and
@@ -4187,7 +5931,7 @@ failure to queue it never fails the request.
 | `POST /admin/tickets/{ref}/reply` | The customer, **unless `is_internal`** | `TicketReplied` — and `ticket.replied`, under the same condition |
 | `POST /enquiries` | `sales_email` setting | `EnquiryReceived` — and `lead.created` |
 | `POST /enquiries` | The enquirer | `EnquiryAcknowledged` |
-| `POST /forms/{slug}` | the form's `notify_email`, else `sales_email` | `FormSubmitted` — and `form.submitted`, then `lead.created` |
+| `POST /forms/{slug}` | the form's `notify_email`, else `sales_email` | `FormSubmitted` — and `form.submitted`, then `lead.created`. Answers in the form's own order; a choice by its label, several joined by ", ", a rating as "4 / 5", an upload **by filename only** with a line saying it is downloaded from the console — never attached |
 | `POST /forms/{slug}` | The sender, **when the form collected an address** | `FormAcknowledged` |
 | `POST /checkout` | The buyer — the itemised sales order, closing with how they chose to pay | `OrderPlaced` — and `order.placed` |
 | payment settles | The buyer — the receipt | `OrderPaid` — and `order.paid`, plus `order.status_changed` |
@@ -4204,6 +5948,13 @@ failure to queue it never fails the request.
 | A visit is cancelled, by either side | The customer | `VisitCancelled` |
 | `POST /admin/visits/{reference}/confirm` | The customer, with a `.ics` | `VisitConfirmed` (`visit_confirmed` or `visit_rescheduled`) |
 | `technoware:remind-visits` | The customer | `VisitReminder` |
+| `POST /events/{slug}/register`, or the desk adding one | `events_email`, else `sales_email` — for a **new** registration only | `EventRegistrationReceived` — and `event.registered`, then `lead.created` |
+| a registration is confirmed — and again, at most once in 10 minutes, when its address registers a second time | The registrant, with a `.ics`, the join link and their manage link | `EventRegistrationConfirmed` (`event_registration_confirmed`) |
+| a registration joins the waiting list (re-sent the same way on a repeat) | The registrant | `EventRegistrationWaitlisted` |
+| a place opens for a waiting registration | The registrant, with a `.ics` | `EventRegistrationConfirmed` (`event_waitlist_promoted`) |
+| a registration is cancelled, by either side | The registrant | `EventRegistrationCancelled` |
+| `PATCH /admin/events/{id}` with `notify_registrants` and a new time, place or join link | Each confirmed registrant, with a `.ics` | `EventChanged` |
+| `technoware:remind-events` | Each confirmed registrant, once | `EventReminder` |
 | a stock movement fills a saved shelf | The wishlist holder, once, inside the quiet hours | `WishlistBackInStock` |
 | a saved product's price falls far enough | The wishlist holder, once per drop, inside the quiet hours | `WishlistPriceDrop` |
 
@@ -4296,6 +6047,25 @@ launch, which is content and configuration rather than code.
 
 ---
 
+## Shop the videos (0.140.0)
+
+See `docs/store.md`, "Product videos row".
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/store/videos` | Public. `{data: [{id, video, product}]}`. `?limit=` (1–24, default the `store_videos_limit` setting), `?category=<slug>`, `?order=newest\|featured` (default the setting), `?product=<slug>` and `?others=0`. Published products with at least one video only; **one tile per product** (its first video) except the `?product=` head, where that product's own videos come first, each a tile (`id` is `{product id}-{n}`), then its category-mates, then the rest, the product never twice. `others=0` returns only the head. An unknown value falls back rather than 422. The `video` is `{kind, youtube_id}` or `{kind, url}` (a file's public URL, never its path) with `title`, `poster_url` and `poster_alt` when set; `product` is the shop's list shape (the `GET /store/products` row — no stock count). Not throttled, like the shop's other lists |
+| `GET` | `/admin/store/videos` | `role:store_manager`. The eleven `store_videos_*` rows in the settings row shape (`options` on the shape and the order); `meta.products_with_video` |
+| `PATCH` | `/admin/store/videos` | `settings: [{key, value}]`. A key outside the eleven is a 422 on `settings.N.key`; a switch is `0`/`1`; `store_videos_shape` is `portrait`, `square` or `landscape`; `store_videos_order` is `newest` or `featured`; `store_videos_limit` is 4–24; the heading is at most 80 characters and the line 200 (both may be blank). Answers `{message, data, meta}` |
+
+`GET /admin/store/products?video=1` lists the products that carry a video. The
+page builder takes a section type `product_videos` (`category_id`, a shop
+category that must exist; `limit` 1–24; `shape`); the public read gives it
+`items` (the same tiles) and drops the section when there are none. The
+`store_videos` group is public: `GET /settings` carries the switches and the
+look.
+
+---
+
 ## Store reviews (2026-09-26)
 
 See `docs/store.md`, "Reviews". The public and portal routes are listed under
@@ -4326,3 +6096,166 @@ published. **`/admin/store/dashboard`** carries `attention.reviews_pending`.
 `review_request` once per order `store_review_request_days` after dispatch
 (or payment, when nothing ships), inside `QuietHours`, while
 `store_review_requests_enabled`; both settings are in the `store` group.
+
+---
+
+## Delivery charges (0.142.0)
+
+**The charge shown is now the charge taken.** `store_shipping_paise` had been
+displayed and declared and added to nothing; it is now added to any order that
+ships something. See `docs/store.md` "Delivery charges and shipping zones".
+
+**The basket** (every `GET /cart` and every write that answers it) gains:
+`shipping_mode` (`flat`/`zones`), `shipping_paise` (an integer — **null** in
+zones mode until a state is known; 0 for a basket with nothing to ship),
+`shipping_label` (`"Free"`, `"₹60"`, `"Worked out at checkout"`, `"We do not
+deliver to Goa yet"`, or null when nothing ships), `shipping_zone` (the zone's
+name), `shipping_weight_grams`, `shipping_state` (the code it was quoted for),
+`shipping_deliverable` and `shipping_states` (zones mode only: every state name
+the delivery address may hold). `total_paise` includes delivery once it is
+known, and `taxable_paise`/`gst_paise` are extracted from it. **Nothing about
+delivery is ever read from a request.**
+
+**`POST /checkout`** adds the delivery to the total (before the cash-on-delivery
+ceiling is judged) and snapshots `shipping_paise`, `shipping_zone` and
+`shipping_weight_grams` on the order. In zones mode it adds three 422s: on
+`address.state` (or `shipping_address.state` when "deliver somewhere else" is
+used) for a state that is no known state or a zone that is not delivered to,
+and on `shipping` — with the new delivery and total in the sentence — when the
+address's state is not the one `PATCH /cart/destination` last saved. The
+destination is saved before that last refusal is answered, so the next attempt
+is taken at the quoted figure.
+
+**The order** (`GET /orders/{n}?token=`, `/my/orders`) carries `shipping_paise`
+and `shipping_zone`; the admin order also `shipping_weight_grams`. The sales
+report's `totals` gain `delivery_paise` and the orders CSV a `Delivery (INR)`
+column. A webhook's order carries the admin shape.
+
+**Public settings** (`/settings`, `store` group) gain `store_shipping_mode` and
+`store_default_weight_grams`. In zones mode `/store/feed` items carry no
+`shipping_price`, `shipping_country`, `shipping_service`, `min_transit_time` or
+`max_transit_time`, and a product's `schema.offers` no `shippingDetails`.
+
+### Admin — shipping (`role:store_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/store/shipping` | `{mode, stored_mode, flat_paise, default_weight_grams, zones_ready, zones_missing, zones[], states[{value,label}], products_without_weight}`. `mode` is what the shop is doing (a stored `zones` with nothing to quote from reads `flat`) |
+| `PUT` | `/admin/store/shipping/settings` | `mode` (`flat`/`zones`), `flat_paise` (0–100,000,000), `default_weight_grams` (1–1,000,000), each optional. `zones` is a 422 on `mode` until exactly one active default zone that delivers and has a slab exists. `PATCH /admin/settings` refuses it the same way |
+| `POST` | `/admin/store/shipping/zones` | **201**. `name`, `is_default`, `delivers`, `is_active`, `states[]` (codes or names), `free_above_paise`, `extra_per_kg_paise`, `rates[{up_to_grams, charge_paise}]` (replaced wholesale, at most 20) |
+| `PATCH` | `/admin/store/shipping/zones/{id}` | The same, each optional, judged against what the zone will be |
+| `DELETE` | `/admin/store/shipping/zones/{id}` | Answers the screen's data |
+| `POST` | `/admin/store/shipping/zones/{id}/move` | `direction` of `up` or `down` |
+
+**Zone rules** (422s keyed on the field): one default zone (`is_default`); a
+state in at most one active non-default zone (`states`); a zone that delivers
+needs at least one slab (`rates`), no two ending at one weight
+(`rates.N.up_to_grams`), and `extra_per_kg_paise` (`extra_per_kg_paise`, 0 is
+an answer); a non-default zone needs a state; the default zone is always on,
+always delivers and holds no states; a zone that does not deliver holds no
+slabs or prices. Whatever the write, **if zones mode is on and the arrangement
+could no longer quote, it is a 422 on `zone` and nothing is saved.**
+`GET /admin/store/products?no_weight=1` lists the physical products with no
+weight on themselves or any option. A variation's `weight_grams` is left alone
+when a product `PATCH` does not name it (it used to be written null).
+
+---
+
+## Returns (0.132.0)
+
+A customer asks to send delivered goods back; the desk approves or declines,
+marks them received and records the refund. See `docs/store.md`, "Returns".
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/orders/{number}/returns` | For whoever holds the order's link: `token` (in the query or the body; a wrong one is the same 404 as a wrong number), `reason`, `details?` (plain text, 2000), `items[{order_item_id, quantity}]` (1–50), `photos[]?` (multipart; up to 4, 5 MB each, jpg/png/webp by extension **and** content). Throttled 10/min. **201** `{message, data}` — the customer's return |
+| `POST` | `/my/orders/{number}/returns` | Portal. The same body without `token`; another customer's order is a 404. Throttled 10/min |
+| `GET` | `/admin/store/returns` | `role:store_manager`. `?status=`, `?open=1`, `?reason=`, `?q=` (reference, order number, customer name or email), `?sort=requested\|status\|reference` with `?dir=`, `?per_page=` (max 100). Waiting first, oldest first; then approved and received; then the rest, newest first. `meta.statuses`, `meta.reasons`, `meta.waiting_count`, `meta.open_count` |
+| `GET` | `/admin/store/returns/{reference}` | Bound by **reference** (`RMA-2026-00001`). The detail shape |
+| `PATCH` | `/admin/store/returns/{reference}` | `staff_note` (5000). Never mailed, never on the customer's resource |
+| `POST` | `/admin/store/returns/{reference}/approve` | `note?` (2000) — added to the customer's email with `store_return_instructions` |
+| `POST` | `/admin/store/returns/{reference}/reject` | `note` (required, 2000) — the reason as the customer reads it |
+| `POST` | `/admin/store/returns/{reference}/receive` | `items[{id, received_quantity?, restock?}]`, `id` a **return line's** id. A line not named arrived whole and is not restocked. 422 on `items.{line id}.received_quantity` outside 0…asked |
+| `POST` | `/admin/store/returns/{reference}/refund` | `amount_paise` (≥ 1), `reference` (191), `note?`. Records a `payments` row through the order's own refund rules (422 on `amount_paise` past what is left, or on an unpaid order) and links it to the return. Calls no gateway |
+| `POST` | `/admin/store/returns/{reference}/close` | `note?`. Ends it without a refund; nobody is mailed |
+| `POST` | `/admin/store/returns/{reference}/pickup/rates` | 0.159.0, 30/min. A quote for the courier collecting it: customer's PIN to the pickup location's, `is_return=1`. The shape of `…/shipment/rates`. 422 unless Shiprocket is on and the return is approved |
+| `POST` | `/admin/store/returns/{reference}/pickup/book` | 0.159.0, 20/min. `courier_id?`. Approved returns only. Creates the return order at Shiprocket (`pickup_*` the customer, `shipping_*` the seller), assigns the AWB with `is_return: 1`, requests the pickup. **Booked once** (a conditional claim; reference `{RMA}`, then `{RMA}-{n}`); a refusal at the AWB or pickup step is kept on `pickup.error` and the same press carries on from there without a second order. 422 in Shiprocket's words. Answers the return |
+| `POST` | `/admin/store/returns/{reference}/pickup/cancel` | 0.159.0, 20/min. Cancels the AWB and the order at Shiprocket and frees the return to be booked again. Answers the return |
+| `GET` | `/admin/store/returns/{reference}/photos/{id}` | Streams one photograph as an attachment. A photo of another return is a 404 |
+
+**Statuses** are `requested`, `approved`, `rejected`, `received`, `refunded`,
+`closed`. `requested` → `approved`, `rejected` or `closed`; `approved` →
+`received` or `closed`; `received` → `refunded` or `closed`; `rejected` →
+`approved`. A move the status does not allow is a **422 on `status`** naming
+both states. Each move is made under a row lock, so a repeated press does its
+work once.
+
+**Reasons** are `damaged`, `faulty`, `wrong_item`, `not_as_described`,
+`no_longer_needed`, `other`.
+
+**What may come back is decided by the API.** A request is a **422 on
+`return`**, one sentence, when returns are switched off
+(`store_returns_enabled`), the order was cancelled or refunded, it has not
+been dispatched, or the window has closed — `store_return_days` counted from
+`completed_at`, or from `dispatched_at` plus the longest transit time while
+the order is not marked completed, to the end of that day. A line is refused
+on `items.N.order_item_id` (not on this order, or listed twice) or
+`items.N.quantity` ("That item cannot be returned." for a digital, service
+or non-returnable line; "A return has already been asked for all of that
+item."; "Only 1 of that item can be returned."). A line's ceiling is its
+quantity less what the order's other returns hold; a rejected return holds
+nothing.
+
+**The customer's order carries both halves.** `GET /orders/{number}?token=`
+and `GET /my/orders/{number}` add:
+
+- `returns[]` — `reference`, `status`, `status_label`, `reason`,
+  `reason_label`, `details`, `decision_note` (what the desk said), `pickup_status`
+  (0.159.0: the courier's label for where its collection has got to, else null),
+  `items[{order_item_id, name, variation_name, quantity}]`, `photos_count`,
+  `refund_paise`, and the six stamps (`requested_at` … `closed_at`). No staff
+  note, no photograph's address, no engineer's name.
+- `return_policy` — `enabled`, `open` (whether the form may be offered now),
+  `message` (the one sentence when it may not; null when it may),
+  `closes_on`, `closes_label` ("13 October 2026"), `days`,
+  `items[{order_item_id, returnable}]`, `reasons[{value, label}]`,
+  `max_photos`, `max_photo_kb`.
+
+**The admin resource**: `id`, `reference`, `status`, `status_label`,
+`is_open`, `reason`, `reason_label`, `order_number`, `customer_name`,
+`customer_email`, `customer_phone`, `order_paid`, `items_count` (units),
+`photos_count`, `refund_paise`, the six stamps and `admin_path`; the detail
+read adds `details`, `decision_note`, `staff_note`, `decided_by`,
+`allowed_next[{value, label}]` (what a move endpoint will accept now),
+`items[{id, order_item_id, name, variation_name, sku, unit_price_paise,
+ordered_quantity, quantity, received_quantity, restocked_quantity}]`,
+`photos[{id, name, size}]`, `suggested_refund_paise` (what arrived, at the
+price each line sold for), `refund_reference`, `return_instructions`, `pickup`
+(0.159.0: null while Shiprocket is off and nothing was booked, else `{active,
+booking (creating|created|failed|cancelled), attempts, shiprocket_order_id,
+shipment_id, awb, courier, requested_at, status_id, status, status_at, error,
+can_book, resume, can_rates, can_cancel, book_refusal}` — `status` is the
+courier's own word and **never moves the return's status**) and
+`order {order_number, status, status_label, total_paise, payment_method,
+dispatched_at, completed_at}`. `GET /admin/store/orders/{number}` adds
+`returns[{reference, status, status_label, reason_label, items_count,
+requested_at, admin_path}]`, and `GET /admin/store/dashboard` adds
+`attention.returns_requested`.
+
+**Restocking** happens on `receive`, for a line sent `restock: true`, by the
+quantity that arrived: a stock movement with reason `return`
+(`GET /admin/store/stock` lists it; the reason's label is "Customer return") on the
+variation the line was sold as, else the product. Nothing moves for a product
+that no longer exists or does not track stock.
+
+**Settings**: `store_returns_enabled` (boolean, on) and
+`store_return_instructions` (plain text) in the `store` group — the first is
+public, the second is not (`PublicSettings::PRIVATE_KEYS`); and
+`return_reference_prefix` in `references`, held to the other prefixes' shape.
+
+**Side effects.** A request emails the customer (`return_requested`) and
+`support_email` (`return_received_internal`) and emits the `return.requested`
+webhook — the admin detail shape less `staff_note` and `pickup`. `approve`, `reject`,
+`receive` and `refund` each email the customer (`return_approved`,
+`return_rejected`, `return_goods_received`, `return_refunded`); `close`
+emails nobody. Every move writes a line on the order's history.

@@ -4,6 +4,7 @@ namespace App\Http\Resources\Admin;
 
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Models\Solution;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -11,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Solution */
 class SolutionResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSections;
 
     public function toArray(Request $request): array
     {
@@ -24,6 +25,9 @@ class SolutionResource extends JsonResource
             'summary' => $this->summary,
             'problem_statement' => $this->when($detail, $this->problem_statement),
             'overview' => $this->when($detail, $this->overview),
+            // Which of the two the page draws in its body area, and the builder's
+            // sections as stored (0.129.0) — see IncludesSections.
+            ...$this->adminSections($detail),
             // Always lists, never null — the repeaters render rows from these.
             'benefits' => $this->benefits ?? [],
             'technologies' => $this->technologies ?? [],

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\AnswerBlockKind;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesAnswerContent;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkDeleteRequest;
 use App\Http\Requests\StoreBrandRequest;
 use App\Http\Requests\UpdateBrandRequest;
 use App\Http\Resources\Admin\BrandResource;
@@ -26,6 +28,7 @@ use Illuminate\Support\Facades\DB;
  */
 class BrandController extends Controller
 {
+    use HandlesBulk;
     use WritesAnswerContent;
 
     public function index(Request $request): AnonymousResourceCollection
@@ -81,6 +84,20 @@ class BrandController extends Controller
 
     public function destroy(Brand $brand): JsonResponse
     {
+        $this->remove($brand);
+
+        return response()->json(['message' => 'Brand deleted.']);
+    }
+
+    /** `POST /admin/brands/bulk` — delete the ticked brands. A brand has no status, so delete is the only action. */
+    public function bulk(BulkDeleteRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, Brand::query(), $this->remove(...));
+    }
+
+    /** What deleting a brand does, for `destroy()` and the bulk path alike. */
+    private function remove(Brand $brand): void
+    {
         // products.brand_id is nullOnDelete, so the catalogue survives losing a
         // brand — the products stay, unbranded. The count is in the index so
         // that consequence is visible before someone clicks delete.
@@ -89,7 +106,5 @@ class BrandController extends Controller
             $brand->answerBlocks()->delete();
             $brand->delete();
         });
-
-        return response()->json(['message' => 'Brand deleted.']);
     }
 }

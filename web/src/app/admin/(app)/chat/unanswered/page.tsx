@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { getChatUnanswered } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -59,7 +60,7 @@ export default async function UnansweredPage({
       </PageHeader>
 
       {rows.length === 0 ? (
-        <EmptyState title="Nothing outstanding">
+        <EmptyState title={all === "1" ? "No questions recorded" : "Nothing outstanding"} action={<EmptyListAction filtered={all === "1"} clearHref="/admin/chat/unanswered" noun="question" />}>
           Every question the assistant could not answer has been dealt with — or nobody has
           asked one yet.
         </EmptyState>

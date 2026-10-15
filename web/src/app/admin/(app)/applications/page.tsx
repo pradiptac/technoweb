@@ -3,6 +3,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { IconBook } from "@/components/icons";
 import { getJobApplications } from "@/lib/admin";
@@ -102,7 +103,7 @@ export default async function AdminApplicationsPage({
       </FilterBar>
 
       {rows.length === 0 ? (
-        <EmptyState icon={<IconBook />} title={filtered ? "Nothing matches those filters" : "No applications yet"}>
+        <EmptyState icon={<IconBook />} title={filtered ? "Nothing matches those filters" : "No applications yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/applications" noun="application" />}>
           {filtered
             ? "Try a different term, or clear the filters."
             : "They appear here as soon as somebody applies through the careers page."}

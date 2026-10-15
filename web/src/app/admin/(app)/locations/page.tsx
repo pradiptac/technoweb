@@ -3,6 +3,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { getLocations } from "@/lib/admin";
@@ -18,6 +19,7 @@ type SearchParams = { q?: string; active?: string; page?: string; deleted?: stri
 export default async function LocationsAdminPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q || params.active);
 
   let result: Paginated<AdminLocation>;
   try {
@@ -62,7 +64,7 @@ export default async function LocationsAdminPage({ searchParams }: { searchParam
       </FilterBar>
 
       {rows.length === 0 ? (
-        <EmptyState title="No places yet">
+        <EmptyState title={filtered ? "No places match those filters" : "No places yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/locations" newHref="/admin/locations/new" noun="place" />}>
           Nothing is seeded here on purpose — a place is a statement that your
           engineers go there, so it is one somebody has to make deliberately.
         </EmptyState>

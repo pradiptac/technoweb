@@ -6,6 +6,7 @@ use App\Enums\ProductCondition;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use App\Support\Money;
 use Illuminate\Support\Collection;
 
@@ -151,7 +152,7 @@ class ProductFeed
     {
         return collect($product->images ?? [])
             ->filter(fn ($path) => self::isSupportedImage((string) $path))
-            ->map(fn ($path) => asset('storage/'.$path))
+            ->map(fn ($path) => MediaUrl::for($path))
             ->values()
             ->all();
     }
@@ -176,7 +177,7 @@ class ProductFeed
          * product's gallery follows it as the additional images.
          */
         if ($variation?->image_path && self::isSupportedImage($variation->image_path)) {
-            array_unshift($images, asset('storage/'.$variation->image_path));
+            array_unshift($images, MediaUrl::for($variation->image_path));
         }
 
         $identifiers = $product->identifiers($variation);
@@ -237,11 +238,7 @@ class ProductFeed
             'google_product_category' => $product->googleCategory(),
             'product_type' => $product->category?->name,
 
-            'shipping_price' => Money::toRupeeString(Fulfilment::shippingPaise()).' INR',
-            'shipping_country' => Fulfilment::COUNTRY,
-            'shipping_service' => Fulfilment::shippingService(),
-            'min_transit_time' => Fulfilment::transitDays()['min'],
-            'max_transit_time' => Fulfilment::transitDays()['max'],
+            ...self::shippingBlock(),
             'shipping_weight' => self::weight($product, $variation),
             'min_handling_time' => 0,
             'max_handling_time' => Fulfilment::handlingDays(),
@@ -249,6 +246,34 @@ class ProductFeed
             'product_detail' => self::details($variation),
             ...self::variantAttributes($variation),
         ], fn ($value) => $value !== null && $value !== [] && $value !== '');
+    }
+
+    /**
+     * The shipping fields of an item — absent in zones mode (0.142.0).
+     *
+     * A flat charge is one price for every order, which is what these fields
+     * can say. In zones mode the charge depends on the destination and the
+     * basket's weight, and any single figure here would be a price declared
+     * to Google that the landing page does not charge — the mismatch that
+     * suspends accounts. So they are left out, and the shipping rules are set
+     * in Merchant Center itself (the manual says so). Handling time is not
+     * a price and stays.
+     *
+     * @return array<string, mixed>
+     */
+    private static function shippingBlock(): array
+    {
+        if (Fulfilment::usesZones()) {
+            return [];
+        }
+
+        return [
+            'shipping_price' => Money::toRupeeString(Fulfilment::shippingPaise()).' INR',
+            'shipping_country' => Fulfilment::COUNTRY,
+            'shipping_service' => Fulfilment::shippingService(),
+            'min_transit_time' => Fulfilment::transitDays()['min'],
+            'max_transit_time' => Fulfilment::transitDays()['max'],
+        ];
     }
 
     private static function itemId(StoreProduct $product, ?StoreProductVariation $variation = null): string

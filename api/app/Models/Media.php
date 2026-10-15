@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\Media\Placeholder;
+use App\Support\MediaMeta;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -42,6 +44,7 @@ class Media extends Model
             'uploaded_by' => 'integer',
             'size' => 'integer',
             'width' => 'integer',
+            'revision' => 'integer',
             'height' => 'integer',
             // The focal point, 0–100 of the width and of the height; null is
             // the centre. Integers so the resource does not answer "30" for a
@@ -89,5 +92,43 @@ class Media extends Model
     public function url(): string
     {
         return Storage::disk($this->disk)->url($this->path);
+    }
+
+    /**
+     * Every new row gets its blurred preview (0.123.0, `Placeholder`),
+     * whoever made it: an upload, a duplicate, a thumbnail cut by a resize,
+     * the WordPress importer. On `created` rather than at each creator, so a
+     * creator added later cannot forget it. An *edit* calls `refreshBlur()`
+     * itself — the three editing endpoints, a replacement and a version
+     * restore — because an edit that happens to leave the row's columns
+     * unchanged saves nothing, and an `updated` hook would never hear of it.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (Media $medium) {
+            if ($medium->blur === null) {
+                $medium->refreshBlur();
+            }
+        });
+    }
+
+    /**
+     * The bytes at this path have changed (0.124.0): an edit, a replacement,
+     * a version restore. The path is kept on purpose and is cached for a year
+     * wherever it has been fetched, so `revision` is what moves instead —
+     * `MediaUrl` puts it on the public URL as `?v=N` — and the preview is
+     * re-made from the new bytes.
+     */
+    public function markEdited(): void
+    {
+        $this->forceFill(['revision' => (int) $this->revision + 1])->saveQuietly();
+        $this->refreshBlur();
+    }
+
+    /** Re-make the blurred preview from the bytes now on disk. Never throws. */
+    public function refreshBlur(): void
+    {
+        $this->forceFill(['blur' => Placeholder::forMedia($this)])->saveQuietly();
+        MediaMeta::forget();
     }
 }

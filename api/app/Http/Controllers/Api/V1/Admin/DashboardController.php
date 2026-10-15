@@ -18,6 +18,7 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Models\VisitRequest;
 use App\Support\Meetings\Availability;
+use App\Support\Onboarding;
 use App\Support\TicketMetrics;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -69,6 +70,71 @@ class DashboardController extends Controller
         ];
     }
 
+    /**
+     * The pipeline's two charts (2026-10-05): new leads a day over thirty
+     * days for the tile's sparkline, and how far the last ninety days' leads
+     * got.
+     *
+     * The funnel counts **what happened to the leads that arrived**, not how
+     * many sit in each status now — a status count is a snapshot, and a
+     * snapshot drawn as a funnel shows a narrowing that never happened.
+     * `contacted` is a lead with `contacted_at`, which is stamped by every
+     * state that means somebody replied, so a won lead is always contacted
+     * too and the stages can only narrow. Spam is left out of all three: it
+     * was never a prospect.
+     *
+     * Cached for a minute beside the ticket metrics, for the same reason.
+     *
+     * @return array{series:list<int>,funnel:array{days:int,received:int,contacted:int,won:int}}
+     */
+    private static function leadCharts(): array
+    {
+        return Cache::remember(self::METRICS_CACHE_KEY.':leads', 60, function () {
+            $from = Carbon::today()->subDays(29);
+            $perDay = Lead::query()
+                ->where('created_at', '>=', $from)
+                ->where('status', '!=', LeadStatus::Spam)
+                ->selectRaw('DATE(created_at) as day, COUNT(*) as total')
+                ->groupBy('day')
+                ->pluck('total', 'day');
+
+            $series = [];
+            for ($i = 0; $i < 30; $i++) {
+                $series[] = (int) ($perDay[$from->copy()->addDays($i)->toDateString()] ?? 0);
+            }
+
+            $window = Lead::query()
+                ->where('created_at', '>=', Carbon::today()->subDays(89))
+                ->where('status', '!=', LeadStatus::Spam);
+
+            return [
+                'series' => $series,
+                'funnel' => [
+                    'days' => 90,
+                    'received' => (clone $window)->count(),
+                    'contacted' => (clone $window)->whereNotNull('contacted_at')->count(),
+                    'won' => (clone $window)->where('status', LeadStatus::Won)->count(),
+                ],
+            ];
+        });
+    }
+
+    /**
+     * The "Getting started" checklist (`App\Support\Onboarding`): each step
+     * answered from the install's real state. `role:admin`, because every
+     * step is a settings screen only an administrator can open.
+     */
+    public function onboarding(): JsonResponse
+    {
+        $steps = Onboarding::steps();
+
+        return response()->json(['data' => [
+            'steps' => $steps,
+            'done' => count(array_filter($steps, fn (array $s) => $s['done'])),
+            'total' => count($steps),
+        ]]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         /*
@@ -116,6 +182,7 @@ class DashboardController extends Controller
                     // reply by a date that has passed.
                     'overdue' => Lead::query()->overdue()->count(),
                     'unassigned' => Lead::query()->open()->whereNull('assigned_to')->count(),
+                    ...self::leadCharts(),
                 ]
                 : null,
             /*
@@ -177,6 +244,7 @@ class DashboardController extends Controller
                 'sla_first_response' => TicketMetrics::slaFirstResponse(),
                 'open_by_priority' => TicketMetrics::openBy('priority'),
                 'open_by_category' => TicketMetrics::openBy('category'),
+                'arrivals' => TicketMetrics::arrivals(),
             ]) + [
                 /*
                  * The volume chart over the period the console asked for

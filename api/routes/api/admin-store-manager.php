@@ -4,13 +4,20 @@ use App\Http\Controllers\Api\V1\Admin\Store\CategoryController as AdminStoreCate
 use App\Http\Controllers\Api\V1\Admin\Store\CodeController as AdminStoreCodeController;
 use App\Http\Controllers\Api\V1\Admin\Store\CouponController as AdminStoreCouponController;
 use App\Http\Controllers\Api\V1\Admin\Store\DashboardController as AdminStoreDashboardController;
+use App\Http\Controllers\Api\V1\Admin\Store\InvoicingController as AdminStoreInvoicingController;
 use App\Http\Controllers\Api\V1\Admin\Store\OrderController as AdminStoreOrderController;
 use App\Http\Controllers\Api\V1\Admin\Store\ProductController as AdminStoreProductController;
 use App\Http\Controllers\Api\V1\Admin\Store\ProductImportController as AdminStoreProductImportController;
 use App\Http\Controllers\Api\V1\Admin\Store\PromoController as AdminStorePromoController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReportController as AdminStoreReportController;
+use App\Http\Controllers\Api\V1\Admin\Store\ReturnController as AdminStoreReturnController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReviewController as AdminStoreReviewController;
+use App\Http\Controllers\Api\V1\Admin\Store\ShipmentController as AdminStoreShipmentController;
+use App\Http\Controllers\Api\V1\Admin\Store\ShippingController as AdminStoreShippingController;
 use App\Http\Controllers\Api\V1\Admin\Store\StockController as AdminStoreStockController;
+use App\Http\Controllers\Api\V1\Admin\Store\TagController as AdminStoreTagController;
+use App\Http\Controllers\Api\V1\Admin\Store\VideoSettingsController as AdminStoreVideoSettingsController;
+use App\Http\Controllers\Api\V1\Admin\ZohoBooksController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -28,6 +35,49 @@ Route::middleware('role:store_manager')->group(function () {
     // and no other key — see PromoController. Above `store/{anything}` too.
     Route::get('store/promo', [AdminStorePromoController::class, 'index'])->name('store.promo');
     Route::patch('store/promo', [AdminStorePromoController::class, 'update'])->name('store.promo.update');
+
+    /*
+     * Tax and invoicing (0.176.0, docs/store.md "The GST invoice"): the
+     * shop's GST rate, whether its prices include the tax, and the seller's
+     * half of a tax invoice. The promo screen's narrow door onto the
+     * settings table — fifteen named keys and no others — because the rate
+     * a shop charges is a store manager's decision while the settings
+     * screen as a whole stays `role:admin`.
+     */
+    Route::get('store/invoicing', [AdminStoreInvoicingController::class, 'index'])->name('store.invoicing');
+    Route::patch('store/invoicing', [AdminStoreInvoicingController::class, 'update'])->name('store.invoicing.update');
+
+    // "Shop the videos": the eleven `store_videos_*` rows and no other key
+    // (0.140.0) — see VideoSettingsController. Above `store/{anything}` too.
+    Route::get('store/videos', [AdminStoreVideoSettingsController::class, 'index'])->name('store.videos');
+    Route::patch('store/videos', [AdminStoreVideoSettingsController::class, 'update'])->name('store.videos.update');
+    /*
+     * Shop tags (0.141.0): the Tags screen and the form's Suggest button.
+     * The literal segments — `reorder`, `settings`, `auto`, and `products/
+     * tag-suggest` — come above the parameterised routes, or `{storeTag}`
+     * binds the word and answers 404 from model binding.
+     */
+    Route::get('store/tags', [AdminStoreTagController::class, 'index'])->name('store.tags.index');
+    Route::post('store/tags', [AdminStoreTagController::class, 'store'])->name('store.tags.store');
+    Route::patch('store/tags/reorder', [AdminStoreTagController::class, 'reorder'])->name('store.tags.reorder');
+    Route::patch('store/tags/settings', [AdminStoreTagController::class, 'settings'])->name('store.tags.settings');
+    Route::post('store/tags/auto', [AdminStoreTagController::class, 'auto'])->middleware('throttle:6,1')->name('store.tags.auto');
+    Route::post('store/products/tag-suggest', [AdminStoreTagController::class, 'suggest'])->middleware('throttle:10,1')->name('store.products.tag-suggest');
+    Route::get('store/tags/{storeTag:id}', [AdminStoreTagController::class, 'show'])->name('store.tags.show');
+    Route::patch('store/tags/{storeTag:id}', [AdminStoreTagController::class, 'update'])->name('store.tags.update');
+    Route::post('store/tags/{storeTag:id}/merge', [AdminStoreTagController::class, 'merge'])->name('store.tags.merge');
+    Route::delete('store/tags/{storeTag:id}', [AdminStoreTagController::class, 'destroy'])->name('store.tags.destroy');
+    /*
+     * Delivery charges (0.142.0): the mode, the flat charge, the default
+     * weight, and the zones with their weight slabs. `store/shipping/settings`
+     * and the zone routes are declared as a set above `store/{anything}`.
+     */
+    Route::get('store/shipping', [AdminStoreShippingController::class, 'index'])->name('store.shipping');
+    Route::put('store/shipping/settings', [AdminStoreShippingController::class, 'updateSettings'])->name('store.shipping.settings');
+    Route::post('store/shipping/zones', [AdminStoreShippingController::class, 'store'])->name('store.shipping.zones.store');
+    Route::patch('store/shipping/zones/{zone}', [AdminStoreShippingController::class, 'update'])->name('store.shipping.zones.update');
+    Route::delete('store/shipping/zones/{zone}', [AdminStoreShippingController::class, 'destroy'])->name('store.shipping.zones.destroy');
+    Route::post('store/shipping/zones/{zone}/move', [AdminStoreShippingController::class, 'move'])->name('store.shipping.zones.move');
 
     // Above `store/{anything}` for the same reason `media/move` is:
     // Laravel matches in declaration order.
@@ -57,12 +107,14 @@ Route::middleware('role:store_manager')->group(function () {
 
     Route::get('store/categories', [AdminStoreCategoryController::class, 'index'])->name('store.categories.index');
     Route::post('store/categories', [AdminStoreCategoryController::class, 'store'])->name('store.categories.store');
+    Route::post('store/categories/bulk', [AdminStoreCategoryController::class, 'bulk'])->middleware('throttle:30,1')->name('store.categories.bulk');
     Route::get('store/categories/{storeCategory:id}', [AdminStoreCategoryController::class, 'show'])->name('store.categories.show');
     Route::patch('store/categories/{storeCategory:id}', [AdminStoreCategoryController::class, 'update'])->name('store.categories.update');
     Route::delete('store/categories/{storeCategory:id}', [AdminStoreCategoryController::class, 'destroy'])->name('store.categories.destroy');
 
     Route::get('store/products', [AdminStoreProductController::class, 'index'])->name('store.products.index');
     Route::post('store/products', [AdminStoreProductController::class, 'store'])->name('store.products.store');
+    Route::post('store/products/bulk', [AdminStoreProductController::class, 'bulk'])->middleware('throttle:30,1')->name('store.products.bulk');
 
     /*
      * The catalogue as a spreadsheet, both ways. Declared above
@@ -116,6 +168,18 @@ Route::middleware('role:store_manager')->group(function () {
     Route::patch('store/orders/{order}/shipping', [AdminStoreOrderController::class, 'shipping'])->name('store.orders.shipping');
     Route::post('store/orders/{order}/invoice', [AdminStoreOrderController::class, 'invoice'])->name('store.orders.invoice');
     Route::get('store/orders/{order}/invoice', [AdminStoreOrderController::class, 'downloadInvoice'])->name('store.orders.invoice.download');
+    /*
+     * The shop's own GST invoice (0.176.0, docs/store.md "The GST
+     * invoice"). Both sit under the `invoice/` prefix, which neither of
+     * the two routes above matches, so no declaration-order trap applies.
+     *
+     * The print view is a page rather than JSON, and it is the one route
+     * here that answers for an order with no invoice yet: it is how
+     * somebody sees the document before switching the feature on.
+     */
+    Route::post('store/orders/{order}/invoice/generate', [AdminStoreOrderController::class, 'generateInvoice'])
+        ->middleware('throttle:20,1')->name('store.orders.invoice.generate');
+    Route::get('store/orders/{order}/invoice/print', [AdminStoreOrderController::class, 'printInvoice'])->name('store.orders.invoice.print');
     Route::post('store/orders/{order}/notes', [AdminStoreOrderController::class, 'note'])->name('store.orders.notes');
     /*
      * The one route in the console that can make an order paid, and
@@ -125,5 +189,65 @@ Route::middleware('role:store_manager')->group(function () {
      */
     Route::post('store/orders/{order}/payments', [AdminStoreOrderController::class, 'recordPayment'])->name('store.orders.payments');
     Route::post('store/orders/{order}/refunds', [AdminStoreOrderController::class, 'recordRefund'])->name('store.orders.refunds');
+    // Make — or try again to make — this order's invoice in Zoho Books
+    // (0.134.0, docs/store.md "Zoho Books invoices"). A store manager's
+    // press; connecting the account is the administrator's.
+    Route::post('store/orders/{order}/zoho-invoice', [ZohoBooksController::class, 'createForOrder'])
+        ->middleware('throttle:20,1')->name('store.orders.zoho-invoice');
+    // Send — or try again to send — one payment or refund on the order to
+    // Zoho Books (0.136.0). The payment is addressed through its order.
+    Route::post('store/orders/{order}/payments/{payment}/zoho', [ZohoBooksController::class, 'sendPayment'])
+        ->whereNumber('payment')->middleware('throttle:20,1')->name('store.orders.payments.zoho');
     Route::post('store/orders/{order}/fulfil', [AdminStoreOrderController::class, 'fulfil'])->name('store.orders.fulfil');
+
+    /*
+     * Booking the parcel with the courier platform (0.143.0, docs/store.md
+     * "Shiprocket"). Every one is a 422 while the provider is `manual`.
+     * Each acts on the real account, so each is throttled; the connection
+     * itself is the administrator's.
+     */
+    // One manifest for many parcels (0.159.0), above the {order} routes it shares a prefix with.
+    Route::post('store/orders/manifest', [AdminStoreShipmentController::class, 'manifestMany'])
+        ->middleware('throttle:10,1')->name('store.orders.manifest');
+    Route::post('store/orders/{order}/shipment/rates', [AdminStoreShipmentController::class, 'rates'])
+        ->middleware('throttle:30,1')->name('store.orders.shipment.rates');
+    Route::post('store/orders/{order}/shipment/manifest', [AdminStoreShipmentController::class, 'manifest'])
+        ->middleware('throttle:20,1')->name('store.orders.shipment.manifest');
+    Route::post('store/orders/{order}/shipment/book', [AdminStoreShipmentController::class, 'book'])
+        ->middleware('throttle:20,1')->name('store.orders.shipment.book');
+    Route::post('store/orders/{order}/shipment/assign', [AdminStoreShipmentController::class, 'assign'])
+        ->middleware('throttle:20,1')->name('store.orders.shipment.assign');
+    Route::post('store/orders/{order}/shipment/pickup', [AdminStoreShipmentController::class, 'pickup'])
+        ->middleware('throttle:20,1')->name('store.orders.shipment.pickup');
+    Route::post('store/orders/{order}/shipment/label', [AdminStoreShipmentController::class, 'label'])
+        ->middleware('throttle:20,1')->name('store.orders.shipment.label');
+    Route::post('store/orders/{order}/shipment/cancel', [AdminStoreShipmentController::class, 'cancel'])
+        ->middleware('throttle:20,1')->name('store.orders.shipment.cancel');
+    Route::post('store/orders/{order}/shipment/track', [AdminStoreShipmentController::class, 'track'])
+        ->middleware('throttle:30,1')->name('store.orders.shipment.track');
+
+    /*
+     * The returns desk (0.132.0, docs/store.md "Returns"), bound by
+     * reference like an order by its number. No `store` — a return exists
+     * because a customer asked for one — and no `destroy`. Each move is its
+     * own route because each does something besides write the status:
+     * mails the customer, puts stock back, records a refund.
+     */
+    Route::get('store/returns', [AdminStoreReturnController::class, 'index'])->name('store.returns.index');
+    Route::get('store/returns/{order_return}', [AdminStoreReturnController::class, 'show'])->name('store.returns.show');
+    Route::patch('store/returns/{order_return}', [AdminStoreReturnController::class, 'update'])->name('store.returns.update');
+    Route::post('store/returns/{order_return}/approve', [AdminStoreReturnController::class, 'approve'])->name('store.returns.approve');
+    Route::post('store/returns/{order_return}/reject', [AdminStoreReturnController::class, 'reject'])->name('store.returns.reject');
+    Route::post('store/returns/{order_return}/receive', [AdminStoreReturnController::class, 'receive'])->name('store.returns.receive');
+    Route::post('store/returns/{order_return}/refund', [AdminStoreReturnController::class, 'refund'])->name('store.returns.refund');
+    Route::post('store/returns/{order_return}/close', [AdminStoreReturnController::class, 'close'])->name('store.returns.close');
+    // The courier collecting it from the customer (0.159.0, docs/store.md "Return pickups").
+    Route::post('store/returns/{order_return}/pickup/rates', [AdminStoreReturnController::class, 'pickupRates'])
+        ->middleware('throttle:30,1')->name('store.returns.pickup.rates');
+    Route::post('store/returns/{order_return}/pickup/book', [AdminStoreReturnController::class, 'pickupBook'])
+        ->middleware('throttle:20,1')->name('store.returns.pickup.book');
+    Route::post('store/returns/{order_return}/pickup/cancel', [AdminStoreReturnController::class, 'pickupCancel'])
+        ->middleware('throttle:20,1')->name('store.returns.pickup.cancel');
+    Route::get('store/returns/{order_return}/photos/{photo}', [AdminStoreReturnController::class, 'photo'])
+        ->where('photo', '[0-9]+')->name('store.returns.photo');
 });

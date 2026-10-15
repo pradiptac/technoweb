@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
+import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
+import { RevisionPanel } from "@/components/admin/revision-panel";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getAnswerBlockKinds, getBrandOptions, getServiceOptions, getStoreCategories, getStoreProduct } from "@/lib/admin";
+import { getAnswerBlockKinds, getBrandOptions, getServiceOptions, getStoreCategories, getStoreProduct, getPageBuilderOptionsIfAllowed, getProductTaxMeta, getStoreTagNames } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { StoreProductForm } from "../store-product-form";
@@ -38,7 +40,11 @@ export default async function EditStoreProductPage({
 
   try {
     [product, brands, categories, services, kinds] = await Promise.all([
-      getStoreProduct(numericId), getBrandOptions(), getStoreCategories(),
+      // The brand list is a content manager's route. A store manager without
+      // that role still gets the form (0.130.0): an empty list here, and the
+      // form offers the product's own brand so a save cannot clear it. Until
+      // then this screen was an error for exactly the role it belongs to.
+      getStoreProduct(numericId), getBrandOptions().catch((error) => { if (error instanceof ApiError && error.status === 403) return []; throw error; }), getStoreCategories(),
       // The services that install or support it (contract §3); a store
       // manager who cannot read /admin/services still gets the form.
       getServiceOptions().catch(() => []),
@@ -53,17 +59,22 @@ export default async function EditStoreProductPage({
     <>
       <PageHeader back={{ href: "/admin/store/products", label: "Store products" }} title={product.name}>
         <div className="ml-auto flex items-center gap-2">
+          <RevisionPanel type="store_product" id={product.id} />
+          <PreviewLinkPanel type="store_product" id={product.id} />
           {!product.in_stock && <Badge tone="urgent">Out of stock</Badge>}
           <Badge tone={statusTone[product.status]}>{product.status_label ?? product.status}</Badge>
         </div>
       </PageHeader>
 
       <StoreProductForm
+        builder={await getPageBuilderOptionsIfAllowed()}
+        tagNames={await getStoreTagNames()}
         product={product}
         brands={brands}
         categories={categories}
         services={services}
         saved={saved === "1"} kinds={kinds}
+        tax={await getProductTaxMeta()}
       />
     </>
   );

@@ -1,5 +1,5 @@
 /**
- * How the public site and the portal move — six settings, one list each.
+ * How the public site and the portal move — seven settings, one list each.
  *
  * Plain data, no client imports, so the settings picker and the area
  * layouts can both read it. Every id here is a value the `motion` settings
@@ -42,17 +42,81 @@ export const BUTTONS: MotionChoice[] = [
   { id: "flat", label: "Flat", note: "Colour change only. No movement at all." },
 ];
 
+/**
+ * What a card does under the pointer (`motion_cards`, 0.103.0). `lift` is
+ * the hover the site always had. `tilt` follows the pointer in 3-D through
+ * `components/ui/card-tilt.tsx`, the only one that needs JavaScript; every
+ * one is a fine-pointer, motion-allowed effect — on a phone a card simply
+ * sits there, which is all a tap needs.
+ */
+export const CARDS: MotionChoice[] = [
+  { id: "lift", label: "Lift", note: "A card rises a little under the pointer. The current behaviour." },
+  { id: "tilt", label: "Tilt", note: "A card leans towards the pointer in 3-D as it moves across it." },
+  { id: "float", label: "Float", note: "A card rises further and casts a deeper shadow. More presence." },
+  { id: "still", label: "Still", note: "Cards do not move. The border and colour still answer the pointer." },
+];
+
 export const PAGES: MotionChoice[] = [
   { id: "none", label: "None", note: "The next page paints at once. The current behaviour." },
   { id: "fade", label: "Fade", note: "Each page fades in over 320ms." },
   { id: "rise", label: "Rise", note: "Each page fades in while rising 12px." },
   { id: "zoom", label: "Zoom", note: "Each page settles in from 98.5%." },
+  { id: "crossfade", label: "Crossfade", note: "The old page fades out as the new one fades in; the header and footer stay where they are." },
+  { id: "slide", label: "Slide", note: "The new page slides in from the side as the old one slides away; the header and footer stay put." },
 ];
+
+/**
+ * The two page transitions drawn by the browser's View Transitions API
+ * (0.115.0) rather than by `.page-enter`'s own animation: `PageEnter` wraps
+ * the page in React's `<ViewTransition>` for these ids only, so every other
+ * choice renders exactly the markup it always did.
+ */
+export type PageViewTransition = "crossfade" | "slide";
+
+export function pageViewTransition(page: string | null | undefined): PageViewTransition | null {
+  return page === "crossfade" || page === "slide" ? page : null;
+}
 
 export const LOADERS: MotionChoice[] = [
   { id: "none", label: "None", note: "No indicator while the next page loads. The current behaviour." },
   { id: "bar", label: "Bar", note: "A thin brand-coloured bar creeps across the top of the page and completes on arrival." },
   { id: "pulse", label: "Pulse", note: "A full-width line at the top pulses until the page arrives." },
+];
+
+/**
+ * The reading-progress line (`motion_progress`, 0.114.0): a thin bar along the
+ * top of the viewport that fills as the page is scrolled. Pure CSS — a
+ * `scroll(root)` timeline on one fixed element the marketing layout renders —
+ * so it costs no JavaScript, and a browser without scroll-driven animations or
+ * a reduced-motion visitor simply never sees it (`[data-scroll-progress]` in
+ * globals.css).
+ */
+export const PROGRESS: MotionChoice[] = [
+  { id: "none", label: "None", note: "No reading indicator. The current behaviour." },
+  { id: "bar", label: "Bar", note: "A thin line along the top of the page fills as the reader scrolls down it." },
+];
+
+/** A hero heading's effect (0.171.0) — `lib/kinetic.ts` resolves it. */
+export const KINETIC: MotionChoice[] = [
+  { id: "none", label: "None", note: "The heading is simply there. The current behaviour." },
+  { id: "rotate", label: "Rotating words", note: "The last word cycles through a list, once, then rests on the original. Set per hero." },
+  { id: "type", label: "Typewriter", note: "The heading types itself in once, with a caret that fades when it finishes." },
+  { id: "decode", label: "Decode", note: "Each letter flickers through random characters and settles, left to right." },
+  { id: "highlight", label: "Highlight", note: "A marker stroke draws itself under the last word — or a word a hero names." },
+];
+
+/** What the site-wide default may be: rotating words needs a hero's own list. */
+export const KINETIC_SITE: MotionChoice[] = KINETIC.filter((c) => c.id !== "rotate");
+
+/**
+ * Small interactions (`motion_micro`, 0.171.0). **Lively is first and the
+ * default** — the client's deliberate exception to "the first entry is the
+ * site as it moved before": each effect is a few pixels or a few hundred
+ * milliseconds (globals.css, "Small interactions").
+ */
+export const MICRO: MotionChoice[] = [
+  { id: "lively", label: "Lively", note: "Links, arrows, switches, tick boxes, copy buttons and card icons answer the pointer with a small movement." },
+  { id: "none", label: "None", note: "Colour changes only. Nothing moves." },
 ];
 
 export type HeroVariant = "grid" | "aurora" | "dots" | "none";
@@ -128,12 +192,16 @@ export type Motion = {
   loader: string;
   splash: boolean;
   hero: HeroVariant;
+  cards: string;
+  progress: string;
+  headline: string;
+  micro: string;
 };
 
 const pick = (list: MotionChoice[], id: string | undefined): string =>
   list.some((c) => c.id === id) ? (id as string) : list[0].id;
 
-/** The six choices, each resolved with its default for an unknown or absent id. */
+/** The choices, each resolved with its default for an unknown or absent id. */
 export function motionFor(settings: Record<string, string | undefined>): Motion {
   return {
     reveal: pick(REVEALS, settings.motion_reveal),
@@ -142,6 +210,10 @@ export function motionFor(settings: Record<string, string | undefined>): Motion 
     loader: pick(LOADERS, settings.motion_loader),
     splash: settings.motion_splash === "1",
     hero: pick(HEROS, settings.motion_hero) as HeroVariant,
+    cards: pick(CARDS, settings.motion_cards),
+    progress: pick(PROGRESS, settings.motion_progress),
+    headline: pick(KINETIC_SITE, settings.motion_headline),
+    micro: pick(MICRO, settings.motion_micro),
   };
 }
 
@@ -155,5 +227,8 @@ export function motionAttrs(m: Motion): Record<string, string> {
     "data-motion-buttons": m.buttons,
     "data-motion-page": m.page,
     "data-motion-hero": m.hero,
+    "data-motion-cards": m.cards,
+    "data-motion-progress": m.progress,
+    "data-motion-micro": m.micro,
   };
 }

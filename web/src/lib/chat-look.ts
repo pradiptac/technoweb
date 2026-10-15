@@ -21,6 +21,9 @@ const HEX = /^#[0-9a-f]{6}$/i;
  * with its own derived ink for the little that paints directly on it;
  * blank is `brand-50`, the ground the panel has had since the client
  * first asked for a tinted one.
+ * `header` is the panel's top bar (2026-10-12), with its own derived ink;
+ * blank is the palette's brand fill under its `-on` ink, the pair the
+ * theme gate checks for every palette.
  * An icon or a size the widget does not know falls back rather than
  * failing, the motion group's rule; the API refuses them on write anyway.
  */
@@ -29,6 +32,8 @@ export function chatLookFor(settings: SiteSettings): ChatLook {
   const band = colour && HEX.test(colour) ? announcementBand([colour]) : null;
   const ground = settings.chatbot_background?.trim().toLowerCase();
   const groundBand = ground && HEX.test(ground) ? announcementBand([ground]) : null;
+  const head = settings.chatbot_header?.trim().toLowerCase();
+  const headBand = head && HEX.test(head) ? announcementBand([head]) : null;
   const icon = settings.chatbot_icon?.trim() ?? "";
   const size = settings.chatbot_font_size?.trim() ?? "";
   const animation = settings.chatbot_animation?.trim() ?? "";
@@ -42,5 +47,6 @@ export function chatLookFor(settings: SiteSettings): ChatLook {
     animation: (ANIMATIONS.has(animation) ? animation : "burst") as ChatLook["animation"],
     accent: band ? { bg: band.stops[0]!, ink: band.ink } : null,
     background: groundBand ? { bg: groundBand.stops[0]!, ink: groundBand.ink } : null,
+    header: headBand ? { bg: headBand.stops[0]!, ink: headBand.ink } : null,
   };
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { PrimaryNavItems, UtilityLinks, useHeaderNav, STRIP_GATE } from "@/components/layout/header-parts";
+import { PrimaryNavItems, UtilityLinks, useHeaderNav, STRIP_GATE, Arranged, HeaderScheme } from "@/components/layout/header-parts";
+import type { ResolvedHeader } from "@/themes/chrome-parts";
 import { Logo } from "@/components/layout/logo";
 import type { MenuPanelStyle } from "@/components/layout/mega-menu";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
@@ -36,7 +37,7 @@ import { cn } from "@/lib/utils";
  * sticky and reads that variable.
  */
 export function Masthead({
-  menu = {}, settings = {}, links, topBar, menuStyle = "mega",
+  menu = {}, settings = {}, links, topBar, menuStyle = "mega", chrome,
 }: {
   menu?: Record<string, MenuSection>;
   settings?: SiteSettings;
@@ -44,6 +45,8 @@ export function Masthead({
   topBar: TopBarLink[];
   /** The theme option; see `MegaMenu`. A big panel positions against the rail's container. */
   menuStyle?: MenuPanelStyle;
+  /** Which parts to draw and in what order (the Header & footer screen). */
+  chrome: ResolvedHeader;
 }) {
   const bigMenu = menuStyle === "big";
   const { nav, utility, phone, email, isStoreItem, open, setOpen, toggleRef, drawerProps } = useHeaderNav({ settings, links, topBar });
@@ -51,38 +54,52 @@ export function Masthead({
   return (
     <>
       {/* The dateline strip. */}
+      {chrome.show.topbar && (
       <div className="border-b border-line text-12 text-muted">
         <Container className="flex h-9 items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-5">
-            {phone ? (
+            <Arranged chrome={chrome} nodes={{
+              phone: (
+                phone ? (
               <a href={telHref(phone)} className="flex items-center gap-1.5 whitespace-nowrap py-1.5 hover:text-ink">
                 <IconPhone className="size-3" />
                 {phone}
               </a>
-            ) : null}
-            {email ? (
+            ) : null
+              ),
+              email: (
+                email ? (
               <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-ink lg:inline-flex">
                 {email}
               </a>
-            ) : null}
+            ) : null
+              ),
+            }} />
           </div>
           <div className="flex items-center gap-4">
-            <SiteSearch
-              placeholders={["Search…", "Try a part number", "Firewall installation", "Wi-Fi survey"]}
-              className="hidden h-7 w-[200px] max-w-none rounded-none border-0 border-b border-line bg-transparent pl-0 pr-0.5 text-ink focus-within:border-ink md:flex [&>span]:left-0 [&>span]:text-12 [&>span]:text-muted"
-              inputClassName="text-12 text-ink"
-              buttonClassName="size-6 rounded-none"
-            />
-            <UtilityLinks
-              utility={utility}
-              menuStyle={menuStyle}
-              gate={STRIP_GATE}
-              linkClassName="flex items-center gap-1 whitespace-nowrap py-1.5 uppercase tracking-[.12em] text-11 hover:text-ink group-[:hover:not([data-closed])]:text-ink group-[:focus-within:not([data-closed])]:text-ink"
-                chevronClassName="size-[11px]"
-            />
+            <Arranged chrome={chrome} nodes={{
+              search: (
+              <SiteSearch
+                placeholders={["Search…", "Try a part number", "Firewall installation", "Wi-Fi survey"]}
+                className="hidden h-7 w-[200px] max-w-none rounded-none border-0 border-b border-line bg-transparent pl-0 pr-0.5 text-ink focus-within:border-ink md:flex [&>span]:left-0 [&>span]:text-12 [&>span]:text-muted"
+                inputClassName="text-12 text-ink"
+                buttonClassName="size-6 rounded-none"
+              />
+              ),
+              utility: (
+              <UtilityLinks
+                utility={utility}
+                menuStyle={menuStyle}
+                gate={STRIP_GATE}
+                linkClassName="flex items-center gap-1 whitespace-nowrap py-1.5 uppercase tracking-[.12em] text-11 hover:text-ink group-[:hover:not([data-closed])]:text-ink group-[:focus-within:not([data-closed])]:text-ink"
+                  chevronClassName="size-[11px]"
+              />
+              ),
+            }} />
           </div>
         </Container>
       </div>
+      )}
 
       {/* The nameplate. 76px from `sm` (68px on a phone): the logo with room
           to breathe and no more, so the lead slider below fits the first screen
@@ -112,13 +129,16 @@ export function Masthead({
             />
           </Link>
           <div className="flex items-center justify-end">
+            {chrome.show.scheme && <HeaderScheme className="mr-3 hidden min-[1600px]:inline-flex" />}
+            {chrome.show.cta && (
             <Link
-              href="/contact"
+              href={chrome.cta.href ?? "/contact"}
               className="group/cta hidden items-center gap-1.5 whitespace-nowrap border-b border-ink pb-0.5 text-13 font-semibold text-ink hover:border-brand-ink hover:text-brand-ink sm:inline-flex"
             >
-              Request a consultation
+              {chrome.cta.label ?? "Request a consultation"}
               <IconArrowRight className="size-3.5 transition-[translate] duration-(--duration-base) group-hover/cta:translate-x-0.5" />
             </Link>
+            )}
           </div>
         </Container>
       </div>
@@ -133,6 +153,7 @@ export function Masthead({
                 menu={menu}
                 menuStyle={menuStyle}
                 isStoreItem={isStoreItem}
+                showCart={chrome.show.cart}
                 linkClassName="relative flex items-center gap-1.5 whitespace-nowrap px-4 text-12 font-semibold uppercase tracking-[.14em] text-ink-2 transition-colors duration-(--duration-base) hover:text-ink after:absolute after:inset-x-4 after:bottom-0 after:h-[3px] after:origin-left after:scale-x-0 after:bg-ink after:transition-[scale] after:duration-(--duration-slow) hover:after:duration-(--duration-draw) focus-visible:after:duration-(--duration-draw) group-[:focus-within:not([data-closed])]:after:duration-(--duration-draw) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
                   itemClassName="flex"
                   chevronClassName="size-[11px] text-faint"
@@ -146,9 +167,11 @@ export function Masthead({
           <span className="truncate text-11 font-semibold uppercase tracking-[.14em] text-muted">
             {settings.tagline ?? "Networks · Servers · Security · Support"}
           </span>
-          <Link href="/contact" className="whitespace-nowrap text-12 font-semibold text-ink underline underline-offset-4 sm:hidden">
-            Consultation
-          </Link>
+          {chrome.show.cta && (
+            <Link href={chrome.cta.href ?? "/contact"} className="whitespace-nowrap text-12 font-semibold text-ink underline underline-offset-4 sm:hidden">
+              Consultation
+            </Link>
+          )}
         </Container>
       </header>
 

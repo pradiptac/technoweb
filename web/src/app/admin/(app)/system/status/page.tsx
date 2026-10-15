@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
@@ -5,11 +6,15 @@ import { Card } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/empty";
 import { getSystemStatus } from "@/lib/admin";
 import { requireScreen } from "@/lib/admin-screen";
+import { cdnInFront, clientIpSetting } from "@/lib/cdn";
 import { formatDate } from "@/lib/dates";
 import { noIndex } from "@/lib/no-index";
 import { buildMetadata } from "@/lib/seo";
 import { APP_VERSION } from "@/lib/version";
 import type { SystemStatus } from "@/types/system";
+import { websiteSpeedChecks, withWebsiteChecks } from "@/lib/speed";
+import { SchedulerGuide } from "./scheduler-guide";
+import { SpeedCard } from "./speed-card";
 
 export const metadata = buildMetadata({ title: "System status", path: "/admin/system/status", seo: noIndex });
 
@@ -33,6 +38,14 @@ export default async function SystemStatusPage() {
   const webMatches = status.website.version === status.version.version;
   const failing = status.php.checks.filter((c) => !c.ok);
   const gb = (bytes: number | null) => (bytes === null ? "—" : `${(bytes / 1024 ** 3).toFixed(1)} GB`);
+  // A CDN in front of the whole site (docs/cdn.md), read from this very
+  // request, and whether the website has been told which header names the
+  // visitor behind it.
+  const incoming = await headers();
+  const cdn = cdnInFront((name) => incoming.get(name));
+  const ipHeader = clientIpSetting();
+  // The API's findings, with the two only this server can answer added.
+  const speed = status.speed ? withWebsiteChecks(status.speed, websiteSpeedChecks(cdn)) : null;
 
   return (
     <>
@@ -82,8 +95,10 @@ export default async function SystemStatusPage() {
           {status.website.error && <p className="mt-3 text-13 text-err">{status.website.error}</p>}
         </Card>
 
-        <Card interactive={false} padding="sm" as="section" className="min-w-0">
-          <h2 className="mb-3 text-15 font-semibold">The scheduler</h2>
+        {/* Both columns: it carries a command line and the steps for adding it. */}
+        <Card interactive={false} padding="sm" as="section" className="min-w-0 lg:col-span-2">
+          {/* The anchor the dashboard's checklist and every "scheduler is not running" notice link to. */}
+          <h2 id="scheduler" className="mb-3 scroll-mt-24 text-15 font-semibold">The scheduler</h2>
           <p className="text-13-5">
             {status.scheduler.running
               ? <Badge tone="resolved">Running</Badge>
@@ -92,9 +107,43 @@ export default async function SystemStatusPage() {
               {status.scheduler.last_run_seconds == null ? "It has never run." : `Last seen ${status.scheduler.last_run_seconds} seconds ago.`}
             </span>
           </p>
-          {!status.scheduler.running && (
-            <p className="mt-2 text-13 text-muted">
-              Mail, backups and reminders wait for it. Add the cron job from <code className="font-mono [overflow-wrap:anywhere]">MANUAL/23-troubleshooting.md</code>.
+          {status.scheduler.setup
+            ? <SchedulerGuide setup={status.scheduler.setup} running={Boolean(status.scheduler.running)} />
+            : !status.scheduler.running && (
+              <p className="mt-2 text-13 text-muted">
+                Mail, backups and reminders wait for it. Add the cron job from <code className="font-mono [overflow-wrap:anywhere]">MANUAL/23-troubleshooting.md</code>.
+              </p>
+            )}
+        </Card>
+
+        {speed && <SpeedCard report={speed} />}
+
+        <Card interactive={false} padding="sm" as="section" className="min-w-0">
+          <h2 className="mb-3 text-15 font-semibold">CDN</h2>
+          {/* On the paragraph, not the Card: `Card` passes no unknown attribute through. */}
+          <p className="text-13-5" data-cdn-status>
+            {cdn
+              ? <Badge tone="resolved">Behind {cdn.name}</Badge>
+              : <Badge tone="closed">None in front of the website</Badge>}
+            <span className="ml-2 text-muted">
+              {cdn ? "This request reached the website through it." : "Optional — see the manual’s chapter on using a CDN."}
+            </span>
+          </p>
+          {cdn && ipHeader !== cdn.header && (
+            <p className="mt-2 text-13 text-err">
+              The website does not know each visitor’s own address, so everybody arriving through one {cdn.name} machine
+              shares the same sign-in and form limits. Set <code className="font-mono [overflow-wrap:anywhere]">CLIENT_IP_HEADER={cdn.header}</code> in
+              the website’s environment and restart the Node.js app.
+            </p>
+          )}
+          {cdn && ipHeader === cdn.header && (
+            <p className="mt-2 text-13 text-ok">Visitors’ own addresses are read from {cdn.name}.</p>
+          )}
+          {!cdn && ipHeader !== "" && ipHeader !== "x-real-ip" && (
+            <p className="mt-2 text-13 text-warn">
+              <code className="font-mono">CLIENT_IP_HEADER={ipHeader}</code> is set, but this request did not come through a CDN.
+              Anybody reaching this server directly can then choose the address they are limited under — remove it, or
+              close the server to everything but the CDN.
             </p>
           )}
         </Card>

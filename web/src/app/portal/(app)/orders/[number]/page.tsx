@@ -7,10 +7,13 @@ import { Alert } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import { getMyOrder } from "@/lib/portal";
 import { formatPaise } from "@/lib/money";
+import { DeliveryRow } from "@/components/store/delivery-row";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Order } from "@/types/api";
 import { Card } from "@/components/ui/card";
+import { ReturnsSection } from "@/components/store/returns-section";
+import { requestMyReturnAction } from "./actions";
 
 const TONE: Record<string, "resolved" | "open" | "progress" | "closed" | "urgent"> = {
   pending_payment: "open",
@@ -114,6 +117,8 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
                 </div>
               )}
 
+              <DeliveryRow paise={order.shipping_paise} zone={order.shipping_zone} />
+
               <div className="flex justify-between gap-4 border-t border-line pt-2 text-[16px] font-semibold">
                 <dt>Total</dt>
                 <dd className="tabular-nums">{formatPaise(order.total_paise)}</dd>
@@ -124,6 +129,26 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
                 <dd className="tabular-nums">{formatPaise(order.gst_paise)}</dd>
               </div>
             </dl>
+
+            {/*
+              The invoice (0.176.0). A plain `<a download>` and not a
+              `Link`: the address is a route handler that streams a file,
+              and a prefetch would fetch it on hover. `has_invoice` already
+              carries the paid check the route applies, so a link drawn here
+              is one that works.
+            */}
+            {order.has_invoice && (
+              <p className="mt-4 border-t border-line pt-3 text-13">
+                <a
+                  className="font-semibold text-brand-ink underline"
+                  href={`/api/portal/orders/${encodeURIComponent(order.order_number)}/invoice`}
+                  download
+                >
+                  Download the GST invoice
+                </a>
+                {order.invoice_number ? <span className="text-muted"> ({order.invoice_number})</span> : null}
+              </p>
+            )}
           </Card>
 
           {order.tracking_number && (
@@ -162,6 +187,15 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
           </Card>
         </div>
       </div>
+
+      {/* Returns (docs/store.md "Returns"): what is coming back, and the form while the window is open. */}
+      <ReturnsSection
+        order={order}
+        action={requestMyReturnAction.bind(null, order.order_number)}
+        uploadUrl={`/api/portal/orders/${order.order_number}/returns`}
+        loginPath="/portal/login"
+        className="mt-5"
+      />
     </>
   );
 }

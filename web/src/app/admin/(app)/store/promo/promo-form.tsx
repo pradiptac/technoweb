@@ -43,6 +43,7 @@ export function PromoForm({ rows }: { rows: SettingRow[] }) {
 
   const picture = (key: string) => (
     <CoverField
+      spec={key === "store_promo_image_path" ? "promo" : "tile"}
       name={`setting__${key}`}
       label={meta(key).label}
       defaultPath={byKey[key]?.value ?? null}

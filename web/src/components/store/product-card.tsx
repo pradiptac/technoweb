@@ -97,6 +97,7 @@ export function StoreProductCard({
                 images={product.images}
                 alts={product.image_alts}
                 focuses={product.image_focuses}
+                blurs={product.image_blurs}
                 /*
                   Six columns inside a 90vw container is 15vw a card, so 16vw
                   carries a little margin — it was 20vw for the five-column grid
@@ -180,6 +181,7 @@ export function StoreProductCard({
 
         <div data-tile-meta data-tile-price className="flex flex-wrap items-baseline gap-2 pt-1">
           <span className="text-17 font-semibold tabular-nums sm:text-[20px]">{formatPaise(product.price_paise)}</span>
+          {product.price_includes_gst === false && <span className="text-12 text-muted">+ GST</span>}
           {discounted && (
             <>
               <span className="text-13 tabular-nums text-faint line-through">

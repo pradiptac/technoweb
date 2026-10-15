@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getToken } from "@/lib/admin-auth";
@@ -15,5 +16,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (!/^\d+$/.test(id)) return NextResponse.json({ message: "That file could not be identified." }, { status: 400 });
 
-  return proxyMultipart(request, `/admin/media/${id}/replace`, { token });
+  const response = await proxyMultipart(request, `/admin/media/${id}/replace`, { token });
+
+  // The file kept its path and got a new public address; rebuild the pages
+  // that name it (see `publicPagesChanged` in the media actions).
+  if (response.ok) revalidatePath("/", "layout");
+
+  return response;
 }

@@ -1,6 +1,8 @@
 import "server-only";
 import { clientIpHeaders } from "@/lib/client-ip";
-import type { StoreFacetsResponse } from "@/types/store-merch";
+import { previewRecord, type PreviewKind } from "@/lib/preview-store";
+import type { StoreFacetsResponse, VideoShelfRow } from "@/types/store-merch";
+import type { StoreTagChip, StoreTagPage, StoreTagSitemapRow } from "@/types/store-tags";
 import type {
   ContentBlock,
   BlogPost,
@@ -12,8 +14,23 @@ import type {
   SearchResults,
   LandingPageSummary, LandingPage as LandingPageRecord,
   NavNode,
-  StoreProduct, StoreCategory, StoreFeedPage,
+  StoreProduct, StoreCategory, StoreFeedPage, DraftPreview,
 } from "@/types/api";
+import type {
+  EventAvailability, EventDetail, EventRegistration, EventRegistrationPayload, EventRegistrationResult, EventSummary,
+} from "@/types/events";
+import type { Download, DownloadCategoryList } from "@/types/downloads";
+import type { TenderCategoryList, TenderDetail, TenderSummary, TenderWindow } from "@/types/tenders";
+import type { SupportNetworkResponse } from "@/types/support";
+
+/**
+ * Nothing in the preview store means an ordinary request, and then this is
+ * just the fetch. See `lib/preview-store.ts`.
+ */
+function previewOr<T>(kind: PreviewKind, key: string, fetcher: () => Promise<Single<T>>): Promise<Single<T>> {
+  const hit = previewRecord<T>(kind, key);
+  return hit ? Promise.resolve({ data: hit }) : fetcher();
+}
 
 /**
  * Typed fetch wrapper for the Laravel REST API.
@@ -171,10 +188,12 @@ export const publicApi = {
       tags: ["landing-pages"],
     }),
   landingPage: (path: string) =>
-    apiFetch<Single<LandingPageRecord>>(`/landing-pages/lookup?path=${encodeURIComponent(path)}`, {
-      revalidate: 600,
-      tags: ["landing-pages", `landing-page:${path}`],
-    }),
+    previewOr<LandingPageRecord>("landing-page", path, () =>
+      apiFetch<Single<LandingPageRecord>>(`/landing-pages/lookup?path=${encodeURIComponent(path)}`, {
+        revalidate: 600,
+        tags: ["landing-pages", `landing-page:${path}`],
+      }),
+    ),
 
   /*
    * `inMenu` asks for the subset the mega menu may show.
@@ -190,7 +209,9 @@ export const publicApi = {
       tags: inMenu ? ["solutions", "menu"] : ["solutions"],
     }),
   solution: (slug: string) =>
-    apiFetch<Single<Solution>>(`/solutions/${slug}`, { revalidate: 300, tags: ["solutions", `solution:${slug}`] }),
+    previewOr<Solution>("solution", slug, () =>
+      apiFetch<Single<Solution>>(`/solutions/${slug}`, { revalidate: 300, tags: ["solutions", `solution:${slug}`] }),
+    ),
 
   services: (inMenu = false) =>
     apiFetch<Collection<Service>>(`/services${inMenu ? "?in_menu=1" : ""}`, {
@@ -198,7 +219,9 @@ export const publicApi = {
       tags: inMenu ? ["services", "menu"] : ["services"],
     }),
   service: (slug: string) =>
-    apiFetch<Single<Service>>(`/services/${slug}`, { revalidate: 600, tags: ["services", `service:${slug}`] }),
+    previewOr<Service>("service", slug, () =>
+      apiFetch<Single<Service>>(`/services/${slug}`, { revalidate: 600, tags: ["services", `service:${slug}`] }),
+    ),
   /**
    * The service categories, active only and in order — the tabs the services
    * are grouped under. Tagged `services`, which every service and category
@@ -229,7 +252,9 @@ export const publicApi = {
       cache ? { revalidate: 300, tags: ["products"] } : {},
     ),
   product: (slug: string) =>
-    apiFetch<Single<Product>>(`/products/${slug}`, { revalidate: 300, tags: ["products", `product:${slug}`] }),
+    previewOr<Product>("product", slug, () =>
+      apiFetch<Single<Product>>(`/products/${slug}`, { revalidate: 300, tags: ["products", `product:${slug}`] }),
+    ),
 
   /*
    * The shop, which is a different list from the catalogue above.
@@ -251,10 +276,12 @@ export const publicApi = {
       cache ? { revalidate: 120, tags: ["store-products"] } : {},
     ),
   storeProduct: (slug: string) =>
-    apiFetch<Single<StoreProduct>>(`/store/products/${slug}`, {
-      revalidate: 120,
-      tags: ["store-products", `store-product:${slug}`],
-    }),
+    previewOr<StoreProduct>("store-product", slug, () =>
+      apiFetch<Single<StoreProduct>>(`/store/products/${slug}`, {
+        revalidate: 120,
+        tags: ["store-products", `store-product:${slug}`],
+      }),
+    ),
   /**
    * The shopping feed, one page at a time. Cached an hour, matching the
    * route that renders it: Merchant Center fetches on a schedule, not on
@@ -265,6 +292,49 @@ export const publicApi = {
     apiFetch<StoreFeedPage>(`/store/feed?page=${page}&per_page=200`, {
       revalidate: 3600,
       tags: ["store-products"],
+    }),
+  /**
+   * "Shop the videos" (0.140.0): the products that carry a video, a tile
+   * each. `query` is `?limit=…&product=<slug>&others=0…` and is built by the
+   * caller from settings and a slug, never from a visitor's input — so it is
+   * cached, under `store-products` (a price or a stock change) and
+   * `store-videos` (a product's videos or the settings changing), which the
+   * product and settings save actions purge. A cached fetch is what lets the
+   * ISR product page carry the row: no cookie, no header, no `no-store`.
+   */
+  storeVideos: (query = "") =>
+    apiFetch<Collection<VideoShelfRow>>(`/store/videos${query}`, {
+      revalidate: 120,
+      tags: ["store-products", "store-videos"],
+    }),
+
+  /**
+   * The tags the shop front's row offers (0.141.0): visible tags of published
+   * products, with their counts — of one category when `category` is given.
+   * `{data: []}` in a 200 when there are none or the row is off. Tagged
+   * `store-products` and `store-tags`: a product save and every Tags-screen
+   * action purge them.
+   */
+  storeTags: (category?: string) =>
+    apiFetch<Collection<StoreTagChip>>(
+      `/store/tags${category ? `?category=${encodeURIComponent(category)}` : ""}`,
+      { revalidate: 300, tags: ["store-products", "store-tags"] },
+    ),
+  /**
+   * One tag's page (0.157.0). ISR-cached under `store-tags`, the tag's own
+   * `store-tag:<slug>` and `store-products` (its count and grid change with a
+   * product save). A hidden, unknown or switched-off tag is a 404.
+   */
+  storeTag: (slug: string) =>
+    apiFetch<Single<StoreTagPage>>(`/store/tags/${encodeURIComponent(slug)}`, {
+      revalidate: 300,
+      tags: ["store-tags", `store-tag:${slug}`, "store-products"],
+    }),
+  /** Every shown tag with a published product, for the sitemap (`?all=1`). */
+  storeTagsAll: () =>
+    apiFetch<Collection<StoreTagSitemapRow>>("/store/tags?all=1", {
+      revalidate: 600,
+      tags: ["store-products", "store-tags"],
     }),
   storeCategories: () =>
     apiFetch<Collection<StoreCategory>>("/store/categories", {
@@ -312,6 +382,9 @@ export const publicApi = {
   clients: () => apiFetch<Collection<Client>>("/clients", { revalidate: 600, tags: ["clients"] }),
   certifications: () =>
     apiFetch<Collection<Certification>>("/certifications", { revalidate: 600, tags: ["certifications"] }),
+  /** The support network (0.170.0, docs/support-network.md); `meta.schema` is the page's graph. */
+  supportCentres: () =>
+    apiFetch<SupportNetworkResponse>("/support-centres", { revalidate: 600, tags: ["support-centres"] }),
 
   /**
    * Every popup that is live right now, for the whole site.
@@ -406,12 +479,77 @@ export const publicApi = {
   careers: () =>
     apiFetch<Collection<JobOpening>>("/careers", { revalidate: 120, tags: ["careers"] }),
   career: (slug: string) =>
-    apiFetch<Single<JobOpening>>(`/careers/${slug}`, { revalidate: 120, tags: [`career:${slug}`] }),
+    previewOr<JobOpening>("career", slug, () =>
+      apiFetch<Single<JobOpening>>(`/careers/${slug}`, { revalidate: 120, tags: ["careers", `career:${slug}`] }),
+    ),
+
+  /*
+   * Events (docs/events-contract.md).
+   *
+   * `query` is only ever written by this codebase — `?when=past&per_page=6`,
+   * the sitemap's page walk — never by a visitor, so the key space is a
+   * handful of entries and safe to keep. The window is the vacancies' two
+   * minutes, for the vacancies' reason: an event stops being "upcoming"
+   * because the clock moved, not because an editor saved anything, and a
+   * page that goes on advertising yesterday's seminar for ten minutes is ten
+   * minutes of people being invited to something that is over. A console
+   * save purges `events` (and `event:<slug>`) and is seen at once.
+   */
+  events: (query = "") =>
+    apiFetch<Paginated<EventSummary>>(`/events${query}`, { revalidate: 120, tags: ["events"] }),
+  event: (slug: string) =>
+    previewOr<EventDetail>("event", slug, () =>
+      apiFetch<Single<EventDetail>>(`/events/${encodeURIComponent(slug)}`, {
+        revalidate: 120,
+        tags: ["events", `event:${slug}`],
+      }),
+    ),
+
+  /*
+   * Tenders (docs/tenders.md).
+   *
+   * **Sixty seconds, not the events' hundred and twenty**, and that number
+   * is the whole of the caching decision here. A cached response holds the
+   * state the API computed when it was fetched, so staleness is measured in
+   * how long a listing may be wrong about a deadline — and a tender stops
+   * being open because the clock moved, not because an editor saved
+   * anything. A minute is the most a page may claim a closed tender is
+   * taking bids; the notice's own page closes the rest of that gap by
+   * re-asking `tenderState()` after it mounts.
+   *
+   * A search is never cached, the rule the downloads' and the catalogue's
+   * `?q=` follow: the key space is unbounded, so caching it fills the cache
+   * with single-use entries and serves a stale empty result for the window.
+   */
+  tenders: (query = "", cache = true) =>
+    apiFetch<Paginated<TenderSummary>>(`/tenders${query}`, cache ? { revalidate: 60, tags: ["tenders"] } : {}),
+  tenderCategories: () =>
+    apiFetch<TenderCategoryList>("/tender-categories", { revalidate: 60, tags: ["tenders"] }),
+  tender: (slug: string) =>
+    previewOr<TenderDetail>("tender", slug, () =>
+      apiFetch<Single<TenderDetail>>(`/tenders/${encodeURIComponent(slug)}`, {
+        revalidate: 60,
+        tags: ["tenders", `tender:${slug}`],
+      }),
+    ),
+
+  /*
+   * The downloads centre (docs/downloads.md). The unfiltered list and the
+   * shelves are cached and tagged `downloads`, which every console save
+   * purges; a search is never cached (`cache: false`) — the rule the
+   * catalogue's and the knowledge base's `?q=` follow.
+   */
+  downloads: (query = "", cache = true) =>
+    apiFetch<Paginated<Download>>(`/downloads${query}`, cache ? { revalidate: 300, tags: ["downloads"] } : {}),
+  downloadCategories: () =>
+    apiFetch<DownloadCategoryList>("/download-categories", { revalidate: 300, tags: ["downloads"] }),
 
   caseStudies: () =>
     apiFetch<Collection<CaseStudy>>("/case-studies", { revalidate: 600, tags: ["case-studies"] }),
   caseStudy: (slug: string) =>
-    apiFetch<Single<CaseStudy>>(`/case-studies/${slug}`, { revalidate: 600, tags: ["case-studies", `case-study:${slug}`] }),
+    previewOr<CaseStudy>("case-study", slug, () =>
+      apiFetch<Single<CaseStudy>>(`/case-studies/${slug}`, { revalidate: 600, tags: ["case-studies", `case-study:${slug}`] }),
+    ),
 
   /**
    * The blog listing.
@@ -457,7 +595,9 @@ export const publicApi = {
       { revalidate: 60, tags: ["blog", `blog-comments:${slug}`] },
     ),
   post: (slug: string) =>
-    apiFetch<Single<BlogPost>>(`/blog/${slug}`, { revalidate: 300, tags: ["blog", `post:${slug}`] }),
+    previewOr<BlogPost>("post", slug, () =>
+      apiFetch<Single<BlogPost>>(`/blog/${slug}`, { revalidate: 300, tags: ["blog", `post:${slug}`] }),
+    ),
 
   knowledgeArticles: (query = "", cache = true) =>
     apiFetch<Paginated<KnowledgeArticle>>(
@@ -465,7 +605,9 @@ export const publicApi = {
       cache ? { revalidate: 300, tags: ["kb"] } : {},
     ),
   knowledgeArticle: (slug: string) =>
-    apiFetch<Single<KnowledgeArticle>>(`/knowledge-base/${slug}`, { revalidate: 300, tags: ["kb", `kb:${slug}`] }),
+    previewOr<KnowledgeArticle>("knowledge-article", slug, () =>
+      apiFetch<Single<KnowledgeArticle>>(`/knowledge-base/${slug}`, { revalidate: 300, tags: ["kb", `kb:${slug}`] }),
+    ),
 
   /**
    * Published pages without their bodies — /privacy, /terms, /downloads and
@@ -476,7 +618,9 @@ export const publicApi = {
   pages: () =>
     apiFetch<Collection<CmsPageSummary>>("/pages", { revalidate: 600, tags: ["pages"] }),
   page: (slug: string) =>
-    apiFetch<Single<CmsPage>>(`/pages/${slug}`, { revalidate: 600, tags: ["pages", `page:${slug}`] }),
+    previewOr<CmsPage>("page", slug, () =>
+      apiFetch<Single<CmsPage>>(`/pages/${slug}`, { revalidate: 600, tags: ["pages", `page:${slug}`] }),
+    ),
 
   /*
    * Custom content types (docs/custom-content.md). Tagged
@@ -494,10 +638,20 @@ export const publicApi = {
       { revalidate: 600, tags: ["content-types", `entries:${type}`] },
     ),
   entry: (type: string, slug: string) =>
-    apiFetch<Single<ContentEntry>>(`/types/${type}/${slug}`, {
-      revalidate: 600,
-      tags: [`entries:${type}`, `entry:${type}:${slug}`],
-    }),
+    previewOr<ContentEntry>("entry", `${type}/${slug}`, () =>
+      apiFetch<Single<ContentEntry>>(`/types/${type}/${slug}`, {
+        revalidate: 600,
+        // `entries` is every type's: a library section edited in the console can sit on any entry.
+        tags: ["entries", `entries:${type}`, `entry:${type}:${slug}`],
+      }),
+    ),
+
+  /**
+   * A draft opened from its share link (0.138.0). Never cached: the link can
+   * be revoked at any moment, and a cached answer would keep a revoked draft
+   * on screen.
+   */
+  preview: (token: string) => apiFetch<DraftPreview>(`/preview/${token}`, { cache: "no-store" }),
 
   /**
    * Site-wide search. Never cached, for the reason spelled out on
@@ -510,4 +664,56 @@ export const publicApi = {
 
   ticketCategories: () =>
     apiFetch<{ data: { id: number; name: string }[] }>("/ticket-categories", { revalidate: 3600, tags: ["ticket-categories"] }),
+};
+
+/**
+ * The one tender read that is never cached: whether a notice is taking bids
+ * at this moment (docs/tenders.md).
+ *
+ * Apart from `publicApi` for the events' reason — nothing here may enter an
+ * ISR render, because a `no-store` fetch inside a page that exports
+ * `generateStaticParams` is a 500 rather than a fallback. The notice's page
+ * is in that cache and so renders the state it was built with; this is what
+ * its badge asks afterwards, from a route handler.
+ */
+export const tenderApi = {
+  state: (slug: string) =>
+    apiFetch<{ data: TenderWindow }>(`/tenders/${encodeURIComponent(slug)}/state`),
+};
+
+/**
+ * The half of events that is about one visitor, and so is never cached:
+ * whether there is room right now, registering, and a registration read or
+ * cancelled through the token in its link (docs/events-contract.md).
+ *
+ * Apart from `publicApi` because nothing here may enter an ISR render — each
+ * call is `no-store`, which inside a page that exports `generateStaticParams`
+ * is a 500 rather than a fallback. They are called from route handlers,
+ * Server Actions and the one dynamic page (`/events/registration/[token]`),
+ * and being uncached they carry the visitor's address, which is what the
+ * API's per-visitor throttles count.
+ */
+export const eventApi = {
+  availability: (slug: string) =>
+    apiFetch<{ data: EventAvailability }>(`/events/${encodeURIComponent(slug)}/availability`),
+
+  /**
+   * `token` is the portal session when there is one, so the registration is
+   * filed under the customer's account — the route is public, and without the
+   * header the API sees nobody at all.
+   */
+  register: (slug: string, payload: EventRegistrationPayload, token?: string) =>
+    apiFetch<EventRegistrationResult>(`/events/${encodeURIComponent(slug)}/register`, {
+      method: "POST",
+      body: payload,
+      token,
+    }),
+
+  registration: (token: string) =>
+    apiFetch<{ data: EventRegistration }>(`/events/registrations/${encodeURIComponent(token)}`),
+
+  cancelRegistration: (token: string) =>
+    apiFetch<{ data: EventRegistration }>(`/events/registrations/${encodeURIComponent(token)}/cancel`, {
+      method: "POST",
+    }),
 };

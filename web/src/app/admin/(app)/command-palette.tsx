@@ -6,7 +6,7 @@ import { IconSearch } from "@/components/icons-ui";
 import { confirmLeave } from "@/components/admin/form-actions";
 import { cn } from "@/lib/utils";
 
-export type PalettePage = { label: string; href: string; group?: string };
+export type PalettePage = { label: string; href: string; group?: string; keywords?: string };
 
 type Group = { type: string; label: string; items: { label: string; sub: string | null; admin_path: string }[] };
 type Row = { key: string; label: string; sub: string | null; href: string; group: string };
@@ -17,7 +17,9 @@ type Row = { key: string; label: string; sub: string | null; href: string; group
  * Two sources in one list. The console's own screens — the sidebar's rows,
  * already filtered by role, handed in by the layout as plain `{label, href}`
  * pairs — match client-side from the first character, so "cus" is on
- * Customers before anything has been fetched. Records come from
+ * Customers before anything has been fetched; a row may carry `keywords`,
+ * other words for the same thing, matched and never shown ("cron" finds the
+ * scheduler's command). Records come from
  * `/api/admin/search` (the API's `/admin/search`, five per group, each group
  * present only for a role that may open it) 200ms after the last keystroke
  * from two characters. Pages first, because a page is what somebody
@@ -108,7 +110,8 @@ export function CommandPalette({ pages }: { pages: PalettePage[] }) {
   }, [open, query]);
 
   const lower = query.toLowerCase();
-  const pageRows: Row[] = (lower ? pages.filter((p) => p.label.toLowerCase().includes(lower) || (p.group ?? "").toLowerCase().includes(lower)) : pages)
+  const matches = (p: PalettePage) => [p.label, p.group ?? "", p.keywords ?? ""].some((text) => text.toLowerCase().includes(lower));
+  const pageRows: Row[] = (lower ? pages.filter(matches) : pages)
     .slice(0, lower ? 8 : 12)
     .map((p) => ({ key: `page:${p.href}`, label: p.label, sub: p.group ?? null, href: p.href, group: "Go to" }));
   const recordRows: Row[] = query.length >= 2 && groups.q === query

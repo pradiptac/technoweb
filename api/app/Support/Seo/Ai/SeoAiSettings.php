@@ -37,7 +37,7 @@ class SeoAiSettings
      * Delegated rather than re-read: `ChatSettings::apiKey()` already resolves
      * the settings row and falls back to `.env`, and a second copy of that
      * fallback is a second thing to change when the arrangement moves. One
-     * account, one key — a second `seo_openai_api_key` would be two credentials
+     * account, one key — a second `seo_openrouter_api_key` would be two credentials
      * for one provider and an obvious way to have exactly one of them rotated.
      */
     public static function apiKey(): ?string

@@ -140,3 +140,27 @@ The `rich_text` and `media_text` sections of the page builder
 wildcard since 2026-09-26 — so a section body is cleaned by `HtmlSanitiser`
 before validation exactly as a page body is, and rendered through
 `ProseWithShortcodes`. Every other section field is plain text.
+
+## Icons in text (0.179.0)
+
+The editor's **Icon** button inserts `[icon name="ms:router"]` as plain text
+(`insertText`), and `Prose` expands it into an inline svg the size and colour
+of the text (`expandInlineIcons` in `lib/shortcodes.ts`, `.prose-icon` in
+`globals.css`).
+
+**The one shortcode expanded by substitution.** Every other shortcode becomes
+a component, never markup, because the sanitiser has already run. An icon
+must sit inside a sentence, which the segment splitter cannot reach without
+parsing HTML — so substitution is allowed on one condition the pattern holds:
+the only value written into the markup is a name of `[a-z0-9_]`, at most 37
+characters, which cannot leave the attribute it is written into. A malformed
+shortcode stays literal text. `scripts/shortcodes.check.mjs` pins both halves.
+Only Google icons are offered: a site icon is a component with no file to
+point at.
+
+**The button is offered only where the body renders through `Prose`.**
+`RichTextEditor icons={false}` on the email templates, the info bar and the
+activation procedure, which are rendered as raw HTML or sent as mail, where
+the shortcode would arrive literally. And `HtmlSanitiser::toText()` drops it,
+so a derived meta description, search excerpt or `llms-full.txt` line never
+carries `[icon name=…]`.

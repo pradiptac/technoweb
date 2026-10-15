@@ -4,6 +4,7 @@ namespace App\Support\Blocks;
 
 use App\Enums\ContentBlockType;
 use App\Models\Media;
+use App\Support\IconKey;
 use App\Support\LinkPattern;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -29,7 +30,7 @@ final class BlockRules
     public const LINK = LinkPattern::RULE;
 
     /** An `iconMap` key's shape; the frontend draws nothing for one it does not know. */
-    private const ICON = 'regex:/^[a-z0-9-]{1,40}$/';
+    private const ICON = IconKey::RULE;
 
     private const HEX = 'regex:/^#[0-9a-fA-F]{6}$/';
 
@@ -220,6 +221,9 @@ final class BlockRules
             'billing.monthly_label' => ['nullable', 'string', 'max:30'],
             'billing.yearly_label' => ['nullable', 'string', 'max:30'],
             'billing.yearly_note' => ['nullable', 'string', 'max:60'],
+            'promo' => ['nullable', 'string', 'max:40'],
+            'guarantees' => ['nullable', 'array', 'max:6'],
+            'guarantees.*' => ['required', 'string', 'max:60'],
             'sets' => ['required', 'array', 'min:1', 'max:6'],
             'sets.*.label' => ['required', 'string', 'max:40'],
             'sets.*.plans' => ['required', 'array', 'min:1', 'max:4'],
@@ -235,6 +239,7 @@ final class BlockRules
             'sets.*.plans.*.cta' => ['nullable', 'array'],
             'sets.*.plans.*.cta.label' => ['nullable', 'string', 'max:40'],
             'sets.*.plans.*.cta.href' => ['nullable', 'required_with:content.sets.*.plans.*.cta.label', 'string', 'max:2048', self::LINK],
+            'sets.*.plans.*.cta.copy' => ['nullable', 'boolean'],
             'sets.*.plans.*.highlighted' => ['nullable', 'boolean'],
             'sets.*.rows' => [$layout === 'comparison' ? 'required' : 'nullable', 'array', 'max:40'],
             'sets.*.rows.*.label' => ['required', 'string', 'max:120'],

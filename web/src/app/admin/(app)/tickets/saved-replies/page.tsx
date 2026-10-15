@@ -3,6 +3,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { IconHeadset } from "@/components/icons";
 import { getCannedReplies } from "@/lib/admin";
@@ -65,7 +66,7 @@ export default async function SavedRepliesPage({ searchParams }: { searchParams:
       </FilterBar>
 
       {rows.length === 0 ? (
-        <EmptyState icon={<IconHeadset />} title={filtered ? "No saved replies match" : "No saved replies yet"}>
+        <EmptyState icon={<IconHeadset />} title={filtered ? "No saved replies match" : "No saved replies yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/tickets/saved-replies" newHref="/admin/tickets/saved-replies/new" noun="saved reply" />}>
           {filtered
             ? "Try a different term, or clear the search."
             : "Save the answers the desk gives most often, and they will be offered on every ticket."}

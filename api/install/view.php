@@ -23,6 +23,16 @@ button{font:inherit;font-weight:600;padding:10px 18px;border-radius:8px;border:1
 .checks{list-style:none;padding:0;margin:0}.checks li{padding:8px 0;border-bottom:1px solid var(--line)}.checks li:last-child{border:0}.checks b{display:inline-block;width:22px}
 .ok{color:var(--ok)}.bad{color:var(--err)}.maybe{color:var(--warn)}
 .note{padding:12px 14px;border-radius:8px;margin:14px 0 0;font-size:14px}.note.err{background:var(--err-soft);color:var(--err)}.note.warn{background:var(--warn-soft);color:var(--warn)}.note.ok{background:var(--ok-soft);color:var(--ok)}
+/* The logo's palettes (0.173.0): each tile is its colours and its name. */
+.readings{display:grid;gap:8px;margin-top:10px}
+@media (min-width:600px){.readings{grid-template-columns:repeat(3,1fr)}}
+.reading{display:block;width:100%;margin:0;padding:8px;text-align:left;background:var(--card);color:inherit;border:1px solid var(--line);border-radius:8px;cursor:pointer;font:inherit}
+.reading:hover{border-color:var(--brand)}
+.reading[disabled]{opacity:.6;cursor:progress}
+.reading .swatches{display:flex;gap:3px}
+.reading .swatches i{height:22px;flex:1;border-radius:4px;border:1px solid rgba(0,0,0,.12)}
+.reading b{display:block;margin-top:6px;font-size:13px}
+.reading code{font-size:11px;color:var(--muted)}
 .bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:14px}.bar i{display:block;height:100%;background:var(--brand);width:0;transition:width .3s}
 pre,code{font:13px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}pre{background:var(--page);border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-all}
 dl.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:12px 0}dl.kv dt{color:var(--muted)}dl.kv dd{margin:0;font-weight:600;word-break:break-all}
@@ -110,7 +120,7 @@ dl.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:12px 0}dl.
         <div><label for="m-from">Send from</label><input type="email" id="m-from" name="mail_from"><p class="err" data-err="mail_from"></p></div>
       </div>
     </div>
-    <div class="check"><label><input type="checkbox" name="demo"> Load sample content (made-up posts, products, team and tickets to try the site with — all of it must be deleted before launch)</label></div>
+    <div class="check"><label><input type="checkbox" name="demo" checked> Load sample content (made-up posts, products, team and tickets to try the site with — untick for an empty site; all of it must be deleted before launch)</label></div>
     <button data-go="site">Continue</button>
   </section>
 
@@ -122,8 +132,20 @@ dl.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:12px 0}dl.
     <button data-go="install" id="install-go">Install</button>
   </section>
 
+  <section class="card" data-step="logo" hidden>
+    <h2>6. Your logo</h2>
+    <p>Upload your logo now and we can take the site&rsquo;s colours from it. Both are optional &mdash; you can do either later in the console.</p>
+    <label for="logo-file">Logo file</label>
+    <input type="file" id="logo-file" name="logo" accept=".png,.jpg,.jpeg,.webp,.svg">
+    <p class="hint">PNG, JPG, WebP or SVG, under 2&nbsp;MB. A version on a transparent background works best.</p>
+    <p class="err" data-err="logo"></p>
+    <div id="logo-readings"></div>
+    <button data-go="logo" id="logo-go">Upload the logo</button>
+    <button class="ghost" data-go="skip-logo">Skip this</button>
+  </section>
+
   <section class="card" data-step="website" hidden>
-    <h2>6. Start the website</h2>
+    <h2>7. Start the website</h2>
     <p>The website is a Node.js application. Create it in the hosting panel with exactly these values, then press <b>Check the website</b>.</p>
     <dl class="kv" id="node"></dl>
     <p class="hint"><b>cPanel:</b> Software → "Setup Node.js App" → Create Application. <b>Plesk:</b> the website's domain → Node.js → enable, then set the same values.
@@ -134,7 +156,7 @@ dl.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:12px 0}dl.
   </section>
 
   <section class="card" data-step="scheduler" hidden>
-    <h2>7. The scheduler</h2>
+    <h2>8. The scheduler</h2>
     <p>Mail, backups and reminders are sent by one scheduled task that runs every minute. Add this line as a <b>cron job</b>
       (cPanel: Advanced → Cron Jobs, "Once per minute"; Plesk: Tools &amp; Settings or the domain's "Scheduled Tasks", "Run a command").</p>
     <pre id="cron"></pre>

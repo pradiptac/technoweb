@@ -10,6 +10,8 @@ import { EmptyState } from "@/components/ui/empty";
 import { IconBox, IconCart } from "@/components/icons";
 import { getCart } from "@/lib/cart";
 import { formatPaise } from "@/lib/money";
+import { shownDelivery } from "@/lib/cart-shown";
+import { cn } from "@/lib/utils";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { clearCartAction } from "@/components/store/actions";
@@ -144,8 +146,8 @@ export default async function CartPage({ searchParams }: { searchParams: Promise
                             id={line.id}
                             name={line.name}
                             quantity={line.quantity}
-                            unitPricePaise={line.unit_price_paise}
-                            lineTotalPaise={line.line_total_paise}
+                            unitPricePaise={line.shown_unit_price_paise ?? line.unit_price_paise}
+                            lineTotalPaise={line.shown_line_total_paise ?? line.line_total_paise}
                           />
                           <RemoveLineForm id={line.id} name={line.name} />
                         </div>
@@ -165,13 +167,38 @@ export default async function CartPage({ searchParams }: { searchParams: Promise
                 <dl className="grid gap-2 text-14">
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted">Subtotal</dt>
-                    <dd className="tabular-nums">{formatPaise(cart!.subtotal_paise)}</dd>
+                    <dd className="tabular-nums">{formatPaise(cart!.shown_subtotal_paise ?? cart!.subtotal_paise)}</dd>
                   </div>
 
                   {cart!.discount_paise > 0 && (
                     <div className="flex justify-between gap-4">
                       <dt className="text-muted">Discount</dt>
-                      <dd className="tabular-nums text-ok">−{formatPaise(cart!.discount_paise)}</dd>
+                      <dd className="tabular-nums text-ok">−{formatPaise(cart!.shown_discount_paise ?? cart!.discount_paise)}</dd>
+                    </div>
+                  )}
+
+                  {/* Delivery (0.142.0): the API's words — "Free", a figure, or "Worked out at checkout". */}
+                  {cart!.has_shippable && cart!.shipping_label && (
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted">Delivery{cart!.shipping_zone ? ` (${cart!.shipping_zone})` : ""}</dt>
+                      <dd className={cn(
+                        "text-right tabular-nums",
+                        cart!.shipping_deliverable === false ? "text-err" : cart!.shipping_paise == null ? "text-muted" : cart!.shipping_paise === 0 ? "text-ok" : "",
+                      )}>
+                        {shownDelivery(cart!)}
+                      </dd>
+                    </div>
+                  )}
+
+                  {/*
+                    Shown before GST (0.178.0), the GST is a row that adds up
+                    with the others; shown with GST it is a note under the
+                    total. The total is the same either way.
+                  */}
+                  {cart!.gst_added_paise > 0 && (
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted">GST{cart!.gst_rate ? ` at ${cart!.gst_rate}` : ""}</dt>
+                      <dd className="tabular-nums">{formatPaise(cart!.gst_added_paise)}</dd>
                     </div>
                   )}
 
@@ -180,16 +207,12 @@ export default async function CartPage({ searchParams }: { searchParams: Promise
                     <dd className="tabular-nums">{formatPaise(cart!.total_paise)}</dd>
                   </div>
 
-                  {/*
-                    The GST is shown as part of the total, never added to it.
-                    Prices include it, so this is a breakdown of what is already
-                    there — which is what the law wants stated and what stops
-                    somebody expecting another 18% at the payment page.
-                  */}
-                  <div className="flex justify-between gap-4 text-12-5 text-muted">
-                    <dt>Includes GST at {cart!.gst_rate}</dt>
-                    <dd className="tabular-nums">{formatPaise(cart!.gst_paise)}</dd>
-                  </div>
+                  {cart!.gst_added_paise === 0 && (
+                    <div className="flex justify-between gap-4 text-12-5 text-muted">
+                      <dt>Includes GST{cart!.gst_rate ? ` at ${cart!.gst_rate}` : ""}</dt>
+                      <dd className="tabular-nums">{formatPaise(cart!.gst_paise)}</dd>
+                    </div>
+                  )}
                 </dl>
 
                 <CouponField applied={cart!.coupon_code} label={cart!.coupon_label} />

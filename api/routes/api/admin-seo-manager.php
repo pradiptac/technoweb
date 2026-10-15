@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\LandingPageController as AdminLandingPageController;
 use App\Http\Controllers\Api\V1\Admin\LocationController as AdminLocationController;
+use App\Http\Controllers\Api\V1\Admin\NotFoundHitController as AdminNotFoundHitController;
 use App\Http\Controllers\Api\V1\Admin\RedirectController as AdminRedirectController;
 use App\Http\Controllers\Api\V1\Admin\SeoAiController;
 use App\Http\Controllers\Api\V1\Admin\SeoController;
@@ -30,6 +31,10 @@ Route::middleware('role:seo_manager')->group(function () {
      */
     Route::post('seo/ai/test-model', [SeoAiController::class, 'testModel'])
         ->middleware('throttle:6,1')->name('seo.ai.test-model');
+    // What "Test a model" offers: the list, which model each feature is on,
+    // and whether a key is saved. Reads settings only — no provider, no secret.
+    Route::get('seo/ai/models', [SeoAiController::class, 'models'])
+        ->middleware('throttle:60,1')->name('seo.ai.models');
     Route::get('seo/ai/suggestions', [SeoAiController::class, 'suggestions'])->name('seo.ai.suggestions');
     Route::post('seo/ai/suggestions/{seoSuggestion}/status', [SeoAiController::class, 'decide'])
         ->name('seo.ai.decide');
@@ -41,7 +46,7 @@ Route::middleware('role:seo_manager')->group(function () {
     /*
      * Last of the `seo/ai/*` block, because `{action}` is a
      * parameter and would otherwise swallow "suggestions",
-     * "context" and "test-model" — the same shadowing, one level
+     * "context", "models" and "test-model" — the same shadowing, one level
      * further in.
      */
     Route::post('seo/ai/{action}', [SeoAiController::class, 'run'])
@@ -61,6 +66,18 @@ Route::middleware('role:seo_manager')->group(function () {
     Route::delete('redirects/{redirect:id}', [AdminRedirectController::class, 'destroy'])->name('redirects.destroy');
 
     /*
+     * Missing pages (0.137.0): addresses visitors asked for that do not exist,
+     * the worklist the redirect table above is the answer to. An address
+     * leaves it by itself once a redirect starts there; `ignore` is for the
+     * ones not worth one.
+     */
+    Route::get('not-found', [AdminNotFoundHitController::class, 'index'])->name('not-found.index');
+    Route::post('not-found/{hit}/ignore', [AdminNotFoundHitController::class, 'ignore'])
+        ->whereNumber('hit')->name('not-found.ignore');
+    Route::post('not-found/{hit}/restore', [AdminNotFoundHitController::class, 'restore'])
+        ->whereNumber('hit')->name('not-found.restore');
+
+    /*
      * Landing pages and the places they can be about.
      *
      * Under seo_manager rather than content_manager on purpose. A
@@ -76,6 +93,7 @@ Route::middleware('role:seo_manager')->group(function () {
     Route::get('landing-pages/opportunities', [AdminLandingPageController::class, 'opportunities'])->name('landing-pages.opportunities');
     Route::get('landing-pages', [AdminLandingPageController::class, 'index'])->name('landing-pages.index');
     Route::post('landing-pages', [AdminLandingPageController::class, 'store'])->name('landing-pages.store');
+    Route::post('landing-pages/bulk', [AdminLandingPageController::class, 'bulk'])->middleware('throttle:30,1')->name('landing-pages.bulk');
     Route::get('landing-pages/{landing_page:id}', [AdminLandingPageController::class, 'show'])->name('landing-pages.show');
     Route::patch('landing-pages/{landing_page:id}', [AdminLandingPageController::class, 'update'])->name('landing-pages.update');
     Route::delete('landing-pages/{landing_page:id}', [AdminLandingPageController::class, 'destroy'])->name('landing-pages.destroy');

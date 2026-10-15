@@ -8,6 +8,7 @@ use App\Models\Cart;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\StoreProduct;
+use App\Support\IndianStates;
 use App\Support\Store\Basket;
 use App\Support\Store\CartReminders;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * The basket, addressed by a token.
@@ -288,6 +290,48 @@ class CartController extends Controller
         }
 
         $cart->save();
+
+        return response()->json(['data' => Basket::summarise($cart->fresh())]);
+    }
+
+    /**
+     * Where the checkout says this is going, so delivery can be quoted.
+     *
+     * The checkout form sends the state as soon as it changes (and the PIN
+     * lookup sets it programmatically), and the answer is the whole basket
+     * with `shipping_*` worked out for it. It is a quote, not a commitment:
+     * the order is quoted again from the real address under a lock, and a
+     * destination that differs from this one is refused there with the new
+     * figure.
+     *
+     * A name or a code. A blank clears it; a string that is no Indian state
+     * is a 422, so a misspelling can never quietly select the cheaper zone.
+     * Only the destination moves — `touch()` is not called, so the idle
+     * clock the reminders read is not reset by a form field.
+     */
+    public function destination(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'state' => ['present', 'nullable', 'string', 'max:120'],
+        ]);
+
+        $cart = $this->cart($request);
+        $code = null;
+
+        if (filled($data['state'])) {
+            $code = IndianStates::code($data['state']);
+
+            if ($code === null) {
+                throw ValidationException::withMessages(['state' => 'Choose your state from the list.']);
+            }
+        }
+
+        if ($cart->ship_state !== $code) {
+            $cart->ship_state = $code;
+            $cart->timestamps = false;
+            $cart->save();
+            $cart->timestamps = true;
+        }
 
         return response()->json(['data' => Basket::summarise($cart->fresh())]);
     }

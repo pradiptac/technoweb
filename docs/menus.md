@@ -419,3 +419,65 @@ service under its category, in the panel and in the drawer — through
 `MenuItem.glyph`, rendered on the server beside the tile and the drawer icon
 (`IdentityIcon` at 16px, the hues already graded for both schemes). The first
 level keeps its tile; a tile at every level reads as three grids.
+
+**The top bar has a fifth panel, `columns`, and badges ride on every menu
+(0.150.0, the client's reference — a customer-zone menu with a thin brand line
+along the top, a small uppercase heading over each column and, under it, bold
+titles with a status chip and a line of muted description).** The shape is
+`components/layout/top-bar-columns.tsx`: each first-level child of a top-bar
+link is a column — its label the uppercase, letter-spaced, muted heading (a
+link when it has an address, a plain label when it is a heading), its children
+the items, each a bold title, an outlined chip beside it and the summary under,
+at most three lines; a child with no children of its own is an item in a
+leading column with no heading. No icons, no cards, no tabs, everything visible
+at once. Columns are a fixed 240px, at most four to a row, so the panel is
+`min(count × 240 + gaps + padding, 100vw − 2rem)` wide — 832px for three — and
+wraps past that; the top edge is `border-t-brand-600`, a token. Every theme's
+`theme.css` states the line in its own idiom under
+`[data-panel="topbar"][data-topbar-style="columns"]` (Editorial a double rule,
+Terminal a double rule and `#` before each heading, Datacenter mono headings,
+Horizon its three-hue rule, and so on).
+
+**It is not a sixth `menu_style`; it is `topbar_style` (`match` | `columns`),
+a theme option of its own.** `menu_style` drives the header's mega menu *and* the
+top bar's panel, so adding `columns` to it would have given the mega menu a
+fifth shape it has no layout for, and an install that chose `big` for its header
+would have lost the choice for its top bar. `match` — the default, and what every
+stored row resolves to — leaves the panel following the menu style exactly as
+before; `columns` overrides it for the top bar alone. It is chosen on **Site →
+Themes → Options for … → Top bar panel**, checked for shape by
+`ThemeOptions::clean()` like every choice id, and resolved by `resolveOptions()`
+(an unknown id is `match`). It reaches `TopBarPanel` through
+`TopBarStyleProvider` (`components/layout/topbar-style.tsx`), mounted by
+`themeChrome()` and classic's chrome around the header: a prop would have been
+eleven edits through nine headers that each already pass `menuStyle` to two
+panels, for a value one component reads.
+
+**A badge is `menu_items.badge` (plain text, 12 characters) and `badge_tone`
+(`live`, `beta`, `soon`, `new`, default `new`).** Stored as typed and upper-cased
+by CSS, so "Beta" and "BETA" are one thing on the page; a blank is no badge and
+the public tree sends `badge_tone: null` beside a null badge. `MenuRequest`
+refuses a long badge or an unknown tone at the nested path
+(`items.0.children.1.badge_tone`), `MenuItem::BADGE_TONES` is the one list, and
+the builder's item panel has a text box and a tone select. It is drawn by
+`MenuBadge` — an outlined chip, text and border one colour, transparent ground,
+12px — inside the columns panel, every other top-bar panel shape, the mega menu
+(every style, sub-items too) and the mobile drawer.
+
+**The tones are tokens, and the top bar's ground is a setting, so its chips
+cannot use the status tokens.** On a light panel (the mega menu, the drawer, the
+five themes whose top-bar panel is a light card) live → `--color-ok`, beta →
+`--color-tag-5` (the violet identity token, graded against the card, in preference to
+`--color-info`, which is a blue), soon → `--color-muted`, new →
+`--color-brand-ink`. `--color-ok` is chosen for the scheme's panels; the top bar
+is the dark band or whatever colour `theme_topbar` is, in both schemes. So
+`badgeInks(band, brandHue)` in `lib/palette.ts` derives
+`--color-topbar-live/beta/new` per bar, each walked to 4.5:1 on the bar's raised
+step (`bar2`, the lightest ground a chip sits on), SOON using the band's own
+`muted`; `themeVars()` emits them beside the other five topbar tokens and
+`globals.css` carries the default bar's. A theme that re-tokens its top-bar panel
+to the page's tokens (Canvas, Keystone, Launch, Terminal, Vantage) re-tokens the
+three chip inks in the same block — otherwise a light card would carry inks
+graded for a dark one. Measured for four bars (default, navy in dark, navy in
+light, cream): 6.0–9.1 : 1.
+`scripts/probes/topbar-columns.mjs` is the browser half (not yet run).

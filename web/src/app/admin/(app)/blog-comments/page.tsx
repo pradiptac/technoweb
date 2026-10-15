@@ -2,6 +2,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { getComments, type CommentList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -88,7 +89,7 @@ export default async function BlogCommentsPage({
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState title={filtered ? "Nothing matches that" : "Nothing is waiting"}>
+        <EmptyState title={filtered ? "Nothing matches those filters" : "Nothing is waiting"} action={<EmptyListAction filtered={filtered} clearHref="/admin/blog-comments" noun="comment" />}>
           {filtered
             ? "No comment matches that filter."
             : "Every comment has been dealt with. New ones arrive here and stay unpublished until you approve them."}

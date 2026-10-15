@@ -1,12 +1,15 @@
 "use server";
 
+import { runBulkAction } from "@/lib/admin/bulk";
+import type { BulkState } from "@/types/bulk";
+
 import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import {
   createCaseStudy, deleteCaseStudy, updateCaseStudy, type CaseStudyPayload,
 } from "@/lib/admin";
-import { customFieldsFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import { customFieldsFromFormData, sectionsFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import type { CaseStudyResult, PublishStatus } from "@/types/api";
 
 export type CaseStudyFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -40,6 +43,8 @@ function payloadFrom(formData: FormData): CaseStudyPayload {
   return {
     // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
     ...customFieldsFromFormData(formData),
+    // The Sections tab: which of the two the page shows, and the builder's list.
+    ...sectionsFromFormData(formData),
     title: str(formData, "title") ?? "",
     slug: str(formData, "slug"),
     client_name: str(formData, "client_name"),
@@ -113,4 +118,14 @@ export async function deleteCaseStudyAction(formData: FormData) {
   updateTag("case-studies");
   revalidatePath("/admin/case-studies");
   redirect("/admin/case-studies?deleted=1");
+}
+
+/** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
+export async function bulkCaseStudiesAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  return runBulkAction(formData, {
+    path: "case-studies",
+    noun: ["case study", "case studies"],
+    tags: ["case-studies"],
+    paths: ["/admin/case-studies"],
+  });
 }

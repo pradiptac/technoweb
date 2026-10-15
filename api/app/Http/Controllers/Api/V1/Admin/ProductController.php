@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\AnswerBlockKind;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Http\Resources\Admin\ProductResource;
 use App\Models\Product;
 use App\Support\CustomFields\CustomFields;
 use App\Support\ListSort;
+use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -30,6 +33,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ProductController extends Controller
 {
+    use HandlesBulk;
     use WritesCmsEntities;
 
     /** Keys that must be lifted out before mass assignment. */
@@ -76,6 +80,7 @@ class ProductController extends Controller
         $product = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $relations = $this->pull($attributes, self::RELATIONS);
 
             $product = Product::create($attributes);
@@ -98,6 +103,7 @@ class ProductController extends Controller
         DB::transaction(function () use ($request, $product) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $relations = $this->pull($attributes, self::RELATIONS);
 
             $product->update($attributes);
@@ -111,6 +117,20 @@ class ProductController extends Controller
     }
 
     public function destroy(Product $product): JsonResponse
+    {
+        $this->remove($product);
+
+        return response()->json(['message' => 'Product deleted.']);
+    }
+
+    /** `POST /admin/products/bulk` — publish, draft, archive or delete the ticked products. */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, Product::query(), $this->remove(...));
+    }
+
+    /** What deleting a product does, for `destroy()` and the bulk path alike. */
+    private function remove(Product $product): void
     {
         DB::transaction(function () use ($product) {
             // Product is the only soft-deleting model, and nothing in the app
@@ -136,8 +156,6 @@ class ProductController extends Controller
             $product->seo()->delete();
             $product->delete();
         });
-
-        return response()->json(['message' => 'Product deleted.']);
     }
 
     /** @return array<int, string> */

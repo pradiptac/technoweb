@@ -9,7 +9,7 @@
 
   var STEPS = [
     ["unlock", "Key"], ["requirements", "Server"], ["database", "Database"], ["site", "Company"],
-    ["install", "Install"], ["website", "Website"], ["scheduler", "Scheduler"], ["done", "Done"],
+    ["install", "Install"], ["logo", "Logo"], ["website", "Website"], ["scheduler", "Scheduler"], ["done", "Done"],
   ];
   var key = sessionStorage.getItem("tw-install-key") || "";
   var state = {};
@@ -83,6 +83,43 @@
 
   /* ------------------------------------------------------------- steps */
 
+  /*
+     The palettes the logo offers. A tile is its colours and its name; the
+     colours are applied by a second press, because uploading a logo is not
+     the same decision as repainting the site.
+  */
+  function readings(list) {
+    var box = $("#logo-readings");
+
+    if (!list.length) {
+      box.innerHTML = '<p class="note warn">Your logo is black, white or grey, so there is no brand colour to take from it. '
+        + 'The logo is saved; choose your colours in the console under Site &rarr; Themes.</p>';
+      return;
+    }
+
+    box.innerHTML = '<p class="hint">Use these colours for the site? The logo is saved either way.</p><div class="readings">'
+      + list.map(function (r) {
+        var swatches = [r.primary, r.secondary, r.accent, r.topbar].filter(Boolean).map(function (hex) {
+          return '<i style="background:' + hex + '"></i>';
+        }).join("");
+        return '<button type="button" class="reading" data-reading="' + r.key + '">'
+          + '<span class="swatches">' + swatches + "</span>"
+          + "<b>" + r.label + "</b><code>" + r.primary + "</code></button>";
+      }).join("")
+      + '</div><p class="err" data-err="reading"></p>';
+
+    $$("[data-reading]", box).forEach(function (button) {
+      button.addEventListener("click", function () {
+        button.disabled = true;
+        call("brand", { reading: button.getAttribute("data-reading") }).then(function (res) {
+          button.disabled = false;
+          if (!res.ok) { $("[data-err=reading]", box).textContent = res.message; return; }
+          box.innerHTML = '<p class="note ok">Your colours are set. You can change them in the console under Site &rarr; Themes.</p>';
+        });
+      });
+    });
+  }
+
   var actions = {
     unlock: function (section, button) {
       key = $("#key").value.trim().toUpperCase();
@@ -154,6 +191,33 @@
       }
     },
 
+    /*
+       The logo (0.173.0). A file, so this one post is multipart: `call()`
+       sends JSON and sets a Content-Type, and a boundary cannot be written by
+       hand — the browser writes it only when the body is a FormData and the
+       header is left alone.
+    */
+    logo: function (section) {
+      var input = $("#logo-file");
+      if (!input.files || !input.files.length) {
+        $("[data-err=logo]").textContent = "Choose your logo first.";
+        return;
+      }
+
+      var body = new FormData();
+      body.append("logo", input.files[0]);
+
+      return fetch("?action=logo", { method: "POST", headers: { "X-Install-Key": key }, body: body })
+        .then(function (res) { return res.json().catch(function () { return { ok: false, message: "The server answered " + res.status + " without an explanation." }; }); },
+          function () { return { ok: false, message: "The upload did not reach the server. Try again." }; })
+        .then(function (res) {
+          if (errors(section, res)) return;
+          readings(res.readings || []);
+        });
+    },
+
+    "skip-logo": function () { show("website"); return website(); },
+
     website: function () { return website(); },
 
     scheduler: function (section) {
@@ -171,7 +235,7 @@
   };
 
   function website() {
-    show("website");
+    show("logo");
     var section = $("[data-step=website]");
     return call("website").then(function (res) {
       if (errors(section, res)) return;

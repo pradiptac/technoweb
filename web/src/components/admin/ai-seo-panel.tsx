@@ -314,7 +314,7 @@ export function AiSeoPanel({
 
       {!meta.configured && (
         <p className="mt-3 text-12-5 text-warn">
-          No OpenAI key is configured, so these will refuse. Settings → API keys.
+          No OpenRouter key is configured, so these will refuse. Settings → API keys.
         </p>
       )}
 

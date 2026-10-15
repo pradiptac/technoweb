@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { loginAction, sendCodeAction, verifyCodeAction } from "./actions";
 
@@ -9,7 +10,7 @@ import { loginAction, sendCodeAction, verifyCodeAction } from "./actions";
  */
 export function LoginForm({
   canRegister = false, ...props
-}: { otpEnabled?: boolean; passwordEnabled?: boolean; defaultMethod?: "otp" | "password"; canRegister?: boolean; returnTo?: string }) {
+}: { otpEnabled?: boolean; passwordEnabled?: boolean; defaultMethod?: "otp" | "password"; canRegister?: boolean; returnTo?: string; before?: ReactNode }) {
   return (
     <SignInForm
       {...props}

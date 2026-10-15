@@ -151,6 +151,15 @@ html[data-announcement-closed] [data-theme="vantage"] { --h-info-bar: 0px; }
   --color-topbar-muted: var(--color-muted);
   border-radius: 24px;
   box-shadow: var(--shadow-float);
+  --color-topbar-live: var(--color-ok);
+  --color-topbar-beta: var(--color-tag-5);
+  --color-topbar-new: var(--color-brand-ink);
+}
+
+/* Top bar, columns (0.150.0): the glass card, its top edge a brand line. */
+[data-theme="vantage"] [data-panel="topbar"][data-topbar-style="columns"] {
+  border-radius: 10px 10px 24px 24px;
+  border-top: 2px solid var(--color-brand-600);
 }
 [data-theme="vantage"] [data-panel="topbar"] li > a,
 [data-theme="vantage"] [data-panel="topbar"] li > button { border-radius: 999px; }

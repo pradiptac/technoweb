@@ -6,12 +6,15 @@ use App\Enums\PublishStatus;
 use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
+use App\Http\Requests\Concerns\ValidatesRecordSections;
+use App\Support\IconKey;
+use App\Support\PageSections\SectionRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreSolutionRequest extends FormRequest
 {
-    use AcceptsCustomFields, SanitisesRichText;
+    use AcceptsCustomFields, SanitisesRichText, ValidatesRecordSections;
 
     protected function customFieldTarget(): string
     {
@@ -21,7 +24,7 @@ class StoreSolutionRequest extends FormRequest
     /** `overview` is the rich-text body here, not `body`. */
     protected function richTextFields(): array
     {
-        return ['overview', 'answer_blocks.*.detail'];
+        return ['overview', 'answer_blocks.*.detail', ...SectionRules::RICH_TEXT];
     }
 
     public function authorize(): bool
@@ -38,7 +41,7 @@ class StoreSolutionRequest extends FormRequest
             // Plain prose, deliberately not rich text — it renders as a lede.
             'problem_statement' => ['nullable', 'string', 'max:2000'],
             'overview' => ['nullable', 'string'],
-            'icon' => ['nullable', 'string', 'max:40'],
+            'icon' => ['nullable', 'string', 'max:40', IconKey::RULE],
             'hero_image_path' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::enum(PublishStatus::class)],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],
@@ -53,6 +56,8 @@ class StoreSolutionRequest extends FormRequest
             ...CmsFieldRules::ids('industry_ids', 'industries'),
             ...CmsFieldRules::faqs(),
             ...CmsFieldRules::answerBlocks(),
+            // Builder sections in place of the written body (0.129.0, `RecordSections`).
+            ...$this->recordSectionRules(),
             ...SeoRules::rules(),
             ...$this->customFieldRules(),
         ];
@@ -61,6 +66,7 @@ class StoreSolutionRequest extends FormRequest
     public function messages(): array
     {
         return [
+            ...$this->recordSectionMessages(),
             'title.required' => 'Give the solution a title.',
             'slug.alpha_dash' => 'A slug can contain letters, numbers, dashes and underscores only.',
             'slug.unique' => 'Another solution already uses that slug.',

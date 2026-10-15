@@ -1,0 +1,426 @@
+import { chromium } from "playwright";
+
+/**
+ * The custom layout section (0.147.0, docs/page-builder.md "The layout
+ * section"), built in the console through its own buttons and read on the
+ * public page at five widths.
+ *
+ *   ADMIN_LOGIN_EMAIL=… ADMIN_LOGIN_PASSWORD=… node scripts/probes/layout-section.mjs
+ *   SHOTS=<dir> saves the editor and the page at 390 and 1280.
+ *   KEEP=1 leaves the throwaway page behind (its address is printed).
+ *
+ * **It creates one published page and deletes it again.** In the builder it:
+ * adds a Custom layout section, gives it a heading, makes row 1 two columns
+ * with the second wider, adds a heading, a text (typed into Summernote), a
+ * button, a space and a rule to column 1 and an icon box, a list and a
+ * question to column 2, moves a widget down and Undoes it, changes the column
+ * count to one — the widgets must follow into the column that is left — and
+ * Undoes that, and adds a second row of three boxes. After saving, on the
+ * public page at 320, 390, 768, 1024 and 1280 it checks: exactly one `h1`;
+ * heading levels that never jump; no horizontal overflow; no text under 12px;
+ * the two columns side by side from 768 and stacked at 390; the Tab order
+ * reaches the question and the button; nothing logged to the console. The
+ * picture widget needs a library file, so the sample builder page covers it
+ * (`npm run audit` on `/admin/pages/{id}/preview`).
+ *
+ * 0.149.0 adds a third row of one column holding a Video widget (a YouTube
+ * link): the console shows the link field and not the file one, and on the
+ * public page **nothing is requested from a YouTube or Google host and no
+ * iframe exists until the play button is pressed**, after which the
+ * privacy-enhanced frame appears. The form, slider and gallery widgets need
+ * published records, so the API tests cover those.
+ *
+ * 0.154.0 adds a fourth row holding a Tabs container with two tabs: the
+ * console offers each tab the widgets a column has **except** another
+ * container and the three embeds, a Heading goes in the first tab and a Text
+ * (typed into Summernote) in the second, and a widget's "Move to" lists the
+ * tabs. On the public page both panels are in the markup, the second
+ * `hidden`; pressing the second tab shows its text and hides the first
+ * panel; and at 360 nothing overflows.
+ *
+ * 0.155.0 adds drag and drop: a widget from column 1 to column 2 and back
+ * (each drop one Undo step), a container refused by a tab (no drop
+ * line, nothing moves), a heading from one tab into the other, a row above
+ * another, and a section drag beside all of it.
+ *
+ * Carries no credential. Not run by the author of the release: written
+ * against the markup, so a locator that has drifted fails here first.
+ */
+const BASE = process.env.BASE ?? "http://127.0.0.1:3000";
+const SHOTS = process.env.SHOTS;
+const T = 180000;
+const browser = await chromium.launch();
+let failed = 0;
+const ok = (c, l) => { console.log(`${c ? "ok  " : "FAIL"} ${l}`); if (!c) failed++; };
+const problems = [];
+const listen = (p, where) => {
+  p.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") problems.push(`${where} ${m.type()}: ${m.text().slice(0, 300)}`); });
+  p.on("pageerror", (e) => problems.push(`${where} pageerror: ${e.message.slice(0, 300)}`));
+};
+
+// The helper signs in on its own default origin (127.0.0.1); a cookie set
+// there is not sent to localhost, so both must use one.
+process.env.BASE = BASE;
+const { signInAsStaff } = await import("../shared.mjs");
+const context = await browser.newContext({ viewport: { width: 1400, height: 1100 } });
+const page = await context.newPage();
+listen(page, "console");
+await signInAsStaff(page);
+
+// ---- a throwaway published page -------------------------------------------
+const stamp = Date.now().toString(36);
+const slug = `layout-probe-${stamp}`;
+await page.goto(`${BASE}/admin/pages/new`, { waitUntil: "load", timeout: T });
+await page.locator("#title").fill(`Layout probe ${stamp}`);
+await page.locator("#slug").fill(slug);
+await page.locator("#template").selectOption("builder");
+await page.locator("#status").selectOption("published");
+await Promise.all([
+  page.waitForURL(/\/admin\/pages\/\d+/, { timeout: T }),
+  page.locator('button[type="submit"]').filter({ hasText: /^(Create|Save)/ }).first().click(),
+]);
+const pageId = page.url().match(/\/admin\/pages\/(\d+)/)?.[1];
+ok(Boolean(pageId), `a throwaway page was created (${pageId})`);
+
+try {
+  await page.goto(`${BASE}/admin/pages/${pageId}?tab=builder`, { waitUntil: "load", timeout: T });
+  await page.getByRole("button", { name: "Add a section" }).first().waitFor({ timeout: T });
+  await page.waitForTimeout(1500);
+
+  // ---- add the section ------------------------------------------------------
+  await page.getByRole("button", { name: "Add a section" }).first().click();
+  await page.locator("dialog[open] button", { hasText: "Custom layout" }).first().click();
+  const card = page.locator('li[data-section-card="layout"]').first();
+  await card.waitFor({ timeout: 30000 });
+  if ((await card.locator("button[aria-expanded]").first().getAttribute("aria-expanded")) !== "true") await card.locator("button[aria-expanded]").first().click();
+  ok(await card.locator("[data-layout-row-card]").count() === 1, "a new layout starts with one row");
+
+  await card.getByLabel("Heading", { exact: true }).first().fill("Probe: a custom layout");
+
+  const row = card.locator("[data-layout-row-card]").first();
+  // A row starts open; a widget starts closed.
+  ok(await row.locator("[data-layout-col-card]").count() === 2, "the row opens on two columns");
+  await row.getByLabel("Split").selectOption("wide_last");
+  await row.getByLabel("Columns line up").selectOption("center");
+
+  const col = (n) => row.locator("[data-layout-col-card]").nth(n);
+  const add = async (n, name) => { await col(n).getByRole("button", { name: `+ ${name}`, exact: true }).click(); };
+  for (const w of ["Heading", "Text", "Button", "Space", "Rule"]) await add(0, w);
+  for (const w of ["Icon box", "List", "Questions that open"]) await add(1, w);
+  ok(await col(0).locator("[data-layout-widget-card]").count() === 5 && await col(1).locator("[data-layout-widget-card]").count() === 3, "five widgets in column 1, three in column 2");
+
+  // ---- fill them ------------------------------------------------------------
+  const widget = (n, type) => col(n).locator(`[data-layout-widget-card="${type}"]`).first();
+  const open = async (w) => { await w.locator("button[aria-expanded]").first().click(); };
+
+  await open(widget(0, "heading"));
+  await widget(0, "heading").getByLabel("Heading", { exact: true }).fill("Probe heading widget");
+
+  await open(widget(0, "text"));
+  const editable = widget(0, "text").locator(".note-editable");
+  await editable.waitFor({ timeout: 60000 });
+  await editable.click();
+  await page.keyboard.type("Probe paragraph from the editor.");
+  await page.waitForTimeout(400);
+
+  await open(widget(0, "button"));
+  await widget(0, "button").getByLabel("Label", { exact: true }).fill("Probe button");
+  await widget(0, "button").getByLabel("Link", { exact: true }).fill("/contact");
+
+  await open(widget(1, "icon_box"));
+  await widget(1, "icon_box").getByLabel("Title", { exact: true }).fill("Probe icon box");
+
+  await open(widget(1, "list"));
+  await widget(1, "list").getByLabel("Words", { exact: true }).first().fill("Probe point");
+
+  await open(widget(1, "accordion"));
+  await widget(1, "accordion").getByLabel("Question", { exact: true }).first().fill("Probe question?");
+  await widget(1, "accordion").getByLabel("Answer", { exact: true }).first().fill("Probe answer.");
+
+  // ---- reorder, and Undo ------------------------------------------------------
+  const order = () => col(0).locator("[data-layout-widget-card]").evaluateAll((els) => els.map((e) => e.getAttribute("data-layout-widget-card")));
+  const before = await order();
+  await col(0).getByRole("button", { name: "Move heading 1 down" }).click();
+  const moved = await order();
+  ok(moved[0] === before[1] && moved[1] === "heading", `a widget moves down (${before.slice(0, 2)} → ${moved.slice(0, 2)})`);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  ok(JSON.stringify(await order()) === JSON.stringify(before), "Undo puts it back");
+
+  // ---- the column count follows the widgets -----------------------------------
+  const total = () => row.locator("[data-layout-widget-card]").count();
+  const widgetsBefore = await total();
+  await row.getByLabel("Columns", { exact: true }).selectOption("1");
+  ok(await row.locator("[data-layout-col-card]").count() === 1 && await total() === widgetsBefore, `one column left, all ${widgetsBefore} widgets in it`);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  ok(await row.locator("[data-layout-col-card]").count() === 2 && await col(0).locator("[data-layout-widget-card]").count() === 5, "Undo gives the two columns and their widgets back");
+
+  // ---- a second row of three ---------------------------------------------------
+  await card.getByRole("button", { name: "3 columns", exact: true }).click();
+  ok(await card.locator("[data-layout-row-card]").count() === 2, "a second row of three columns is added");
+
+  // ---- a video widget (0.149.0) -------------------------------------------------
+  await card.getByRole("button", { name: "1 column", exact: true }).click();
+  const videoRow = card.locator("[data-layout-row-card]").nth(2);
+  await videoRow.getByRole("button", { name: "+ Video", exact: true }).click();
+  const videoCard = videoRow.locator('[data-layout-widget-card="video"]').first();
+  await videoCard.locator("button[aria-expanded]").first().click();
+  ok(await videoCard.getByLabel("YouTube link").count() === 1 && await videoCard.getByLabel("Video file").count() === 0, "a new video asks for a YouTube link, not a file");
+  await videoCard.getByLabel("Where it is").selectOption("mp4");
+  ok(await videoCard.getByLabel("YouTube link").count() === 0, "choosing a file hides the link field");
+  await videoCard.getByLabel("Where it is").selectOption("youtube");
+  await videoCard.getByLabel("YouTube link").fill("https://www.youtube.com/watch?v=aqz-KE-bpKQ");
+  await videoCard.getByLabel("Caption (optional)").fill("Probe video caption");
+
+  // ---- a tabs container (0.154.0) -------------------------------------------------
+  await card.getByRole("button", { name: "1 column", exact: true }).click();
+  const tabsRow = card.locator("[data-layout-row-card]").nth(3);
+  await tabsRow.getByRole("button", { name: "+ Tabs", exact: true }).click();
+  const tabsCard = tabsRow.locator('[data-layout-widget-card="tabs"]').first();
+  await tabsCard.locator("button[aria-expanded]").first().click();
+  const slots = tabsCard.locator("[data-layout-slot]");
+  ok(await slots.count() === 2, "new tabs start with two tabs");
+  ok(
+    (await slots.first().getByRole("button", { name: "+ Heading", exact: true }).count()) === 1
+      && (await slots.first().getByRole("button", { name: /^\+ (Tabs|Box|Panels that open|Columns inside|Form|Slider|Gallery)$/ }).count()) === 0,
+    "a tab offers the ordinary widgets and no container, form, slider or gallery",
+  );
+  await slots.nth(0).getByLabel("Tab name").fill("Probe hardware");
+  await slots.nth(1).getByLabel("Tab name").fill("Probe support");
+  await slots.nth(0).getByRole("button", { name: "+ Heading", exact: true }).click();
+  await slots.nth(1).getByRole("button", { name: "+ Text", exact: true }).click();
+  const tabHeading = slots.nth(0).locator('[data-layout-widget-card="heading"]').first();
+  await tabHeading.locator("button[aria-expanded]").first().click();
+  await tabHeading.getByLabel("Heading", { exact: true }).fill("Probe tab heading");
+  ok((await tabHeading.getByLabel("Move to").locator("option", { hasText: "Probe support" }).count()) === 1, "a widget in a tab can be moved to the other tab");
+  const tabText = slots.nth(1).locator('[data-layout-widget-card="text"]').first();
+  await tabText.locator("button[aria-expanded]").first().click();
+  const tabEditable = tabText.locator(".note-editable");
+  await tabEditable.waitFor({ timeout: 60000 });
+  await tabEditable.click();
+  await page.keyboard.type("Probe text in the second tab.");
+  await page.waitForTimeout(400);
+  // ---- drag and drop (0.155.0) ----------------------------------------------------
+  // HTML5 drag through Playwright's mouse; a grip is `[data-layout-grip]`, the first inside a card being its own.
+  const grip = (loc) => loc.locator("[data-layout-grip]").first();
+  const undo = () => page.getByRole("button", { name: "Undo", exact: true }).click();
+  const lines = () => card.locator("[data-layout-drop-line]").count();
+  const kinds = (loc) => loc.locator(":scope > ol > [data-layout-widget-card]").evaluateAll((els) => els.map((e) => e.getAttribute("data-layout-widget-card")));
+  const hold = async (from, to, y) => {
+    // Centre the pair in the (tall) window: both ends must be on screen for the pointer to reach them.
+    const mid = ((await from.boundingBox()).y + (await to.boundingBox()).y) / 2;
+    await page.evaluate((dy) => window.scrollBy(0, dy), mid - page.viewportSize().height / 2); // not mouse.wheel: the pointer may sit over the sidebar
+    await page.waitForTimeout(150);
+    const f = await from.boundingBox();
+    const t = await to.boundingBox();
+    await page.mouse.move(f.x + f.width / 2, f.y + f.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(f.x + f.width / 2 + 6, f.y + f.height / 2 + 6, { steps: 3 });
+    await page.mouse.move(t.x + t.width / 2, t.y + y, { steps: 8 });
+    await page.mouse.move(t.x + t.width / 2, t.y + y + 1, { steps: 2 });
+  };
+  const list = (n) => col(n).locator("[data-layout-list]").first();
+  const drag = async (from, to, y) => { await hold(from, to, y); await page.mouse.up(); };
+
+  // A pointer cannot drag to what is outside the viewport, and a headless drag does not scroll: fold every
+  // open widget that is not a container (an open text editor is ~600px) and give the drags a tall window.
+  for (let open = card.locator('[data-layout-widget-card]:not([data-layout-widget-card="tabs"],[data-layout-widget-card="box"],[data-layout-widget-card="panels"],[data-layout-widget-card="inner_row"]) > div > button[aria-expanded="true"]'); await open.count(); ) await open.first().click();
+  await page.setViewportSize({ width: 1300, height: 8000 }); // under 1400: no live preview beside the list
+  await card.evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await page.waitForTimeout(300);
+  // A widget from column 1 to column 2 — one drop, one write — and back.
+  const col0 = await kinds(list(0));
+  const col1 = await kinds(list(1));
+  await drag(widget(0, "divider").locator("[data-layout-grip]").first(), widget(1, "icon_box"), 6);
+  await page.waitForTimeout(300);
+  ok(
+    JSON.stringify(await kinds(list(0))) === JSON.stringify(col0.slice(0, -1)) && (await kinds(list(1)))[0] === "divider",
+    `dragging a widget onto the top of the other column moves it there (${await kinds(list(0))} | ${await kinds(list(1))})`,
+  );
+  const last0 = list(0).locator(":scope > ol > [data-layout-widget-card]").last();
+  await drag(widget(1, "divider").locator("[data-layout-grip]").first(), last0, (await last0.boundingBox()).height - 4);
+  await page.waitForTimeout(300);
+  ok(JSON.stringify(await kinds(list(0))) === JSON.stringify(col0) && JSON.stringify(await kinds(list(1))) === JSON.stringify(col1), "dragging it back to the foot of column 1 restores both columns");
+  await undo();
+  ok((await kinds(list(1)))[0] === "divider", "Undo takes back exactly the last drop");
+  await undo();
+  ok(JSON.stringify(await kinds(list(0))) === JSON.stringify(col0) && JSON.stringify(await kinds(list(1))) === JSON.stringify(col1), "Undo again restores the start");
+
+  // A container is never dropped into a slot: no line, no change.
+  const slotHeading = slots.nth(0).locator('[data-layout-widget-card="heading"]').first();
+  const tabsBefore = await tabsRow.locator('[data-layout-widget-card="tabs"]').count();
+  await hold(grip(tabsCard), slotHeading, 6);
+  ok((await lines()) === 0, "hovering a container over a tab's widget draws no drop line");
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  ok(
+    (await tabsRow.locator('[data-layout-widget-card="tabs"]').count()) === tabsBefore && (await slots.locator('[data-layout-widget-card="tabs"]').count()) === 0,
+    "dropping a container into a tab changes nothing",
+  );
+
+  // A video is one of a tab's child types (only containers, forms, sliders and galleries are not): it goes in, and Undo takes it out.
+  await hold(videoCard.locator("[data-layout-grip]").first(), slotHeading, 6);
+  ok((await lines()) === 1, "a video over a tab draws a drop line");
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  ok((await slots.locator('[data-layout-widget-card="video"]').count()) === 1, "a video goes into a tab");
+  await undo();
+  ok((await slots.locator('[data-layout-widget-card="video"]').count()) === 0, "Undo takes the video back out");
+
+  // A heading moves from one tab to the other, and Undo brings it back.
+  await hold(grip(tabHeading), tabText, 6);
+  ok((await lines()) === 1, "an allowed target draws one drop line");
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  ok((await slots.nth(0).locator("[data-layout-widget-card]").count()) === 0 && (await slots.nth(1).locator('[data-layout-widget-card="heading"]').count()) === 1, "a heading is dragged from the first tab into the second");
+  await undo();
+  ok((await slots.nth(0).locator('[data-layout-widget-card="heading"]').count()) === 1, "Undo puts it back in the first tab");
+
+  // Rows: the second row above the first, and Undo.
+  const rowIds = () => card.locator("[data-layout-row-card]").evaluateAll((els) => els.map((e) => e.getAttribute("data-layout-row-card")));
+  const rowsBefore = await rowIds();
+  await drag(grip(card.locator("[data-layout-row-card]").nth(1)), card.locator("[data-layout-row-card]").nth(0), 6);
+  await page.waitForTimeout(300);
+  const rowsAfter = await rowIds();
+  ok(rowsAfter[0] === rowsBefore[1] && rowsAfter[1] === rowsBefore[0], "dragging row 2 above row 1 swaps them");
+  await undo();
+  ok(JSON.stringify(await rowIds()) === JSON.stringify(rowsBefore), "Undo restores the rows");
+
+  // A section drag still works beside it (builder-editing.mjs covers it in depth): add a divider, drag the layout under it.
+  await page.getByRole("button", { name: "Add a section" }).first().click();
+  await page.locator("dialog[open] button", { hasText: "Divider" }).first().click();
+  const sectionCards = page.locator("li[data-section-card]");
+  await sectionCards.nth(1).waitFor({ timeout: 30000 });
+  const sectionOrder = () => sectionCards.evaluateAll((els) => els.map((e) => e.getAttribute("data-section-card")));
+  const sectionsBefore = await sectionOrder();
+  const lower = await sectionCards.nth(1).boundingBox();
+  await drag(sectionCards.nth(0).locator('span[draggable="true"]').first(), sectionCards.nth(1), lower.height - 4);
+  await page.waitForTimeout(300);
+  const sectionsAfter = await sectionOrder();
+  ok(sectionsAfter[0] === sectionsBefore[1] && sectionsAfter[1] === sectionsBefore[0], `a section still drags (${sectionsBefore} → ${sectionsAfter})`);
+  await undo();
+  await undo();
+  ok((await sectionCards.count()) === 1, "Undo twice takes back the drag and the divider");
+
+  await page.setViewportSize({ width: 1400, height: 1100 });
+  if (SHOTS) await card.screenshot({ path: `${SHOTS}/layout-editor.png` });
+
+  await Promise.all([
+    page.waitForURL((u) => u.searchParams.has("saved"), { timeout: T }),
+    page.getByRole("button", { name: /^Save changes$/ }).click(),
+  ]);
+  await page.waitForLoadState("load");
+  ok(true, "the page saved");
+
+  // ---- the public page ----------------------------------------------------------
+  const site = await context.newPage();
+  listen(site, "site");
+  for (const width of [320, 360, 390, 768, 1024, 1280]) {
+    await site.setViewportSize({ width, height: 900 });
+    await site.goto(`${BASE}/${slug}`, { waitUntil: "load", timeout: T });
+    await site.waitForSelector("html[data-aos-ready]", { timeout: T });
+    await site.waitForTimeout(500);
+
+    const r = await site.evaluate(() => {
+      const section = document.querySelector('[data-page-section="layout"]');
+      const levels = [...document.querySelectorAll("h1,h2,h3,h4,h5,h6")].map((h) => Number(h.tagName[1]));
+      let jumps = 0;
+      for (let i = 1; i < levels.length; i++) if (levels[i] - levels[i - 1] > 1) jumps++;
+      const small = [];
+      for (const el of section?.querySelectorAll("*") ?? []) {
+        const direct = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+        if (direct && parseFloat(getComputedStyle(el).fontSize) < 12) small.push(el.tagName);
+      }
+      const rowEl = section?.querySelector("[data-layout-row]");
+      const cols = rowEl ? [...rowEl.children].map((c) => c.getBoundingClientRect()) : [];
+      return {
+        h1: document.querySelectorAll("h1").length, jumps, small: small.length,
+        over: document.documentElement.scrollWidth - window.innerWidth,
+        side: cols.length === 2 ? Math.abs(cols[0].top - cols[1].top) < 40 : null,
+        wider: cols.length === 2 ? cols[1].width > cols[0].width : null,
+      };
+    });
+    ok(r.h1 === 1, `${width}px: exactly one h1`);
+    ok(r.jumps === 0, `${width}px: heading levels never jump`);
+    ok(r.over <= 0, `${width}px: no horizontal overflow (${r.over})`);
+    ok(r.small === 0, `${width}px: no text under 12px (${r.small})`);
+    if (width >= 768) ok(r.side === true && r.wider === true, `${width}px: two columns side by side, the second wider`);
+    else ok(r.side === false, `${width}px: the columns are stacked`);
+
+    if (width === 1280) {
+      // Tab order: the question and the button are both reachable.
+      const reached = new Set();
+      await site.locator('[data-page-section="layout"]').scrollIntoViewIfNeeded();
+      await site.locator("body").press("Tab");
+      for (let i = 0; i < 60; i++) {
+        const where = await site.evaluate(() => {
+          const el = document.activeElement;
+          return el && el.closest('[data-page-section="layout"]') ? `${el.tagName}:${el.closest("[data-widget]")?.getAttribute("data-widget") ?? ""}` : null;
+        });
+        if (where) reached.add(where);
+        await site.keyboard.press("Tab");
+      }
+      ok([...reached].some((x) => x.startsWith("SUMMARY")) && [...reached].some((x) => x.endsWith(":button")), `Tab reaches the question and the button (${[...reached].join(", ")})`);
+    }
+    if (width === 1280) {
+      // Nothing from YouTube or Google until the press; then the privacy-enhanced frame.
+      const hosts = [];
+      const watch = (req) => { if (/(youtube|ytimg|youtu.be|google|gstatic)/i.test(new URL(req.url()).hostname)) hosts.push(new URL(req.url()).hostname); };
+      site.on("request", watch);
+      await site.goto(`${BASE}/${slug}`, { waitUntil: "load", timeout: T });
+      await site.waitForSelector("html[data-aos-ready]", { timeout: T });
+      const video = site.locator('[data-widget="video"]').first();
+      await video.scrollIntoViewIfNeeded();
+      await site.waitForTimeout(1500);
+      ok(await video.locator("iframe").count() === 0 && hosts.length === 0, `the video widget loads nothing from YouTube before a press (${hosts.join(", ") || "no requests"})`);
+      await video.locator("button").first().click();
+      await video.locator('iframe[src*="youtube-nocookie.com"]').waitFor({ timeout: 15000 });
+      ok(true, "pressing play mounts the youtube-nocookie frame");
+      site.off("request", watch);
+    }
+    if (width === 1280 || width === 360) {
+      // Both panes are in the markup, the second hidden; the second tab shows its text and hides the first pane.
+      const tabs = site.locator('[data-widget="tabs"]').first();
+      await tabs.scrollIntoViewIfNeeded();
+      ok(await tabs.locator('[role="tab"]').count() === 2 && await tabs.locator('[role="tabpanel"]').count() === 2, `${width}px: both tabs and both panes are in the markup`);
+      ok(await tabs.locator('[role="tabpanel"]').nth(1).isHidden() && await tabs.locator('[role="tabpanel"]').nth(0).isVisible(), `${width}px: the first pane shows, the second is hidden`);
+      await tabs.getByRole("tab", { name: "Probe support" }).click();
+      ok(
+        await tabs.locator('[role="tabpanel"]').nth(0).isHidden()
+          && (await tabs.locator('[role="tabpanel"]').nth(1).innerText()).includes("Probe text in the second tab."),
+        `${width}px: pressing the second tab shows its text`,
+      );
+      const over = await site.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      ok(over <= 0, `${width}px: nothing overflows with the tabs open (${over})`);
+    }
+    if (SHOTS && (width === 390 || width === 1280)) await site.screenshot({ path: `${SHOTS}/layout-${width}.png`, fullPage: true });
+  }
+  await site.close();
+} finally {
+  if (process.env.KEEP === "1") {
+    console.log(`kept: ${BASE}/admin/pages/${pageId} and ${BASE}/${slug}`);
+  } else if (pageId) {
+    // The edit form's own Delete, confirmed in its dialog.
+    try {
+      // The builder session left a form draft in this browser; a fresh form deletes cleanly.
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* none */ } });
+      await page.goto(`${BASE}/admin/pages/${pageId}`, { waitUntil: "load", timeout: T });
+      await page.waitForTimeout(2000);
+      // The form's Delete asks through `window.confirm`, which Playwright cancels unless told otherwise.
+      page.on("dialog", (dialog) => dialog.accept().catch(() => {}));
+      await page.getByRole("button", { name: /^Delete/ }).first().click();
+      const confirm = page.locator("dialog[open] button", { hasText: /^Delete/ }).last();
+      if (await confirm.count()) await confirm.click();
+      await page.waitForURL((u) => u.pathname === "/admin/pages", { timeout: 30000 });
+      console.log("ok   the throwaway page was deleted");
+    } catch (e) {
+      console.log(`FAIL could not delete page ${pageId} (${slug}); remove it by hand: ${String(e).slice(0, 120)}`);
+      failed++;
+    }
+  }
+}
+
+await page.waitForTimeout(1000);
+ok(problems.length === 0, `no console errors or warnings${problems.length ? ":\n  " + problems.join("\n  ") : ""}`);
+await browser.close();
+console.log(failed ? `\n${failed} failed` : "\nall passed");
+process.exit(failed ? 1 : 0);

@@ -489,6 +489,39 @@ class ChatIntakeTest extends TestCase
         $this->assertSame('priya@example.in', $lead->email);
     }
 
+    /**
+     * The model may be any maker's since OpenRouter, and a Gemini model
+     * wraps its JSON in a fence where a GPT model does not. A fenced verdict
+     * read as "no verdict" would switch the judge off for that maker without
+     * a word — "asdfgh" would be somebody's name again.
+     */
+    public function test_a_verdict_wrapped_in_a_code_fence_is_still_a_verdict(): void
+    {
+        $this->app->bind(AiProvider::class, fn () => new class implements AiProvider
+        {
+            public function complete(array $messages, int $maxTokens = 500, array $options = []): AiReply
+            {
+                return ($options['response_format']['type'] ?? null) === 'json_object'
+                    ? AiReply::of("```json\n{\"kind\": \"junk\", \"value\": null}\n```", 20)
+                    : AiReply::of('A grounded answer.', 30);
+            }
+
+            public function isConfigured(): bool
+            {
+                return true;
+            }
+
+            public function name(): string
+            {
+                return 'fake-fencing-judge';
+            }
+        });
+
+        ['token' => $token] = $this->open();
+
+        $this->assertStringContainsString('did not catch', $this->say($token, 'asdfgh')->assertOk()->json('data.content'));
+    }
+
     /** The judge is a suggestion, never a verdict: its "answer" still goes through the rules. */
     public function test_the_judge_cannot_pass_what_the_rules_refuse(): void
     {

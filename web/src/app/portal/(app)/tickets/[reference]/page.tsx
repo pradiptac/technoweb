@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, PriorityBadge, StatusBadge } from "@/components/ui/badge";
+import { Stepper } from "@/components/ui/stepper";
+import { ticketSteps } from "@/lib/progress";
 import { Alert } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import { getCurrentCustomer } from "@/lib/auth";
@@ -83,8 +85,15 @@ export default async function TicketDetailPage({
           <PriorityBadge priority={ticket.priority} />
           <StatusBadge status={ticket.status} />
         </div>
-        <h2 className="display-3 mt-3">{ticket.subject}</h2>
+        <h1 className="display-3 mt-3">{ticket.subject}</h1>
       </div>
+
+      {/* Where the ticket is, as a journey; a merged ticket's journey is the other one's. */}
+      {!merged && (
+        <div className="mb-6 rounded-xl border border-line-strong bg-card p-4 shadow-1 sm:p-5">
+          <Stepper label="Ticket progress" steps={ticketSteps(ticket.status)} />
+        </div>
+      )}
 
       <dl className="mb-8 grid gap-px overflow-hidden rounded-lg border border-line-strong bg-line sm:grid-cols-2 lg:grid-cols-4">
         {[
@@ -103,7 +112,7 @@ export default async function TicketDetailPage({
 
       {ticket.events && <TicketTrail events={ticket.events} status={ticket.status} />}
 
-      <h3 className="mb-3 text-17">Conversation</h3>
+      <h2 className="mb-3 text-17">Conversation</h2>
       <ThreadRefresh count={ticket.messages?.length ?? 0} open={!isClosed} company={company} />
       <TicketThread
         reference={ticket.reference}

@@ -25,7 +25,7 @@ export type StoreProductIndex = Paginated<AdminStoreProduct> & {
 
 export type StoreProductQueryParams = {
   status?: string; type?: string; q?: string; category?: string;
-  out_of_stock?: boolean; notices?: boolean; page?: number; per_page?: number;
+  out_of_stock?: boolean; notices?: boolean; no_weight?: boolean; page?: number; per_page?: number;
 };
 
 export async function getStoreProductList(params: StoreProductQueryParams = {}) {
@@ -36,6 +36,7 @@ export async function getStoreProductList(params: StoreProductQueryParams = {}) 
   if (params.category) query.set("category", params.category);
   if (params.out_of_stock) query.set("out_of_stock", "1");
   if (params.notices) query.set("notices", "1");
+  if (params.no_weight) query.set("no_weight", "1");
   if (params.page) query.set("page", String(params.page));
   if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();
@@ -149,6 +150,8 @@ export type OrderIndex = Paginated<AdminOrder> & {
     statuses: { value: string; label: string }[];
     /** Counted over the whole table, not the page. */
     pending_payment: number;
+    /** Shiprocket is switched on and set up: the list offers ticks and a bulk manifest (0.159.0). */
+    courier_active?: boolean;
   };
 };
 
@@ -205,6 +208,166 @@ export async function saveStorePromo(settings: { key: string; value: string }[])
   await apiFetch<void>("/admin/store/promo", { method: "PATCH", body: { settings }, token: await token() });
 }
 
+/**
+ * "Shop the videos" (0.140.0): the eleven `store_videos_*` rows, in the
+ * settings screen's own row shape, through `/admin/store/videos` so a store
+ * manager can set them without being handed the rest of the table. `meta`
+ * is how many shop products carry a video — what the shelf will draw from.
+ */
+export async function getStoreVideos(): Promise<{ rows: SettingRow[]; productsWithVideo: number }> {
+  const res = await apiFetch<{ data: SettingRow[]; meta: { products_with_video: number } }>(
+    "/admin/store/videos", { token: await token() },
+  );
+  return { rows: res.data, productsWithVideo: res.meta.products_with_video };
+}
+
+export async function saveStoreVideos(settings: { key: string; value: string }[]): Promise<void> {
+  await apiFetch<void>("/admin/store/videos", { method: "PATCH", body: { settings }, token: await token() });
+}
+
+/* ------------------------------------------ tax and invoicing (0.176.0) */
+
+export type ProductTaxMeta = {
+  rates: { value: string; label: string }[];
+  rate: string;
+  basis: string;
+  /** How the price field is typed (0.178.0): with GST, or before it. */
+  entry: string;
+};
+
+/**
+ * The rates a product may be sold at, and what the shop does, for the
+ * product form (0.176.0).
+ *
+ * Read off the products index's `meta` — `getAnswerBlockKinds`' shape and
+ * for its reason: the list belongs to the API and nothing in TypeScript
+ * names a rate. A failure falls back to the shop's own default rather than
+ * taking the form down, so a product can still be saved while the figure
+ * under the price field is the ordinary one.
+ */
+export async function getProductTaxMeta(): Promise<ProductTaxMeta> {
+  try {
+    const res = await apiFetch<{ meta?: Partial<ProductTaxMeta> }>(
+      "/admin/store/products?per_page=1", { token: await token() },
+    );
+
+    return {
+      rates: Array.isArray(res.meta?.rates) ? res.meta.rates : (res.meta as { gst_rates?: ProductTaxMeta["rates"] })?.gst_rates ?? [],
+      rate: typeof (res.meta as { gst_rate?: string })?.gst_rate === "string" ? (res.meta as { gst_rate: string }).gst_rate : "18",
+      basis: typeof (res.meta as { price_basis?: string })?.price_basis === "string" ? (res.meta as { price_basis: string }).price_basis : "inclusive",
+      entry: (res.meta as { price_entry?: string })?.price_entry === "exclusive" ? "exclusive" : "inclusive",
+    };
+  } catch {
+    return { rates: [], rate: "18", basis: "inclusive", entry: "inclusive" };
+  }
+}
+
+/** What Store -> Tax and invoicing draws itself from. */
+export type InvoicingMeta = {
+  ready: boolean;
+  missing: string[];
+  zoho_active: boolean;
+  rates: { value: string; label: string }[];
+  bases: { value: string; label: string; blurb: string }[];
+  states: { value: string; label: string }[];
+  rate: string;
+  products_with_own_rate: number;
+  products_without_hsn: number;
+  issued: number;
+  financial_year: string;
+};
+
+export async function getInvoicing(): Promise<{ rows: SettingRow[]; meta: InvoicingMeta }> {
+  const res = await apiFetch<{ data: SettingRow[]; meta: InvoicingMeta }>(
+    "/admin/store/invoicing", { token: await token() },
+  );
+  return { rows: res.data, meta: res.meta };
+}
+
+export async function saveInvoicing(settings: { key: string; value: string }[]): Promise<void> {
+  await apiFetch<void>("/admin/store/invoicing", { method: "PATCH", body: { settings }, token: await token() });
+}
+
+/** Make this order's GST invoice, or make it again under the same number. */
+export async function generateOrderInvoice(orderNumber: string): Promise<void> {
+  await apiFetch<void>(`/admin/store/orders/${encodeURIComponent(orderNumber)}/invoice/generate`, {
+    method: "POST", token: await token(),
+  });
+}
+
+/* -------------------------------------------- delivery charges (0.142.0) */
+
+/** One weight slab: up to this many grams costs this much. */
+export type ShippingRate = { up_to_grams: number; charge_paise: number };
+
+export type ShippingZone = {
+  id: number;
+  name: string;
+  /** Two-letter state codes. The API holds the list; this only carries them. */
+  states: string[];
+  delivers: boolean;
+  free_above_paise: number | null;
+  extra_per_kg_paise: number | null;
+  is_default: boolean;
+  is_active: boolean;
+  sort_order: number;
+  rates: ShippingRate[];
+};
+
+export type ShippingScreenData = {
+  /** What the shop is doing now — `flat` when zones is stored but nothing can be quoted from. */
+  mode: "flat" | "zones";
+  stored_mode: string;
+  flat_paise: number;
+  default_weight_grams: number;
+  zones_ready: boolean;
+  /** Why zones cannot be chosen yet, in a sentence; empty when it can. */
+  zones_missing: string;
+  zones: ShippingZone[];
+  /** Every state and union territory the API knows, by code. */
+  states: { value: string; label: string }[];
+  products_without_weight: number;
+};
+
+/** The shipping screen: mode, flat charge, default weight, the zones and the states they are made of. */
+export async function getShipping(): Promise<ShippingScreenData> {
+  const res = await apiFetch<{ data: ShippingScreenData }>("/admin/store/shipping", { token: await token() });
+  return res.data;
+}
+
+export async function saveShippingSettings(
+  body: { mode?: string; flat_paise?: number; default_weight_grams?: number },
+): Promise<ShippingScreenData> {
+  const res = await apiFetch<{ data: ShippingScreenData }>("/admin/store/shipping/settings", {
+    method: "PUT", body, token: await token(),
+  });
+  return res.data;
+}
+
+export async function createShippingZone(body: Record<string, unknown>): Promise<ShippingZone> {
+  const res = await apiFetch<{ data: ShippingZone }>("/admin/store/shipping/zones", {
+    method: "POST", body, token: await token(),
+  });
+  return res.data;
+}
+
+export async function updateShippingZone(id: number, body: Record<string, unknown>): Promise<ShippingZone> {
+  const res = await apiFetch<{ data: ShippingZone }>(`/admin/store/shipping/zones/${id}`, {
+    method: "PATCH", body, token: await token(),
+  });
+  return res.data;
+}
+
+export async function deleteShippingZone(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/store/shipping/zones/${id}`, { method: "DELETE", token: await token() });
+}
+
+export async function moveShippingZone(id: number, direction: "up" | "down"): Promise<void> {
+  await apiFetch<void>(`/admin/store/shipping/zones/${id}/move`, {
+    method: "POST", body: { direction }, token: await token(),
+  });
+}
+
 export async function getStoreDashboard(days?: number): Promise<StoreDashboard> {
   const res = await apiFetch<{ data: StoreDashboard }>(
     `/admin/store/dashboard${days ? `?days=${days}` : ""}`, { token: await token() },
@@ -259,6 +422,10 @@ export async function getStockMovements(
 
 export type OrderQueryParams = {
   status?: string; q?: string; open?: boolean; unpaid?: boolean;
+  /** `failed`: orders whose Zoho Books invoice was refused. */
+  zoho?: string;
+  /** `problem`: parcels the courier is bringing back or cancelled. */
+  shipment?: string;
   page?: number; per_page?: number; sort?: string; dir?: string;
 };
 
@@ -268,6 +435,8 @@ export async function getStoreOrders(params: OrderQueryParams = {}) {
   if (params.q) query.set("q", params.q);
   if (params.open) query.set("open", "1");
   if (params.unpaid) query.set("unpaid", "1");
+  if (params.zoho === "failed") query.set("zoho", "failed");
+  if (params.shipment === "problem") query.set("shipment", "problem");
   if (params.sort) query.set("sort", params.sort);
   if (params.dir) query.set("dir", params.dir);
   if (params.page) query.set("page", String(params.page));

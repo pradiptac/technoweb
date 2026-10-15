@@ -22,6 +22,8 @@ class Cart extends Model
         // Abandoned-basket reminders — see the 2026_09_25 migration.
         'email', 'phone', 'contact_consent_at', 'reminders_sent', 'last_reminded_at',
         'recovered_order_id', 'restore_token',
+        // The state delivery was last quoted for, as a code (0.142.0).
+        'ship_state',
     ];
 
     /**

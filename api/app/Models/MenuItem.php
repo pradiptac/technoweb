@@ -12,10 +12,20 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class MenuItem extends Model
 {
+    /**
+     * The tones a badge may take (0.150.0). Ids only: the colour behind each
+     * is a token on the frontend (`live` the success colour, `beta` the info
+     * one, `soon` the muted ink, `new` the brand's), and a list of colours
+     * here would be a hex on the wrong side of the wire.
+     */
+    public const BADGE_TONES = ['live', 'beta', 'soon', 'new'];
+
+    public const BADGE_MAX = 12;
+
     protected $fillable = [
         'menu_id', 'parent_id', 'sort_order', 'label', 'type',
         'target_type', 'target_id', 'target_key', 'url', 'icon', 'description',
-        'open_in_new_tab', 'is_active',
+        'badge', 'badge_tone', 'open_in_new_tab', 'is_active',
     ];
 
     protected function casts(): array

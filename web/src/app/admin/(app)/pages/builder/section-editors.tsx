@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { CoverField } from "@/components/admin/cover-field";
 import { EditorField } from "@/components/admin/editor-field";
-import { Field, Select } from "@/components/ui/input";
+import { Field, Select, Textarea } from "@/components/ui/input";
 import {
-  Choice, IconPick, ImagePath, NumberInput, Repeater, Row, Text, Toggle, getIn, useBlock, type Path,
+  Choice, FilePath, IconPick, ImagePath, LottiePath, ModelPath, NumberChoice, NumberInput, Repeater, Row, Text, Toggle, VideoPath, getIn, useBlock, type Path,
 } from "../../blocks/editors/shared";
 import type { PageBuilderOptions, PageSectionType } from "@/types/api";
+import { HOME_SECTIONS } from "@/themes/options";
+import { KINETIC } from "@/lib/motion-choices";
+import { LayoutEditor, blankLayout, layoutSummary } from "./layout-editor";
 
 /**
  * One section's fields, by type (`docs/page-builder.md`).
@@ -36,48 +38,63 @@ export function blankData(type: PageSectionType): Record<string, unknown> {
     case "faq": return { source: "custom", items: [{}] };
     case "logos": return { source: "clients" };
     case "video": return { source: "youtube" };
+    case "lottie": return { size: "m", align: "center" };
+    case "model": return { height: "m", rotate: true };
     case "divider": return { size: "medium", rule: true };
+    case "stats": return { display: "figures", columns: 4, items: [{}, {}, {}] };
+    case "steps": return { layout: "vertical", items: [{}, {}, {}] };
+    case "tabs": return { items: [{}, {}] };
+    case "checklist": return { columns: 2, items: [{}, {}, {}] };
+    case "cta": return { tone: "accent", call: true };
+    case "comparison": return { plans: [{}, {}], rows: [{}, {}, {}] };
+    case "timeline": return { items: [{}, {}, {}] };
+    case "before_after": return { before_label: "Before", after_label: "After", start: 50 };
+    case "testimonials": return { items: [{}, {}, {}] };
+    case "team": return {};
+    case "downloads": return { items: [{}] };
+    case "countdown": return {};
+    case "columns": return { columns: [{}, {}] };
+    case "map": return {};
+    case "theme_section": return { section: "solutions" };
+    case "story": return { heading: "", items: [{}, {}] };
+    case "flow": return { heading: "", items: [{}, {}] };
+    case "subnav": return { label: "On this page" };
+    case "product_videos": return { heading: "Shop the videos", limit: 8 };
+    case "support_network": return { heading: "Find a centre near you" };
+    case "layout": return blankLayout();
+    case "custom_code": return {};
     default: return {};
   }
 }
 
 /** A one-line reminder of what a collapsed section holds. */
 export function summaryOf(data: Record<string, unknown>): string {
-  for (const key of ["heading", "quote", "kicker"]) {
+  for (const key of ["heading", "quote", "kicker", "label"]) {
     const v = data[key];
     if (typeof v === "string" && v.trim()) return v.trim();
   }
-  return "";
+  // A section drawn from the theme names which of the homepage's it is.
+  if (typeof data.section === "string") {
+    return HOME_SECTIONS.find((s) => s.id === data.section)?.label ?? data.section;
+  }
+  // A list with no heading yet — a scroll story, steps, features — is named by its first item.
+  const first = Array.isArray(data.items) ? (data.items[0] as { title?: unknown } | undefined) : undefined;
+  if (typeof first?.title === "string" && first.title.trim()) return first.title.trim();
+  // A custom layout, with no heading of its own, says how much is in it.
+  return layoutSummary(data);
 }
 
 const COLUMNS = [{ value: "2", label: "Two" }, { value: "3", label: "Three" }, { value: "4", label: "Four" }];
+const LIST_COLUMNS = [{ value: "1", label: "One" }, { value: "2", label: "Two" }, { value: "3", label: "Three" }];
 
-/**
- * A select over a **number** — columns, and the id of a block, slider,
- * gallery or form. The shared `Choice` reads strings only, and these are
- * stored as integers (`SectionRules::normalise`), so through it a saved
- * "four columns" or a chosen slider would show as the fallback.
- */
-function NumberChoice({ path, label, options, placeholder, hint }: {
-  path: Path;
-  label: string;
-  options: { value: string; label: string }[];
-  /** An empty first option — "Choose…" — for a reference nothing has picked yet. */
-  placeholder?: string;
-  hint?: string;
-}) {
-  const { content, set, err, idPrefix } = useBlock();
-  const value = getIn(content, path);
-  const id = `${idPrefix ?? "b"}-${path.join("-")}`;
-  const current = typeof value === "number" || typeof value === "string" ? String(value) : placeholder !== undefined ? "" : options[0]?.value ?? "";
-
+/** The kicker, heading and lede most bands open with. */
+function Head() {
   return (
-    <Field label={label} htmlFor={id} hint={hint} error={err(path)} variant="float-static">
-      <Select id={id} value={current} onChange={(e) => set(path, e.target.value === "" ? undefined : Number(e.target.value))}>
-        {placeholder !== undefined && <option value="">{placeholder}</option>}
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </Select>
-    </Field>
+    <>
+      <Text path={["kicker"]} label="Kicker" />
+      <Text path={["heading"]} label="Heading" />
+      <Text path={["lede"]} label="Lede" multiline />
+    </>
   );
 }
 
@@ -97,36 +114,14 @@ function Buttons() {
   );
 }
 
-/** A video from the library — the slide repeater's picker, widened to MP4. */
-function VideoPath({ path, label }: { path: Path; label: string }) {
-  const { content, set, err, media, idPrefix } = useBlock();
-  const value = getIn(content, path);
-  const stored = typeof value === "string" ? value : null;
-  const message = err(path);
-
-  return (
-    <div>
-      <CoverField
-        name={`_media_${idPrefix ?? "b"}-${path.join("-")}`}
-        label={label}
-        accept=".mp4,.webm"
-        hint="An MP4 from the media library. Keep it short and small — it loads when somebody presses play."
-        defaultPath={stored}
-        defaultUrl={stored ? media[stored] ?? null : null}
-        onPathChange={(p) => set(path, p ?? undefined)}
-      />
-      {message && <p className="-mt-3 mb-4 text-12-5 text-err">{message}</p>}
-    </div>
-  );
-}
-
 /** The body editor, bound to `data.body`. Named only so a draft can carry it back; the API never reads the name. */
 function Body({ sectionId, label = "Text" }: { sectionId: string; label?: string }) {
-  const { content, set, err } = useBlock();
+  const { content, set, err, epoch } = useBlock();
   const value = getIn(content, ["body"]);
 
   return (
     <EditorField
+      key={epoch ?? 0}
       name={`_sb_${sectionId}_body`}
       label={label}
       defaultValue={typeof value === "string" ? value : ""}
@@ -134,6 +129,189 @@ function Body({ sectionId, label = "Text" }: { sectionId: string; label?: string
       hint="Shortcodes work here, as in any page body."
       onChange={(html) => set(["body"], html || undefined)}
     />
+  );
+}
+
+/**
+ * Custom code (0.158.0): a label, the code as a monospace box, a starting
+ * height, and — for an administrator only — where it runs. The code is stored
+ * exactly as pasted; the website draws it in a sandboxed frame that cannot reach
+ * the page, and **this console never runs it** (every preview draws a
+ * placeholder). `canRunOnPage` is the API's answer for this account
+ * (`custom_code.page_mode`); the save refuses the choice from anyone else.
+ */
+function CustomCodeEditor({ canRunOnPage }: { canRunOnPage: boolean }) {
+  const { content, set, err, idPrefix } = useBlock();
+  const html = getIn(content, ["html"]);
+  const id = `${idPrefix ?? "b"}-html`;
+  const onPage = content.mode === "page";
+
+  return (
+    <>
+      <Text path={["label"]} label="What this code is" required placeholder="Booking widget" hint="Shown here and in the previews, so you can find it again." />
+      <Field label="Code" htmlFor={id} error={err(["html"])} hint="HTML, CSS and script, exactly as the vendor gave it. Up to 50,000 characters.">
+        <Textarea
+          id={id}
+          rows={12}
+          spellCheck={false}
+          autoCapitalize="off"
+          autoCorrect="off"
+          className="font-mono text-13 whitespace-pre"
+          value={typeof html === "string" ? html : ""}
+          onChange={(e) => set(["html"], e.target.value === "" ? undefined : e.target.value)}
+        />
+      </Field>
+      <Choice path={["height"]} label="Starting height" fallback="auto" options={[
+        { value: "auto", label: "Fit the code" },
+        { value: "s", label: "Short" },
+        { value: "m", label: "Medium" },
+        { value: "l", label: "Tall" },
+      ]} hint="The frame sizes itself to the code once it has loaded; this is the height it has until then." />
+      {canRunOnPage ? (
+        <Choice path={["mode"]} label="Where it runs" fallback="frame" options={[
+          { value: "frame", label: "In a sandboxed frame (safe)" },
+          { value: "page", label: "On the page itself (administrators only)" },
+        ]} hint="A frame cannot read the page, its cookies or the site's API. On the page itself the code can do anything the signed-in visitor can — choose it only for code you trust and that needs the real page." />
+      ) : (
+        <p className="measure -mt-2 mb-4 text-12-5 text-muted">
+          {onPage
+            ? "An administrator has let this code run on the page itself. You can change anything here except that: saving it unchanged keeps it; switching it to a frame cannot be undone by you."
+            : "This code runs in a sandboxed frame, which cannot read the page, its cookies or the site’s API. Letting it run on the page itself is an administrator’s choice."}
+        </p>
+      )}
+      <p className="measure -mt-2 mb-4 text-12-5 text-muted">
+        Previews in the console show a placeholder in place of the code; it runs on the published page only. A form in
+        the code can post to this site only.
+      </p>
+    </>
+  );
+}
+
+/**
+ * Plans, then rows with one cell per plan. A row's cells are addressed by
+ * the plan's position, so the inputs are labelled with each plan's name and
+ * a removed plan takes its column of cells with it.
+ */
+function ComparisonEditor() {
+  const { content, set } = useBlock();
+  const plans = Array.isArray(content.plans) ? (content.plans as { name?: string }[]) : [];
+  const highlightOptions = [{ value: "", label: "None" }, ...plans.map((p, i) => ({ value: String(i), label: p?.name || `Plan ${i + 1}` }))];
+
+  // Removing a plan removes that position from every row, so cells stay under
+  // their plans — one write, because each `set` starts from the same snapshot.
+  const removePlan = (i: number) => {
+    const rows = Array.isArray(content.rows) ? (content.rows as { cells?: unknown[] }[]) : [];
+    const hl = typeof content.highlight === "number" ? content.highlight : null;
+    const next: Record<string, unknown> = {
+      ...content,
+      plans: plans.filter((_, j) => j !== i),
+      rows: rows.map((r) => (Array.isArray(r?.cells) ? { ...r, cells: r.cells.filter((_, j) => j !== i) } : r)),
+    };
+    if (hl === null || hl === i) delete next.highlight;
+    else if (hl > i) next.highlight = hl - 1;
+    set([], next as never);
+  };
+
+  return (
+    <>
+      <Head />
+      <fieldset className="mb-6">
+        <legend className="mb-1 text-14 font-semibold">Plans, across the top</legend>
+        <p className="mb-3 text-12-5 text-faint">Two to four.</p>
+        <ol className="grid gap-3 sm:grid-cols-2">
+          {plans.map((_, i) => (
+            <li key={i} className="rounded-lg border border-line-strong bg-card p-4">
+              <Text path={["plans", i, "name"]} label={`Plan ${i + 1} — name`} required />
+              <Text path={["plans", i, "note"]} label="Under the name" placeholder="₹9,000 a year" />
+              {plans.length > 2 && (
+                <button type="button" onClick={() => removePlan(i)} className="text-12-5 font-semibold text-err underline">Remove this plan</button>
+              )}
+            </li>
+          ))}
+        </ol>
+        {plans.length < 4 && (
+          <button type="button" onClick={() => set(["plans"], [...plans, {}] as never)} className="mt-3 rounded border border-line-strong bg-card px-3 py-1.5 text-13 font-semibold">Add a plan</button>
+        )}
+      </fieldset>
+      <NumberChoice path={["highlight"]} label="Recommended plan" options={highlightOptions.slice(1)} placeholder="None" />
+      <Repeater path={["rows"]} label="Rows, down the side" subject="Row" min={1} max={20} blank={() => ({})}
+        hint="In each cell: yes for a tick, no for a cross, a few words, or leave it blank." row={(p) => (
+          <>
+            <Text path={[...p, "label"]} label="Feature" required />
+            <div className="grid gap-x-3 sm:grid-cols-2 lg:grid-cols-4">
+              {plans.map((plan, j) => (
+                <Text key={j} path={[...p, "cells", j]} label={plan?.name || `Plan ${j + 1}`} placeholder="yes" />
+              ))}
+            </div>
+          </>
+        )} />
+      <Text path={["primary", "label"]} label="Button under the table — label" />
+      <Text path={["primary", "href"]} label="Button under the table — link" placeholder="/contact" />
+    </>
+  );
+}
+
+/** Each column's heading and editor body; the bodies are cleaned on save like any page body. */
+function ColumnsEditor({ sectionId }: { sectionId: string }) {
+  const { content, set, err, epoch } = useBlock();
+  const columns = Array.isArray(content.columns) ? (content.columns as { heading?: string; body?: string }[]) : [];
+
+  return (
+    <>
+      <Head />
+      <fieldset className="mb-6">
+        <legend className="mb-1 text-14 font-semibold">Columns</legend>
+        <p className="mb-3 text-12-5 text-faint">Two or three, side by side from tablet width.</p>
+        <ol className="grid gap-4">
+          {columns.map((c, i) => (
+            <li key={i} className="rounded-lg border border-line-strong bg-card p-4">
+              <Text path={["columns", i, "heading"]} label={`Column ${i + 1} — heading`} />
+              <EditorField
+                key={epoch ?? 0}
+                name={`_sb_${sectionId}_col${i}`}
+                label="Text"
+                defaultValue={typeof c?.body === "string" ? c.body : ""}
+                error={err(["columns", i, "body"])}
+                onChange={(html) => set(["columns", i, "body"], html || undefined)}
+              />
+              {columns.length > 2 && (
+                <button type="button" onClick={() => set(["columns"], columns.filter((_, j) => j !== i) as never)} className="text-12-5 font-semibold text-err underline">Remove this column</button>
+              )}
+            </li>
+          ))}
+        </ol>
+        {columns.length < 3 && (
+          <button type="button" onClick={() => set(["columns"], [...columns, {}] as never)} className="mt-3 rounded border border-line-strong bg-card px-3 py-1.5 text-13 font-semibold">Add a column</button>
+        )}
+      </fieldset>
+    </>
+  );
+}
+
+/**
+ * The hero's layout select. Leaving the cover layout drops its background
+ * video in the same write — the video is the cover's alone (the API refuses
+ * it on any other layout), and a path left behind under a hidden field is a
+ * 422 nobody could see the field for. One `set` at the root, the comparison
+ * editor's rule, so the change is one step in the builder's history.
+ */
+function HeroLayout({ options }: { options: PageBuilderOptions["hero_layouts"] }) {
+  const { content, set, err, idPrefix } = useBlock();
+  const layout = typeof content.layout === "string" ? content.layout : "centered";
+  const id = `${idPrefix ?? "b"}-layout`;
+
+  const choose = (value: string) => {
+    const next: Record<string, unknown> = { ...content, layout: value };
+    if (value !== "cover") delete next.video_path;
+    set([], next as never);
+  };
+
+  return (
+    <Field label="Layout" htmlFor={id} hint={options.find((l) => l.value === layout)?.blurb} error={err(["layout"])} variant="float-static">
+      <Select id={id} value={layout} onChange={(e) => choose(e.target.value)}>
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </Select>
+    </Field>
   );
 }
 
@@ -164,14 +342,26 @@ export function SectionEditor({ type, sectionId, options }: {
   switch (type) {
     case "hero": {
       const layout = typeof content.layout === "string" ? content.layout : "centered";
+      const kinetic = typeof content.kinetic === "string" ? content.kinetic : "default";
       return (
         <>
-          <Choice path={["layout"]} label="Layout" options={options.hero_layouts} fallback="centered"
-            hint={options.hero_layouts.find((l) => l.value === layout)?.blurb} />
+          <HeroLayout options={options.hero_layouts} />
           <Text path={["kicker"]} label="Kicker" hint="A few words over the heading. Optional." />
           <Text path={["heading"]} label="Heading" required hint="First on the page, this is the page’s own title (its h1)." />
           <Text path={["lede"]} label="Lede" multiline />
-          <ImagePath path={["image_path"]} label="Picture" hint={layout === "centered" ? "Not drawn in the centred layout." : "Needed for the split and cover layouts."} />
+          <Choice path={["kinetic"]} label="Heading effect" fallback="default" options={[
+            { value: "default", label: "As the Motion settings say" },
+            ...KINETIC.map((c) => ({ value: c.id, label: c.label })),
+          ]} hint="How the heading arrives when the page opens. Still for visitors who ask for less motion." />
+          {(kinetic === "rotate" || kinetic === "highlight") && (
+            <Text path={["kinetic_words"]} label={kinetic === "rotate" ? "Words the last word turns into" : "Word to underline"} multiline={kinetic === "rotate"}
+              hint={kinetic === "rotate" ? "One per line, up to six. The heading turns through them once, then rests on its own last word." : "Blank underlines the last word."} />
+          )}
+          <ImagePath path={["image_path"]} label="Picture" spec="hero" hint={layout === "centered" ? "Not drawn in the centred layout." : "Needed for the split and cover layouts."} />
+          {layout === "cover" && (
+            <VideoPath path={["video_path"]} label="Background video"
+              hint="Optional. An MP4 or WebM that loops silently behind the words; the picture above is shown until it plays, and instead of it for visitors who ask for less motion. Keep it short and small — under 10 MB." />
+          )}
           <Buttons />
         </>
       );
@@ -200,7 +390,7 @@ export function SectionEditor({ type, sectionId, options }: {
               { value: "right", label: "Right" }, { value: "left", label: "Left" },
             ]} />
           </Row>
-          {kind === "image" && <ImagePath path={["image_path"]} label="Picture" />}
+          {kind === "image" && <ImagePath path={["image_path"]} label="Picture" spec="gallery" />}
           {kind === "youtube" && <Text path={["youtube"]} label="YouTube link" placeholder="https://www.youtube.com/watch?v=…" hint="Played only when somebody presses it, from youtube-nocookie.com." />}
           {kind === "mp4" && <VideoPath path={["video_path"]} label="Video" />}
           <Buttons />
@@ -293,9 +483,21 @@ export function SectionEditor({ type, sectionId, options }: {
       return (
         <>
           <Text path={["heading"]} label="Heading" placeholder="Common questions" />
-          <Choice path={["source"]} label="Which questions" fallback="custom" options={[
-            { value: "custom", label: "Written here" }, { value: "page", label: "This page’s FAQs (the AEO tab)" },
-          ]} hint="Either way they join the page’s one FAQ listing for search engines." />
+          {/*
+            Inside a record (0.129.0) the questions are always written here:
+            the record's own FAQs are drawn under its sections already, and
+            the API refuses the other choice (`RecordSections`).
+          */}
+          {options.in_record ? (
+            <p className="mb-[18px] text-13 text-muted">
+              Questions written here. This page’s own FAQs are listed under the sections already; both join its one FAQ
+              listing for search engines.
+            </p>
+          ) : (
+            <Choice path={["source"]} label="Which questions" fallback="custom" options={[
+              { value: "custom", label: "Written here" }, { value: "page", label: "This page’s FAQs (the AEO tab)" },
+            ]} hint="Either way they join the page’s one FAQ listing for search engines." />
+          )}
           {source === "custom" && (
             <Repeater path={["items"]} label="Questions" subject="Question" min={1} max={30} blank={() => ({})} row={(p) => (
               <>
@@ -326,7 +528,7 @@ export function SectionEditor({ type, sectionId, options }: {
             <Text path={["name"]} label="Who said it" required />
             <Text path={["role"]} label="Their role" />
           </Row>
-          <ImagePath path={["photo_path"]} label="Photo" hint="Optional. Drawn as a small circle." />
+          <ImagePath path={["photo_path"]} label="Photo" spec="team" hint="Optional. Drawn as a small circle." />
         </>
       );
 
@@ -346,6 +548,42 @@ export function SectionEditor({ type, sectionId, options }: {
       );
     }
 
+    case "lottie":
+      return (
+        <>
+          <Text path={["heading"]} label="Heading" />
+          <Text path={["lede"]} label="Lede" multiline />
+          <LottiePath path={["file_path"]} label="Animation" />
+          <Text path={["alt"]} label="What it shows" hint="Read out by a screen reader. Leave blank if it is decoration only." />
+          <Row>
+            <Choice path={["size"]} label="Size" fallback="m" options={[
+              { value: "s", label: "Small" }, { value: "m", label: "Medium" }, { value: "l", label: "Large" },
+            ]} />
+            <Choice path={["align"]} label="Position" fallback="center" options={[
+              { value: "center", label: "Centred" }, { value: "start", label: "On the left" },
+            ]} />
+          </Row>
+          <Toggle path={["loop"]} label="Loop" hint="Plays once when it comes into view unless this is on; a looping animation gets a pause button. Still for visitors who ask for less motion." />
+        </>
+      );
+
+    case "model":
+      return (
+        <>
+          <Text path={["heading"]} label="Heading" />
+          <Text path={["lede"]} label="Lede" multiline />
+          <ModelPath path={["file_path"]} label="3D model" />
+          <Text path={["alt"]} label="What it shows" required hint="Read out by a screen reader, and shown if the model cannot load." />
+          <ImagePath path={["poster_path"]} label="Poster (optional)" hint="Shown until the model has loaded. A picture of the model works best." />
+          <Row>
+            <Choice path={["height"]} label="Height" fallback="m" options={[
+              { value: "s", label: "Small" }, { value: "m", label: "Medium" }, { value: "l", label: "Large" },
+            ]} />
+          </Row>
+          <Toggle path={["rotate"]} label="Turn slowly by itself" hint="Visitors can always drag it round. Still for visitors who ask for less motion." />
+        </>
+      );
+
     case "divider":
       return (
         <Row>
@@ -354,6 +592,325 @@ export function SectionEditor({ type, sectionId, options }: {
           ]} />
           <div className="pt-3"><Toggle path={["rule"]} label="Draw a line" /></div>
         </Row>
+      );
+
+    case "stats": {
+      const display = typeof content.display === "string" ? content.display : "figures";
+      const measured = display !== "figures";
+      return (
+        <>
+          <Head />
+          <Row>
+            <Choice path={["display"]} label="Drawn as" fallback="figures" options={[
+              { value: "figures", label: "Large figures" }, { value: "rings", label: "Rings" }, { value: "bars", label: "Bars" },
+            ]} hint={measured ? "Each figure needs a percentage — how full its ring or bar is." : "Each figure counts up as the section arrives."} />
+            {display !== "bars" && <NumberChoice path={["columns"]} label="Columns, at most" options={COLUMNS} hint="Never more columns than figures." />}
+          </Row>
+          <Repeater path={["items"]} label="Figures" subject="Figure" min={1} max={8} blank={() => ({})} row={(p) => (
+            <>
+              <Row>
+                <Text path={[...p, "value"]} label="Figure" required placeholder="340+" />
+                <Text path={[...p, "label"]} label="What it counts" required placeholder="Sites supported" />
+              </Row>
+              {measured
+                ? <NumberInput path={[...p, "percent"]} label="Percentage" min={0} max={100} hint="0 to 100." />
+                : <IconPick path={[...p, "icon"]} />}
+            </>
+          )} />
+        </>
+      );
+    }
+
+    case "steps":
+      return (
+        <>
+          <Head />
+          <Choice path={["layout"]} label="Layout" fallback="vertical" options={[
+            { value: "vertical", label: "Down the page, joined by a line" }, { value: "horizontal", label: "Across the page, as cards" },
+          ]} />
+          <Repeater path={["items"]} label="Steps" subject="Step" min={2} max={8} blank={() => ({})} row={(p) => (
+            <>
+              <Text path={[...p, "title"]} label="Title" required />
+              <Text path={[...p, "body"]} label="One or two lines" multiline />
+              <IconPick path={[...p, "icon"]} />
+            </>
+          )} />
+        </>
+      );
+
+    case "tabs":
+      return (
+        <>
+          <Head />
+          <Repeater path={["items"]} label="Tabs" subject="Tab" min={2} max={8} blank={() => ({})} row={(p) => (
+            <>
+              <Row>
+                <Text path={[...p, "label"]} label="Tab label" required hint="A word or two." />
+                <Text path={[...p, "heading"]} label="Heading in the panel" />
+              </Row>
+              <Text path={[...p, "body"]} label="Words" multiline required hint="Plain text; a blank line starts a new paragraph." />
+              <ImagePath path={[...p, "image_path"]} label="Picture" spec="gallery" hint="Optional. Shown beside the words from laptop width." />
+            </>
+          )} />
+        </>
+      );
+
+    case "story":
+      return (
+        <>
+          <Head />
+          <Repeater path={["items"]} label="Steps" subject="Step" min={2} max={6} blank={() => ({})}
+            hint="Two to six. Each step's words scroll past while its picture is held in place, changing as the next step arrives." row={(p) => (
+            <>
+              <Text path={[...p, "title"]} label="Title" required />
+              <Text path={[...p, "body"]} label="Words" multiline required hint="Plain text; a blank line starts a new paragraph." />
+              <ImagePath path={[...p, "image_path"]} label="Picture" spec="gallery" hint="Required. Shown while this step is in view; pictures of one shape change most smoothly." />
+            </>
+          )} />
+        </>
+      );
+
+    case "flow":
+      return (
+        <>
+          <Head />
+          <Repeater path={["items"]} label="Steps" subject="Step" min={2} max={6} blank={() => ({})}
+            hint="Two to six, left to right — each a box with an icon, joined to the next by a line that draws itself as the page scrolls. Down the page on a phone." row={(p) => (
+            <>
+              <IconPick path={[...p, "icon"]} />
+              <Text path={[...p, "title"]} label="Title" required placeholder="Core switch" />
+              <Text path={[...p, "note"]} label="One line under it" hint="Optional, up to 160 characters." />
+            </>
+          )} />
+          <Text path={["caption"]} label="Caption" hint="Optional. A line under the diagram." />
+        </>
+      );
+
+    case "checklist":
+      return (
+        <>
+          <Head />
+          <NumberChoice path={["columns"]} label="Columns, at most" options={LIST_COLUMNS} />
+          <Repeater path={["items"]} label="Points" subject="Point" min={1} max={24} blank={() => ({})} row={(p) => (
+            <>
+              <Text path={[...p, "text"]} label="Point" required />
+              <IconPick path={[...p, "icon"]} />
+            </>
+          )} />
+          <Buttons />
+        </>
+      );
+
+    case "cta":
+      return (
+        <>
+          <Text path={["kicker"]} label="Kicker" />
+          <Text path={["heading"]} label="Heading" required />
+          <Text path={["lede"]} label="Line under it" multiline />
+          <Choice path={["tone"]} label="Colour" fallback="accent" options={[
+            { value: "accent", label: "Accent — as the inner pages close" }, { value: "brand", label: "Brand — as the homepage closes" },
+          ]} hint="Drawn the way the active theme draws its closing band." />
+          <Buttons />
+          <Toggle path={["call"]} label="With no second button, offer “Call” with the site’s number" />
+        </>
+      );
+
+    case "comparison":
+      return <ComparisonEditor />;
+
+    case "timeline":
+      return (
+        <>
+          <Head />
+          <Repeater path={["items"]} label="Milestones" subject="Milestone" min={2} max={12} blank={() => ({})} row={(p) => (
+            <>
+              <Row>
+                <Text path={[...p, "date"]} label="Date" required placeholder="2014" hint="A year, a month, a quarter." />
+                <Text path={[...p, "title"]} label="What happened" required />
+              </Row>
+              <Text path={[...p, "body"]} label="One or two lines" multiline />
+            </>
+          )} />
+        </>
+      );
+
+    case "before_after":
+      return (
+        <>
+          <Text path={["heading"]} label="Heading" />
+          <Text path={["lede"]} label="Lede" multiline />
+          <Row>
+            <ImagePath path={["before_path"]} label="Before" spec="before_after" hint="Take both from the same spot." />
+            <ImagePath path={["after_path"]} label="After" spec="before_after" />
+          </Row>
+          <Row cols={3}>
+            <Text path={["before_label"]} label="Before — label" placeholder="Before" />
+            <Text path={["after_label"]} label="After — label" placeholder="After" />
+            <NumberInput path={["start"]} label="Divider starts at" min={10} max={90} hint="10 to 90 percent from the left." />
+          </Row>
+          <Text path={["caption"]} label="Caption" />
+        </>
+      );
+
+    case "testimonials":
+      return (
+        <>
+          <Head />
+          <Repeater path={["items"]} label="Quotations" subject="Quotation" min={2} max={9} blank={() => ({})} row={(p) => (
+            <>
+              <Text path={[...p, "quote"]} label="Quotation" multiline required />
+              <Row>
+                <Text path={[...p, "name"]} label="Who said it" required />
+                <Text path={[...p, "role"]} label="Their role" />
+              </Row>
+              <ImagePath path={[...p, "photo_path"]} label="Photo" spec="team" hint="Optional. Without one, their initial is drawn." />
+            </>
+          )} />
+        </>
+      );
+
+    case "team":
+      return (
+        <>
+          <Head />
+          <Row>
+            <Text path={["department"]} label="Department" hint="Blank for everybody; or one department, spelled as on Company → Team." />
+            <NumberInput path={["limit"]} label="How many, at most" min={1} max={48} />
+          </Row>
+          <Toggle path={["group"]} label="Group the people by department" />
+          <p className="-mt-2 mb-4 text-12-5 text-faint">A live list: the published team, in its own order, drawn as the theme draws its team cards. <Link href="/admin/team-members" className="font-semibold text-brand-ink underline">Edit the team</Link>.</p>
+        </>
+      );
+
+    case "downloads": {
+      // Files typed in here, or the downloads centre's own (0.131.0).
+      const fromCentre = content.source === "centre";
+      const shelves = options.download_categories ?? [];
+      return (
+        <>
+          <Head />
+          <Choice path={["source"]} label="Which files" fallback="custom"
+            options={[
+              { value: "custom", label: "Files chosen here" },
+              { value: "centre", label: "From the downloads centre" },
+            ]} />
+          {fromCentre ? (
+            <>
+              <Row>
+                <NumberChoice path={["category_id"]} label="Category" placeholder="Every category"
+                  options={shelves.map((c) => ({ value: String(c.id), label: c.name }))} />
+                <NumberInput path={["limit"]} label="How many, at most" min={1} max={50} hint="Twelve when left blank." />
+              </Row>
+              <p className="-mt-2 mb-4 text-12-5 text-faint">
+                A live list: what is published in the downloads centre now, with a link to all of it. A customers-only
+                file is listed with a lock. <Link href="/admin/downloads" className="font-semibold text-brand-ink underline">Edit the downloads</Link>.
+              </p>
+            </>
+          ) : (
+            <Repeater path={["items"]} label="Files" subject="File" min={1} max={20} blank={() => ({})} row={(p) => (
+              <>
+                <Text path={[...p, "title"]} label="Title" required placeholder="AMC brochure" />
+                <FilePath path={[...p, "file_path"]} label="File" noun="a file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
+                  hint="From the media library's Files tab. Its size and kind are shown beside the button." />
+                <Text path={[...p, "note"]} label="One line about it" placeholder="Four pages, updated October 2026" />
+              </>
+            )} />
+          )}
+        </>
+      );
+    }
+
+    case "countdown":
+      return (
+        <>
+          <Text path={["kicker"]} label="Kicker" />
+          <Text path={["heading"]} label="Heading" required placeholder="The offer ends in" />
+          <Text path={["lede"]} label="Lede" multiline />
+          <Row>
+            <Text path={["ends_at"]} label="Ends" type="datetime-local" required hint="In the site's own timezone." />
+            <Text path={["done_text"]} label="Once it has passed" placeholder="This offer has ended." />
+          </Row>
+          <Buttons />
+        </>
+      );
+
+    case "columns":
+      return <ColumnsEditor sectionId={sectionId} />;
+
+    case "map":
+      return (
+        <>
+          <Text path={["heading"]} label="Heading" placeholder="Find us" />
+          <Text path={["lede"]} label="Lede" multiline />
+          <Text path={["url"]} label="Google Maps embed address" required placeholder="https://www.google.com/maps/embed?pb=…"
+            hint={"In Google Maps: Share, then “Embed a map”, then copy the src=\"…\" from the code."} />
+          <Text path={["address"]} label="Address" multiline hint="Shown on the map's card until somebody loads the map." />
+        </>
+      );
+
+    case "custom_code":
+      return <CustomCodeEditor canRunOnPage={options.custom_code?.page_mode === true} />;
+
+    case "subnav":
+      return (
+        <>
+          <Text path={["label"]} label="Label" placeholder="On this page" hint="Shown before the links on a computer; read out as the menu's name." />
+          <p className="measure text-12-5 text-muted">
+            The links are made for you: one for every section on this page that has an anchor, in page order, labelled
+            with that section&rsquo;s heading. To add a section to the menu, open it, go to Style and give it an Anchor.
+            The menu needs at least two, stays at the top of the screen as the page scrolls, and takes no background or
+            style of its own.
+          </p>
+        </>
+      );
+
+    case "support_network":
+      // The support network (0.170.0): the map and the centres, live.
+      return (
+        <>
+          <Head />
+          <Choice path={["country"]} label="Open on" fallback=""
+            options={[{ value: "", label: "Every country" }, ...(options.support_countries ?? [])]} />
+          <p className="-mt-2 mb-4 text-12-5 text-faint">
+            A live list: the centres from <Link href="/admin/support-centres" className="font-semibold text-brand-ink underline">Site → Support network</Link>,
+            pinned on a map with their addresses and telephone numbers. Drawn nothing while no centre is shown.
+          </p>
+        </>
+      );
+
+    case "product_videos":
+      // The shop's "shop the videos" row (0.140.0): a live list of the videos on shop products.
+      return (
+        <>
+          <Head />
+          <Row>
+            <NumberChoice path={["category_id"]} label="Shop category" placeholder="Every category"
+              options={(options.store_categories ?? []).map((c) => ({ value: String(c.id), label: c.name }))} />
+            <NumberInput path={["limit"]} label="How many" min={1} max={24} hint="Up to twenty-four." />
+          </Row>
+          <Choice path={["shape"]} label="Shape of the video" fallback=""
+            options={[
+              { value: "", label: "As set in Store → Product videos" },
+              { value: "portrait", label: "Portrait (9:16)" },
+              { value: "square", label: "Square (1:1)" },
+              { value: "landscape", label: "Landscape (16:9)" },
+            ]} />
+          <p className="-mt-2 mb-4 text-12-5 text-faint">
+            A live list: the videos on shop products, each with its product under it and an Add to basket button — drawn
+            nothing when no product has a video. A video is added on the product&rsquo;s Media tab; whether it plays on a
+            press or by itself is set in <Link href="/admin/store/videos" className="font-semibold text-brand-ink underline">Store → Product videos</Link>.
+          </p>
+        </>
+      );
+
+    case "layout":
+      return <LayoutEditor sectionId={sectionId} options={options} />;
+
+    case "theme_section":
+      return (
+        <Choice path={["section"]} label="Which homepage section" fallback="solutions"
+          options={HOME_SECTIONS.map((s) => ({ value: s.id, label: s.label }))}
+          hint="Drawn the way the active theme draws it on its homepage, and changing with the theme. A section the theme does not draw shows nothing; the hero opens the page." />
       );
 
     default:

@@ -23,7 +23,7 @@ import { mkdirSync } from "node:fs";
 
 const BASE = process.env.BASE ?? "http://localhost:3000";
 const OUT = process.env.OUT ?? "scripts/_strips";
-const THEMES = ["classic", "editorial", "datacenter", "launch", "terminal", "enterprise", "summit", "horizon", "canvas", "sentinel", "vantage", "keystone"];
+const THEMES = ["classic", "editorial", "datacenter", "launch", "terminal", "enterprise", "summit", "horizon", "canvas", "sentinel", "vantage", "keystone", "aurora", "atelier"];
 const MOVING = new Set(["marquee", "drift", "bob", "spotlight", "parallax", "lens", "cascade", "ring", "pulse"]);
 const { ADMIN_LOGIN_EMAIL: EMAIL, ADMIN_LOGIN_PASSWORD: PASSWORD } = process.env;
 if (!EMAIL || !PASSWORD) { console.error("Set ADMIN_LOGIN_EMAIL and ADMIN_LOGIN_PASSWORD."); process.exit(2); }
@@ -54,7 +54,7 @@ const sample = () => page.evaluate(() => {
       if (mode === "ring") return root.querySelector(".strip-ring");
       if (mode === "cascade") return root.querySelector(".brand-marquee-track-y");
       if (mode === "parallax") return root.querySelector(".strip-back");
-      if (["rise", "wipe", "flicker", "deal", "pulse"].includes(mode)) return root.querySelector(".strip-grid > li:nth-child(2)");
+      if (["rise", "wipe", "flicker", "deal", "pulse", "swell", "press"].includes(mode)) return root.querySelector(".strip-grid > li:nth-child(2)");
       if (mode === "bob") return root.querySelector(".brand-marquee-track > li");
       if (mode === "spotlight") return root.querySelector(".brand-marquee");
       return root.querySelector(".brand-marquee-track");

@@ -10,7 +10,9 @@ import { chromium } from "playwright";
  * name lists a record under a group heading, from `/api/admin/search`; (4)
  * ArrowDown moves `aria-activedescendant` and Enter navigates there;
  * (5) Escape closes it and the dialog can be opened again — the native
- * dialog bug `Modal` documents.
+ * dialog bug `Modal` documents; (6) "cron" and "crontab" list the
+ * scheduler's command (`PALETTE_SECTIONS`, matched on keywords) and Enter
+ * opens System status at that card.
  */
 const BASE = process.env.BASE ?? "http://127.0.0.1:3000";
 const browser = await chromium.launch();
@@ -45,7 +47,8 @@ const after = await page.locator('[role="combobox"]').getAttribute("aria-actived
 ok(before !== after && after, "ArrowDown moves the active descendant");
 const target = await page.evaluate((id) => document.getElementById(id)?.getAttribute("href"), after);
 await page.keyboard.press("Enter");
-await page.waitForURL((u) => u.pathname + u.search === target, { timeout: 30000 })
+// Two minutes: under `next dev` the first visit compiles the route.
+await page.waitForURL((u) => u.pathname + u.search === target, { timeout: 120000 })
   .then(() => ok(true, `Enter navigates to ${target}`), () => ok(false, `Enter did not navigate to ${target}`));
 // Let the navigation settle before the shortcut is pressed again.
 await page.waitForTimeout(800);
@@ -58,6 +61,23 @@ ok(!(await dialog.evaluate((d) => d.open)), "Escape closes it");
 await page.keyboard.press("Control+k");
 await page.waitForFunction(() => document.querySelector("dialog[data-command-palette]")?.open, null, { timeout: 5000 }).catch(() => {});
 ok(await dialog.evaluate((d) => d.open), "and it opens again afterwards");
+
+// (6) A part of a screen is found by a word its screen's name does not hold.
+await page.keyboard.press("Control+a");
+await page.keyboard.type("cron");
+const cron = dialog.locator('[role="option"]', { hasText: "Scheduler command" });
+await cron.waitFor({ timeout: 5000 }).catch(() => {});
+ok((await cron.count()) === 1, '"cron" lists the scheduler\'s command');
+await page.keyboard.press("Control+a");
+await page.keyboard.type("crontab");
+ok((await cron.count()) === 1, 'and so does "crontab", a word that is in no label');
+await page.keyboard.press("Enter");
+await page.waitForURL((u) => u.pathname === "/admin/system/status" && u.hash === "#scheduler", { timeout: 120000 })
+  .then(() => ok(true, "Enter opens System status at the scheduler"), () => ok(false, `Enter went to ${page.url()}`));
+await page.locator("#scheduler").waitFor({ timeout: 60000 }).catch(() => {});
+await page.waitForTimeout(800);
+const top = await page.locator("#scheduler").evaluate((el) => el.getBoundingClientRect().top).catch(() => -1);
+ok(top >= 56 && top < 800, `the scheduler's heading is on screen, clear of the header (${Math.round(top)}px)`);
 
 await browser.close();
 console.log(failed ? `\n${failed} check(s) failed` : "\nAll checks passed");

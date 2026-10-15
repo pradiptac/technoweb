@@ -56,6 +56,8 @@ const LOADERS: Record<string, () => Promise<{ templates: Partial<ThemeTemplates>
   sentinel: () => import("./sentinel/templates"),
   vantage: () => import("./vantage/templates"),
   keystone: () => import("./keystone/templates"),
+  aurora: () => import("./aurora/templates"),
+  atelier: () => import("./atelier/templates"),
 };
 
 const MAX_CHAIN = 3;

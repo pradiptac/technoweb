@@ -5,9 +5,11 @@ namespace App\Http\Resources;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Service;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -15,7 +17,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Service */
 class ServiceResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSections, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -39,10 +41,17 @@ class ServiceResource extends JsonResource
             // The picture, the shape a solution's `hero_image*` takes.
             // The chips on its card, in order; [] when there are none.
             'highlights' => $this->highlights ?? [],
-            'image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
+            'image' => $this->image_path ? MediaUrl::for($this->image_path) : null,
             'image_alt' => MediaMeta::alt($this->image_path),
             'image_focus' => MediaMeta::focus($this->image_path),
+            'image_blur' => MediaMeta::blur($this->image_path),
             'body' => $this->when($detail, $this->body),
+            // The builder's sections in place of the written body (0.129.0): on
+            // this record's own page only, and only while it is laid out as
+            // sections. The body above is still sent.
+            'sections' => $this->publicSections($this->includeSchema),
+            // The kind's active detail template (0.161.0): on this record's own page only; absent when none is active.
+            'detail_template' => $this->publicDetailTemplate('service', $this->includeSchema),
             'faqs' => FaqResource::collection($this->whenLoaded('faqs')),
             // The published blocks, in order, with the heading each renders under.
             'answer_blocks' => $this->publicAnswerBlocks(),

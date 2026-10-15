@@ -17,7 +17,7 @@ function payload(formData: FormData): ClientPayload {
     website_url: str("website_url") || null,
     industry_id: Number(str("industry_id")) || null,
     note: str("note") || null,
-    is_featured: formData.get("is_featured") === "on",
+    is_featured: formData.get("is_featured") === "1",
     status: str("status"),
     sort_order: Number(str("sort_order")) || 0,
   };

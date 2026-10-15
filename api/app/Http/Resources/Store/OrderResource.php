@@ -4,6 +4,7 @@ namespace App\Http\Resources\Store;
 
 use App\Models\Order;
 use App\Support\Store\PaymentOptions;
+use App\Support\Store\Returns\ReturnPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -43,6 +44,10 @@ class OrderResource extends JsonResource
 
             'subtotal_paise' => $this->subtotal_paise,
             'discount_paise' => $this->discount_paise,
+            // Delivery as it was charged (0.142.0). The weight is the shop's
+            // working, not the customer's business.
+            'shipping_paise' => (int) $this->shipping_paise,
+            'shipping_zone' => $this->shipping_zone,
             'taxable_paise' => $this->taxable_paise,
             'gst_paise' => $this->gst_paise,
             'total_paise' => $this->total_paise,
@@ -62,24 +67,52 @@ class OrderResource extends JsonResource
             'company_name' => $this->company_name,
 
             /*
-             * The invoice is prepared by hand and uploaded. Until it is, the
-             * field is simply absent rather than an empty link — a download
-             * that 404s is worse than one that is not offered yet.
+             * The invoice: uploaded by hand, made in the shop's Zoho Books,
+             * or generated here since 0.176.0. Until there is one the
+             * fields are simply absent rather than an empty link — a
+             * download that 404s is worse than one not offered yet.
+             *
+             * **`has_invoice` means "there is one you can download"**, not
+             * "a file exists". It carries the paid check the download route
+             * applies, because the two have to agree: this flag is the only
+             * thing the order page draws the link from, and a link that
+             * 404s on press is the same defect as no link at all — which is
+             * what this key was from the day the store shipped until that
+             * route existed.
              */
             'invoice_number' => $this->invoice_number,
             'invoice_date' => $this->invoice_date?->toDateString(),
-            'has_invoice' => filled($this->invoice_path),
+            'has_invoice' => filled($this->invoice_path) && $this->paid_at !== null,
 
             'courier' => $this->courier,
             'tracking_number' => $this->tracking_number,
             'tracking_url' => $this->tracking_url,
+            /*
+             * The courier's own word for where the parcel is (0.143.0,
+             * docs/store.md "Shiprocket"), only while it is going well: a
+             * parcel coming back or cancelled is something the desk decides
+             * what to say about, not a status to show. Null while the courier
+             * is typed by hand.
+             */
+            'shipment_status' => $this->shipment_booking === 'created' && $this->shipment_problem === null ? $this->shipment_status : null,
 
             'placed_at' => $this->placed_at?->toIso8601String(),
             'paid_at' => $this->paid_at?->toIso8601String(),
             'dispatched_at' => $this->dispatched_at?->toIso8601String(),
+            'delivered_at' => $this->delivered_at?->toIso8601String(),
             'completed_at' => $this->completed_at?->toIso8601String(),
 
             'items' => OrderItemResource::collection($this->whenLoaded('items')),
+
+            /*
+             * Returns (0.132.0, docs/store.md "Returns"): what has been asked
+             * to come back, and whether the page may offer the form — how
+             * many of each line are left, until when, and the one sentence
+             * to show when it may not. On the order's own read only; a list
+             * row carries neither key.
+             */
+            'returns' => OrderReturnResource::collection($this->whenLoaded('returns')),
+            'return_policy' => $this->whenLoaded('returns', fn () => ReturnPolicy::describe($this->resource)),
 
             /*
              * The payment attempts, reduced to what a customer can act on: the

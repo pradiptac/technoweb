@@ -98,7 +98,14 @@ export function PincodeAutofill({
   const fieldsOf = useCallback((form: HTMLFormElement) => {
     const get = (name: string) => form.elements.namedItem(name);
     const input = (name: string) => (get(name) instanceof HTMLInputElement ? (get(name) as HTMLInputElement) : null);
-    return { country: input(country), state: input(state), city: input(city) };
+    // The state is a list of names when delivery is charged by zone, and is
+    // then filled by choosing the option that spells the same state.
+    const stateField = get(state);
+    return {
+      country: input(country),
+      state: stateField instanceof HTMLSelectElement ? stateField : input(state),
+      city: input(city),
+    };
   }, [country, state, city]);
 
   const fill = useCallback(
@@ -116,6 +123,11 @@ export function PincodeAutofill({
 
         const untouched = el.value.trim() === "" || el.value === written.current[name];
         if (!untouched) continue;
+
+        // A list can only take one of its own options. The directory's spelling
+        // is made to match the API's names (`lib/pincode.ts`), so an exact match
+        // is expected; a name the list lacks leaves it as it was.
+        if (el instanceof HTMLSelectElement && !Array.from(el.options).some((o) => o.value === next)) continue;
 
         el.value = next;
         written.current[name] = next;

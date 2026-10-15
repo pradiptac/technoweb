@@ -111,7 +111,9 @@ function buildVolumeSeries(period) {
       resolved: ((i * 5) % 4) * scale,
     };
   });
-  return { period: key, bucket, points };
+  // The period before, the same shape: the API's `previous` (2026-10-05).
+  const previous = points.map((pt, i) => ({ ...pt, created: Math.max(0, pt.created - (i % 2)), resolved: Math.max(0, pt.resolved - (i % 3 === 0 ? 1 : 0)) }));
+  return { period: key, bucket, points, previous };
 }
 
 function buildAdminDashboard(volumePeriod = 'month') {
@@ -137,7 +139,11 @@ function buildAdminDashboard(volumePeriod = 'month') {
      * administrator, who passes every role check — the real API sends null to
      * anyone without `sales_manager`, so the console must handle both.
      */
-    leads: { new: 2, open: 3, overdue: 1, unassigned: 1 },
+    leads: {
+      new: 2, open: 3, overdue: 1, unassigned: 1,
+      series: Array.from({ length: 30 }, (_, i) => (i * 7) % 4),
+      funnel: { days: 90, received: 48, contacted: 31, won: 9 },
+    },
     // Engineer visits (docs/visits.md): null for a role that cannot open the queue.
     visits: { awaiting: visitRequests.filter((v) => v.status === 'requested').length, today: 0 },
     // Online meetings (docs/meetings-contract.md): null for a role that cannot open the list.
@@ -160,6 +166,13 @@ function buildAdminDashboard(volumePeriod = 'month') {
       sla_first_response: { pct: 88, of: 17 },
       open_by_priority: [{ label: 'high', total: 2 }, { label: 'medium', total: 1 }],
       open_by_category: [{ label: 'Networking', total: 2 }, { label: 'Hardware', total: 1 }],
+      // A working week's shape: busy mornings Monday to Friday, quiet weekends.
+      arrivals: (() => {
+        const cells = Array.from({ length: 7 }, (_, d) => Array.from({ length: 24 }, (_, h) =>
+          d < 5 && h >= 9 && h <= 18 ? ((d + h) % 5) + (h < 13 ? 2 : 0) : (h % 7 === 0 ? 1 : 0)));
+        const flat = cells.flat();
+        return { days: 90, cells, peak: Math.max(...flat), total: flat.reduce((a, b) => a + b, 0) };
+      })(),
     },
   };
 }
@@ -502,6 +515,7 @@ const storeProducts = [
     images: [], image_alts: [], image_focuses: [],
     price_paise: 4720000, compare_at_paise: 5310000,
     in_stock: true, availability: 'in_stock', handling_days: 2, returnable: true, is_featured: true,
+    price_includes_gst: true, gst_rate: '18%',
     created_at: '2026-01-15T00:00:00Z',
     category: storeCategories[0], brand: { id: 1, name: 'Cisco', slug: 'cisco', logo: null },
     variations: [
@@ -513,7 +527,7 @@ const storeProducts = [
     short_description: 'Eight Gigabit ports, no configuration, metal case.',
     description: null, specifications: {}, features: [],
     images: [], image_alts: [], image_focuses: [],
-    price_paise: 129900, in_stock: false, returnable: true,
+    price_paise: 129900, in_stock: false, returnable: true, price_includes_gst: true, gst_rate: '18%',
     created_at: '2026-01-15T00:00:00Z',
     category: storeCategories[0], brand: null, variations: [] },
   { id: 3, name: 'Endpoint Security 1 Year', slug: 'endpoint-security-1-year', sku: 'EPS-1Y',
@@ -521,13 +535,82 @@ const storeProducts = [
     short_description: 'One year of endpoint protection, delivered as an activation code.',
     description: null, specifications: {}, features: [],
     images: [], image_alts: [], image_focuses: [],
-    price_paise: 236000, in_stock: true, returnable: false,
+    price_paise: 236000, in_stock: true, returnable: false, price_includes_gst: true, gst_rate: '18%',
     // Deliberately recent, computed rather than a fixed date, so the "New"
     // ribbon (isNewProduct, 30-day window) has something to render against
     // under `npm run mock` however long the fixture has existed.
     created_at: new Date().toISOString(),
     category: storeCategories[1], brand: null, variations: [] },
 ];
+
+/*
+ * Ask ALTIS's fixed question list (0.177.0). Every figure and every sentence
+ * in the real one is built in PHP from this install's own rows; here they are
+ * constants, because the mock proves the shape of the wire and not the
+ * arithmetic. `words` is the vocabulary the asking is scored against.
+ */
+const MOCK_COPILOT = [
+  { key: 'tickets_open', label: 'How many tickets are open?', words: 'ticket open outstanding queue support', figure: 7, sentence: '7 tickets are open.', href: '/admin/tickets?open=1' },
+  { key: 'tickets_overdue', label: 'Which tickets are overdue?', words: 'ticket overdue late sla breached past due', figure: 2, sentence: '2 tickets are past their due time.', href: '/admin/tickets?overdue=1' },
+  { key: 'tickets_unassigned', label: 'How many tickets have nobody on them?', words: 'ticket unassigned nobody assigned owner', figure: 3, sentence: '3 tickets have nobody assigned.', href: '/admin/tickets?unassigned=1' },
+  { key: 'leads_new', label: 'How many new leads are waiting?', words: 'lead new enquiry enquiries waiting prospect', figure: 4, sentence: '4 leads are new.', href: '/admin/leads?status=new' },
+  { key: 'orders_awaiting_dispatch', label: 'How many orders are waiting to be sent?', words: 'order dispatch send ship shipping waiting parcel', figure: 5, sentence: '5 orders are waiting to be dispatched.', href: '/admin/store/orders?status=confirmed' },
+  { key: 'orders_unpaid', label: 'How many orders are unpaid?', words: 'order unpaid payment owed outstanding money', figure: 1, sentence: '1 order is unpaid.', href: '/admin/store/orders?unpaid=1' },
+  { key: 'store_out_of_stock', label: 'What is out of stock?', words: 'stock out shelf empty product inventory', figure: 2, sentence: '2 products are out of stock.', href: '/admin/store/products?out_of_stock=1' },
+  { key: 'store_revenue_month', label: 'How much has the shop taken this month?', words: 'revenue taken sales money shop month turnover', figure: '₹2,45,000', sentence: 'The shop has taken ₹2,45,000 this month, across 12 paid orders.', href: '/admin/store/reports' },
+  { key: 'content_drafts', label: 'What is still in draft?', words: 'draft unpublished content page post waiting', figure: 6, sentence: '6 records are still drafts.', href: '/admin/pages?status=draft' },
+  { key: 'customers_pending', label: 'How many customers are waiting for approval?', words: 'customer pending approval waiting account register', figure: 2, sentence: '2 customers are waiting for approval.', href: '/admin/customers?status=pending' },
+  { key: 'mail_queue', label: 'Is email going out?', words: 'mail email queue sending delivery stuck scheduler', figure: 0, sentence: 'Nothing is waiting in the mail queue.', href: null },
+];
+
+/*
+ * "Shop the videos" (0.140.0). Two products carry a video — the first a YouTube
+ * id with an uploaded-poster-less facade, the third another — and
+ * `storeVideoRows()` is the mock's `VideoShelf`: one tile per product, its
+ * own videos first on `?product=`, category-mates then the rest after them,
+ * `others=0` its own only. The product half is the list row the cards use;
+ * a row never carries a stock count or a file path.
+ */
+const MOCK_VIDEOS = {
+  1: [
+    { kind: 'youtube', youtube_id: 'dQw4w9WgXcQ', title: 'Unboxing and first set-up', poster_url: null, poster_alt: null },
+    { kind: 'youtube', youtube_id: 'aqz-KE-bpKQ', title: 'Racking it in a 1U space', poster_url: null, poster_alt: null },
+  ],
+  3: [{ kind: 'youtube', youtube_id: 'aqz-KE-bpKQ', title: 'Activating your licence', poster_url: null, poster_alt: null }],
+};
+/*
+  Tax and invoicing (0.176.0), as an install ships: 18%, prices inclusive,
+  and the invoice switched off with nothing filled in.
+*/
+const mockInvoicingSettings = {
+  store_gst_percent: '18', store_price_basis: 'inclusive', store_price_entry: 'inclusive',
+  invoice_enabled: '0', invoice_legal_name: '', invoice_gstin: '', invoice_state: '',
+  invoice_address: '', invoice_email: '', invoice_phone: '', invoice_prefix: 'INV',
+  invoice_hsn_default: '', invoice_terms: '',
+  invoice_declaration: 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.',
+  invoice_signatory: '', invoice_signature_path: '',
+};
+
+const mockVideoSettings = {
+  store_videos_shop_enabled: '1', store_videos_product_enabled: '1', store_videos_product_others: '1', store_videos_home_enabled: '0',
+  store_videos_heading: 'Shop the videos', store_videos_lede: '', store_videos_autoplay: '0', store_videos_shape: 'portrait',
+  store_videos_limit: '12', store_videos_order: 'newest', store_videos_show_sku: '1',
+};
+function storeVideoRows({ limit = 12, category = null, categoryId = null, product = null, others = true } = {}) {
+  const rowFor = (sp, n) => ({ id: `${sp.id}-${n}`, video: MOCK_VIDEOS[sp.id][n], product: sp });
+  const rows = [];
+  const head = product ? storeProducts.find((x) => x.slug === product && MOCK_VIDEOS[x.id]) : null;
+  if (head) MOCK_VIDEOS[head.id].forEach((_, n) => rows.push(rowFor(head, n)));
+  if (!head || others) {
+    const tail = storeProducts
+      .filter((x) => MOCK_VIDEOS[x.id] && x !== head)
+      .filter((x) => !category || x.category?.slug === category)
+      .filter((x) => !categoryId || x.category?.id === categoryId)
+      .sort((a, b) => (head ? Number(b.category?.id === head.category?.id) - Number(a.category?.id === head.category?.id) : 0) || b.id - a.id);
+    tail.forEach((sp) => rows.push(rowFor(sp, 0)));
+  }
+  return rows.slice(0, Math.max(1, Math.min(24, limit)));
+}
 
 /*
  * Store reviews (docs/store.md, "Reviews"): three published on the first
@@ -542,6 +625,41 @@ const storeReviews = [
 ];
 for (const sp of storeProducts) sp.rating = null;
 storeProducts[0].rating = { average: 4.3, count: 3 };
+
+/*
+ * Shop tags (0.141.0, docs/store.md "Tags"): the vocabulary, which product
+ * carries which, and the public `tags` each product row sends — visible tags
+ * only. `sort_order` 0 is unordered; the row puts curated tags first, then
+ * the most used. Mutated by the Tags screen's mock routes so the probe can
+ * hide, reorder, merge and delete for real.
+ */
+const mockTags = [
+  { id: 1, name: 'Cisco', slug: 'cisco', is_visible: true, sort_order: 0 },
+  { id: 2, name: 'Switches', slug: 'switches', is_visible: true, sort_order: 0 },
+  { id: 3, name: '24 Ports', slug: '24-ports', is_visible: true, sort_order: 0 },
+  { id: 4, name: 'Rack Mount', slug: 'rack-mount', is_visible: true, sort_order: 0 },
+  { id: 5, name: 'Digital', slug: 'digital', is_visible: true, sort_order: 0 },
+  { id: 6, name: 'Wi-Fi 6', slug: 'wi-fi-6', is_visible: true, sort_order: 0 },
+];
+const tagLinks = new Map([[1, [1, 2, 3, 4]], [2, [2]], [3, [5]]]);
+const tagSlugOf = (name) => name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+const tagUse = (tag) => [...tagLinks.values()].filter((ids) => ids.includes(tag.id)).length;
+const tagResource = (t) => ({ id: t.id, name: t.name, slug: t.slug, is_visible: t.is_visible, sort_order: t.sort_order, products_count: tagUse(t), heading: t.heading ?? null, intro: t.intro ?? null, public_path: `/store/tags/${t.slug}` });
+// Tag pages (0.157.0): the detail read adds the SEO override and what the page falls back to; the public page counts published products only (every mock product is published).
+const tagSeoDefaults = (t) => ({ title: t.heading || t.name, description: `Shop ${t.name} products in the shop.`, canonical_url: `https://www.technoware.in/store/tags/${t.slug}`, robots: 'index, follow', focus_keyword: null, secondary_keywords: [], og_title: t.heading || t.name, og_description: `Shop ${t.name} products in the shop.`, og_image: null, schema_type: 'CollectionPage', schema_type_options: ['CollectionPage', 'WebPage'], sitemap_include: true });
+const tagSeoOverride = (t) => ({ title: null, description: null, canonical_url: null, robots: null, focus_keyword: null, secondary_keywords: [], og_title: null, og_description: null, og_image_path: null, og_image: null, schema_type: null, sitemap_include: true, ...(t.seo ?? {}) });
+const tagPublishedCount = (t) => storeProducts.filter((sp) => (tagLinks.get(sp.id) ?? []).includes(t.id)).length;
+const tagDetail = (t) => ({ ...tagResource(t), seo: tagSeoOverride(t), seo_defaults: { ...tagSeoDefaults(t), ...Object.fromEntries(Object.entries(t.seo ?? {}).filter(([, v]) => v !== null && v !== '' && !Array.isArray(v) && typeof v !== 'boolean')) } });
+const tagOrder = (a, b) => ((a.sort_order === 0) - (b.sort_order === 0)) || (a.sort_order - b.sort_order) || (tagUse(b) - tagUse(a)) || a.name.localeCompare(b.name);
+const tagSettings = { store_tags_enabled: '1', store_tags_limit: '12', store_tags_auto: '1' };
+function syncProductTags() {
+  for (const sp of storeProducts) {
+    sp.tags = (tagLinks.get(sp.id) ?? [])
+      .map((id) => mockTags.find((t) => t.id === id)).filter((t) => t && t.is_visible)
+      .sort(tagOrder).map(({ name, slug }) => ({ name, slug }));
+  }
+}
+syncProductTags();
 const REVIEW_SORT = {
   featured: (a, b) => (b.is_featured - a.is_featured) || (b.rating - a.rating) || b.published_at.localeCompare(a.published_at),
   newest: (a, b) => b.published_at.localeCompare(a.published_at),
@@ -569,6 +687,89 @@ const carts = new Map();
    mock never sends a reminder, so `reminders` is always false and no restore
    token is ever minted — `GET /cart/restore/{token}` answers 404. */
 const cartContacts = new Map();
+
+/* Delivery charges (0.142.0, docs/store.md "Delivery charges and shipping
+   zones"): the same arithmetic as App\Support\Store\ShippingQuote, over a
+   small in-memory arrangement the console screen edits. `flat` at 0 is the
+   default, so every existing route reads exactly as before. */
+const INDIAN_STATES = [
+  ['AN', 'Andaman and Nicobar Islands'], ['AP', 'Andhra Pradesh'], ['AR', 'Arunachal Pradesh'], ['AS', 'Assam'], ['BR', 'Bihar'],
+  ['CH', 'Chandigarh'], ['CG', 'Chhattisgarh'], ['DN', 'Dadra and Nagar Haveli and Daman and Diu'], ['DL', 'Delhi'], ['GA', 'Goa'],
+  ['GJ', 'Gujarat'], ['HR', 'Haryana'], ['HP', 'Himachal Pradesh'], ['JK', 'Jammu and Kashmir'], ['JH', 'Jharkhand'], ['KA', 'Karnataka'],
+  ['KL', 'Kerala'], ['LA', 'Ladakh'], ['LD', 'Lakshadweep'], ['MP', 'Madhya Pradesh'], ['MH', 'Maharashtra'], ['MN', 'Manipur'],
+  ['ML', 'Meghalaya'], ['MZ', 'Mizoram'], ['NL', 'Nagaland'], ['OD', 'Odisha'], ['PY', 'Puducherry'], ['PB', 'Punjab'], ['RJ', 'Rajasthan'],
+  ['SK', 'Sikkim'], ['TN', 'Tamil Nadu'], ['TS', 'Telangana'], ['TR', 'Tripura'], ['UP', 'Uttar Pradesh'], ['UK', 'Uttarakhand'], ['WB', 'West Bengal'],
+];
+const stateCode = (value) => {
+  const key = String(value ?? '').toLowerCase().replace(/[^a-z]/g, '');
+  if (!key) return null;
+  return INDIAN_STATES.find(([code, name]) => code.toLowerCase() === key || name.toLowerCase().replace(/[^a-z]/g, '') === key)?.[0] ?? null;
+};
+const stateName = (code) => INDIAN_STATES.find(([c]) => c === code)?.[1] ?? code;
+
+const shipping = {
+  mode: 'flat', flat_paise: 0, default_weight_grams: 500, seq: 3,
+  zones: [
+    { id: 1, name: 'Rest of India', states: [], delivers: true, free_above_paise: null, extra_per_kg_paise: 5000, is_default: true, is_active: true, sort_order: 0,
+      rates: [{ up_to_grams: 500, charge_paise: 6000 }, { up_to_grams: 1000, charge_paise: 9000 }, { up_to_grams: 2000, charge_paise: 14000 }] },
+    { id: 2, name: 'East', states: ['WB', 'OD'], delivers: true, free_above_paise: 1000000, extra_per_kg_paise: 3000, is_default: false, is_active: true, sort_order: 1,
+      rates: [{ up_to_grams: 1000, charge_paise: 4000 }] },
+  ],
+};
+const zonesReady = () => {
+  const d = shipping.zones.filter((z) => z.is_default && z.is_active);
+  return d.length === 1 && d[0].delivers && d[0].rates.length > 0;
+};
+const effectiveMode = () => (shipping.mode === 'zones' && zonesReady() ? 'zones' : 'flat');
+const cartDestinations = new Map();
+
+const shippingScreen = () => ({
+  mode: effectiveMode(), stored_mode: shipping.mode, flat_paise: shipping.flat_paise,
+  default_weight_grams: shipping.default_weight_grams, zones_ready: zonesReady(),
+  zones_missing: zonesReady() ? '' : 'There is no default zone yet.',
+  zones: shipping.zones, states: INDIAN_STATES.map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)),
+  products_without_weight: storeProducts.filter((x) => (x.type ?? 'physical') === 'physical' && !x.weight_grams).length,
+});
+
+/* A zone as it will be after a write: the body over the stored one. */
+const zoneFrom = (body, zone = {}) => {
+  const isDefault = body.is_default ?? zone.is_default ?? false;
+  const delivers = isDefault ? true : (body.delivers ?? zone.delivers ?? true);
+  return {
+    name: body.name ?? zone.name ?? 'Zone',
+    states: isDefault ? [] : (body.states ?? zone.states ?? []).map((s) => stateCode(s)).filter(Boolean),
+    delivers,
+    free_above_paise: delivers ? (body.free_above_paise ?? zone.free_above_paise ?? null) : null,
+    extra_per_kg_paise: delivers ? (body.extra_per_kg_paise ?? zone.extra_per_kg_paise ?? null) : null,
+    is_default: isDefault,
+    is_active: isDefault ? true : (body.is_active ?? zone.is_active ?? true),
+    rates: delivers ? (body.rates ?? zone.rates ?? []) : [],
+  };
+};
+
+const quoteDelivery = (shippedLines, code, payable) => {
+  const weight = shippedLines.reduce((n, l) => n + l.quantity * l.weight, 0);
+  const ships = shippedLines.length > 0;
+  const mode = effectiveMode();
+  if (!ships) return { mode, ships, charge: 0, zone: null, weight: 0, deliverable: true, known: true, code };
+  if (mode === 'flat') return { mode, ships, charge: shipping.flat_paise, zone: null, weight, deliverable: true, known: true, code };
+  if (!code) return { mode, ships, charge: 0, zone: null, weight, deliverable: true, known: false, code: null };
+  const zones = shipping.zones.filter((z) => z.is_active);
+  const zone = zones.find((z) => !z.is_default && z.states.includes(code)) ?? zones.find((z) => z.is_default);
+  if (!zone || !zone.delivers) return { mode, ships, charge: 0, zone: zone?.name ?? null, weight, deliverable: false, known: true, code };
+  if (zone.free_above_paise !== null && payable >= zone.free_above_paise) return { mode, ships, charge: 0, zone: zone.name, weight, deliverable: true, known: true, code };
+  const rates = [...zone.rates].sort((a, b) => a.up_to_grams - b.up_to_grams);
+  const slab = rates.find((r) => weight <= r.up_to_grams);
+  const top = rates[rates.length - 1];
+  const charge = slab ? slab.charge_paise : top.charge_paise + Math.ceil((weight - top.up_to_grams) / 1000) * (zone.extra_per_kg_paise ?? 0);
+  return { mode, ships, charge, zone: zone.name, weight, deliverable: true, known: true, code };
+};
+const quoteLabel = (q) => {
+  if (!q.ships) return null;
+  if (!q.known) return 'Worked out at checkout';
+  if (!q.deliverable) return `We do not deliver to ${stateName(q.code)} yet`;
+  return q.charge === 0 ? 'Free' : `₹${(q.charge / 100).toLocaleString('en-IN')}`;
+};
 
 const cartFor = (token) => {
   const key = token && carts.has(token) ? token : `mock-cart-${carts.size + 1}`;
@@ -654,6 +855,8 @@ const summarise = (token, lines) => {
       slug: product?.slug ?? '', sku: variation?.sku ?? product?.sku ?? null,
       type: product?.type ?? 'physical', image_url: null,
       quantity: l.quantity, unit_price_paise: unit, line_total_paise: unit * l.quantity,
+      // As the website shows prices (0.178.0); the mock shows them with GST.
+      shown_unit_price_paise: unit, shown_line_total_paise: unit * l.quantity,
       returnable: product?.returnable ?? true,
       shipped: (product?.type ?? 'physical') === 'physical',
       problem: product?.in_stock === false ? `"${product.name}" is out of stock.` : null,
@@ -661,13 +864,42 @@ const summarise = (token, lines) => {
   });
 
   const subtotal = items.reduce((n, i) => n + i.line_total_paise, 0);
-  const taxable = Math.floor((subtotal * 10000 + 5900) / 11800);
+
+  // Delivery (0.142.0): quoted from the destination the checkout last saved.
+  const quote = quoteDelivery(
+    items.filter((i) => i.shipped).map((i) => {
+      const product = storeProducts.find((x) => x.id === i.product_id);
+      const variation = product?.variations?.find((v) => v.id === i.variation_id);
+      return { quantity: i.quantity, weight: variation?.weight_grams || product?.weight_grams || shipping.default_weight_grams };
+    }),
+    cartDestinations.get(token) ?? null,
+    subtotal,
+  );
+  const total = subtotal + (quote.ships && quote.known && quote.deliverable ? quote.charge : 0);
+  const taxable = Math.floor((total * 10000 + 5900) / 11800);
 
   return {
     token, items,
     item_count: items.reduce((n, i) => n + i.quantity, 0),
-    subtotal_paise: subtotal, discount_paise: 0, total_paise: subtotal,
-    taxable_paise: taxable, gst_paise: subtotal - taxable, gst_rate: '18%',
+    subtotal_paise: subtotal, discount_paise: 0,
+    shipping_mode: quote.mode,
+    shipping_paise: quote.ships && !quote.known ? null : (quote.ships && quote.deliverable ? quote.charge : 0),
+    shipping_label: quoteLabel(quote),
+    shipping_zone: quote.zone,
+    shipping_weight_grams: quote.ships ? quote.weight : null,
+    shipping_state: quote.code,
+    shipping_deliverable: quote.deliverable,
+    shipping_states: quote.mode === 'zones' && quote.ships ? INDIAN_STATES.map(([, name]) => name).sort() : null,
+    total_paise: total,
+    shown_subtotal_paise: subtotal, shown_discount_paise: 0,
+    shown_shipping_paise: quote.ships && !quote.known ? null : (quote.ships && quote.deliverable ? quote.charge : 0),
+    taxable_paise: taxable, gst_paise: total - taxable,
+    // How the checkout draws the tax (0.176.0). The mock is a single-rate,
+    // tax-inclusive shop, which is the default an install ships with, so
+    // `gst_added_paise` is zero and the checkout prints the note rather
+    // than a row. A second rate here would need per-line figures, which
+    // the real API has and this does not.
+    gst_rate: '18%', gst_basis: 'inclusive', gst_added_paise: 0,
     has_shippable: items.some((i) => i.shipped),
     problems: items.map((i) => i.problem).filter(Boolean),
     contact: { email: null, phone: null, ...(cartContacts.get(token) ?? {}), reminders: false },
@@ -698,16 +930,153 @@ const forms = [
     // default is false; this fixture is the embeddable case, because the
     // refusal is the easy half to exercise and the render is not.
     embed_enabled: true,
+    // Where a visitor is sent after sending, instead of the message; null shows the message.
+    redirect_url: null,
+    // Admin reads only — `publicForm()` below never sends it.
+    notify_email: null,
+    /*
+     * Every field carries `settings` and `show_if`, null when the kind keeps
+     * nothing and the field is always shown (0.117.0). This fixture stays the
+     * plain case on purpose — no upload, no step break, no condition — so the
+     * embed route and the raw-HTML snippet both still have a form to serve.
+     */
     fields: [
-      { id:1, kind:'text', name:'name', label:'Your name', placeholder:null, help:null, required:true, options:[], width:'half' },
-      { id:2, kind:'email', name:'email', label:'Work email', placeholder:null, help:null, required:true, options:[], width:'half' },
-      { id:3, kind:'tel', name:'phone', label:'Phone', placeholder:null, help:null, required:false, options:[], width:'half' },
-      { id:4, kind:'text', name:'company', label:'Company', placeholder:null, help:null, required:false, options:[], width:'half' },
-      { id:5, kind:'text', name:'subject', label:'Subject', placeholder:null, help:null, required:false, options:[], width:'full' },
-      { id:6, kind:'textarea', name:'message', label:'How can we help?', placeholder:null, help:null, required:true, options:[], width:'full' },
+      { id:1, kind:'text', name:'name', label:'Your name', placeholder:null, help:null, required:true, options:[], settings:null, show_if:null, width:'half' },
+      { id:2, kind:'email', name:'email', label:'Work email', placeholder:null, help:null, required:true, options:[], settings:null, show_if:null, width:'half' },
+      { id:3, kind:'tel', name:'phone', label:'Phone', placeholder:null, help:null, required:false, options:[], settings:null, show_if:null, width:'half' },
+      { id:4, kind:'text', name:'company', label:'Company', placeholder:null, help:null, required:false, options:[], settings:null, show_if:null, width:'half' },
+      { id:5, kind:'text', name:'subject', label:'Subject', placeholder:null, help:null, required:false, options:[], settings:null, show_if:null, width:'full' },
+      { id:6, kind:'textarea', name:'message', label:'How can we help?', placeholder:null, help:null, required:true, options:[], settings:null, show_if:null, width:'full' },
     ],
   },
 ];
+
+/*
+ * The form builder's vocabulary, as `App\Support\Forms\FieldSpec::meta()`
+ * sends it on the admin forms index and on every admin read of a form.
+ *
+ * The console draws its kind picker, its condition operators and an upload
+ * field's "files accepted" boxes from this and keeps no list of its own, so a
+ * mock without it renders a builder with seven kinds and no conditions — the
+ * fallback for an older API, which would hide the feature from every CI run.
+ * Sixteen kinds in `FormField::KINDS` order; an operator's flag is
+ * `takes_value`, not `needs_value`.
+ */
+const FORM_LAYOUT_KINDS = ['heading', 'step'];
+const FORM_OPTION_KINDS = ['select', 'radio', 'checkboxes'];
+const FORM_NOT_A_SOURCE = ['file', 'hidden', 'heading', 'step'];
+const FORM_META = {
+  kinds: [
+    ['text', 'Short text', 'One line: a name, a company, a subject.'],
+    ['email', 'Email', 'An address, checked for shape. The first one on a form is where its receipt goes.'],
+    ['tel', 'Phone', 'A telephone number, with spaces, brackets and a country code allowed.'],
+    ['number', 'Number', 'A figure, with an optional lowest and highest.'],
+    ['textarea', 'Paragraph', 'A longer answer over several lines.'],
+    ['select', 'Dropdown', 'One choice from a list that opens.'],
+    ['checkbox', 'Tick box', 'One box to tick, such as a consent.'],
+    ['url', 'Web address', 'A link beginning http:// or https://.'],
+    ['date', 'Date', 'A day, with an optional earliest and latest.'],
+    ['radio', 'Single choice', 'One choice from a short list, every option visible.'],
+    ['checkboxes', 'Multiple choice', 'Any number of choices from a list.'],
+    ['rating', 'Rating', 'One to five stars.'],
+    ['file', 'File upload', 'One file. Kept privately and downloaded from the console, never emailed.'],
+    ['hidden', 'Hidden value', 'A fixed value stored with every submission. The visitor never sees or sends it.'],
+    ['heading', 'Heading', 'A title and an optional paragraph between fields. Collects nothing.'],
+    ['step', 'Step break', 'Starts a new step. Its label is that step’s title.'],
+  ].map(([value, label, blurb]) => ({
+    value, label, blurb,
+    takes_options: FORM_OPTION_KINDS.includes(value),
+    is_layout: FORM_LAYOUT_KINDS.includes(value),
+    is_file: value === 'file',
+    is_condition_source: !FORM_NOT_A_SOURCE.includes(value),
+  })),
+  ops: [
+    { value: 'equals', label: 'is', takes_value: true },
+    { value: 'not_equals', label: 'is not', takes_value: true },
+    { value: 'includes', label: 'includes', takes_value: true },
+    { value: 'filled', label: 'is answered', takes_value: false },
+    { value: 'empty', label: 'is not answered', takes_value: false },
+  ],
+  file_accepts: [
+    { value: 'image', label: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'] },
+    { value: 'pdf', label: 'PDF', extensions: ['pdf'] },
+    { value: 'document', label: 'Office documents and text', extensions: ['doc', 'docx', 'xls', 'xlsx', 'csv', 'txt'] },
+  ],
+  max_upload_kb: 20480,
+  max_file_fields: 3,
+};
+
+/*
+ * What people sent. `files` is an object keyed by field name — `{}` when
+ * nothing was uploaded, never `[]` — and a file's `download_path` is this
+ * API's own route under /api/v1, never a path on the disk. The mock holds no
+ * bytes, so that route answers 404 below; the console's own handler turns
+ * that into "not available" rather than a broken download.
+ */
+const formSubmissions = [
+  {
+    id: 1, form_id: 1, form_slug: 'contact',
+    data: { name: 'Rahul Sen', email: 'rahul@meridianfoods.in', phone: '+91 98300 11223', company: 'Meridian Foods', subject: 'Warehouse Wi-Fi', message: 'We need coverage across two cold rooms and the loading bay.' },
+    files: {}, ip_address: '203.0.113.7', read_at: null, created_at: '2026-10-05T11:20:00+05:30',
+  },
+];
+
+/** A form as the public endpoint sends it: no notify address, and the two facts the page would otherwise work out. */
+const publicForm = (f) => {
+  const { notify_email, ...form } = f;
+  void notify_email;
+  return {
+    ...form,
+    has_files: f.fields.some((field) => field.kind === 'file'),
+    steps: f.fields.filter((field) => field.kind === 'step').length + 1,
+    // A hidden field's value is the server's own and never crosses to a page.
+    fields: f.fields.map((field) => (field.kind === 'hidden' ? { ...field, settings: null } : field)),
+  };
+};
+
+/** A form as the console reads it; the index row carries counts and no fields. */
+const adminForm = (f, detail = true) => {
+  const counts = { submissions_count: formSubmissions.filter((s) => s.form_id === f.id).length };
+  if (!detail) {
+    const { fields, ...row } = f;
+    return { ...row, fields_count: fields.length, ...counts };
+  }
+  return { ...f, has_files: f.fields.some((field) => field.kind === 'file'), steps: f.fields.filter((field) => field.kind === 'step').length + 1, ...counts };
+};
+
+/**
+ * Fields as `syncFields()` stores them: replaced wholesale with fresh ids, a
+ * heading or a step break named by the server, and each row cut down to what
+ * its kind keeps. The mock validates nothing — the API is the judge — but it
+ * does pass `settings` and `show_if` through, which is the contract the
+ * builder is written against.
+ */
+const storeFormFields = (rows) => {
+  const taken = new Set(rows.map((r) => r?.name).filter(Boolean));
+  const freeName = (base) => {
+    let n = 1;
+    while (taken.has(`${base}_${n}`)) n += 1;
+    taken.add(`${base}_${n}`);
+    return `${base}_${n}`;
+  };
+  let step = 1;
+  return rows.map((r, i) => {
+    const kind = r?.kind ?? 'text';
+    const layout = FORM_LAYOUT_KINDS.includes(kind);
+    if (kind === 'step') step += 1;
+    return {
+      id: 100 + i, kind,
+      name: r?.name || freeName(kind === 'step' ? 'step' : 'section'),
+      label: r?.label || `Step ${step}`,
+      placeholder: r?.placeholder ?? null, help: r?.help ?? null,
+      required: !layout && kind !== 'hidden' && Boolean(r?.required),
+      options: FORM_OPTION_KINDS.includes(kind) ? (r?.options ?? []) : [],
+      settings: r?.settings && Object.keys(r.settings).length ? r.settings : null,
+      show_if: r?.show_if?.field ? r.show_if : null,
+      width: r?.width ?? 'full',
+    };
+  });
+};
 
 /*
  * One live popup, targeting the shop. Enough for the renderer to be exercised
@@ -1015,6 +1384,320 @@ const cancelMeeting = (m, reason = null) => Object.assign(m, {
   cancelled_at: new Date().toISOString(), allowed_next: [{ value: 'cancelled', label: 'Cancelled' }], meet_url: null,
 });
 
+/* Events (0.118.0, docs/events-contract.md). The mock's copy of the public
+   list, an event's page, its availability, its `.ics`, a registration and
+   the registrant's own link, and the console's events and registrations.
+
+   Stored in the **admin** shape — wall-clock `Y-m-d\TH:i` in the site's
+   zone, paths beside their URLs, the join link — and presented two ways,
+   the way the API's two resources do: `publicEvent()` never carries
+   `online_url`, a path, a count or a staff field. Dates are offsets from
+   today so the list always holds something upcoming and something past;
+   times are labelled IST, the way the API writes them in APP_TIMEZONE. The
+   build prerenders /events against this.
+
+   The registration token is fixed so a browser check can open
+   `/events/registration/<EVENT_TOKEN>`. */
+const EVENT_TOKEN = 'c'.repeat(64);
+const EVENT_WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const EVENT_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const EVENT_FORMATS = [
+  { value: 'in_person', label: 'In person' }, { value: 'online', label: 'Online' }, { value: 'hybrid', label: 'In person and online' },
+];
+const EVENT_STATUSES = [
+  { value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' },
+];
+const EVENT_MODES = [
+  { value: 'none', label: 'No registration', blurb: 'An announcement. The page gives the date and the place and nobody signs up.' },
+  { value: 'open', label: 'Register on this site', blurb: 'People register here, free. You may set a capacity, a waiting list and a closing date.' },
+  { value: 'external', label: 'Register somewhere else', blurb: 'A button to somebody else’s sign-up page — the organiser’s, or a ticketing site.' },
+];
+const EVENT_REGISTRATION_STATUSES = [
+  { value: 'confirmed', label: 'Confirmed' }, { value: 'waitlisted', label: 'On the waiting list' }, { value: 'cancelled', label: 'Cancelled' },
+  { value: 'attended', label: 'Attended' }, { value: 'no_show', label: 'No-show' },
+];
+const eventLabelOf = (list, value) => list.find((o) => o.value === value)?.label ?? value;
+const EVENT_META = {
+  formats: EVENT_FORMATS, statuses: EVENT_STATUSES, registration_modes: EVENT_MODES,
+  registration_statuses: EVENT_REGISTRATION_STATUSES, max_speakers: 12, max_agenda: 30, timezone: 'IST',
+};
+/** "15:00" → "3:00 pm". */
+const eventClock = (hm) => {
+  const [h, m] = hm.split(':').map(Number);
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+};
+/** "2026-11-12" → "Thursday 12 November 2026", or without the year. */
+const eventDate = (ymd, year = true) => {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  return `${EVENT_WEEKDAYS[d.getUTCDay()]} ${d.getUTCDate()} ${EVENT_MONTHS[d.getUTCMonth()]}${year ? ` ${d.getUTCFullYear()}` : ''}`;
+};
+/* Draft share links (0.138.0): in memory, like everything else here. */
+const PREVIEW_LINKS = [];
+let previewSeq = 0;
+const previewToken = () => [...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+
+/** A stored wall clock as the instant it names, with the site's offset. */
+const eventIso = (wall) => (wall ? `${wall}:00+05:30` : null);
+const eventLabels = (e) => {
+  const ymd = e.starts_at.slice(0, 10);
+  const d = new Date(`${ymd}T00:00:00Z`);
+  const start = eventClock(e.starts_at.slice(11, 16));
+  return {
+    date_label: eventDate(ymd),
+    time_label: e.ends_at ? `${start} – ${eventClock(e.ends_at.slice(11, 16))} IST` : `${start} IST`,
+    day: String(d.getUTCDate()), month: EVENT_MONTHS[d.getUTCMonth()].slice(0, 3), year: String(d.getUTCFullYear()),
+  };
+};
+/* Upcoming until it **ends** — or until the end of its start day when it has no end. */
+const eventIsPast = (e) => Date.parse(eventIso(e.ends_at ?? `${e.starts_at.slice(0, 10)}T23:59`)) < Date.now();
+const eventHasStarted = (e) => Date.parse(eventIso(e.starts_at)) <= Date.now();
+const events = [
+  {
+    id: 1, title: 'Wi-Fi 7 for the office: a working session', slug: 'wifi-7-working-session',
+    summary: 'Ninety minutes on what Wi-Fi 7 changes for a 200-seat office.',
+    body: '<p>Wi-Fi 7 is not a faster Wi-Fi 6. It changes how a client uses the spectrum it is given, and that changes how an office is surveyed.</p><h2>Who it is for</h2><p>IT managers planning a refresh in the next eighteen months.</p><ul><li>What multi-link operation means for a roaming laptop</li><li>Which of your clients can use 6 GHz today</li></ul>',
+    status: 'published', is_featured: true, format: 'hybrid',
+    starts_at: `${isoDay(21)}T15:00`, ends_at: `${isoDay(21)}T16:30`,
+    venue_name: 'Technoware Experience Centre', venue_city: 'Mumbai',
+    venue_address: 'Unit 4, Lakeview Industrial Estate\nAndheri East, Mumbai 400093',
+    map_url: 'https://maps.google.com/?q=Andheri+East+Mumbai', online_url: 'https://meet.example/wifi-7',
+    cover_image_path: null, cover_image: null,
+    speakers: [
+      { name: 'Asha Rao', role: 'Principal network engineer', photo_path: null, photo: null },
+      { name: 'Vikram Shah', role: 'Wireless survey lead', photo_path: null, photo: null },
+    ],
+    agenda: [
+      { time: '3:00 pm', title: 'What changes in Wi-Fi 7', note: 'Channels, MLO and what a client needs.' },
+      { time: '3:40 pm', title: 'Surveying for 6 GHz', note: null },
+      { time: '4:10 pm', title: 'Questions', note: 'Bring a floor plan.' },
+    ],
+    registration_mode: 'open', external_url: null, capacity: 40, waitlist_enabled: true, max_seats: 5,
+    registration_closes_at: `${isoDay(20)}T18:00`,
+    faqs: [
+      { id: 9001, question: 'Is there a charge?', answer: '<p>No. The session is free; a seat is yours once it is confirmed.</p>' },
+      { id: 9002, question: 'Will it be recorded?', answer: '<p>Yes. Everyone who registered is sent the recording the next working day.</p>' },
+    ],
+    seo: null, created_at: '2026-10-01T10:00:00+05:30', updated_at: '2026-10-06T18:00:00+05:30',
+  },
+  {
+    id: 2, title: 'Firewall hardening: a live webinar', slug: 'firewall-hardening-webinar',
+    summary: 'An hour on the five rules that quietly stop working, with a config you can take away.',
+    body: '<p>A firewall policy describes a network that keeps changing underneath it. This hour is the review we run for our own AMC customers.</p>',
+    status: 'published', is_featured: false, format: 'online',
+    starts_at: `${isoDay(40)}T11:00`, ends_at: `${isoDay(40)}T12:00`,
+    venue_name: null, venue_city: null, venue_address: null, map_url: null, online_url: null,
+    cover_image_path: null, cover_image: null,
+    speakers: [{ name: 'S. Rao', role: 'Security practice', photo_path: null, photo: null }],
+    agenda: [],
+    registration_mode: 'external', external_url: 'https://example.com/webinars/firewall-hardening',
+    capacity: null, waitlist_enabled: false, max_seats: 5, registration_closes_at: null,
+    faqs: [], seo: null, created_at: '2026-10-02T10:00:00+05:30', updated_at: '2026-10-05T12:00:00+05:30',
+  },
+  {
+    id: 3, title: 'Technoware at the Mumbai IT Expo', slug: 'mumbai-it-expo',
+    summary: 'Three days on stand B14: live switching, storage and surveillance demonstrations.',
+    body: '<p>We ran the same three demonstrations every hour. Thank you to everyone who stopped at the stand.</p>',
+    status: 'published', is_featured: false, format: 'in_person',
+    starts_at: `${isoDay(-30)}T10:00`, ends_at: `${isoDay(-28)}T18:00`,
+    venue_name: 'Bombay Exhibition Centre', venue_city: 'Mumbai', venue_address: 'Hall 2, Stand B14\nGoregaon East, Mumbai 400063',
+    map_url: null, online_url: null, cover_image_path: null, cover_image: null,
+    speakers: [], agenda: [],
+    registration_mode: 'none', external_url: null, capacity: null, waitlist_enabled: false, max_seats: 5, registration_closes_at: null,
+    faqs: [], seo: null, created_at: '2026-08-20T10:00:00+05:30', updated_at: '2026-09-08T10:00:00+05:30',
+  },
+  {
+    id: 4, title: 'Storage refresh clinic', slug: 'storage-refresh-clinic',
+    summary: 'A morning with our storage engineers. Not announced yet.',
+    body: null, status: 'draft', is_featured: false, format: 'in_person',
+    starts_at: `${isoDay(60)}T10:30`, ends_at: null,
+    venue_name: 'Technoware Experience Centre', venue_city: 'Mumbai', venue_address: null,
+    map_url: null, online_url: null, cover_image_path: null, cover_image: null,
+    speakers: [], agenda: [],
+    registration_mode: 'open', external_url: null, capacity: 12, waitlist_enabled: false, max_seats: 2, registration_closes_at: null,
+    faqs: [], seo: null, created_at: '2026-10-06T09:00:00+05:30', updated_at: '2026-10-06T09:00:00+05:30',
+  },
+];
+const eventRegistrations = [
+  { id: 31, event_id: 1, name: 'Priya Das', email: 'priya@acme.test', phone: '+91 98765 43210', company: 'Acme Foods',
+    seats: 2, note: 'One of us needs step-free access.', staff_note: null, status: 'confirmed',
+    customer_id: null, lead_id: 1, source: 'public', reminded_at: null, cancelled_at: null, created_at: '2026-10-06T18:10:00+05:30' },
+  { id: 32, event_id: 1, name: 'Rahul Sen', email: 'rahul@meridianfoods.test', phone: null, company: 'Meridian Foods',
+    seats: 1, note: null, staff_note: 'Rang the desk; coming with the plant IT head.', status: 'confirmed',
+    customer_id: 1, lead_id: null, source: 'staff', reminded_at: null, cancelled_at: null, created_at: '2026-10-06T19:02:00+05:30' },
+  { id: 33, event_id: 1, name: 'Neha Kulkarni', email: 'neha@northwind.test', phone: '+91 99200 11223', company: null,
+    seats: 3, note: null, staff_note: null, status: 'cancelled',
+    customer_id: null, lead_id: 1, source: 'public', reminded_at: null, cancelled_at: '2026-10-07T09:30:00+05:30', created_at: '2026-10-06T20:15:00+05:30' },
+];
+const eventOf = (id) => events.find((e) => e.id === Number(id));
+const eventCounts = (e) => {
+  const rows = eventRegistrations.filter((r) => r.event_id === e.id);
+  const of = (status) => rows.filter((r) => r.status === status);
+  const seats = of('confirmed').reduce((n, r) => n + r.seats, 0);
+  return {
+    confirmed: of('confirmed').length, confirmed_seats: seats, waitlisted: of('waitlisted').length,
+    cancelled: of('cancelled').length, attended: of('attended').length,
+    seats_left: e.capacity === null ? null : Math.max(0, e.capacity - seats),
+  };
+};
+/* The console's resource. `faqs`, `seo` and `seo_defaults` on the detail read only. */
+const adminEvent = (e, detail = false) => {
+  const { faqs, seo, ...row } = e;
+  const { date_label, time_label } = eventLabels(e);
+  return {
+    ...row,
+    status_label: eventLabelOf(EVENT_STATUSES, e.status), format_label: eventLabelOf(EVENT_FORMATS, e.format),
+    starts_at_iso: eventIso(e.starts_at), date_label, time_label, is_past: eventIsPast(e),
+    counts: eventCounts(e), public_path: `/events/${e.slug}`, admin_path: `/admin/events/${e.id}`,
+    // Sections in place of the written description (0.130.0): the choice on every row, the list on a detail read.
+    body_layout: 'body',
+    ...(detail ? { faqs: faqs.map(({ question, answer }) => ({ question, answer })), seo, seo_defaults: null, blocks: [], blocks_media: {} } : {}),
+  };
+};
+/* The public row: no `online_url`, no path, no count, no staff field. */
+const publicEvent = (e) => ({
+  id: e.id, title: e.title, slug: e.slug, summary: e.summary,
+  format: e.format, format_label: eventLabelOf(EVENT_FORMATS, e.format),
+  starts_at: eventIso(e.starts_at), ends_at: eventIso(e.ends_at), ...eventLabels(e),
+  venue_name: e.format === 'online' ? null : e.venue_name, venue_city: e.format === 'online' ? null : e.venue_city,
+  cover_image: e.cover_image, cover_image_alt: null, cover_image_focus: null, cover_image_blur: null,
+  is_featured: e.is_featured, is_past: eventIsPast(e),
+  registration_mode: e.registration_mode, updated_at: e.updated_at, seo: null,
+});
+const eventSchema = (e) => prune({
+  '@context': SCHEMA_ORG, '@type': 'Event', name: e.title, description: e.summary,
+  startDate: eventIso(e.starts_at), endDate: eventIso(e.ends_at),
+  eventStatus: `${SCHEMA_ORG}/EventScheduled`,
+  eventAttendanceMode: `${SCHEMA_ORG}/${{ in_person: 'OfflineEventAttendanceMode', online: 'OnlineEventAttendanceMode', hybrid: 'MixedEventAttendanceMode' }[e.format]}`,
+  // A place and/or a virtual location whose `url` is the *page*, never the join link.
+  location: [
+    ...(e.format !== 'online' ? [{ '@type': 'Place', name: e.venue_name, address: e.venue_address }] : []),
+    ...(e.format !== 'in_person' ? [{ '@type': 'VirtualLocation', url: `https://www.technoware.in/events/${e.slug}` }] : []),
+  ],
+  organizer: publisher(), url: `https://www.technoware.in/events/${e.slug}`,
+});
+const publicEventDetail = (e) => ({
+  ...publicEvent(e),
+  body: e.body, venue_address: e.format === 'online' ? null : e.venue_address, map_url: e.format === 'online' ? null : e.map_url,
+  speakers: e.speakers.map((s) => ({ name: s.name, role: s.role, photo: s.photo, photo_alt: null, photo_focus: null, photo_blur: null })),
+  agenda: e.agenda,
+  registration: {
+    mode: e.registration_mode, external_url: e.registration_mode === 'external' ? e.external_url : null,
+    // The closing time, the capacity and the waiting list mean something only while registration is open here.
+    closes_at: e.registration_mode === 'open' ? eventIso(e.registration_closes_at) : null,
+    closes_label: e.registration_mode === 'open' && e.registration_closes_at
+      ? `${eventDate(e.registration_closes_at.slice(0, 10), false)}, ${eventClock(e.registration_closes_at.slice(11, 16))}` : null,
+    max_seats: e.max_seats,
+    has_capacity: e.registration_mode === 'open' && e.capacity !== null,
+    waitlist: e.registration_mode === 'open' && e.capacity !== null && e.waitlist_enabled,
+  },
+  calendar_path: `/events/${e.slug}/calendar`,
+  faqs: e.faqs, ...faqSchemaOf(e.faqs, []),
+  schema: eventSchema(e),
+});
+/* What the registration panel asks after mount. No count is ever published. */
+const eventAvailability = (e) => {
+  const refuse = (state, message) => ({ state, few_left: false, message });
+  if (e.registration_mode === 'none') return { state: 'none', few_left: false, message: null };
+  if (e.registration_mode === 'external') return { state: 'external', few_left: false, message: null };
+  if (eventHasStarted(e)) return refuse('ended', 'This event has started, so registration is closed.');
+  if (e.registration_closes_at && Date.parse(eventIso(e.registration_closes_at)) < Date.now()) {
+    return refuse('closed', 'Registration for this event has closed.');
+  }
+  const left = eventCounts(e).seats_left;
+  if (left === 0) {
+    return e.waitlist_enabled
+      ? { state: 'waitlist', few_left: false, message: null }
+      : refuse('full', 'This event is full.');
+  }
+  return { state: 'open', few_left: left !== null && left >= 1 && left <= e.capacity * 0.2, message: null };
+};
+const adminRegistration = (r) => ({
+  ...r, status_label: eventLabelOf(EVENT_REGISTRATION_STATUSES, r.status),
+  lead_path: r.lead_id ? `/admin/leads/${r.lead_id}` : null,
+});
+/* The registrant's own page: no email, phone, note or staff field — it is addressed by a link. */
+const registrantView = (r, e) => ({
+  status: r.status, status_label: eventLabelOf(EVENT_REGISTRATION_STATUSES, r.status), seats: r.seats, name: r.name,
+  can_cancel: !eventHasStarted(e) && (r.status === 'confirmed' || r.status === 'waitlisted'),
+  event: {
+    title: e.title, slug: e.slug, ...(({ date_label, time_label }) => ({ date_label, time_label }))(eventLabels(e)),
+    format: e.format, format_label: eventLabelOf(EVENT_FORMATS, e.format),
+    venue_name: e.format === 'online' ? null : e.venue_name, venue_address: e.format === 'online' ? null : e.venue_address,
+    is_past: eventIsPast(e), calendar_path: `/events/${e.slug}/calendar`,
+  },
+});
+/* The event a registrations list belongs to, as `meta.event`: the contract's
+   five keys and no more. It is all a sales manager — who cannot read the
+   event itself — is told about it, so the console draws its header from
+   exactly this and treats anything further as optional. */
+const registrationsEvent = (e) => ({
+  id: e.id, title: e.title, date_label: eventLabels(e).date_label, counts: eventCounts(e), capacity: e.capacity,
+});
+const registrationsMeta = (e) => ({ event: registrationsEvent(e), statuses: EVENT_REGISTRATION_STATUSES });
+/* The moves the desk may make — `EventRegistrationStatus::canTransitionTo()`. */
+const REGISTRATION_MOVES = {
+  confirmed: ['cancelled', 'attended', 'no_show'], waitlisted: ['confirmed', 'cancelled'],
+  cancelled: ['confirmed', 'waitlisted'], attended: ['no_show', 'confirmed'], no_show: ['attended', 'confirmed'],
+};
+const eventSlug = (text) => String(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const freeEventSlug = (base, exceptId = null) => {
+  let slug = base || 'event';
+  for (let n = 2; events.some((e) => e.slug === slug && e.id !== exceptId); n += 1) slug = `${base}-${n}`;
+  return slug;
+};
+const invalid = (res, field, message) => json(res, 422, { message, errors: { [field]: [message] } });
+/* The write rules a console form can trip over, in the contract's own keys. */
+const eventRefusal = (body, current = null) => {
+  const merged = { ...(current ?? {}), ...body };
+  const url = /^https?:\/\//;
+  if ('title' in body || !current) {
+    if (!merged.title) return ['title', 'The title field is required.'];
+  }
+  if (!merged.starts_at) return ['starts_at', 'Say when the event starts.'];
+  if (merged.ends_at && merged.ends_at <= merged.starts_at) return ['ends_at', 'The end has to be after the start.'];
+  if (merged.format !== 'online' && !merged.venue_name) return ['venue_name', 'An event people attend in person needs a venue.'];
+  if (merged.map_url && !url.test(merged.map_url)) return ['map_url', 'The map link has to be a full http(s) address.'];
+  if (merged.online_url && !url.test(merged.online_url)) return ['online_url', 'The join link has to be a full http(s) address.'];
+  if (merged.registration_mode === 'external' && !url.test(merged.external_url ?? '')) {
+    return ['external_url', 'Say where people register — a full http(s) address.'];
+  }
+  if (merged.status === 'published' && merged.format !== 'in_person' && merged.registration_mode === 'open' && !merged.online_url) {
+    return ['online_url', 'An online or hybrid event that takes registrations here needs a join link before it is published.'];
+  }
+  if (merged.registration_closes_at && merged.registration_closes_at > merged.starts_at) {
+    return ['registration_closes_at', 'Registration cannot close after the event starts.'];
+  }
+  if (current && merged.capacity !== null && merged.capacity !== undefined) {
+    const seats = eventCounts(current).confirmed_seats;
+    if (merged.capacity < seats) return ['capacity', `${seats} seats are already confirmed, so the capacity cannot be lower than that.`];
+  }
+  const speaker = (merged.speakers ?? []).findIndex((s) => !s.name);
+  if (speaker !== -1) return [`speakers.${speaker}.name`, 'A speaker needs a name.'];
+  const item = (merged.agenda ?? []).findIndex((a) => !a.title);
+  if (item !== -1) return [`agenda.${item}.title`, 'An agenda item needs a title.'];
+  return null;
+};
+const EVENT_WRITABLE = [
+  'title', 'summary', 'body', 'status', 'is_featured', 'format', 'starts_at', 'ends_at', 'venue_name', 'venue_city',
+  'venue_address', 'map_url', 'online_url', 'cover_image_path', 'speakers', 'agenda', 'registration_mode', 'external_url',
+  'capacity', 'waitlist_enabled', 'max_seats', 'registration_closes_at', 'faqs', 'seo',
+];
+/* Speakers, agenda and FAQs are replaced wholesale; a key that is absent is left alone. */
+const applyEventBody = (event, body) => {
+  for (const key of EVENT_WRITABLE) {
+    if (!(key in body)) continue;
+    if (key === 'speakers') {
+      event.speakers = (body.speakers ?? []).map((s) => ({ name: s.name, role: s.role ?? null, photo_path: s.photo_path ?? null, photo: null }));
+    } else if (key === 'faqs') {
+      event.faqs = (body.faqs ?? []).map((f, i) => ({ id: 9100 + i, question: f.question, answer: f.answer }));
+    } else {
+      event[key] = body[key];
+    }
+  }
+};
+/* Which registration the fixed token opens: the newest made through the public form. */
+let eventTokenRegistration = 31;
+
 const leadMeta = {
   statuses: [
     { value: 'new', label: 'New', open: true },
@@ -1113,9 +1796,6 @@ const cmsPages = [
     published_at:'2026-01-04T09:00:00Z', updated_at:'2026-01-04T09:00:00Z', faqs:[], seo:null },
   { id:2, title:'Terms of service', slug:'terms', template:'default',
     body:'<p>Placeholder terms copy.</p>',
-    published_at:'2026-01-04T09:00:00Z', updated_at:'2026-01-04T09:00:00Z', faqs:[], seo:null },
-  { id:3, title:'Downloads', slug:'downloads', template:'default',
-    body:'<p>Datasheets and remote-support tools.</p>',
     published_at:'2026-01-04T09:00:00Z', updated_at:'2026-01-04T09:00:00Z', faqs:[], seo:null },
   // The two pages Merchant Center requires; the footer links both.
   { id:4, title:'Returns and refunds', slug:'returns', template:'default',
@@ -1275,6 +1955,316 @@ const messagingPreferences = {
   ],
 };
 
+/* ---------------- The downloads centre (docs/downloads.md) ----------------
+ *
+ * Three shelves and three files, the shape `SampleDownloadSeeder` leaves: two
+ * public library PDFs and one customers-only private upload. The public rows
+ * never carry a file's address — the site fetches `/downloads/{id}/file`.
+ */
+const downloadCategories = [
+  { id:1, name:'Datasheets', slug:'datasheets', description:'Specifications and dimensions for the hardware we supply.', sort_order:1, is_active:true },
+  { id:2, name:'Drivers and software', slug:'drivers-and-software', description:'Drivers, utilities and management software.', sort_order:2, is_active:true },
+  { id:3, name:'Firmware', slug:'firmware', description:'Firmware images and their release notes.', sort_order:3, is_active:true },
+];
+const downloads = [
+  { id:1, title:'Sample datasheet', summary:'A placeholder datasheet.', version:'Rev. A', released_on:'2026-08-08', access:'public', source:'library',
+    file_path:'media/seed/downloads/sample-datasheet.pdf', file:{ name:'sample-datasheet.pdf', extension:'pdf', size:634, mime:'application/pdf' },
+    status:'published', sort_order:1, download_count:4, download_category_id:1, product_ids:[1], store_product_ids:[1], updated_at:'2026-10-08T06:00:00Z' },
+  { id:2, title:'Sample installation guide', summary:'A placeholder guide.', version:'1.0', released_on:'2026-09-08', access:'public', source:'library',
+    file_path:'media/seed/downloads/sample-installation-guide.pdf', file:{ name:'sample-installation-guide.pdf', extension:'pdf', size:643, mime:'application/pdf' },
+    status:'published', sort_order:1, download_count:1, download_category_id:2, product_ids:[], store_product_ids:[1], updated_at:'2026-10-08T06:00:00Z' },
+  { id:3, title:'Sample firmware release notes', summary:'A placeholder for a customers-only file.', version:'2.4.1', released_on:'2026-09-24', access:'customers', source:'upload',
+    file_path:null, file:{ name:'sample-firmware-release-notes.txt', extension:'txt', size:111, mime:'text/plain' },
+    status:'published', sort_order:1, download_count:0, download_category_id:3, product_ids:[1], store_product_ids:[], updated_at:'2026-10-08T06:00:00Z' },
+];
+const downloadMeta = {
+  accesses: [
+    { value:'public', label:'Everyone', blurb:'Anybody who opens the page can download it.' },
+    { value:'customers', label:'Customers only', blurb:'Listed for everybody, downloadable only by a customer signed in to the portal.' },
+  ],
+  sources: [
+    { value:'library', label:'From the media library', blurb:'A PDF, document or archive already in the library. It has a public address.' },
+    { value:'upload', label:'Uploaded here (private)', blurb:'Kept off the public disk and handed out by the site.' },
+  ],
+  statuses: [{ value:'draft', label:'Draft' }, { value:'published', label:'Published' }, { value:'archived', label:'Archived' }],
+  extensions: ['pdf', 'zip', 'bin', 'img', 'exe', 'msi'],
+  max_upload_kb: 524288,
+};
+const dateLabel = (iso) => (iso ? new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric', timeZone:'UTC' }) : null);
+const downloadShelf = (d) => downloadCategories.find((c) => c.id === d.download_category_id) ?? null;
+const publicDownload = (d) => {
+  const shelf = downloadShelf(d);
+  return {
+    id:d.id, title:d.title, summary:d.summary, version:d.version, released_on:d.released_on, released_label:dateLabel(d.released_on),
+    access:d.access, locked:d.access === 'customers',
+    category: shelf ? { id:shelf.id, name:shelf.name, slug:shelf.slug } : null,
+    file: d.file ? { name:d.file.name, extension:d.file.extension, size:d.file.size } : null,
+    updated_at:d.updated_at,
+  };
+};
+const adminDownload = (d) => {
+  const shelf = downloadShelf(d);
+  return {
+    ...d, access_label: d.access === 'customers' ? 'Customers only' : 'Everyone',
+    source_label: d.source === 'upload' ? 'Uploaded here (private)' : 'From the media library',
+    has_file: Boolean(d.file), file_missing:false,
+    category: shelf ? { id:shelf.id, name:shelf.name, is_active:shelf.is_active } : null,
+    attached_count: d.product_ids.length + d.store_product_ids.length,
+    products: d.product_ids.map((id) => ({ id, name:`Product ${id}` })),
+    store_products: d.store_product_ids.map((id) => ({ id, name:`Shop product ${id}` })),
+    created_at:d.updated_at,
+  };
+};
+const publishedDownloads = () => downloads.filter((d) => d.status === 'published' && d.file && (downloadShelf(d)?.is_active ?? true));
+
+/* ---------------- Returns (docs/store.md "Returns") ---------------- */
+const RETURN_STATUSES = [
+  { value: 'requested', label: 'Requested' }, { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Not accepted' }, { value: 'received', label: 'Items received' },
+  { value: 'refunded', label: 'Refunded' }, { value: 'closed', label: 'Closed' },
+];
+const RETURN_REASONS = [
+  { value: 'damaged', label: 'Arrived damaged' }, { value: 'faulty', label: 'Faulty or not working' },
+  { value: 'wrong_item', label: 'Wrong item sent' }, { value: 'not_as_described', label: 'Not as described' },
+  { value: 'no_longer_needed', label: 'No longer needed' }, { value: 'other', label: 'Something else' },
+];
+// `ReturnStatus::next()`, restated: the one place the mock decides a move.
+const RETURN_NEXT = {
+  requested: ['approved', 'rejected', 'closed'], approved: ['received', 'closed'],
+  received: ['refunded', 'closed'], rejected: ['approved'], refunded: [], closed: [],
+};
+const mockReturns = [{
+  id: 1, reference: 'RMA-2026-00001', status: 'requested', reason: 'damaged',
+  order_number: 'ORD-2026-00001', customer_name: 'Neil Basu', customer_email: 'neil@example.in', customer_phone: '9876543210',
+  details: 'One corner of the box was crushed and the casing is cracked.', decision_note: null, staff_note: null,
+  items: [{ id: 1, order_item_id: 1, name: 'Sample 24-port switch', variation_name: null, sku: 'SMP-SW-24', unit_price_paise: 1899900, ordered_quantity: 2, quantity: 1, received_quantity: null, restocked_quantity: 0 }],
+  refund_paise: null, refund_reference: null,
+  requested_at: new Date().toISOString(), approved_at: null, rejected_at: null, received_at: null, refunded_at: null, closed_at: null,
+}];
+const adminReturn = (r, detail = false) => ({
+  id: r.id, reference: r.reference, status: r.status,
+  status_label: RETURN_STATUSES.find(s => s.value === r.status).label,
+  is_open: ['requested', 'approved', 'received'].includes(r.status),
+  reason: r.reason, reason_label: RETURN_REASONS.find(x => x.value === r.reason).label,
+  order_number: r.order_number, customer_name: r.customer_name, customer_email: r.customer_email, customer_phone: r.customer_phone,
+  order_paid: true, items_count: r.items.reduce((n, i) => n + i.quantity, 0), photos_count: 0, refund_paise: r.refund_paise,
+  requested_at: r.requested_at, approved_at: r.approved_at, rejected_at: r.rejected_at,
+  received_at: r.received_at, refunded_at: r.refunded_at, closed_at: r.closed_at,
+  admin_path: `/admin/store/returns/${r.reference}`,
+  ...(detail ? {
+    details: r.details, decision_note: r.decision_note, staff_note: r.staff_note, decided_by: null,
+    allowed_next: RETURN_NEXT[r.status].map(v => RETURN_STATUSES.find(s => s.value === v)),
+    items: r.items, photos: [],
+    suggested_refund_paise: r.items.reduce((n, i) => n + (i.received_quantity ?? i.quantity) * i.unit_price_paise, 0),
+    refund_reference: r.refund_reference, return_instructions: '',
+    // Null while Shiprocket is off and nothing was ever booked (0.159.0).
+    pickup: null,
+    order: { order_number: r.order_number, status: 'completed', status_label: 'Completed', total_paise: 3799800, payment_method: 'gateway', dispatched_at: r.requested_at, completed_at: r.requested_at },
+  } : {}),
+});
+
+
+/* ----------------------------- tenders (docs/tenders.md) ------------------
+ *
+ * A notice inviting bids. The dates are fixed rather than relative to today,
+ * so a snapshot of the mock is the same answer every run — and the state
+ * below is computed from them against the real clock, exactly as the API
+ * does, because a stored "open" would be the one thing this module must not
+ * have.
+ */
+const tenderCategories = [
+  { id: 1, name: 'Networking', slug: 'networking', description: 'Switching, wireless and structured cabling.', sort_order: 1, is_active: true },
+  { id: 2, name: 'Annual maintenance', slug: 'annual-maintenance', description: 'Maintenance and support contracts.', sort_order: 2, is_active: true },
+];
+
+const tenders = [
+  {
+    id: 1, reference: 'TW/2026/014', title: 'Campus network refresh',
+    slug: 'campus-network-refresh',
+    summary: 'Supply, installation and commissioning of switching and wireless for a three-building campus.',
+    description: '<p>The scope of work, the quantities and the standards.</p>',
+    tender_category_id: 1, status: 'published', is_featured: true, sort_order: 0,
+    opens_at: '2026-10-16T10:00:00+05:30', closes_at: '2026-12-10T18:00:00+05:30',
+    opening_at: '2026-12-11T11:00:00+05:30', prebid_at: '2026-11-20T11:00:00+05:30',
+    prebid_place: 'Conference room 2, ground floor',
+    fee_paise: 250000, emd_paise: 15000000,
+    submission_email: 'tenders@example.test', submission_url: null,
+    submission_address: 'Procurement desk\nKolkata 700091',
+    contact_name: 'A Person', contact_phone: '+91 98765 43210', contact_email: 'tenders@example.test',
+    documents: [{ title: 'Tender document', file_path: 'media/tenders/pack.pdf', note: 'Read this first' }],
+    seo: null, created_at: '2026-10-10T10:00:00+05:30', updated_at: '2026-10-16T10:00:00+05:30',
+  },
+  {
+    id: 2, reference: 'TW/2025/031', title: 'Structured cabling for a new floor',
+    slug: 'structured-cabling-new-floor',
+    summary: 'Category 6A cabling, racks and passive components for one floor.',
+    description: '<p>Closed. Kept for the record.</p>',
+    tender_category_id: 1, status: 'published', is_featured: false, sort_order: 0,
+    opens_at: '2025-11-01T10:00:00+05:30', closes_at: '2025-12-01T18:00:00+05:30',
+    opening_at: '2025-12-02T11:00:00+05:30', prebid_at: null, prebid_place: null,
+    fee_paise: 150000, emd_paise: 1500000,
+    submission_email: 'tenders@example.test', submission_url: null, submission_address: null,
+    contact_name: null, contact_phone: null, contact_email: null,
+    documents: [],
+    seo: null, created_at: '2025-10-20T10:00:00+05:30', updated_at: '2025-12-01T18:00:00+05:30',
+  },
+];
+
+const tenderFiles = { 'media/tenders/pack.pdf': { size: 204800, extension: 'pdf' } };
+
+const IST = 'Asia/Kolkata';
+
+/** "Friday 16 October 2026" — the API's `dateLabel`. */
+const tenderDate = (iso) => iso === null ? null
+  : new Date(iso).toLocaleDateString('en-GB', { timeZone: IST, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+/** "Thursday 10 December 2026, 6:00 pm IST" — a deadline carries its time. */
+const tenderDeadline = (iso) => {
+  if (iso === null) return null;
+  const date = new Date(iso).toLocaleDateString('en-GB', { timeZone: IST, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const time = new Date(iso).toLocaleTimeString('en-GB', { timeZone: IST, hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${date}, ${time.replace(/\s?([ap])m/i, (_, x) => ` ${x.toLowerCase()}m`)} IST`;
+};
+
+/** "20 November 2026, 11:00 am IST" — shorter, for a meeting. */
+const tenderMoment = (iso) => {
+  if (iso === null) return null;
+  const date = new Date(iso).toLocaleDateString('en-GB', { timeZone: IST, day: 'numeric', month: 'long', year: 'numeric' });
+  const time = new Date(iso).toLocaleTimeString('en-GB', { timeZone: IST, hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${date}, ${time.replace(/\s?([ap])m/i, (_, x) => ` ${x.toLowerCase()}m`)} IST`;
+};
+
+/** "₹1,50,000" — rupees grouped the Indian way; "Free" for nothing to pay. */
+const tenderMoney = (paise) => {
+  if (paise === null || paise === undefined) return null;
+  if (paise === 0) return 'Free';
+  const rupees = Math.floor(paise / 100);
+  const pence = paise % 100;
+  const digits = String(rupees);
+  let whole = digits;
+  if (digits.length > 3) {
+    const last = digits.slice(-3);
+    let rest = digits.slice(0, -3);
+    const groups = [];
+    while (rest.length > 2) { groups.unshift(rest.slice(-2)); rest = rest.slice(0, -2); }
+    if (rest) groups.unshift(rest);
+    whole = `${groups.join(',')},${last}`;
+  }
+  return `₹${whole}${pence === 0 ? '' : `.${String(pence).padStart(2, '0')}`}`;
+};
+
+const TENDER_CLOSING_SOON_DAYS = 3;
+
+/** The window, computed from the clock — never stored. `App\Support\Tenders\TenderWindow`. */
+const tenderWindow = (t, now = new Date()) => {
+  const closes = new Date(t.closes_at);
+  const opens = new Date(t.opens_at);
+  if (closes <= now) return { state: 'closed', state_label: 'Closed', closes_in_label: null, closed: true };
+  if (opens > now) return { state: 'upcoming', state_label: 'Opens soon', closes_in_label: null, closed: false };
+  // Calendar days in IST, not blocks of 24 hours — see TenderWindow.
+  const day = (d) => Date.parse(new Date(d).toLocaleDateString('en-CA', { timeZone: IST }));
+  const days = Math.round((day(closes) - day(now)) / 86400000);
+  const label = days === 0 ? 'Closes today' : days === 1 ? 'Closes tomorrow' : `${days} days left`;
+  return days <= TENDER_CLOSING_SOON_DAYS
+    ? { state: 'closing_soon', state_label: 'Closing soon', closes_in_label: label, closed: false }
+    : { state: 'open', state_label: 'Open', closes_in_label: label, closed: false };
+};
+
+const tenderCategoryOf = (t) => {
+  const c = tenderCategories.find((x) => x.id === t.tender_category_id);
+  return c ? { name: c.name, slug: c.slug } : null;
+};
+
+/** The documents resolved: one whose file has gone is **dropped**. */
+const tenderDocuments = (t) => (t.documents ?? [])
+  .map((d) => {
+    const file = tenderFiles[d.file_path];
+    if (!file) return null;
+    return {
+      title: d.title, ...(d.note ? { note: d.note } : {}),
+      url: `http://127.0.0.1:8899/storage/${d.file_path}`,
+      size: file.size, ...(file.extension ? { extension: file.extension } : {}),
+    };
+  })
+  .filter(Boolean);
+
+const tenderRow = (t) => ({
+  id: t.id, reference: t.reference, title: t.title, slug: t.slug, summary: t.summary,
+  category: tenderCategoryOf(t),
+  opens_at: t.opens_at, closes_at: t.closes_at, opening_at: t.opening_at, prebid_at: t.prebid_at,
+  opens_label: tenderDate(t.opens_at), closes_label: tenderDeadline(t.closes_at),
+  opening_label: tenderMoment(t.opening_at), prebid_label: tenderMoment(t.prebid_at),
+  fee_paise: t.fee_paise, fee_label: tenderMoney(t.fee_paise),
+  emd_paise: t.emd_paise, emd_label: tenderMoney(t.emd_paise),
+  ...tenderWindow(t),
+  documents_count: tenderDocuments(t).length,
+  is_featured: t.is_featured,
+  updated_at: t.updated_at,
+  seo: null,
+});
+
+const publicTender = (t) => ({
+  ...tenderRow(t),
+  description: t.description, prebid_place: t.prebid_place,
+  documents: tenderDocuments(t),
+  submission: { email: t.submission_email, url: t.submission_url, address: t.submission_address },
+  contact: { name: t.contact_name, phone: t.contact_phone, email: t.contact_email },
+  schema: {
+    '@context': 'https://schema.org', '@type': 'WebPage', name: t.title,
+    url: `http://localhost:3000/tenders/${t.slug}`,
+  },
+});
+
+/** The console's shape: the stored path beside the URL, and `missing`. */
+const adminTenderDocuments = (t) => (t.documents ?? []).map((d) => {
+  const file = tenderFiles[d.file_path];
+  return {
+    title: d.title, note: d.note ?? null, file_path: d.file_path,
+    url: file ? `http://127.0.0.1:8899/storage/${d.file_path}` : null,
+    size: file ? file.size : null, extension: file ? file.extension : null,
+    missing: !file,
+  };
+});
+
+const adminTender = (t, detail = false) => {
+  const wall = (iso) => iso === null ? null : new Date(iso).toLocaleString('sv-SE', { timeZone: IST }).slice(0, 16).replace(' ', 'T');
+  const category = tenderCategories.find((c) => c.id === t.tender_category_id);
+  return {
+    id: t.id, reference: t.reference, title: t.title, slug: t.slug, summary: t.summary,
+    ...(detail ? { description: t.description } : {}),
+    tender_category_id: t.tender_category_id,
+    category: category ? { id: category.id, name: category.name, is_active: category.is_active } : null,
+    status: t.status, status_label: t.status === 'published' ? 'Published' : t.status === 'archived' ? 'Archived' : 'Draft',
+    is_featured: t.is_featured, sort_order: t.sort_order,
+    opens_at: wall(t.opens_at), closes_at: wall(t.closes_at),
+    opening_at: wall(t.opening_at), prebid_at: wall(t.prebid_at),
+    opens_at_iso: t.opens_at, closes_at_iso: t.closes_at,
+    opens_label: tenderDate(t.opens_at), closes_label: tenderDeadline(t.closes_at),
+    prebid_place: t.prebid_place,
+    ...tenderWindow(t),
+    fee_paise: t.fee_paise, fee_label: tenderMoney(t.fee_paise),
+    emd_paise: t.emd_paise, emd_label: tenderMoney(t.emd_paise),
+    submission_email: t.submission_email, submission_url: t.submission_url, submission_address: t.submission_address,
+    contact_name: t.contact_name, contact_phone: t.contact_phone, contact_email: t.contact_email,
+    documents: adminTenderDocuments(t), documents_count: tenderDocuments(t).length,
+    public_path: `/tenders/${t.slug}`, admin_path: `/admin/tenders/${t.id}`,
+    ...(detail ? { seo: t.seo, seo_defaults: { title: t.title, description: t.summary, schema_type: 'WebPage' } } : {}),
+    created_at: t.created_at, updated_at: t.updated_at,
+  };
+};
+
+const tenderMeta = () => ({
+  statuses: [
+    { value: 'draft', label: 'Draft' },
+    { value: 'published', label: 'Published' },
+    { value: 'archived', label: 'Archived' },
+  ],
+  categories: tenderCategories.map((c) => ({ id: c.id, name: c.name, is_active: c.is_active })),
+  max_documents: 10,
+  closing_soon_days: TENDER_CLOSING_SOON_DAYS,
+  timezone: 'IST',
+});
+
 const paginate = (rows) => ({
   data: rows,
   links:{ first:null, last:null, prev:null, next:null },
@@ -1448,8 +2438,24 @@ const answerContent = (blocks, faqs, entity) => ({
    (`SeoAiAction::options()`), labels and blurbs included, because the
    console draws only what this list carries. */
 const SEO_AI_META = {
-  enabled: true, configured: true, model: 'gpt-4o-mini',
-  models: [{ value: 'gpt-4o-mini', label: 'GPT-4o mini', description: 'Cheapest and quickest.' }],
+  enabled: true, configured: true, model: 'google/gemini-2.5-flash',
+  /* OpenRouter ids — every AI feature goes through OpenRouter, so a model is
+     named `<provider>/<model>`. The same seven the API offers as `options`
+     on `chatbot_model` and `seo_ai_model`. */
+  models: [
+    { value: 'openai/gpt-4o-mini', label: 'GPT-4o mini (OpenAI)', description: 'Cheapest and quickest of the OpenAI models.' },
+    { value: 'openai/gpt-4.1-mini', label: 'GPT-4.1 mini (OpenAI)', description: 'A step up in quality for a little more.' },
+    { value: 'openai/gpt-4o', label: 'GPT-4o (OpenAI)', description: 'Better copy, at several times the price.' },
+    { value: 'openai/gpt-4.1', label: 'GPT-4.1 (OpenAI)', description: 'The strongest OpenAI model offered here.' },
+    { value: 'anthropic/claude-haiku-5.5', label: 'Claude Haiku 5.5 (Anthropic)', description: 'Anthropic’s quickest and cheapest.' },
+    { value: 'anthropic/claude-sonnet-5.5', label: 'Claude Sonnet 5.5 (Anthropic)', description: 'Anthropic’s all-rounder.' },
+    { value: 'anthropic/claude-opus-5.5', label: 'Claude Opus 5.5 (Anthropic)', description: 'Anthropic’s strongest.' },
+    { value: 'google/gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (Google)', description: 'Google\'s cheapest and quickest.' },
+    { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash (Google)', description: 'Quick and capable. The default.' },
+    { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro (Google)', description: 'The strongest Google model offered here.' },
+    { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B — free (Google)', description: 'Free on OpenRouter, with tight per-minute and per-day limits; free providers may keep prompts for training.' },
+    { value: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B — free (Google)', description: 'Free on OpenRouter, with tight per-minute and per-day limits; free providers may keep prompts for training.' },
+  ],
   actions: [
     { value: 'generate', label: 'Generate SEO', description: 'A title, a description and keywords for this record.' },
     { value: 'analyze', label: 'Analyse SEO', description: 'Strengths, weaknesses and what the page does not cover.' },
@@ -1578,6 +2584,14 @@ const readiness = (table, type, id, full) => {
    blocks (and FAQs), in the admin resource shapes the edit forms read.
    Enough to open every AEO tab against the mock; a PATCH echoes the row.
    Every index carries `meta.answer_block_kinds`. */
+/*
+ * A record whose body area may be laid out as builder sections (0.129.0;
+ * 0.130.0 added posts, articles, products, shop products and events):
+ * `body_layout` on every row, the list as stored and its media on a detail
+ * read. The public read carries `sections` only while a record is laid out
+ * that way; none of the mock's records is, so none sends the key.
+ */
+const RECORD_SECTIONS = { body_layout: 'body', blocks: [], blocks_media: {} };
 const adminOf = (r, extra = {}) => ({
   status: 'published', status_label: 'Published', sort_order: 0, show_in_menu: true,
   seo: null, seo_defaults: null, faqs: [], answer_blocks: [],
@@ -1606,7 +2620,32 @@ const SECTION_TYPES = [
   { value: 'testimonial', label: 'Testimonial', blurb: 'One quotation, with who said it and a photo.' },
   { value: 'video', label: 'Video', blurb: 'A YouTube video or a video from the library.' },
   { value: 'divider', label: 'Divider', blurb: 'Space between two sections, with or without a rule.' },
+  { value: 'stats', label: 'Figures', blurb: 'Up to eight figures that count up as they arrive — as plain numbers, rings or bars.' },
+  { value: 'steps', label: 'Steps', blurb: 'A numbered process, down the page with a line joining the steps or across it.' },
+  { value: 'tabs', label: 'Tabs', blurb: 'Two to eight panels behind tabs, each with words and an optional picture.' },
+  { value: 'checklist', label: 'Checklist', blurb: 'A list of short points with a tick or an icon, in one to three columns.' },
+  { value: 'cta', label: 'Call to action', blurb: 'A closing band — a heading, a line and buttons — drawn the way the theme draws its own.' },
+  { value: 'comparison', label: 'Comparison table', blurb: 'Two to four plans side by side, feature by feature, with a tick, a cross or a few words in each cell.' },
+  { value: 'timeline', label: 'Timeline', blurb: 'Dated milestones joined by a line — a company history, a project, a roll-out.' },
+  { value: 'before_after', label: 'Before and after', blurb: 'Two pictures of one place with a divider somebody drags across — a rack before and after, a site before and after.' },
+  { value: 'testimonials', label: 'Testimonials', blurb: 'Two to nine quotations as cards, each with who said it and an optional photo.' },
+  { value: 'team', label: 'Team', blurb: 'The people from Company → Team, as the theme draws its team cards — everybody, or one department. It follows the team as it changes.' },
+  { value: 'downloads', label: 'Downloads', blurb: 'Files from the media library — brochures, datasheets, price lists — each with its size and a download button.' },
+  { value: 'countdown', label: 'Countdown', blurb: 'Days, hours, minutes and seconds to a date — a launch, an offer ending, an event — with a line for when it has passed.' },
+  { value: 'columns', label: 'Columns of text', blurb: 'Two or three columns side by side, each with a heading and a body from the editor.' },
+  { value: 'map', label: 'Map', blurb: 'A Google map, loaded only when somebody presses it, with the address beside it.' },
+  { value: 'story', label: 'Scroll story', blurb: 'Steps that scroll past a picture held in place, the picture changing with each step — a product tour, a process, a project told in stages.' },
+  { value: 'flow', label: 'Diagram', blurb: 'A row of connected steps — a network, a process, how data moves — whose connecting lines draw themselves as the page scrolls.' },
+  { value: 'subnav', label: 'In-page menu', blurb: 'A strip of links to the sections of this page, which stays at the top of the screen as it scrolls. It lists every section you have given an anchor to (Style → Anchor), in page order.' },
+  { value: 'product_videos', label: 'Product videos', blurb: 'A row of the shop’s product videos, each with its product under it — picture, name, price and an Add to basket button. Whole shop or one category; it follows the videos on the products.' },
+  { value: 'layout', label: 'Custom layout', blurb: 'Rows and columns you arrange yourself, filled with headings, text, pictures, buttons, icon boxes, questions and lists.' },
+  { value: 'custom_code', label: 'Custom code', blurb: 'HTML, CSS and script pasted in as it is, such as the widget a vendor supplies, a booking tool, a calculator. It runs in a sandboxed frame that cannot reach the rest of the page.' },
+  { value: 'lottie', label: 'Animation', blurb: 'A Lottie animation from the media library, played when it comes into view — once, or looping with a pause button.' },
+  { value: 'model', label: '3D model', blurb: 'A 3D model (.glb) from the media library that visitors can turn with a finger or the mouse, turning slowly by itself.' },
+  { value: 'theme_section', label: 'From the theme', blurb: 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.' },
 ];
+/* The AI page builder's refusal while the AI SEO assistant is off (0.116.0) — the API's sentence. */
+const AI_DRAFT_OFF = 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.';
 const SECTION_PRESETS = [
   { value: 'landing', label: 'Landing page', blurb: 'A hero, three reasons, a live list of solutions, questions and a close.', sections: [
     { type: 'hero', hidden: false, background: null, data: { heading: 'The promise, in one line', layout: 'centered', primary: { label: 'Talk to us', href: '/contact' } } },
@@ -1614,22 +2653,348 @@ const SECTION_PRESETS = [
     { type: 'cards', hidden: false, background: null, data: { heading: 'What we build', source: 'solutions', limit: 6, columns: 3 } },
   ] },
 ];
+/* The section library: kept in memory for the run, like the mock's other writes. */
+/* The categories a page template files under (0.162.0), as SavedSection::CATEGORIES sends them. */
+const TEMPLATE_CATEGORIES = [
+  { value: 'landing', label: 'Landing page' }, { value: 'about', label: 'About' }, { value: 'services', label: 'Services' },
+  { value: 'product', label: 'Product' }, { value: 'contact', label: 'Contact' }, { value: 'event', label: 'Event' }, { value: 'other', label: 'Other' },
+];
+const starterBlock = (type, data) => ({ id: crypto.randomUUID(), type, hidden: false, background: null, data });
+/* Two of the five starters StarterTemplateSeeder makes, enough for the picker to have something to choose. */
+const savedSections = [
+  { id: 1, kind: 'template', name: 'Starter: landing page', category: 'landing', description: 'Headline, three benefits, how it works, figures, questions and a closing call to action.', updated_at: '2026-10-11T00:00:00.000Z', blocks: [
+    starterBlock('hero', { heading: '[Your headline]', lede: '[One or two sentences on what you offer and who it is for.]', layout: 'centered' }),
+    starterBlock('rich_text', { heading: '[Why choose us]', body: '<p>[A paragraph.]</p>' }),
+    starterBlock('cta', { heading: '[Ready to start?]', tone: 'brand', primary: { label: '[Get in touch]', href: '/contact' } }),
+  ] },
+  { id: 2, kind: 'template', name: 'Starter: about page', category: 'about', description: 'Who you are, what you stand for, your story as a timeline and a way to get in touch.', updated_at: '2026-10-11T00:00:00.000Z', blocks: [
+    starterBlock('hero', { heading: '[About us]', lede: '[One sentence on who you are.]', layout: 'centered' }),
+    starterBlock('rich_text', { heading: '[Our story]', body: '<p>[Who you are, when you started and why.]</p>' }),
+  ] },
+];
+/*
+ * Detail-page templates (0.161.0, docs/page-builder.md "Detail templates").
+ * Mirrors `App\Support\DetailTemplates` — the kinds, the record blocks each may
+ * place with the label that kind knows it by, the layout each page has today —
+ * and the rules of `DetailTemplateRequest`: the body once, no block twice, none
+ * on a kind that has no part for it, record blocks nowhere else. The mock's one
+ * account is an administrator, so every kind is on offer.
+ */
+const DT_KINDS = {
+  solution: { label: 'Solutions', noun: 'solution', role: 'content_manager', tag: 'solutions', rows: () => solutions, title: 'title' },
+  service: { label: 'Services', noun: 'service', role: 'content_manager', tag: 'services', rows: () => services, title: 'title' },
+  industry: { label: 'Industries', noun: 'industry', role: 'content_manager', tag: 'industries', rows: () => industries, title: 'name' },
+  case_study: { label: 'Case studies', noun: 'case study', role: 'content_manager', tag: 'case-studies', rows: () => caseStudies, title: 'title' },
+  product: { label: 'Catalogue products', noun: 'product', role: 'content_manager', tag: 'products', rows: () => products, title: 'name' },
+  store_product: { label: 'Shop products', noun: 'shop product', role: 'store_manager', tag: 'store-products', rows: () => storeProducts, title: 'name' },
+  blog_post: { label: 'Blog posts', noun: 'blog post', role: 'content_manager', tag: 'blog', rows: () => posts, title: 'title' },
+};
+const ALL_KINDS = Object.keys(DT_KINDS);
+const DT_BLOCKS = {
+  record_hero: { label: 'Heading', kinds: ALL_KINDS, blurb: 'The record’s heading, summary and breadcrumbs, drawn the way the theme draws its page headings.' },
+  record_body: { label: 'Body', kinds: ALL_KINDS, blurb: 'The record’s written body — or its sections. Every template has exactly one.' },
+  record_highlights: { label: 'Highlights', kinds: ['solution', 'case_study', 'product', 'store_product'], blurb: 'The list of points the record carries: benefits, key features, results.', heading: ['solution', 'case_study', 'product', 'store_product'] },
+  record_specs: { label: 'Specification', kinds: ['product', 'store_product'], blurb: 'The specification sheet, as a table.', heading: ['product', 'store_product'] },
+  record_gallery: { label: 'Pictures', kinds: ['product', 'case_study'], blurb: 'The record’s pictures, drawn as its page draws them.' },
+  record_custom_fields: { label: 'Details', kinds: ALL_KINDS, blurb: 'The custom fields filled in for this record.', heading: ALL_KINDS },
+  record_answer_blocks: { label: 'Answers', kinds: ['solution', 'service', 'industry', 'product', 'store_product', 'blog_post'], blurb: 'The record’s answer blocks — and its FAQs unless a questions block is placed too.' },
+  record_faqs: { label: 'Questions', kinds: ['solution', 'service', 'industry', 'product', 'store_product', 'blog_post'], blurb: 'The record’s FAQs and question blocks as one list of questions that open.' },
+  record_related: { label: 'Related', kinds: ALL_KINDS, blurb: 'What the record is connected to, and the lists its page draws beside or under its body.', limit: ['product', 'store_product', 'blog_post'] },
+  record_enquiry: { label: 'Enquiry form', kinds: ['solution', 'service', 'product'], blurb: 'The enquiry form the record’s page carries.', heading: ['solution', 'service', 'product'] },
+  record_buy: { label: 'Pictures and buy panel', kinds: ['store_product'], blurb: 'The pictures and the buy panel, exactly as the shop page draws them, as one block.' },
+  record_downloads: { label: 'Downloads', kinds: ['product', 'store_product'], blurb: 'The datasheets, drivers and firmware attached to the record.', heading: ['product', 'store_product'] },
+  record_reviews: { label: 'Reviews', kinds: ['store_product'], blurb: 'The customers’ reviews and the form to leave one.' },
+  record_comments: { label: 'Comments', kinds: ['blog_post'], blurb: 'The comments under the article, and the form to add one.' },
+};
+const DT_TODAY = {
+  solution: ['record_hero', 'record_body', 'record_highlights', 'record_custom_fields', 'record_answer_blocks', 'record_related'],
+  service: ['record_hero', 'record_body', 'record_custom_fields', 'record_answer_blocks', 'record_related', 'record_enquiry'],
+  industry: ['record_hero', 'record_body', 'record_custom_fields', 'record_answer_blocks', 'record_related'],
+  case_study: ['record_hero', 'record_highlights', 'record_gallery', 'record_body', 'record_custom_fields', 'record_related'],
+  product: ['record_hero', 'record_gallery', 'record_body', 'record_highlights', 'record_specs', 'record_downloads', 'record_custom_fields', 'record_answer_blocks', 'record_enquiry', 'record_related'],
+  store_product: ['record_hero', 'record_buy', 'record_highlights', 'record_specs', 'record_body', 'record_downloads', 'record_custom_fields', 'record_answer_blocks', 'record_reviews', 'record_related'],
+  blog_post: ['record_hero', 'record_body', 'record_custom_fields', 'record_answer_blocks', 'record_comments', 'record_related'],
+};
+const detailTemplates = [];
+const dtResource = (t, detail) => ({
+  id: t.id, type: t.type, type_label: DT_KINDS[t.type].label, name: t.name, is_active: t.is_active, count: t.blocks.length,
+  cache_tag: DT_KINDS[t.type].tag, author: 'Mock admin', updated_at: t.updated_at,
+  ...(detail ? { blocks: t.blocks, blocks_media: {} } : {}),
+});
+const dtOptions = () => ({
+  types: ALL_KINDS.map((value) => {
+    const k = DT_KINDS[value];
+    return {
+      value, label: k.label, noun: k.noun, role: k.role, tag: k.tag, today: DT_TODAY[value],
+      blocks: Object.entries(DT_BLOCKS).filter(([, b]) => b.kinds.includes(value)).map(([block, b]) => ({
+        value: block, label: b.label, blurb: b.blurb, heading: (b.heading ?? []).includes(value), limit: (b.limit ?? []).includes(value),
+      })),
+    };
+  }),
+  required_block: 'record_body',
+  record_block_types: Object.entries(DT_BLOCKS).map(([value, b]) => ({ value, label: b.label, blurb: b.blurb })),
+});
+/** The rules of `DetailTemplates::after` and `SectionRules::after`, in the shape of a 422's errors; null when the stack is good. */
+function dtErrors(type, blocks) {
+  const errors = {};
+  const add = (key, message) => { (errors[key] ??= []).push(message); };
+  const seen = new Set();
+  let body = 0;
+  blocks.forEach((b, i) => {
+    const spec = DT_BLOCKS[b.type];
+    if (!spec) {
+      if (!SECTION_TYPES.some((t) => t.value === b.type) && b.type !== 'saved') add(`blocks.${i}.type`, 'That is not a kind of section this site can draw.');
+      if (b.type === 'hero' || b.type === 'theme_section') add(`blocks.${i}.type`, 'This page already opens with its own heading, so a hero cannot be used here.');
+      return;
+    }
+    if (!spec.kinds.includes(type)) { add(`blocks.${i}.type`, `A ${DT_KINDS[type].noun} page has no “${spec.label}” to place.`); return; }
+    if (seen.has(b.type)) add(`blocks.${i}.type`, `“${spec.label}” is already in this template; a page draws it once.`);
+    seen.add(b.type);
+    if (b.type === 'record_body') { body += 1; if (b.hidden) add(`blocks.${i}.hidden`, 'The record body cannot be hidden: without it the page would have no content.'); }
+  });
+  if (body === 0) add('blocks', 'Every template places the record body once — add it from “Add a section”.');
+  return Object.keys(errors).length ? errors : null;
+}
+/** What a record block is stored as: no ground, no style, no reveal — the settings it honours and nothing else. */
+const dtNormalise = (blocks) => blocks.map((b) => (b.type in DT_BLOCKS
+  ? { id: b.id, type: b.type, hidden: Boolean(b.hidden), background: null, reveal: null, style: null,
+      data: { ...(b.data?.heading ? { heading: String(b.data.heading) } : {}), ...(b.data?.limit ? { limit: Number(b.data.limit) } : {}) } }
+  : b));
+const dtActive = (type) => detailTemplates.find((t) => t.type === type && t.is_active) ?? null;
+const dtPresent = (id, blocks) => ({ id, sections: presentSections(blocks) });
+/**
+ * A public detail read gains `detail_template` when its kind has an active one — added to the body
+ * the route sends, so no route had to learn of it. Only a record's own page (the detail path).
+ */
+function injectDetailTemplate(req, res, p) {
+  if (req.method !== 'GET') return;
+  const m = p.match(/^\/(solutions|services|industries|case-studies|products|store\/products|blog)\/([a-z0-9-]+)$/);
+  const type = m && { solutions: 'solution', services: 'service', industries: 'industry', 'case-studies': 'case_study', products: 'product', 'store/products': 'store_product', blog: 'blog_post' }[m[1]];
+  const active = type && dtActive(type);
+  if (!active) return;
+  const end = res.end.bind(res);
+  res.end = (chunk, ...rest) => {
+    try {
+      const body = JSON.parse(chunk);
+      if (body?.data && typeof body.data === 'object' && !Array.isArray(body.data) && res.statusCode === 200) {
+        body.data.detail_template = dtPresent(active.id, active.blocks);
+        chunk = JSON.stringify(body);
+      }
+    } catch { /* not JSON: leave it */ }
+    return end(chunk, ...rest);
+  };
+}
+
+const savedResource = (x, detail) => ({
+  id: x.id, kind: x.kind, name: x.name, description: x.description,
+  category: x.kind === 'template' ? (x.category ?? null) : null,
+  category_label: x.kind === 'template' ? (TEMPLATE_CATEGORIES.find((c) => c.value === x.category)?.label ?? null) : null,
+  type: x.kind === 'section' ? (x.blocks[0]?.type ?? null) : null,
+  type_label: x.kind === 'section' ? (SECTION_TYPES.find((t) => t.value === x.blocks[0]?.type)?.label ?? null) : null,
+  count: x.blocks.length, author: 'Mock editor', updated_at: x.updated_at,
+  ...(detail ? { blocks: x.blocks, blocks_media: {}, sections: x.blocks, linked_from: [] } : {}),
+});
+/*
+ * The custom layout section's descriptors (0.147.0), as LayoutRules::options()
+ * sends them: every widget with every field, the row and column settings and
+ * the limits. The console draws its controls from these, so this must say what
+ * the API says.
+ */
+const lf = {
+  text: (key, label, max, required = false, multiline = false) => ({ key, kind: 'text', label, max, required, multiline }),
+  choice: (key, label, def, choices, hint = null) => ({ key, kind: 'choice', label, default: def, hint, choices: Object.entries(choices).map(([value, l]) => ({ value, label: l })) }),
+  bool: (key, label) => ({ key, kind: 'bool', label }),
+  link: (key, label, required) => ({ key, kind: 'link', label, max: 2048, required }),
+  icon: (key, label) => ({ key, kind: 'icon', label, required: false }),
+};
+/* 0.149.0: the video widget's conditional fields and the record pickers, as LayoutRules sends them. */
+const lrec = (key, label, record, single) => ({ key, kind: 'ref', label, record, required: true, single });
+const LAYOUT_ALIGN = lf.choice('align', 'Align', 'inherit', { inherit: 'Same as the box', start: 'Left', center: 'Centre', end: 'Right' });
+const LAYOUT_CHILD_TYPES = ['heading', 'text', 'button', 'image', 'spacer', 'divider', 'icon_box', 'accordion', 'list', 'video'];
+const LAYOUT_OPTIONS = {
+  widgets: [
+    { value: 'heading', label: 'Heading', blurb: 'A title. The size is how big it looks; which level it is on the page is worked out for you.', fields: [
+      lf.text('text', 'Heading', 160, true),
+      lf.choice('size', 'Size', 'm', { s: 'Small', m: 'Medium', l: 'Large', xl: 'Extra large' }), LAYOUT_ALIGN] },
+    { value: 'text', label: 'Text', blurb: 'Paragraphs, lists, links and tables from the editor, exactly as a page body.', fields: [
+      { key: 'html', kind: 'html', label: 'Text', max: 20000, required: true }, lf.bool('lead', 'Larger, as an introduction')] },
+    { value: 'button', label: 'Button', blurb: 'One button that links to a page, an address, an email or a phone number.', fields: [
+      lf.text('label', 'Label', 40, true), lf.link('href', 'Link', true),
+      lf.choice('variant', 'Look', 'primary', { primary: 'Solid', secondary: 'Outlined', link: 'Link' }), LAYOUT_ALIGN] },
+    { value: 'image', label: 'Picture', blurb: 'A picture from the media library in a fixed frame, with its alt text and focal point.', fields: [
+      { key: 'image_path', kind: 'path', label: 'Picture', max: 255, required: true },
+      lf.choice('ratio', 'Shape', '4:3', { '1:1': 'Square', '4:3': '4 : 3', '3:2': '3 : 2', '16:9': 'Wide, 16 : 9', '3:4': 'Tall, 3 : 4' }),
+      lf.choice('rounded', 'Corners', 'none', { none: 'Square', s: 'Slightly rounded', m: 'Rounded', l: 'Very rounded', full: 'Round' }),
+      lf.link('href', 'Link (optional)', false), lf.text('caption', 'Caption (optional)', 200)] },
+    { value: 'spacer', label: 'Space', blurb: 'Empty space between two widgets.', fields: [
+      lf.choice('size', 'Height', 'm', { s: 'Small', m: 'Medium', l: 'Large', xl: 'Extra large' })] },
+    { value: 'divider', label: 'Rule', blurb: 'A thin line across the column.', fields: [lf.bool('short', 'Short, not the full width')] },
+    { value: 'icon_box', label: 'Icon box', blurb: 'An icon, a title and a few words, drawn as a card, with an optional link.', fields: [
+      lf.icon('icon', 'Icon'), lf.text('title', 'Title', 80, true), lf.text('body', 'Words', 300, false, true),
+      lf.link('href', 'Link (optional)', false), lf.text('link_label', 'Link text (optional)', 40),
+      lf.choice('layout', 'Layout', 'stacked', { stacked: 'Icon above', inline: 'Icon beside' })] },
+    { value: 'accordion', label: 'Questions that open', blurb: 'Up to twelve questions with their answers, opening one at a time. Not added to the page’s FAQ listing for search engines.', fields: [],
+      list: { key: 'items', label: 'Question', min: 1, max: 12, fields: [lf.text('question', 'Question', 200, true), lf.text('answer', 'Answer', 2000, true, true)] } },
+    { value: 'list', label: 'List', blurb: 'Up to twelve short points with a tick, a dot or numbers.', fields: [
+      lf.choice('marker', 'Marker', 'tick', { tick: 'Tick', dot: 'Dot', number: 'Number' })],
+      list: { key: 'items', label: 'Point', min: 1, max: 12, fields: [lf.text('text', 'Words', 160, true), lf.icon('icon', 'Icon (optional)')] } },
+    { value: 'video', label: 'Video', blurb: 'A YouTube link or a video file from the library. Nothing is loaded until somebody presses play.', fields: [
+      lf.choice('source', 'Where it is', 'youtube', { youtube: 'A YouTube link', mp4: 'A video file from the library' }),
+      { key: 'youtube', kind: 'youtube', label: 'YouTube link', max: 255, required: true, when: { source: 'youtube' } },
+      { key: 'video_path', kind: 'video', label: 'Video file', max: 255, required: true, when: { source: 'mp4' } },
+      { key: 'poster_path', kind: 'path', label: 'Cover picture (optional)', max: 255, required: false },
+      lf.choice('ratio', 'Shape', '16:9', { '16:9': 'Wide, 16 : 9', '4:3': '4 : 3', '1:1': 'Square', '9:16': 'Tall, 9 : 16' }),
+      lf.text('caption', 'Caption (optional)', 200)] },
+    /* 0.172.0: an animation and a 3D model, as LayoutRules::widgets() describes them. */
+    { value: 'lottie', label: 'Animation', blurb: 'A Lottie animation from the media library, played when it comes into view.', fields: [
+      { key: 'file_path', kind: 'lottie', label: 'Animation', max: 255, required: true },
+      lf.text('alt', 'What it shows (optional)', 200),
+      lf.choice('loop', 'Loop', 'no', { no: 'Play once', yes: 'Loop, with a pause button' })] },
+    { value: 'model', label: '3D model', blurb: 'A 3D model (.glb) visitors can turn.', fields: [
+      { key: 'file_path', kind: 'model', label: '3D model', max: 255, required: true },
+      { key: 'alt', kind: 'text', label: 'What it shows', max: 200, required: true },
+      { key: 'poster_path', kind: 'path', label: 'Poster (optional)', max: 255, required: false },
+      lf.choice('rotate', 'Turn by itself', 'yes', { yes: 'Yes', no: 'No' })] },
+    /* 0.154.0: the four containers, as LayoutRules::widgets() describes them; child_types is every widget but a container and the embeds. */
+    { value: 'box', label: 'Box', blurb: 'A framed area holding other widgets: a card, a raised card or a tinted panel.', fields: [
+      lf.choice('surface', 'Look', 'card', { card: 'Card', raised: 'Raised card', tint: 'Tinted panel' }),
+      lf.choice('pad', 'Space inside', 'm', { s: 'Small', m: 'Medium', l: 'Large' }), LAYOUT_ALIGN],
+      container: { key: 'slots', label: 'Contents', min: 1, max: 1, fields: [], child_types: LAYOUT_CHILD_TYPES } },
+    { value: 'tabs', label: 'Tabs', blurb: 'Two to six tabs, each holding its own widgets. Every tab is on the page for search engines; one shows at a time.', fields: [],
+      container: { key: 'slots', label: 'Tab', min: 2, max: 6, fields: [lf.text('label', 'Tab name', 40, true)], child_types: LAYOUT_CHILD_TYPES } },
+    { value: 'panels', label: 'Panels that open', blurb: 'Up to eight panels that open and close, each holding its own widgets.', fields: [],
+      container: { key: 'slots', label: 'Panel', min: 1, max: 8, fields: [lf.text('title', 'Panel title', 120, true), lf.bool('open', 'Open when the page loads')], child_types: LAYOUT_CHILD_TYPES } },
+    { value: 'inner_row', label: 'Columns inside', blurb: 'Two to four columns side by side inside this column, each holding its own widgets.', fields: [
+      lf.choice('split', 'Split', 'equal', { equal: 'Equal', wide_first: 'First wider', wide_last: 'Second wider' }, 'Only for a row of two columns.'),
+      lf.choice('gap', 'Space between', 'm', { s: 'Small', m: 'Medium', l: 'Large' }),
+      lf.choice('valign', 'Columns line up', 'stretch', { stretch: 'Equal height', top: 'Top', center: 'Middle', bottom: 'Bottom' }, 'Equal height makes boxes in a row the same height.'),
+      lf.choice('stack_from', 'Stack below', 'md', { md: 'Tablet width', lg: 'Laptop width' }, 'Below this width the columns sit one above the other.')],
+      container: { key: 'slots', label: 'Column', min: 2, max: 4, fields: [], child_types: LAYOUT_CHILD_TYPES } },
+    { value: 'form', label: 'Form', blurb: 'One of your published forms, drawn in the column.', fields: [lrec('form_id', 'Form', 'form', false)] },
+    { value: 'slider', label: 'Slider', blurb: 'One of your published sliders. A layout section holds one slider.', fields: [lrec('slider_id', 'Slider', 'slider', true)] },
+    { value: 'gallery', label: 'Gallery', blurb: 'One of your published galleries. A layout section holds one gallery.', fields: [lrec('gallery_id', 'Gallery', 'gallery', true)] },
+  ],
+  row: [
+    lf.choice('split', 'Split', 'equal', { equal: 'Equal', wide_first: 'First wider', wide_last: 'Second wider' }, 'Only for a row of two columns.'),
+    lf.choice('gap', 'Space between', 'm', { s: 'Small', m: 'Medium', l: 'Large' }),
+    lf.choice('valign', 'Columns line up', 'stretch', { stretch: 'Equal height', top: 'Top', center: 'Middle', bottom: 'Bottom' }, 'Equal height makes boxes in a row the same height.'),
+    lf.choice('stack_from', 'Stack below', 'md', { md: 'Tablet width', lg: 'Laptop width' }, 'Below this width the columns sit one above the other.'),
+    lf.bool('reverse_stacked', 'Second column first when stacked'),
+  ],
+  column: [
+    lf.choice('surface', 'Box', 'none', { none: 'None', card: 'Card', raised: 'Raised card' }, 'A card has the theme’s ground, border and corners.'),
+    lf.choice('pad', 'Space inside', 'm', { none: 'None', s: 'Small', m: 'Medium' }, 'Only with a box.'),
+    lf.choice('align', 'Align text', 'inherit', { inherit: 'Same as the section', start: 'Left', center: 'Centre', end: 'Right' }),
+    lf.choice('valign', 'Content sits', 'top', { top: 'Top', center: 'Middle', bottom: 'Bottom' }),
+  ],
+  limits: { rows: 8, columns: 4, widgets_per_column: 8, widgets: 40, characters: 150000, html: 20000, items: 12 },
+};
 const BUILDER_OPTIONS = {
   section_types: SECTION_TYPES,
   section_presets: SECTION_PRESETS,
+  // The custom layout section (0.147.0): widgets, row and column settings, limits.
+  layout: LAYOUT_OPTIONS,
+  // Custom code (0.158.0): the mock's one account is an administrator, who may run it on the page itself.
+  custom_code: { page_mode: true },
   hero_layouts: [
     { value: 'centered', label: 'Centred', blurb: 'The words centred on the section’s ground.' },
     { value: 'split', label: 'Split', blurb: 'The words on one side, the picture framed on the other.' },
     { value: 'cover', label: 'Cover', blurb: 'The picture fills the band under a dark overlay.' },
   ],
+  // The Design tab (0.146.0): the types whose heading colour the site ignores (SectionRules::HEADING_COLOR_EXCEPT).
+  style_options: { heading_color_except: ['hero', 'cta', 'theme_section', 'subnav'] },
+  // The assistant on a section (0.127.0): off in the mock, as the page draft is.
+  ai_section: {
+    available: false, reason: AI_DRAFT_OFF,
+    types: ['hero', 'rich_text', 'media_text', 'features', 'cards', 'form', 'faq', 'steps', 'tabs', 'checklist', 'cta', 'timeline', 'flow', 'story', 'columns', 'countdown'],
+    modes: [
+      { value: 'write', label: 'Write', blurb: 'Write this section from a line or two about what it should say.', needs_brief: true },
+      { value: 'rewrite', label: 'Reword', blurb: 'Say the same thing more clearly, at about the same length.', needs_brief: false },
+      { value: 'shorten', label: 'Shorten', blurb: 'The running text about half as long, with the same facts. Headings stay.', needs_brief: false },
+      { value: 'expand', label: 'Expand', blurb: 'The running text about twice as long. A fact it was not given is marked [CHECK: …].', needs_brief: false },
+    ],
+  },
+  // Sections on other records (0.129.0): what a record's body area may show, and the types it cannot hold.
+  record_sections: {
+    excluded_types: ['hero', 'theme_section'],
+    layouts: [
+      { value: 'body', label: 'Written body', blurb: 'The page shows the text written on this form.' },
+      { value: 'sections', label: 'Sections', blurb: 'The page shows the sections laid out below instead. The written text is kept.' },
+    ],
+  },
+  // Edit on the page (0.128.0): the plain-text fields of each type, as the API derives them from its rules.
+  inline_fields: Object.fromEntries(Object.entries({
+    hero: [['kicker', 80], ['heading', 160], ['lede', 400], ['primary.label', 40], ['secondary.label', 40]],
+    rich_text: [['heading', 160]],
+    media_text: [['kicker', 80], ['heading', 160], ['primary.label', 40], ['secondary.label', 40]],
+    features: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.title', 80], ['items.*.body', 300], ['items.*.link_label', 40]],
+    cards: [['kicker', 80], ['heading', 160], ['lede', 400]],
+    slider: [['heading', 160]],
+    gallery: [['heading', 160]],
+    form: [['heading', 160], ['lede', 400]],
+    faq: [['heading', 160], ['items.*.question', 300], ['items.*.answer', 2000]],
+    logos: [['heading', 120]],
+    testimonial: [['quote', 800], ['name', 120], ['role', 160]],
+    video: [['heading', 160], ['caption', 300]],
+    stats: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.value', 24], ['items.*.label', 80]],
+    steps: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.title', 80], ['items.*.body', 400]],
+    tabs: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.label', 40], ['items.*.heading', 120], ['items.*.body', 2000]],
+    checklist: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.text', 200], ['primary.label', 40], ['secondary.label', 40]],
+    cta: [['kicker', 80], ['heading', 160], ['lede', 400], ['primary.label', 40], ['secondary.label', 40]],
+    comparison: [['kicker', 80], ['heading', 160], ['lede', 400], ['plans.*.name', 40], ['plans.*.note', 60], ['rows.*.label', 120], ['rows.*.cells.*', 60], ['primary.label', 40]],
+    timeline: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.date', 24], ['items.*.title', 120], ['items.*.body', 400]],
+    before_after: [['heading', 160], ['lede', 400], ['before_label', 24], ['after_label', 24], ['caption', 300]],
+    testimonials: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.quote', 600], ['items.*.name', 120], ['items.*.role', 160]],
+    team: [['kicker', 80], ['heading', 160], ['lede', 400]],
+    downloads: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.title', 120], ['items.*.note', 200]],
+    countdown: [['kicker', 80], ['heading', 160], ['lede', 400], ['done_text', 160], ['primary.label', 40], ['secondary.label', 40]],
+    columns: [['kicker', 80], ['heading', 160], ['lede', 400], ['columns.*.heading', 120]],
+    map: [['heading', 160], ['lede', 400], ['address', 300]],
+    story: [['kicker', 60], ['heading', 120], ['lede', 300], ['items.*.title', 100], ['items.*.body', 600]],
+    flow: [['kicker', 80], ['heading', 120], ['lede', 300], ['items.*.title', 60], ['items.*.note', 160], ['caption', 200]],
+    subnav: [['label', 40]],
+    // The head, then the widgets' single-line words (0.156.0), each tied to the widget type it belongs to.
+    layout: [
+      ['kicker', 80], ['heading', 160], ['lede', 400],
+      ['rows.*.columns.*.widgets.*.text', 160, 'heading'],
+      ['rows.*.columns.*.widgets.*.label', 40, 'button'],
+      ['rows.*.columns.*.widgets.*.caption', 200, 'image'],
+      ['rows.*.columns.*.widgets.*.caption', 200, 'video'],
+      ['rows.*.columns.*.widgets.*.title', 80, 'icon_box'],
+      ['rows.*.columns.*.widgets.*.link_label', 40, 'icon_box'],
+      ['rows.*.columns.*.widgets.*.items.*.question', 200, 'accordion'],
+      ['rows.*.columns.*.widgets.*.items.*.text', 160, 'list'],
+      ['rows.*.columns.*.widgets.*.slots.*.widgets.*.text', 160, 'heading'],
+      ['rows.*.columns.*.widgets.*.slots.*.widgets.*.label', 40, 'button'],
+      ['rows.*.columns.*.widgets.*.slots.*.widgets.*.caption', 200, 'image'],
+      ['rows.*.columns.*.widgets.*.slots.*.widgets.*.caption', 200, 'video'],
+      ['rows.*.columns.*.widgets.*.slots.*.widgets.*.title', 80, 'icon_box'],
+      ['rows.*.columns.*.widgets.*.slots.*.widgets.*.link_label', 40, 'icon_box'],
+      ['rows.*.columns.*.widgets.*.slots.*.widgets.*.items.*.question', 200, 'accordion'],
+      ['rows.*.columns.*.widgets.*.slots.*.widgets.*.items.*.text', 160, 'list'],
+      ['rows.*.columns.*.widgets.*.slots.*.label', 40, 'tabs'],
+      ['rows.*.columns.*.widgets.*.slots.*.title', 120, 'panels'],
+    ],
+  }).map(([type, fields]) => [type, fields.map(([path, max, widget]) => (widget ? { path, max, widget } : { path, max }))])),
   card_sources: [
     { value: 'solutions', label: 'Solutions' }, { value: 'services', label: 'Services' }, { value: 'industries', label: 'Industries' },
     { value: 'case_studies', label: 'Case studies' }, { value: 'blog', label: 'Blog posts' }, { value: 'knowledge', label: 'Knowledge base articles' },
     { value: 'products', label: 'Products (catalogue)' }, { value: 'store_products', label: 'Products (shop)' },
+    // Upcoming events, soonest first (docs/events-contract.md).
+    { value: 'events', label: 'Events' },
+    // Open tenders, closing soonest first (docs/tenders.md).
+    { value: 'tenders', label: 'Open tenders' },
+    // 0.126.0: categories, vacancies, and one `entry:<type-slug>` per active content type (none in the mock).
+    { value: 'product_categories', label: 'Product categories (catalogue)' }, { value: 'store_categories', label: 'Shop categories' },
+    { value: 'vacancies', label: 'Open vacancies' },
   ],
-  content_blocks: [], sliders: [], galleries: [], forms: [],
+  content_blocks: [],
+  sliders: sliders.filter((s) => s.status === 'published').map(({ id, name, slug }) => ({ id, name, slug })),
+  galleries: galleries.filter((g) => g.status === 'published').map(({ id, name, slug }) => ({ id, name, slug })),
+  forms: forms.filter((f) => f.status === 'published').map(({ id, name, slug }) => ({ id, name, slug })),
   product_categories: productCategories.map(({ id, name, slug }) => ({ id, name, slug })),
   store_categories: storeCategories.map(({ id, name, slug }) => ({ id, name, slug })),
+  download_categories: downloadCategories.filter((c) => c.is_active).map(({ id, name, slug }) => ({ id, name, slug })),
 };
 const SAMPLE_BUILDER_BLOCKS = [
   { id: '0f6a3c1e-1111-4a8b-9c2d-000000000001', type: 'hero', hidden: false, background: null, data: {
@@ -1655,18 +3020,128 @@ const SAMPLE_BUILDER_BLOCKS = [
     { question: 'Can a section be hidden?', answer: 'Yes — it stays with the page and is left off the public site.' },
     { question: 'Can sections be reordered?', answer: 'Yes, with the arrows on each section.' },
   ] } },
+  /* A custom layout (0.147.0): a picture beside words, then three boxes — the two arrangements the probe checks. */
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000011', type: 'layout', hidden: false, background: null, data: {
+    kicker: 'Custom layout', heading: 'Rows and columns, arranged by hand', rows: [
+      { id: 'rowaaa01', split: 'wide_last', valign: 'center', columns: [
+        { widgets: [
+          { id: 'wid00001', type: 'heading', text: 'A picture beside words', size: 'l' },
+          { id: 'wid00002', type: 'text', html: '<p>Text from the editor, with <strong>bold</strong> and a <a href="/about">link</a>.</p>' },
+          { id: 'wid00003', type: 'button', label: 'Talk to us', href: '/contact' },
+        ] },
+        { widgets: [{ id: 'wid00004', type: 'image', image_path: 'media/mock/layout-sample.jpg', ratio: '4:3', rounded: 'm', caption: 'A placeholder picture.' }] },
+      ] },
+      { id: 'rowaaa02', columns: [
+        { surface: 'card', widgets: [{ id: 'wid00005', type: 'icon_box', icon: 'shield', title: 'Secure by default', body: 'One sentence about it.' }] },
+        { surface: 'card', widgets: [{ id: 'wid00006', type: 'icon_box', icon: 'clock', title: 'Fast to respond', body: 'One sentence about it.' }] },
+        { surface: 'raised', widgets: [
+          { id: 'wid00007', type: 'list', items: [{ text: 'One' }, { text: 'Two' }], marker: 'number' },
+          { id: 'wid00008', type: 'accordion', items: [{ question: 'Can a column be a box?', answer: 'Yes — a card, or a raised card.' }] },
+        ] },
+      ] },
+      { id: 'rowaaa03', columns: [
+        { widgets: [{ id: 'wid00009', type: 'video', youtube: 'aqz-KE-bpKQ', caption: 'Big Buck Bunny, © Blender Foundation, CC BY 3.0 — a placeholder.' }] },
+      ] },
+      /* 0.154.0: a tabs container and a panels container, the two the probe switches and opens. */
+      { id: 'rowaaa04', columns: [
+        { widgets: [{ id: 'wid00010', type: 'tabs', slots: [
+          { id: 'slotaa01', label: 'Hardware', widgets: [
+            { id: 'wid00011', type: 'heading', text: 'Racks, switches and cabling', size: 's' },
+            { id: 'wid00012', type: 'text', html: '<p>What we supply and fit.</p>' },
+          ] },
+          { id: 'slotaa02', label: 'Support', widgets: [{ id: 'wid00013', type: 'list', items: [{ text: 'Four-hour response' }, { text: 'Yearly review' }], marker: 'dot' }] },
+        ] }] },
+        { widgets: [{ id: 'wid00014', type: 'panels', slots: [
+          { id: 'slotaa03', title: 'Is it quick?', open: true, widgets: [{ id: 'wid00015', type: 'text', html: '<p>Usually a day.</p>' }] },
+          { id: 'slotaa04', title: 'Is it tidy?', widgets: [{ id: 'wid00016', type: 'button', label: 'See our work', href: '/case-studies' }] },
+        ] }] },
+      ] },
+    ] } },
   { id: '0f6a3c1e-1111-4a8b-9c2d-000000000010', type: 'rich_text', hidden: true, background: null, data: { heading: 'Hidden', body: '<p>Not drawn.</p>' } },
 ];
 /** The presenter's shape, for this mock's few types: hidden ones gone, a live list resolved. */
 function presentSections(blocks) {
   return blocks.filter((b) => !b.hidden).map((b) => {
+    // A scroll story's pictures are paths as stored and URLs as presented, the tabs' rule.
+    if (b.type === 'story') {
+      const items = (Array.isArray(b.data?.items) ? b.data.items : []).map(({ image_path, ...it }) => ({
+        ...it, image: image_path ? `http://127.0.0.1:8899/storage/${image_path}` : null, image_alt: it.title ?? '', image_focus: null,
+      }));
+      return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, style: b.style ?? null, data: { ...b.data, items } };
+    }
+    // A hero's picture and its cover video (0.115.0) are paths as stored and URLs as presented.
+    if (b.type === 'hero') {
+      const { image_path, video_path, ...rest } = b.data ?? {};
+      const url = (p) => (p ? `http://127.0.0.1:8899/storage/${p}` : null);
+      return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, style: b.style ?? null, data: {
+        ...rest, image: url(image_path), image_alt: image_path ? (rest.heading ?? '') : null, image_focus: null,
+        video: rest.layout === 'cover' ? url(video_path) : null,
+      } };
+    }
+    /* An animation and a 3D model (0.172.0): the file a URL, a Lottie's format and width ÷ height. */
+    if (b.type === 'lottie' || b.type === 'model') {
+      const { file_path, poster_path, ...rest } = b.data ?? {};
+      if (!file_path) return null;
+      const url = (p) => `http://127.0.0.1:8899/storage/${p}`;
+      const extra = b.type === 'lottie'
+        ? { format: file_path.endsWith('.lottie') ? 'lottie' : 'json', ratio: 1 }
+        : { poster: poster_path ? url(poster_path) : null, poster_alt: poster_path ? '' : null };
+      return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, style: b.style ?? null, data: { ...rest, file: url(file_path), ...extra } };
+    }
+    /* The shop's product videos (0.140.0): the tiles `VideoShelf` builds; none drops the section, as the API does. */
+    if (b.type === 'product_videos') {
+      const { category_id, limit, ...rest } = b.data ?? {};
+      const items = storeVideoRows({ limit: limit || 8, categoryId: category_id ?? null });
+      return items.length ? { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, style: b.style ?? null, data: { ...rest, items } } : null;
+    }
+    /* A custom layout (0.147.0): a picture's path is a URL, and nothing is drawn empty — the LayoutPresenter's rules. */
+    if (b.type === 'layout') {
+      const url = (p) => `http://127.0.0.1:8899/storage/${p}`;
+      /* 0.149.0: a form, slider or gallery is its current slug, gone once unpublished; a file video is a URL. */
+      const records = { form: ['form_id', forms], slider: ['slider_id', sliders], gallery: ['gallery_id', galleries] };
+      const widget = (w, depth = 0) => {
+        /* 0.154.0: a container's slots, one level; a slot with nothing left goes, and the container with the last. */
+        if (w.slots) {
+          if (depth > 0) return null;
+          const slots = w.slots.map((sl) => ({ ...sl, widgets: (sl.widgets ?? []).map((c) => widget(c, 1)).filter(Boolean) })).filter((sl) => sl.widgets.length);
+          return slots.length ? { ...w, slots } : null;
+        }
+        if (records[w.type]) {
+          const [key, list] = records[w.type];
+          const { [key]: id, ...rest } = w;
+          const found = list.find((x) => x.id === id && x.status === 'published');
+          return found ? { ...rest, slug: found.slug } : null;
+        }
+        if (w.type === 'video') {
+          const { video_path, poster_path, ...rest } = w;
+          if (w.source === 'mp4' ? !video_path : !w.youtube) return null;
+          return { ...rest, ...(video_path ? { video: url(video_path) } : {}), ...(poster_path ? { poster: url(poster_path), poster_alt: '' } : {}) };
+        }
+        if (w.type === 'lottie' || w.type === 'model') {
+          const { file_path, poster_path, ...rest } = w;
+          if (!file_path) return null;
+          return w.type === 'lottie'
+            ? { ...rest, file: url(file_path), format: file_path.endsWith('.lottie') ? 'lottie' : 'json', ratio: 1 }
+            : { ...rest, file: url(file_path), ...(poster_path ? { poster: url(poster_path), poster_alt: '' } : {}) };
+        }
+        if (w.type !== 'image') return w;
+        if (!w.image_path) return null;
+        const { image_path, ...rest } = w;
+        return { ...rest, image: url(image_path), image_alt: w.caption ?? '', image_focus: null, image_blur: null };
+      };
+      const rows = (b.data?.rows ?? []).map((row) => ({
+        ...row,
+        columns: (row.columns ?? []).map((c) => ({ ...c, widgets: (c.widgets ?? []).map(widget).filter(Boolean) })).filter((c) => c.widgets.length),
+      })).filter((row) => row.columns.length);
+      return rows.length ? { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, style: b.style ?? null, data: { ...b.data, rows } } : null;
+    }
     if (b.type !== 'cards') return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, data: b.data };
     const items = solutions.slice(0, b.data.limit || 6).map((s) => ({
       title: s.title, summary: s.summary ?? null, path: `/solutions/${s.slug}`,
       image: null, image_alt: null, image_focus: null, icon: s.icon ?? null, kicker: null, meta: null,
     }));
     return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, data: { ...b.data, items, index_path: '/solutions' } };
-  });
+  }).filter(Boolean);
 }
 cmsPages.push({ id: 6, title: 'Sample builder page', slug: 'sample-builder-page', template: 'builder', body: null,
   published_at: '2026-09-26T09:00:00Z', updated_at: '2026-09-26T09:00:00Z', faqs: [], seo: null,
@@ -1678,31 +3153,38 @@ const ADMIN_CMS = [
         benefits: solutionDetail.benefits, technologies: solutionDetail.technologies,
         hero_image_path: null, product_ids: [1], industry_ids: [4],
         faqs: solutionDetail.faqs.map(({ question, answer }) => ({ question, answer })),
-        answer_blocks: SOLUTION_ANSWER_BLOCKS }
-    : { problem_statement: null, overview: null, benefits: [], technologies: [], hero_image_path: null, product_ids: [], industry_ids: [] }) },
+        answer_blocks: SOLUTION_ANSWER_BLOCKS, ...RECORD_SECTIONS }
+    : { problem_statement: null, overview: null, benefits: [], technologies: [], hero_image_path: null, product_ids: [], industry_ids: [], ...RECORD_SECTIONS }) },
   { base: '/admin/services', rows: services, detail: (r) => adminOf(r, {
-      body: null, service_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
+      ...RECORD_SECTIONS, body: null, service_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
       image_path: r.image ? `media/services/${r.slug}.jpg` : null }) },
   { base: '/admin/service-categories', rows: serviceCategories, detail: adminServiceCategory },
-  { base: '/admin/industries', rows: industries, detail: (r) => adminOf(r, { body: null, solution_ids: [] }) },
+  { base: '/admin/industries', rows: industries, detail: (r) => adminOf(r, { body: null, solution_ids: [], ...RECORD_SECTIONS }) },
   { base: '/admin/product-categories', rows: productCategories, detail: (r) => adminOf(r, { image_path: null, parent_name: null }) },
   { base: '/admin/brands', rows: brands, detail: (r) => adminOf(r, { logo_path: null, is_featured: false, product_count: 1 }) },
   { base: '/admin/products', rows: products, detail: (r) => adminOf(r, {
+      ...RECORD_SECTIONS,
       brand_id: r.brand?.id ?? null, brand_name: r.brand?.name ?? null,
       product_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
       image_urls: [], datasheet_path: null, is_featured: false, solution_ids: [1], related_product_ids: [],
       faqs: (r.faqs || []).map(({ question, answer }) => ({ question, answer })) }) },
   { base: '/admin/pages', rows: cmsPages, detail: (r) => adminOf(r, { blocks: r.blocks ?? [], blocks_media: {}, sections: r.sections ?? [] }) },
-  { base: '/admin/blog-posts', rows: posts, detail: (r) => adminOf(r, { cover_image_path: null, author_id: 3 }) },
-  { base: '/admin/knowledge-articles', rows: kbArticles, detail: (r) => adminOf(r, { knowledge_category_id: 1, view_count: 0, helpful_count: 0 }) },
+  { base: '/admin/blog-posts', rows: posts, detail: (r) => adminOf(r, { cover_image_path: null, author_id: 3, ...RECORD_SECTIONS }) },
+  { base: '/admin/knowledge-articles', rows: kbArticles, detail: (r) => adminOf(r, { knowledge_category_id: 1, view_count: 0, helpful_count: 0, ...RECORD_SECTIONS }) },
   { base: '/admin/store/categories', rows: storeCategories, detail: (r) => adminOf(r, { is_active: true, icon_path: null, image_path: null }) },
   { base: '/admin/store/products', rows: storeProducts, detail: (r) => adminOf(r, {
+      ...RECORD_SECTIONS,
       store_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
       brand_id: r.brand?.id ?? null, brand_name: r.brand?.name ?? null,
+      // Shop tags (0.141.0): every tag with its id for the form; the first product's are the automatic ones.
+      tags: (tagLinks.get(r.id) ?? []).map((tid) => mockTags.find((t) => t.id === tid)).filter(Boolean).map(({ id, name, slug }) => ({ id, name, slug })),
+      tags_auto: r.id === 1,
       track_stock: true, stock: r.in_stock ? 12 : 0, stock_on_hand: r.in_stock ? 12 : 0, allow_oversell: false,
       condition: 'new', feed_include: true, feed_problem: null, gtin: null, mpn: null, google_product_category: null, weight_grams: null,
       image_urls: [], activation_procedure: null, activation_pdf_path: null, activation_pdf_name: null,
-      variations: (r.variations || []).map((v) => ({ ...v, stock: 4, allow_oversell: false, is_active: true, image_path: null })),
+      // Stored with GST; the mock's console types with GST, so entry = stored.
+      entry_price_paise: r.price_paise, entry_compare_at_paise: r.compare_at_paise ?? null,
+      variations: (r.variations || []).map((v) => ({ ...v, entry_price_paise: v.price_paise, stock: 4, allow_oversell: false, is_active: true, image_path: null })),
       /* Product AEO (contract \u00a73): the first product carries all three,
          the rest none, so both the filled and the blank state render. */
       warranty: r.id === 1 ? 'Limited lifetime hardware warranty' : null,
@@ -1713,26 +3195,33 @@ const ADMIN_CMS = [
 
 /* ---------------- Custom fields and content types (docs/custom-content.md) ----------------
  *
- * One field group on pages and on the sample type, and one type ("events")
- * with two entries — enough for every new console screen, the Fields tab,
- * the archive and an entry page to render against the mock. The kinds, the
- * targets and the placements are the API's own `meta`, never retyped. */
+ * One field group on pages and on the sample type, and one type
+ * ("open-days") with two entries — enough for every new console screen, the
+ * Fields tab, the archive and an entry page to render against the mock. The
+ * kinds, the targets and the placements are the API's own `meta`, never
+ * retyped.
+ *
+ * The sample type was called "events" until 0.118.0, when `/events` became
+ * the Events module's own route: a content type's slug is a top-level
+ * address, the real API now refuses that one (`ReservedSlugs`), and here the
+ * static route would have shadowed the archive and sent each entry's address
+ * to an event that does not exist. */
 const CUSTOM_FIELD_KINDS = [
   ['text', 'Text'], ['textarea', 'Long text'], ['rich_text', 'Rich text'], ['number', 'Number'], ['date', 'Date'],
   ['url', 'Link'], ['email', 'Email address'], ['select', 'Dropdown'], ['multi_select', 'Checkboxes'], ['boolean', 'Yes / no'],
   ['image', 'Image'], ['file', 'File'], ['relation', 'Linked record'], ['list', 'List of short items'],
 ].map(([value, label]) => ({ value, label, blurb: `${label}.`, has_options: value === 'select' || value === 'multi_select' }));
 const CONTENT_TYPES = [{
-  id: 1, name: 'Event', plural: 'Events', slug: 'events', path: '/events', icon: null,
+  id: 1, name: 'Open day', plural: 'Open days', slug: 'open-days', path: '/open-days', icon: null,
   description: 'Open days, workshops and launches.', has_body: true, has_image: true, archive_enabled: true,
   per_page: 12, sort: 'newest', schema_type: 'Article', sort_order: 0, is_active: true,
-  entries_count: 2, published_count: 2, target: 'entry:events', field_groups: [{ id: 1, name: 'Event details', fields_count: 2 }],
+  entries_count: 2, published_count: 2, target: 'entry:open-days', field_groups: [{ id: 1, name: 'Event details', fields_count: 2 }],
   created_at: '2026-09-26T00:00:00Z', updated_at: '2026-09-26T00:00:00Z',
 }];
 const CUSTOM_FIELD_TARGETS = [
   ['page', 'Pages'], ['blog_post', 'Blog posts'], ['knowledge_article', 'Knowledge base'], ['case_study', 'Case studies'],
   ['solution', 'Solutions'], ['service', 'Services'], ['industry', 'Industries'], ['product', 'Products'],
-  ['store_product', 'Store products'], ['entry:events', 'Events'],
+  ['store_product', 'Store products'], ['entry:open-days', 'Open days'],
 ].map(([value, label]) => ({ value, label }));
 const CUSTOM_FIELD_META = {
   kinds: CUSTOM_FIELD_KINDS,
@@ -1743,7 +3232,7 @@ const CUSTOM_FIELD_META = {
   ],
 };
 const CUSTOM_FIELD_GROUP = {
-  id: 1, name: 'Event details', slug: 'event-details', targets: ['entry:events', 'page'], target_labels: ['Events', 'Pages'],
+  id: 1, name: 'Event details', slug: 'event-details', targets: ['entry:open-days', 'page'], target_labels: ['Open days', 'Pages'],
   placement: 'details', sort_order: 0, is_active: true, fields_count: 2,
   fields: [
     { id: 1, key: 'venue', label: 'Venue', kind: 'text', help: null, required: false, show_on_page: true, options: [], settings: {}, sort_order: 0, values_count: 2 },
@@ -1777,7 +3266,7 @@ const publicEntry = (e, t = CONTENT_TYPES[0]) => ({
   type: { name: t.name, plural: t.plural, slug: t.slug, path: t.path, icon: t.icon, archive_enabled: t.archive_enabled },
 });
 const adminEntry = (e) => ({
-  id: e.id, content_type_id: 1, title: e.title, slug: e.slug, path: `/events/${e.slug}`, summary: e.summary, body: e.body,
+  id: e.id, content_type_id: 1, title: e.title, slug: e.slug, path: `/open-days/${e.slug}`, summary: e.summary, body: e.body,
   image_path: null, image: null, status: 'published', status_label: 'Published', published_at: e.published_at, sort_order: 0,
   faqs: [], answer_blocks: [], seo: null, seo_defaults: null,
   custom_fields: e.custom_data, custom_field_media: {}, custom_field_groups: CUSTOM_FIELD_DEFINITIONS,
@@ -1857,6 +3346,7 @@ for (const rows of [solutions, services, industries, productCategories, products
 createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname.replace('/api/v1', '');
+  injectDetailTemplate(req, res, p);
   const bearer = (req.headers.authorization || '').replace('Bearer ', '');
   const auth = bearer === TOKEN || bearer === IMPERSONATION_TOKEN;
   const isStaff = bearer === STAFF_TOKEN;
@@ -1900,6 +3390,14 @@ createServer(async (req, res) => {
     return json(res, 202, {
       message: 'If that address has an account, a sign-in code is on its way. It expires in 10 minutes.',
     });
+  }
+  /* "Continue with Google" (docs/auth.md). The mock has no OAuth client, so
+     it is off here exactly as it is on an install that has not set one:
+     `google_login_live` is "0" in the settings below, the button is not
+     drawn, and both endpoints refuse the way the API does. */
+  if ((p === '/auth/google/authorize' || p === '/auth/google/callback') && req.method === 'POST') {
+    const message = 'Signing in with Google is not available.';
+    return json(res, 403, { message, reason: 'google_login_disabled', errors: { email: [message] } });
   }
   if (p === '/admin/auth/request-code' && req.method === 'POST') {
     return json(res, 202, {
@@ -2035,6 +3533,34 @@ createServer(async (req, res) => {
      exactly the failure the 404 exists to prevent. */
   // Nothing assigned is `data: null` inside a 200 — a 404 is never cached by
   // Next, and this is fetched four times per layout render.
+  /* A menu item is `{label, href, icon, summary, badge, badge_tone, new_tab,
+     children}` (0.150.0): `badge` is plain text or null, `badge_tone` one of
+     live|beta|soon|new and null with it. With MOCK_TOPBAR_MENU=1 the top bar
+     is assigned a "Customer Zone" of three headed columns so the columns panel
+     and the chips can be driven without a Laravel; unset, nothing is assigned,
+     which is the default the frontend's fallbacks are built against. */
+  if (p === '/menus/topbar' && process.env.MOCK_TOPBAR_MENU) {
+    const leaf = (label, href, summary, badge = null, tone = null) => ({ label, href, icon: null, summary, badge, badge_tone: badge ? tone : null, new_tab: false, children: [] });
+    const col = (label, children) => ({ label, href: null, icon: null, summary: null, badge: null, badge_tone: null, new_tab: false, children });
+    return json(res, 200, { data: [{
+      label: 'Customer Zone', href: null, icon: null, summary: null, badge: null, badge_tone: null, new_tab: false,
+      children: [
+        col('Compute', [
+          leaf('Cloud servers', '/services', 'Virtual machines with the hardware and the uptime you would expect from a rack of your own.', 'Live', 'live'),
+          leaf('Bare metal', '/products', 'Dedicated servers, racked and cabled for you.', 'Beta', 'beta'),
+          leaf('GPU nodes', '/products', 'Accelerated compute for training and rendering.', 'Soon', 'soon'),
+        ]),
+        col('Network', [
+          leaf('Managed Wi-Fi', '/services', 'Surveyed, installed and watched.', 'Live', 'live'),
+          leaf('SD-WAN', '/services', 'One policy across every branch.', 'New', 'new'),
+        ]),
+        col('Support', [
+          leaf('Track a ticket', '/portal/tickets', 'See where your request stands.'),
+          leaf('Knowledge base', '/knowledge-base', 'Answers written by the engineers who fix things.'),
+        ]),
+      ],
+    }] });
+  }
   if (p.startsWith('/menus/')) return json(res, 200, { data: null });
 
   /* The newsletter's public surface.
@@ -2119,21 +3645,27 @@ createServer(async (req, res) => {
     theme: 'olive',
     // Messaging (Phase 2): WhatsApp live, so the checkout draws its box;
     // push live with a mock web config, so the store strip draws the bell.
-    messaging_whatsapp_live: '1', messaging_rcs_live: '0', push_live: '1',
+    messaging_whatsapp_live: '1', messaging_rcs_live: '0', push_live: '1', google_login_live: '0',
     // Online meetings (docs/meetings-contract.md): the four public rows.
     meetings_enabled: '1', meeting_slot_step: '30', meeting_min_notice_hours: '4', meeting_max_days: '30',
     push_api_key: 'AIzaMockKey000000000000000000000000000', push_project_id: 'technoware-push',
     push_messaging_sender_id: '123456789012', push_app_id: '1:123456789012:web:0a1b2c3d4e5f', push_vapid_key: 'BMockVapidKey',
-    motion_reveal: 'lift', motion_buttons: 'lift', motion_page: 'none', motion_loader: 'none', motion_splash: '0', motion_hero: 'grid',
+    motion_reveal: 'lift', motion_buttons: 'lift', motion_page: 'none', motion_loader: 'none', motion_splash: '0', motion_hero: 'grid', motion_progress: 'none', motion_headline: 'none', motion_micro: 'lively', hero_kinetic: 'default',
     login_backdrop: 'image', login_intensity: 'medium', login_speed: 'normal', stats_animation: 'count',
     // The site theme. CI builds against this mock, and `classic` is also the
     // fallback for a missing key — so leaving it out would hide nothing and
     // prove nothing. It is here so the console's Themes screen has a row.
     site_theme: 'classic',
+    // `homepage_page_slug` (0.113.0) is left out on purpose: the API sends it
+    // only when Settings → Homepage names a published builder page, and absent
+    // is the theme's own homepage, which is what CI should build and audit.
     // The homepage figures and the assistant's look, as the seeder ships them.
-    stats_size: 'medium', chatbot_animation: 'burst', chatbot_background: '',
+    stats_size: 'medium', chatbot_animation: 'burst', chatbot_background: '', chatbot_header: '',
     reviews_kicker: 'Reviews', reviews_heading: 'What our customers say',
     store_shipping_service: 'Standard Shipping', store_transit_days_min: '3', store_transit_days_max: '7',
+    // Delivery charges (0.142.0), live so the screen's changes reach the product page and trust strip.
+    store_shipping_mode: shipping.mode, store_shipping_paise: String(shipping.flat_paise),
+    store_default_weight_grams: String(shipping.default_weight_grams),
     // The announcement bar, live, as a gradient ticker with a link: the
     // hardest shape it takes, so every audit against the mock grades it.
     announcement_enabled: '1', announcement_live: '1',
@@ -2158,7 +3690,9 @@ createServer(async (req, res) => {
     // On, with real copy, so the promo banner is exercised under the mock —
     // the real seeder defaults it off, which would leave it permanently
     // unauditable here otherwise.
+    ...tagSettings,
     store_promo_enabled: '1',
+    ...Object.fromEntries(Object.entries(mockVideoSettings).filter(([, v]) => v !== '')),
     store_promo_kicker: 'Limited time',
     store_promo_heading: 'Save up to 15% on networking hardware',
     store_promo_price_text: 'From ₹2,199',
@@ -2209,6 +3743,36 @@ createServer(async (req, res) => {
 
     if (p === '/admin/auth/me') return json(res, 200, { data: staff });
 
+    /* Bulk actions on the content lists (0.139.0). `POST /admin/{list}/bulk` takes
+       `{ids, action}` and answers 200 always with `{updated, refused}`; a list with no
+       status (brands, the categories, industries) is delete-only and a 422 on `action`
+       for anything else. The mock keeps no per-record state, so it follows the shape and
+       the edges and nothing more: an id of 1000 or more "no longer exists" (absent from
+       both lists), and one of 900 to 999 is refused in words — which is what lets the
+       bar's in-place refusal list be driven. */
+    {
+      const bulk = p.match(/^\/admin\/(blog-posts|knowledge-articles|case-studies|solutions|services|pages|products|events|tenders|job-openings|downloads|landing-pages|store\/products|content-types\/[a-z0-9-]+\/entries|industries|brands|product-categories|service-categories|store\/categories)\/bulk$/);
+      if (bulk && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const deleteOnly = /^(industries|brands|product-categories|service-categories|store\/categories)$/.test(bulk[1]);
+        const actions = deleteOnly ? ['delete'] : ['publish', 'draft', 'archive', 'delete'];
+        const ids = Array.isArray(body.ids) ? body.ids : [];
+        if (ids.length < 1) return json(res, 422, { message: 'Tick at least one row.', errors: { ids: ['Tick at least one row.'] } });
+        if (ids.length > 100) return json(res, 422, { message: 'Act on up to 100 rows at a time.', errors: { ids: ['Act on up to 100 rows at a time.'] } });
+        if (!actions.includes(body.action)) {
+          return json(res, 422, { message: 'That action is not available on this list.', errors: { action: ['That action is not available on this list.'] } });
+        }
+        const live = ids.filter((id) => Number(id) < 1000);
+        return json(res, 200, {
+          updated: live.filter((id) => Number(id) < 900),
+          refused: live.filter((id) => Number(id) >= 900).map((id) => ({
+            id, title: `Sample record ${id}`,
+            message: body.action === 'delete' ? 'Something still depends on this, so it was not deleted.' : 'It is not ready to publish yet.',
+          })),
+        });
+      }
+    }
+
     /* Leads. `meta` is the contract that matters: the console builds its
        status, band and owner selects from it rather than listing them in
        TypeScript, so a mock that omitted them would render a screen with
@@ -2235,6 +3799,87 @@ createServer(async (req, res) => {
     }
     if (p === '/admin/meetings/google/test' && req.method === 'POST') {
       return json(res, 422, { message: 'Connect a Google account first.', errors: { google: ['Connect a Google account first.'] } });
+    }
+    /* Zoho Books (docs/store.md "Zoho Books invoices"): Store → Settings'
+       panel, as an install that has not connected it. */
+    /* A palette read from the logo (0.173.0): two colours, so the two
+       readings that differ, with the bar as the darker of them. */
+    if (p === '/admin/settings/palette-from-logo' && req.method === 'POST') {
+      return json(res, 200, { data: {
+        readings: [
+          { key: 'used', label: 'Most of the logo', primary: '#1d4ed8', secondary: '#e11d48', accent: '#b91c3c', topbar: '#1d4ed8', derived: true },
+          { key: 'bold', label: 'The boldest colour', primary: '#e11d48', secondary: '#1d4ed8', accent: '#0f766e', topbar: '#1d4ed8', derived: true },
+        ],
+        colours: [{ hex: '#1d4ed8', share: 0.62 }, { hex: '#e11d48', share: 0.28 }, { hex: '#ffffff', share: 0.1 }],
+        from: { path: 'media/2026/10/logo.svg', url: 'http://127.0.0.1:8899/storage/media/2026/10/logo.svg' },
+      } });
+    }
+
+    if (p === '/admin/settings/zoho-books' && req.method === 'GET') {
+      return json(res, 200, { data: {
+        enabled: false, ready: false,
+        missing: ['Save the client ID and secret.', 'Connect a Zoho account.', 'Choose the organisation.', 'Choose your state.', 'Choose the two taxes.'],
+        is_connected: false, account: null, connected_at: null, client_configured: false, data_centre: 'in',
+        organization_id: null, organizations: [], taxes: [], error: null,
+        callback_path: '/admin/store/settings/zoho/callback', waiting: 0, failed: 0,
+        // Payments and credit notes (0.136.0): nothing to list until an account is connected.
+        payments: {
+          enabled: true, reconnect_needed: false, accounts: [],
+          methods: [
+            { value: 'gateway', label: 'card and online payments', setting: 'zoho_books_account_gateway', account_id: null, offered: false },
+            { value: 'cod', label: 'cash on delivery', setting: 'zoho_books_account_cod', account_id: null, offered: true },
+            { value: 'bank_transfer', label: 'bank transfers', setting: 'zoho_books_account_bank_transfer', account_id: null, offered: true },
+            { value: 'upi', label: 'UPI payments', setting: 'zoho_books_account_upi', account_id: null, offered: true },
+          ],
+          missing: [], waiting: 0, failed: 0,
+        },
+      } });
+    }
+    if (p === '/admin/settings/zoho-books/authorize' && req.method === 'POST') {
+      return json(res, 422, { message: 'Save the client ID and secret first.', errors: { redirect_uri: ['Save the client ID and secret first.'] } });
+    }
+    if (p === '/admin/settings/zoho-books/callback' && req.method === 'POST') {
+      return json(res, 200, { data: { account: 'Technoware (mock)' } });
+    }
+    if (p === '/admin/settings/zoho-books/disconnect' && req.method === 'POST') {
+      return json(res, 200, { data: { is_connected: false } });
+    }
+    if (p === '/admin/settings/zoho-books/test' && req.method === 'POST') {
+      return json(res, 422, { message: 'Connect a Zoho account first.', errors: { zoho: ['Connect a Zoho account first.'] } });
+    }
+    if (/^\/admin\/store\/orders\/[^/]+\/zoho-invoice$/.test(p) && req.method === 'POST') {
+      return json(res, 422, { message: 'Zoho Books invoices are switched off.' });
+    }
+    /* Shiprocket (0.143.0, docs/store.md "Shiprocket"): the provider is "By hand", the
+       default, so the settings panel offers the select and the tracking address and
+       the order page draws no booking control. The booking routes answer what the API
+       does with the provider off, and the test is refused until a sign-in is saved.
+       The webhook address is the real route's — it names neither the vendor nor
+       "sr" or "kr". */
+    if (p === '/admin/settings/shiprocket' && req.method === 'GET') {
+      return json(res, 200, { data: {
+        provider: 'manual', active: false, missing: [], credentials_saved: false, email: null, pickup_location: null,
+        locations: [], parcel: { length: 20, breadth: 15, height: 10 },
+        webhook_url: 'http://127.0.0.1:8000/api/v1/store/shipping/webhooks/courier', webhook_url_ok: true,
+        webhook_token_set: false, error: null, booked: 0, in_trouble: 0,
+      } });
+    }
+    if (p === '/admin/settings/shiprocket/test' && req.method === 'POST') {
+      return json(res, 422, { message: "Save the API user's email and password first." });
+    }
+    if (/^\/admin\/store\/orders\/[^/]+\/shipment\/(book|assign|pickup|label|cancel|track|rates|manifest)$/.test(p) && req.method === 'POST') {
+      return json(res, 422, { message: 'Parcels are not booked with a courier platform on this site.', errors: { shipment: ['Parcels are not booked with a courier platform on this site.'] } });
+    }
+    // Manifests and return pickups (0.159.0): the provider is manual here, so every press is a refusal.
+    if (p === '/admin/store/orders/manifest' && req.method === 'POST') {
+      return json(res, 422, { message: 'Shiprocket is not switched on.', errors: { shipment: ['Shiprocket is not switched on.'] } });
+    }
+    if (/^\/admin\/store\/returns\/[^/]+\/pickup\/(rates|book|cancel)$/.test(p) && req.method === 'POST') {
+      return json(res, 422, { message: 'Return pickups are booked with Shiprocket, which is not switched on.', errors: { pickup: ['Return pickups are booked with Shiprocket, which is not switched on.'] } });
+    }
+    // One payment or refund sent to Zoho Books on request (0.136.0).
+    if (/^\/admin\/store\/orders\/[^/]+\/payments\/\d+\/zoho$/.test(p) && req.method === 'POST') {
+      return json(res, 422, { message: 'Zoho Books invoices are switched off.' });
     }
     if (p === '/admin/meetings/customers' && req.method === 'GET') {
       const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
@@ -2364,6 +4009,379 @@ createServer(async (req, res) => {
       }
       return json(res, 200, { data: h });
     }
+    /* Events (docs/events-contract.md): the list, the form's reads and
+       writes, a duplicate, and one event's registrations. `meta` rides on the
+       index, the read and both writes, because the console draws its format,
+       status and registration-mode pickers from it and never from a list of
+       its own. The export is matched above `{registration}`, the order the
+       route file declares them in. */
+    /* The downloads centre's console half (docs/downloads.md). `options` is
+       matched above `{id}`, the order the route file declares them in. */
+    if (p === '/admin/downloads' && req.method === 'GET') {
+      const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+      const status = url.searchParams.get('status');
+      const access = url.searchParams.get('access');
+      const category = url.searchParams.get('category');
+      const rows = downloads.filter((d) =>
+        (!q || `${d.title} ${d.version ?? ''} ${d.file?.name ?? ''}`.toLowerCase().includes(q))
+        && (!status || d.status === status) && (!access || d.access === access)
+        && (!category || (category === 'none' ? d.download_category_id === null : d.download_category_id === Number(category))));
+      const page = paginate(rows.map(adminDownload));
+      return json(res, 200, { ...page, meta: { ...page.meta, ...downloadMeta } });
+    }
+    if (p === '/admin/downloads/options' && req.method === 'GET') {
+      return json(res, 200, { data: {
+        ...downloadMeta,
+        categories: downloadCategories.map(({ id, name, is_active }) => ({ id, name, is_active })),
+        products: [{ id:1, name:'Product 1' }, { id:2, name:'Product 2' }],
+        store_products: [{ id:1, name:'Shop product 1' }],
+      } });
+    }
+    if (p === '/admin/downloads' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      if (!body.title) return json(res, 422, { message:'Give the download a title — what the file is.', errors:{ title:['Give the download a title — what the file is.'] } });
+      const row = { id: Math.max(0, ...downloads.map((d) => d.id)) + 1, summary:null, version:null, released_on:null, access:'public', source:'library',
+        file_path:null, file:null, status:'draft', sort_order:0, download_count:0, download_category_id:null, product_ids:[], store_product_ids:[],
+        updated_at:new Date().toISOString(), ...body };
+      downloads.push(row);
+      return json(res, 201, { data: adminDownload(row), meta: downloadMeta });
+    }
+    const downloadMatch = p.match(/^\/admin\/downloads\/(\d+)$/);
+    if (downloadMatch) {
+      const row = downloads.find((d) => d.id === Number(downloadMatch[1]));
+      if (!row) return json(res, 404, { message:'Not found.' });
+      if (req.method === 'GET') return json(res, 200, { data: adminDownload(row), meta: downloadMeta });
+      if (req.method === 'PATCH') {
+        Object.assign(row, await readJsonBody(req), { updated_at:new Date().toISOString() });
+        return json(res, 200, { data: adminDownload(row), meta: downloadMeta });
+      }
+      if (req.method === 'DELETE') {
+        downloads.splice(downloads.indexOf(row), 1);
+        res.writeHead(204); return res.end();
+      }
+    }
+    if (p === '/admin/download-categories' && req.method === 'GET') {
+      return json(res, 200, paginate(downloadCategories.map((c) => ({
+        ...c, downloads_count: downloads.filter((d) => d.download_category_id === c.id).length, updated_at:'2026-10-08T06:00:00Z',
+      }))));
+    }
+    if (p === '/admin/download-categories' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      if (!body.name) return json(res, 422, { message:'Give the category a name.', errors:{ name:['Give the category a name.'] } });
+      const row = { id: Math.max(0, ...downloadCategories.map((c) => c.id)) + 1, description:null, sort_order:0, is_active:true,
+        slug: String(body.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), ...body };
+      downloadCategories.push(row);
+      return json(res, 201, { data: { ...row, downloads_count:0, updated_at:new Date().toISOString() } });
+    }
+    const downloadCategoryMatch = p.match(/^\/admin\/download-categories\/(\d+)$/);
+    if (downloadCategoryMatch) {
+      const row = downloadCategories.find((c) => c.id === Number(downloadCategoryMatch[1]));
+      if (!row) return json(res, 404, { message:'Not found.' });
+      const shape = () => ({ ...row, downloads_count: downloads.filter((d) => d.download_category_id === row.id).length, updated_at:'2026-10-08T06:00:00Z' });
+      if (req.method === 'GET') return json(res, 200, { data: shape() });
+      if (req.method === 'PATCH') { Object.assign(row, await readJsonBody(req)); return json(res, 200, { data: shape() }); }
+      if (req.method === 'DELETE') {
+        downloads.forEach((d) => { if (d.download_category_id === row.id) d.download_category_id = null; });
+        downloadCategories.splice(downloadCategories.indexOf(row), 1);
+        res.writeHead(204); return res.end();
+      }
+    }
+
+    /* Tenders (docs/tenders.md). `bulk` is matched by the shared route above. */
+  if (p === '/admin/tenders' && req.method === 'GET') {
+    const now = new Date();
+    const when = url.searchParams.get('when');
+    const status = url.searchParams.get('status');
+    const category = url.searchParams.get('category');
+    const term = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+
+    const rows = tenders
+      .filter((t) => !status || t.status === status)
+      .filter((t) => {
+        if (!when) return true;
+        const w = tenderWindow(t, now).state;
+        if (when === 'open') return w === 'open' || w === 'closing_soon';
+        if (when === 'closed') return w === 'closed';
+        return w === 'upcoming';
+      })
+      .filter((t) => {
+        if (!category) return true;
+        if (category === 'none') return t.tender_category_id === null;
+        return String(t.tender_category_id) === category;
+      })
+      .filter((t) => !term || `${t.reference} ${t.title} ${t.summary ?? ''}`.toLowerCase().includes(term))
+      .sort((a, b) => {
+        const ac = new Date(a.closes_at) > now, bc = new Date(b.closes_at) > now;
+        if (ac !== bc) return ac ? -1 : 1;
+        return ac ? a.closes_at.localeCompare(b.closes_at) : b.closes_at.localeCompare(a.closes_at);
+      });
+
+    const page = paginate(rows.map((t) => adminTender(t)));
+    page.meta.per_page = 20;
+    return json(res, 200, { ...page, meta: { ...page.meta, ...tenderMeta() } });
+  }
+  if (p === '/admin/tenders' && req.method === 'POST') {
+    const body = await readJsonBody(req);
+    const id = Math.max(0, ...tenders.map((t) => t.id)) + 1;
+    const made = {
+      id, documents: [], seo: null, is_featured: false, sort_order: 0, status: 'draft',
+      opening_at: null, prebid_at: null, prebid_place: null,
+      fee_paise: null, emd_paise: null,
+      submission_email: null, submission_url: null, submission_address: null,
+      contact_name: null, contact_phone: null, contact_email: null,
+      tender_category_id: null, description: null, summary: null,
+      ...body,
+      slug: body.slug || String(body.title ?? 'tender').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    };
+    tenders.push(made);
+    return json(res, 201, { data: adminTender(made, true), meta: tenderMeta() });
+  }
+  {
+    const m = p.match(/^\/admin\/tenders\/(\d+)(\/duplicate)?$/);
+    if (m) {
+      const tender = tenders.find((t) => t.id === Number(m[1]));
+      if (!tender) return json(res, 404, { message: 'Not found.' });
+
+      if (m[2] && req.method === 'POST') {
+        const id = Math.max(0, ...tenders.map((t) => t.id)) + 1;
+        const copy = {
+          ...tender, id, status: 'draft', is_featured: false,
+          title: `${tender.title} (copy)`, slug: `${tender.slug}-copy-${id}`,
+          // Never the same number: a tender number is the one field nobody
+          // else can guess for you.
+          reference: `${tender.reference}-copy`, seo: null,
+        };
+        tenders.push(copy);
+        return json(res, 201, { data: adminTender(copy, true), meta: tenderMeta() });
+      }
+      if (req.method === 'GET') return json(res, 200, { data: adminTender(tender, true), meta: tenderMeta() });
+      if (req.method === 'PATCH') {
+        Object.assign(tender, await readJsonBody(req), { updated_at: new Date().toISOString() });
+        return json(res, 200, { data: adminTender(tender, true), meta: tenderMeta() });
+      }
+      if (req.method === 'DELETE') {
+        tenders.splice(tenders.indexOf(tender), 1);
+        return json(res, 200, { message: 'Tender deleted.' });
+      }
+    }
+  }
+  if (p === '/admin/tender-categories' && req.method === 'GET') {
+    const rows = [...tenderCategories]
+      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+      .map((c) => ({ ...c, tenders_count: tenders.filter((t) => t.tender_category_id === c.id).length, updated_at: null }));
+    return json(res, 200, paginate(rows));
+  }
+  if (p === '/admin/tender-categories' && req.method === 'POST') {
+    const body = await readJsonBody(req);
+    const id = Math.max(0, ...tenderCategories.map((c) => c.id)) + 1;
+    const made = {
+      id, description: null, sort_order: 0, is_active: true, ...body,
+      slug: body.slug || String(body.name ?? 'category').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+    };
+    tenderCategories.push(made);
+    return json(res, 201, { data: { ...made, tenders_count: 0, updated_at: null } });
+  }
+  {
+    const m = p.match(/^\/admin\/tender-categories\/(\d+)$/);
+    if (m) {
+      const category = tenderCategories.find((c) => c.id === Number(m[1]));
+      if (!category) return json(res, 404, { message: 'Not found.' });
+      const shape = () => ({ ...category, tenders_count: tenders.filter((t) => t.tender_category_id === category.id).length, updated_at: null });
+
+      if (req.method === 'GET') return json(res, 200, { data: shape() });
+      if (req.method === 'PATCH') {
+        Object.assign(category, await readJsonBody(req));
+        return json(res, 200, { data: shape() });
+      }
+      if (req.method === 'DELETE') {
+        // The tenders stay, filed under none — `nullOnDelete`.
+        tenders.forEach((t) => { if (t.tender_category_id === category.id) t.tender_category_id = null; });
+        tenderCategories.splice(tenderCategories.indexOf(category), 1);
+        res.statusCode = 204;
+        return res.end();
+      }
+    }
+  }
+  if (p === '/admin/events' && req.method === 'GET') {
+      const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+      const status = url.searchParams.get('status');
+      const when = url.searchParams.get('when');
+      const format = url.searchParams.get('format');
+      const matched = events.filter((e) =>
+        (!q || `${e.title} ${e.venue_name ?? ''} ${e.venue_city ?? ''}`.toLowerCase().includes(q))
+        && (!status || e.status === status) && (!format || e.format === format)
+        && (!when || (when === 'past') === eventIsPast(e)));
+      // A header's sort, ending on the id; otherwise upcoming soonest first, then past newest first.
+      const dir = url.searchParams.get('dir') === 'desc' ? -1 : 1;
+      const by = { starts: (e) => e.starts_at, title: (e) => e.title.toLowerCase(), status: (e) => e.status }[url.searchParams.get('sort')];
+      const rows = by
+        ? [...matched].sort((a, b) => (by(a) < by(b) ? -dir : by(a) > by(b) ? dir : a.id - b.id))
+        : [
+            ...matched.filter((e) => !eventIsPast(e)).sort((a, b) => a.starts_at.localeCompare(b.starts_at)),
+            ...matched.filter(eventIsPast).sort((a, b) => b.starts_at.localeCompare(a.starts_at)),
+          ];
+      return json(res, 200, {
+        data: rows.map((e) => adminEvent(e)),
+        links: { first: null, last: null, prev: null, next: null },
+        meta: { current_page: 1, last_page: 1, per_page: 25, total: rows.length, ...EVENT_META },
+      });
+    }
+    if (p === '/admin/events' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const blank = {
+        title: '', summary: null, body: null, status: 'draft', is_featured: false, format: 'in_person',
+        starts_at: null, ends_at: null, venue_name: null, venue_city: null, venue_address: null, map_url: null, online_url: null,
+        cover_image_path: null, cover_image: null, speakers: [], agenda: [], registration_mode: 'none', external_url: null,
+        capacity: null, waitlist_enabled: false, max_seats: 5, registration_closes_at: null, faqs: [], seo: null,
+      };
+      const refused = eventRefusal({ ...blank, ...body });
+      if (refused) return invalid(res, ...refused);
+      const now = new Date().toISOString();
+      const event = { ...blank, id: Math.max(0, ...events.map((e) => e.id)) + 1, created_at: now, updated_at: now };
+      applyEventBody(event, body);
+      event.slug = freeEventSlug(eventSlug(body.slug || event.title));
+      events.push(event);
+      return json(res, 201, { data: adminEvent(event, true), meta: EVENT_META });
+    }
+    {
+      const m = p.match(/^\/admin\/events\/(\d+)(\/duplicate)?$/);
+      if (m) {
+        const e = eventOf(m[1]);
+        if (!e) return json(res, 404, { message: 'Not found.' });
+        if (m[2]) {
+          if (req.method !== 'POST') return json(res, 405, { message: 'Method not allowed.' });
+          // A draft copy: "(copy)", a free slug, and none of the registrations.
+          const now = new Date().toISOString();
+          const copy = {
+            ...structuredClone(e), id: Math.max(0, ...events.map((x) => x.id)) + 1, title: `${e.title} (copy)`,
+            slug: freeEventSlug(`${e.slug}-copy`), status: 'draft', is_featured: false, created_at: now, updated_at: now,
+          };
+          events.push(copy);
+          return json(res, 201, { data: adminEvent(copy, true), meta: EVENT_META });
+        }
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          const refused = eventRefusal(body, e);
+          if (refused) return invalid(res, ...refused);
+          applyEventBody(e, body);
+          if ('slug' in body && body.slug) e.slug = freeEventSlug(eventSlug(body.slug), e.id);
+          e.updated_at = new Date().toISOString();
+        } else if (req.method === 'DELETE') {
+          // Refused while anybody has registered — cancelled registrations included.
+          if (eventRegistrations.some((r) => r.event_id === e.id)) {
+            return invalid(res, 'event', 'People have registered for this event, so it cannot be deleted. Archive it instead.');
+          }
+          events.splice(events.indexOf(e), 1);
+          return json(res, 200, { message: 'Event deleted.' });
+        }
+        return json(res, 200, { data: adminEvent(e, true), meta: EVENT_META });
+      }
+    }
+    {
+      const m = p.match(/^\/admin\/events\/(\d+)\/registrations(?:\/(export|\d+))?$/);
+      if (m) {
+        const e = eventOf(m[1]);
+        if (!e) return json(res, 404, { message: 'Not found.' });
+        const mine = () => eventRegistrations.filter((r) => r.event_id === e.id);
+
+        if (m[2] === 'export') {
+          // Every cell quoted; a leading =, +, - or @ is prefixed so a spreadsheet reads it as text.
+          const cell = (value) => {
+            const text = value === null || value === undefined ? '' : String(value);
+            return `"${(/^[=+\-@]/.test(text) ? `'${text}` : text).replace(/"/g, '""')}"`;
+          };
+          const lines = [
+            ['Name', 'Email', 'Phone', 'Company', 'Seats', 'Status', 'Note', 'Desk note', 'Source', 'Registered'],
+            ...mine().map((r) => [r.name, r.email, r.phone, r.company, r.seats, eventLabelOf(EVENT_REGISTRATION_STATUSES, r.status), r.note, r.staff_note, r.source, r.created_at]),
+          ];
+          res.writeHead(200, { 'Content-Type': 'text/csv; charset=UTF-8', 'Content-Disposition': `attachment; filename="${e.slug}-registrations.csv"` });
+          return res.end(`﻿${lines.map((line) => line.map(cell).join(',')).join('\n')}\n`);
+        }
+
+        if (!m[2] && req.method === 'GET') {
+          const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+          const status = url.searchParams.get('status');
+          // Confirmed first, then waiting (oldest first), then the rest newest first.
+          const rank = (r) => (r.status === 'confirmed' ? 0 : r.status === 'waitlisted' ? 1 : 2);
+          const rows = mine()
+            .filter((r) => (!status || r.status === status)
+              && (!q || `${r.name} ${r.email} ${r.company ?? ''} ${r.phone ?? ''}`.toLowerCase().includes(q)))
+            .sort((a, b) => rank(a) - rank(b)
+              || (rank(a) === 2 ? b.created_at.localeCompare(a.created_at) : a.created_at.localeCompare(b.created_at)));
+          return json(res, 200, {
+            data: rows.map(adminRegistration),
+            links: { first: null, last: null, prev: null, next: null },
+            meta: { current_page: 1, last_page: 1, per_page: 50, total: rows.length, ...registrationsMeta(e) },
+          });
+        }
+
+        if (!m[2] && req.method === 'POST') {
+          const body = await readJsonBody(req);
+          if (!body.name) return invalid(res, 'name', 'The name field is required.');
+          if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email ?? '')) return invalid(res, 'email', 'Enter a valid email address.');
+          const seats = Number(body.seats) || 1;
+          const left = eventCounts(e).seats_left;
+          let status = 'confirmed';
+          if (!body.force && left !== null && seats > left) {
+            // Staff are refused exactly as the public are, unless they ask to go past the limit.
+            if (e.waitlist_enabled) status = 'waitlisted';
+            else return left === 0
+              ? invalid(res, 'registration', 'This event is full. Tick “Go past the limit” to add them anyway.')
+              : invalid(res, 'seats', `Only ${left} ${left === 1 ? 'seat is' : 'seats are'} left.`);
+          }
+          const r = {
+            id: Math.max(30, ...eventRegistrations.map((x) => x.id)) + 1, event_id: e.id, name: body.name, email: body.email,
+            phone: body.phone ?? null, company: body.company ?? null, seats, note: body.note ?? null, staff_note: null, status,
+            customer_id: null, lead_id: 1, source: 'staff', reminded_at: null, cancelled_at: null, created_at: new Date().toISOString(),
+          };
+          eventRegistrations.push(r);
+          return json(res, 201, { data: adminRegistration(r), meta: registrationsMeta(e) });
+        }
+
+        const r = eventRegistrations.find((x) => x.id === Number(m[2]) && x.event_id === e.id);
+        // A registration addressed through another event's id is a 404.
+        if (!r) return json(res, 404, { message: 'Not found.' });
+
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          const label = (value) => eventLabelOf(EVENT_REGISTRATION_STATUSES, value);
+          const only = (n) => `Only ${n} ${n === 1 ? 'seat is' : 'seats are'} left.`;
+          if ('staff_note' in body) r.staff_note = body.staff_note;
+          if ('seats' in body && body.seats !== r.seats) {
+            if (!Number.isInteger(body.seats) || body.seats < 1) return invalid(res, 'seats', 'The seats field must be at least 1.');
+            // A confirmed party growing is held to the room unless `force`.
+            const left = eventCounts(e).seats_left;
+            const room = left === null ? null : left + r.seats;
+            if (r.status === 'confirmed' && !body.force && room !== null && body.seats > room) return invalid(res, 'seats', only(room));
+            r.seats = body.seats;
+          }
+          if ('status' in body && body.status !== r.status) {
+            if (!EVENT_REGISTRATION_STATUSES.some((s) => s.value === body.status)) return invalid(res, 'status', 'The selected status is invalid.');
+            if (!REGISTRATION_MOVES[r.status].includes(body.status)) {
+              return invalid(res, 'status', `A registration cannot go from ${label(r.status)} to ${label(body.status)}.`);
+            }
+            if ((body.status === 'attended' || body.status === 'no_show') && !eventHasStarted(e)) {
+              return invalid(res, 'status', `A registration can be marked ${label(body.status)} only once the event has started.`);
+            }
+            // Taking seats that were not held: is there room? The desk may overbook, but only by saying so.
+            const left = eventCounts(e).seats_left;
+            const takes = body.status === 'confirmed' && (r.status === 'waitlisted' || r.status === 'cancelled');
+            if (takes && !body.force && left !== null && r.seats > left) {
+              return invalid(res, 'status', `${only(left)} This registration is for ${r.seats} ${r.seats === 1 ? 'seat' : 'seats'} — raise the capacity or reduce the seats first.`);
+            }
+            r.status = body.status;
+            r.cancelled_at = body.status === 'cancelled' ? new Date().toISOString() : r.cancelled_at;
+          }
+          return json(res, 200, { data: adminRegistration(r), meta: registrationsMeta(e) });
+        }
+        if (req.method === 'DELETE') {
+          eventRegistrations.splice(eventRegistrations.indexOf(r), 1);
+          return json(res, 204, {});
+        }
+        return json(res, 405, { message: 'Method not allowed.' });
+      }
+    }
     if (p === '/admin/visits' && req.method === 'GET') {
       return json(res, 200, {
         data: visitRequests,
@@ -2449,10 +4467,102 @@ createServer(async (req, res) => {
       return json(res, 200, { data: { ...lead, meeting: fromMeeting ? { reference: fromMeeting.reference, admin_path: fromMeeting.admin_path } : null } });
     }
 
+    /* Editor-built forms (0.117.0). `meta` is on the index as well as on every
+       read of one form, because the console's *new* screen has no record to
+       read the builder's vocabulary from. The three submission routes are
+       matched before the form's own, the order the API declares them in:
+       `export` would otherwise be read as a submission id. */
+    if (p === '/admin/forms' && req.method === 'GET') {
+      const q = (url.searchParams.get('q') || '').toLowerCase();
+      const rows = forms.filter((f) => !q || f.name.toLowerCase().includes(q)).map((f) => adminForm(f, false));
+      return json(res, 200, {
+        data: rows,
+        links: { first: null, last: null, prev: null, next: null },
+        meta: { current_page: 1, last_page: 1, per_page: 25, total: rows.length, ...FORM_META },
+      });
+    }
+    if (p === '/admin/forms' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      if (!body.name) return json(res, 422, { message: 'The name field is required.', errors: { name: ['The name field is required.'] } });
+      const form = {
+        id: Math.max(0, ...forms.map((f) => f.id)) + 1,
+        name: body.name, slug: body.slug || String(body.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+        status: body.status ?? 'published', submit_label: body.submit_label ?? 'Send',
+        success_message: body.success_message ?? null, redirect_url: body.redirect_url ?? null,
+        notify_email: body.notify_email ?? null, embed_enabled: Boolean(body.embed_enabled),
+        fields: storeFormFields(Array.isArray(body.fields) ? body.fields : []),
+      };
+      forms.push(form);
+      return json(res, 201, { data: adminForm(form), meta: FORM_META });
+    }
+    {
+      const m = p.match(/^\/admin\/forms\/(\d+)(?:\/(.+))?$/);
+      if (m) {
+        const form = forms.find((f) => f.id === Number(m[1]));
+        if (!form) return json(res, 404, { message: 'Not found.' });
+        const rest = m[2] ?? '';
+        const mine = formSubmissions.filter((s) => s.form_id === form.id);
+
+        if (rest === 'submissions' && req.method === 'GET') {
+          return json(res, 200, {
+            data: mine,
+            links: { first: null, last: null, prev: null, next: null },
+            meta: { current_page: 1, last_page: 1, per_page: 25, total: mine.length },
+          });
+        }
+        // One column per field that has an answer — a hidden value included — between when it arrived and where from.
+        if (rest === 'submissions/export' && req.method === 'GET') {
+          const asked = form.fields.filter((f) => !FORM_LAYOUT_KINDS.includes(f.kind));
+          const cell = (v) => `"${String(Array.isArray(v) ? v.join('; ') : v ?? '').replace(/"/g, '""')}"`;
+          const lines = [
+            ['Submitted at', ...asked.map((f) => f.label), 'Source page', 'IP'].map(cell).join(','),
+            ...mine.map((s) => [s.created_at, ...asked.map((f) => s.data[f.name]), '', s.ip_address].map(cell).join(',')),
+          ];
+          res.writeHead(200, { 'Content-Type': 'text/csv; charset=UTF-8', 'Content-Disposition': `attachment; filename="form-${form.slug}-2026-10-06.csv"` });
+          return res.end(`${String.fromCharCode(0xFEFF)}${lines.join('\n')}\n`);
+        }
+        // The mock holds no uploads: every file is the 404 a missing one gets.
+        if (/^submissions\/\d+\/files\/[a-z][a-z0-9_]*$/.test(rest) && req.method === 'GET') {
+          return json(res, 404, { message: 'Not found.' });
+        }
+        {
+          const sm = rest.match(/^submissions\/(\d+)$/);
+          if (sm && req.method === 'DELETE') {
+            const at = formSubmissions.findIndex((s) => s.form_id === form.id && s.id === Number(sm[1]));
+            // A submission of another form is a 404: the id in the URL is a number anybody can change.
+            if (at === -1) return json(res, 404, { message: 'Not found.' });
+            formSubmissions.splice(at, 1);
+            res.writeHead(204);
+            return res.end();
+          }
+        }
+        if (rest === '' && req.method === 'GET') return json(res, 200, { data: adminForm(form), meta: FORM_META });
+        if (rest === '' && req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          for (const key of ['name', 'slug', 'status', 'submit_label', 'success_message', 'redirect_url', 'notify_email']) {
+            if (key in body && (body[key] !== undefined)) form[key] = body[key];
+          }
+          if ('embed_enabled' in body) form.embed_enabled = Boolean(body.embed_enabled);
+          // Replaced wholesale when sent; an absent key leaves the fields alone.
+          if (Array.isArray(body.fields)) form.fields = storeFormFields(body.fields);
+          return json(res, 200, { data: adminForm(form), meta: FORM_META });
+        }
+        if (rest === '' && req.method === 'DELETE') {
+          // Submissions outlive their form: `form_id` goes null and the slug stays.
+          for (const s of mine) s.form_id = null;
+          forms.splice(forms.indexOf(form), 1);
+          res.writeHead(204);
+          return res.end();
+        }
+        return json(res, 404, { message: 'Not found.' });
+      }
+    }
+
     /* Menus. `meta` is the contract that matters: the console builds its
        location picker and its kind dropdown from these rather than listing
        them in TypeScript, so a mock that omitted them would render a screen
        with two empty selects and no error. */
+    // An admin menu item also carries `badge` (text or null) and `badge_tone` (live|beta|soon|new, default new).
     if (p === '/admin/menu-targets') return json(res, 200, { data: [] });
     if (p === '/admin/menus') return json(res, 200, {
       data: [],
@@ -2540,13 +4650,153 @@ createServer(async (req, res) => {
     }
 
     /* The page builder's pickers and its unsaved-draft preview (docs/page-builder.md). */
-    if (p === '/admin/pages/builder' && req.method === 'GET') return json(res, 200, { data: BUILDER_OPTIONS });
+    if (p === '/admin/pages/builder' && req.method === 'GET') {
+      return json(res, 200, { data: { ...BUILDER_OPTIONS, library: {
+        sections: savedSections.filter((x) => x.kind === 'section').map(({ id, name, blocks }) => ({ id, name, type: blocks[0]?.type ?? null })),
+        templates: savedSections.filter((x) => x.kind === 'template').map(({ id, name, description, blocks, category }) => ({
+          id, name, description, count: blocks.length, category: category ?? null,
+          category_label: TEMPLATE_CATEGORIES.find((c) => c.value === category)?.label ?? null,
+        })),
+        categories: TEMPLATE_CATEGORIES,
+      } } });
+    }
+
+    /* The section library and page templates (docs/page-builder.md "The library"). */
+    if (p === '/admin/saved-sections' && req.method === 'GET') {
+      const kind = url.searchParams.get('kind');
+      const category = url.searchParams.get('category');
+      const rows = savedSections.filter((x) => (!kind || x.kind === kind) && (!category || x.category === category)).map((x) => savedResource(x, false));
+      return json(res, 200, { data: rows, meta: { current_page: 1, last_page: 1, per_page: 100, total: rows.length, categories: TEMPLATE_CATEGORIES }, links: {} });
+    }
+    if (p === '/admin/saved-sections' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const blocks = Array.isArray(body.blocks) ? body.blocks : [];
+      if (body.category && !TEMPLATE_CATEGORIES.some((c) => c.value === body.category)) {
+        return json(res, 422, { message: 'Check the library item.', errors: { category: ['The selected category is invalid.'] } });
+      }
+      if (!body.name || !['section', 'template'].includes(body.kind) || !blocks.length || (body.kind === 'section' && blocks.length !== 1)) {
+        return json(res, 422, { message: 'Check the library item.', errors: { blocks: ['A section is one section; a template is one or more.'] } });
+      }
+      const item = { id: savedSections.length ? Math.max(...savedSections.map((x) => x.id)) + 1 : 1, kind: body.kind, name: body.name, description: body.description ?? null, category: body.kind === 'template' ? (body.category ?? null) : null, blocks, updated_at: new Date().toISOString() };
+      savedSections.push(item);
+      return json(res, 201, { data: savedResource(item, true) });
+    }
+    {
+      const m = p.match(/^\/admin\/saved-sections\/(\d+)$/);
+      if (m) {
+        const item = savedSections.find((x) => x.id === Number(m[1]));
+        if (!item) return json(res, 404, { message: 'Not found.' });
+        if (req.method === 'GET') return json(res, 200, { data: savedResource(item, true) });
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          if (body.category && !TEMPLATE_CATEGORIES.some((c) => c.value === body.category)) {
+            return json(res, 422, { message: 'Check the library item.', errors: { category: ['The selected category is invalid.'] } });
+          }
+          for (const k of ['name', 'description', 'blocks']) if (k in body) item[k] = body[k];
+          if ('category' in body && item.kind === 'template') item.category = body.category ?? null;
+          item.updated_at = new Date().toISOString();
+          return json(res, 200, { data: savedResource(item, true) });
+        }
+        if (req.method === 'DELETE') { savedSections.splice(savedSections.indexOf(item), 1); res.writeHead(204); return res.end(); }
+      }
+    }
+    /* Detail-page templates (0.161.0). The declared-above-{id} routes first, as the API declares them. */
+    if (p === '/admin/detail-templates/options' && req.method === 'GET') {
+      return json(res, 200, { data: { ...BUILDER_OPTIONS, library: { sections: [], templates: [] }, detail_templates: dtOptions() } });
+    }
+    if (p === '/admin/detail-templates/records' && req.method === 'GET') {
+      const kind = DT_KINDS[url.searchParams.get('type')];
+      if (!kind) return json(res, 422, { message: 'The selected type is invalid.', errors: { type: ['The selected type is invalid.'] } });
+      const q = (url.searchParams.get('q') ?? '').toLowerCase();
+      const rows = kind.rows().filter((r) => !q || String(r[kind.title]).toLowerCase().includes(q)).slice(0, 50)
+        .map((r) => ({ id: r.id, title: String(r[kind.title]), slug: r.slug ?? null }));
+      return json(res, 200, { data: rows });
+    }
+    if (p === '/admin/detail-templates/preview' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const kind = DT_KINDS[body.type];
+      const blocks = Array.isArray(body.blocks) ? body.blocks : [];
+      const errors = kind && dtErrors(body.type, blocks);
+      if (!kind || errors) return json(res, 422, { message: 'The given data was invalid.', errors: errors ?? { type: ['The selected type is invalid.'] } });
+      const row = kind.rows().find((r) => r.id === Number(body.record_id));
+      if (!row) return json(res, 422, { message: 'That record no longer exists.' });
+      return json(res, 200, { data: { type: body.type, record: { ...row, ...answerContent([], [], {}) }, detail_template: dtPresent(0, dtNormalise(blocks)) } });
+    }
+    if (p === '/admin/detail-templates' && req.method === 'GET') {
+      const type = url.searchParams.get('type');
+      const rows = detailTemplates.filter((t) => !type || t.type === type).map((t) => dtResource(t, false));
+      return json(res, 200, { data: rows, meta: { current_page: 1, last_page: 1, per_page: 100, total: rows.length }, links: {} });
+    }
+    if (p === '/admin/detail-templates' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const blocks = Array.isArray(body.blocks) ? body.blocks : [];
+      if (!DT_KINDS[body.type]) return json(res, 422, { message: 'The selected type is invalid.', errors: { type: ['The selected type is invalid.'] } });
+      if (!String(body.name ?? '').trim()) return json(res, 422, { message: 'The name field is required.', errors: { name: ['The name field is required.'] } });
+      const errors = dtErrors(body.type, blocks);
+      if (errors) return json(res, 422, { message: 'The given data was invalid.', errors });
+      const t = { id: detailTemplates.length ? Math.max(...detailTemplates.map((x) => x.id)) + 1 : 1, type: body.type, name: body.name, blocks: dtNormalise(blocks), is_active: false, updated_at: new Date().toISOString() };
+      detailTemplates.push(t);
+      return json(res, 201, { data: dtResource(t, true) });
+    }
+    {
+      const m = p.match(/^\/admin\/detail-templates\/(\d+)(?:\/(activate|deactivate))?$/);
+      if (m) {
+        const t = detailTemplates.find((x) => x.id === Number(m[1]));
+        if (!t) return json(res, 404, { message: 'Not found.' });
+        if (m[2] && req.method === 'POST') {
+          if (m[2] === 'activate') {
+            for (const o of detailTemplates) if (o.type === t.type) o.is_active = o.id === t.id;
+          } else {
+            t.is_active = false;
+          }
+          t.updated_at = new Date().toISOString();
+          return json(res, 200, { data: dtResource(t, true) });
+        }
+        if (req.method === 'GET') return json(res, 200, { data: dtResource(t, true) });
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          if ('type' in body) return json(res, 422, { message: 'The type field is prohibited.', errors: { type: ['The type field is prohibited.'] } });
+          if ('blocks' in body) {
+            const errors = dtErrors(t.type, Array.isArray(body.blocks) ? body.blocks : []);
+            if (errors) return json(res, 422, { message: 'The given data was invalid.', errors });
+            t.blocks = dtNormalise(body.blocks);
+          }
+          if ('name' in body) t.name = body.name;
+          t.updated_at = new Date().toISOString();
+          return json(res, 200, { data: dtResource(t, true) });
+        }
+        if (req.method === 'DELETE') { detailTemplates.splice(detailTemplates.indexOf(t), 1); res.writeHead(204); return res.end(); }
+      }
+    }
+    // The assistant on a section (0.127.0): refused, as it is with no key.
+    if (p === '/admin/pages/ai-section' && req.method === 'POST') {
+      return json(res, 422, { message: AI_DRAFT_OFF, errors: { section: [AI_DRAFT_OFF] } });
+    }
     if (p === '/admin/pages/preview' && req.method === 'POST') {
       const body = await readJsonBody(req);
       const blocks = Array.isArray(body.blocks) ? body.blocks : [];
       const bad = blocks.findIndex((b) => !SECTION_TYPES.some((t) => t.value === b.type));
       if (bad !== -1) return json(res, 422, { message: 'That is not a kind of section this site can draw.', errors: { [`blocks.${bad}.type`]: ['That is not a kind of section this site can draw.'] } });
       return json(res, 200, { data: { sections: presentSections(blocks) } });
+    }
+    // The AI page builder (0.116.0): refused exactly as the API refuses while the assistant is off.
+    if (p === '/admin/pages/ai-draft' && req.method === 'POST') {
+      await readJsonBody(req);
+      return json(res, 422, { message: AI_DRAFT_OFF, errors: { brief: [AI_DRAFT_OFF] } });
+    }
+    // A page body laid out as sections, split at its <h2>s (BodySections, 0.109.0). Writes nothing.
+    if (p === '/admin/pages/sections-from-body' && req.method === 'POST') {
+      const body = String((await readJsonBody(req)).body ?? '').replace(/<script[\s\S]*?<\/script>/gi, '');
+      if (!body.replace(/<[^>]*>/g, '').trim()) return json(res, 422, { message: 'This page has no content to lay out yet.', errors: { body: ['This page has no content to lay out yet.'] } });
+      const parts = body.split(/<h2[^>]*>([\s\S]*?)<\/h2>/i);
+      const sections = [];
+      const add = (heading, html) => {
+        if (!html.replace(/<[^>]*>/g, '').trim()) return;
+        sections.push({ id: crypto.randomUUID(), type: 'rich_text', hidden: false, background: null, reveal: null, style: null, data: heading ? { heading, body: html } : { body: html } });
+      };
+      add(null, parts[0]);
+      for (let i = 1; i < parts.length; i += 2) add(parts[i].replace(/<[^>]*>/g, '').trim(), parts[i + 1] ?? '');
+      return json(res, 200, { data: { sections } });
     }
 
     /* Custom field groups. */
@@ -2595,7 +4845,7 @@ createServer(async (req, res) => {
     {
       const m = p.match(/^\/admin\/content-types\/([a-z0-9-]+)\/entries(?:\/(\d+))?$/);
       if (m) {
-        if (m[1] !== 'events') return json(res, 404, { message: 'Not found.' });
+        if (m[1] !== CONTENT_TYPES[0].slug) return json(res, 404, { message: 'Not found.' });
         if (!m[2] && req.method === 'GET') {
           const page = paginate(ENTRIES.map(adminEntry));
           Object.assign(page.meta, {
@@ -2626,6 +4876,8 @@ createServer(async (req, res) => {
         /* `/admin/services?category=<id|none>` and `/admin/service-categories?active=0|1`. */
         const cat = entity.base === '/admin/services' ? url.searchParams.get('category') : null;
         if (cat) rows = rows.filter((r) => (cat === 'none' ? !r.category : r.category?.id === Number(cat)));
+        /* `/admin/store/products?video=1`: products that carry a video (0.140.0). */
+        if (entity.base === '/admin/store/products' && url.searchParams.get('video') === '1') rows = rows.filter((r) => MOCK_VIDEOS[r.id]);
         const active = entity.base === '/admin/service-categories' ? url.searchParams.get('active') : null;
         if (active === '0' || active === '1') rows = rows.filter((r) => r.is_active === (active === '1'));
         /* `?sort=title|category|status|order|updated&dir=` on services; uncategorised last when ascending by category. */
@@ -2643,6 +4895,8 @@ createServer(async (req, res) => {
         if (entity.base === '/admin/pages') {
           page.meta.section_types = SECTION_TYPES;
           page.meta.section_presets = SECTION_PRESETS;
+          // The AI page builder (0.116.0): the mock has no model behind it, so it reports itself off.
+          page.meta.ai_draft = { available: false, reason: AI_DRAFT_OFF };
         }
         page.meta.custom_field_groups = entity.base === '/admin/pages' ? CUSTOM_FIELD_DEFINITIONS : [];
         if (entity.base === '/admin/services') page.meta.sorts = ['title', 'category', 'status', 'order', 'updated'];
@@ -2650,6 +4904,8 @@ createServer(async (req, res) => {
           page.meta.types = [{ value: 'physical', label: 'Physical', description: 'Shipped.' }, { value: 'digital', label: 'Digital', description: 'A code.' }, { value: 'service', label: 'Service', description: 'Work.' }];
           page.meta.statuses = [{ value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' }];
           page.meta.conditions = [{ value: 'new', label: 'New' }, { value: 'refurbished', label: 'Refurbished' }, { value: 'used', label: 'Used' }];
+          page.meta.tags = mockTags.map((t) => t.name);
+          page.meta.price_entry = mockInvoicingSettings.store_price_entry;
         }
         return json(res, 200, page);
       }
@@ -2672,9 +4928,142 @@ createServer(async (req, res) => {
           const blocks = Array.isArray(body.answer_blocks)
             ? body.answer_blocks.map((b, i) => ({ id: i + 1, question: null, detail: null, status: 'published', ...b, sort_order: i }))
             : entity.detail(r).answer_blocks;
+          // Shop tags (0.141.0): names in, matched or made by slug, as the API does.
+          if (entity.base === '/admin/store/products' && Array.isArray(body.tags)) {
+            const ids = body.tags.slice(0, 12).map((n) => {
+              const slug = tagSlugOf(String(n));
+              if (!slug) return null;
+              let t = mockTags.find((x) => x.slug === slug);
+              if (!t) { t = { id: Math.max(0, ...mockTags.map((x) => x.id)) + 1, name: String(n).trim(), slug, is_visible: true, sort_order: 0 }; mockTags.push(t); }
+              return t.id;
+            }).filter(Boolean);
+            tagLinks.set(r.id, [...new Set(ids)]);
+            syncProductTags();
+            delete body.tags;
+          }
           return json(res, 200, { data: { ...entity.detail(r), ...body, answer_blocks: blocks } });
         }
         return json(res, 200, { data: entity.detail(r) });
+      }
+    }
+
+    /* Missing pages (0.137.0): the 404 monitor. Two addresses and the ignore/restore posts,
+       in the real envelope; `redirect_path` is the console route the API sends. */
+    {
+      const hit = (id, path, hits, referrer, ignored) => ({
+        id, path, hits, referrer, first_seen_at: '2026-10-01T09:00:00+05:30', last_seen_at: '2026-10-08T17:30:00+05:30',
+        ignored_at: ignored ? '2026-10-08T18:00:00+05:30' : null, redirect_path: `/admin/redirects/new?from=${encodeURIComponent(path)}`,
+      });
+      const NOT_FOUND = [
+        hit(1, '/products/old-switch-model', 14, 'https://example.org/links/hardware', false),
+        hit(2, '/brochure-2019', 3, null, false),
+        hit(3, '/careers/old-opening', 1, null, true),
+      ];
+      if (p === '/admin/not-found' && req.method === 'GET') {
+        const ignored = url.searchParams.get('ignored') === '1';
+        const q = (url.searchParams.get('q') || '').toLowerCase();
+        const rows = NOT_FOUND.filter((r) => Boolean(r.ignored_at) === ignored && r.path.toLowerCase().includes(q));
+        const page = paginate(rows);
+        return json(res, 200, { ...page, meta: { ...page.meta, live: NOT_FOUND.filter((r) => !r.ignored_at).length,
+          ignored: NOT_FOUND.filter((r) => r.ignored_at).length, retention_days: 90 } });
+      }
+      const nf = p.match(/^\/admin\/not-found\/(\d+)\/(ignore|restore)$/);
+      if (nf && req.method === 'POST') {
+        const row = NOT_FOUND.find((r) => r.id === Number(nf[1]));
+        if (!row) return json(res, 404, { message: 'Not found.' });
+        row.ignored_at = nf[2] === 'ignore' ? '2026-10-09T10:00:00+05:30' : null;
+        return json(res, 200, { data: row });
+      }
+    }
+
+    /* Draft share links (0.138.0): read, create (replacing) and revoke, in the real envelope.
+       `path` is a path, never a URL; the token appears nowhere else. */
+    {
+      const PREVIEW_TYPES = ['page', 'blog_post', 'knowledge_article', 'case_study', 'solution', 'service', 'product',
+        'store_product', 'event', 'job_opening', 'entry', 'landing_page'];
+      const previewMeta = { days: [1, 7, 30], default_days: 7 };
+      const previewShape = (l) => ({
+        id: l.id, type: l.type, subject_id: l.subject_id, path: `/preview/${l.token}`, expires_at: l.expires_at,
+        expires_label: new Date(l.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
+        is_expired: new Date(l.expires_at) < new Date(), views: l.views, last_viewed_at: l.last_viewed_at, created_by: 'Mock Admin',
+      });
+      if (p === '/admin/preview-links' && req.method === 'GET') {
+        const type = url.searchParams.get('type'); const id = Number(url.searchParams.get('id'));
+        if (!PREVIEW_TYPES.includes(type)) return json(res, 422, { message: 'The selected type is invalid.', errors: { type: ['The selected type is invalid.'] } });
+        const link = PREVIEW_LINKS.find((l) => l.type === type && l.subject_id === id);
+        return json(res, 200, { data: link ? previewShape(link) : null, meta: previewMeta });
+      }
+      if (p === '/admin/preview-links' && req.method === 'POST') {
+        const b = await readJsonBody(req);
+        if (!PREVIEW_TYPES.includes(b.type)) return json(res, 422, { message: 'The selected type is invalid.', errors: { type: ['The selected type is invalid.'] } });
+        const days = Number(b.days ?? 7);
+        if (![1, 7, 30].includes(days)) return json(res, 422, { message: 'The selected days is invalid.', errors: { days: ['The selected days is invalid.'] } });
+        const at = PREVIEW_LINKS.findIndex((l) => l.type === b.type && l.subject_id === Number(b.id));
+        if (at >= 0) PREVIEW_LINKS.splice(at, 1);
+        const link = { id: ++previewSeq, type: b.type, subject_id: Number(b.id), token: previewToken(), views: 0, last_viewed_at: null,
+          expires_at: new Date(Date.now() + days * 86400000).toISOString() };
+        PREVIEW_LINKS.push(link);
+        return json(res, 201, { data: previewShape(link), meta: previewMeta });
+      }
+      const pl = p.match(/^\/admin\/preview-links\/(\d+)$/);
+      if (pl && req.method === 'DELETE') {
+        const at = PREVIEW_LINKS.findIndex((l) => l.id === Number(pl[1]));
+        if (at < 0) return json(res, 404, { message: 'Not found.' });
+        PREVIEW_LINKS.splice(at, 1);
+        res.writeHead(204); return res.end();
+      }
+    }
+
+    /* Page history (0.145.0): newest first, no snapshot on the list; the detail carries it and `blocks_media`.
+       Three versions of the sample builder page (id 6), the newest equal to what the page holds now. */
+    {
+      const REV_LABELS = { page: { created: 'Created', title: 'Title', slug: 'Address', body: 'Written body', blocks: 'Sections', template: 'Template' },
+        saved_section: { created: 'Created', name: 'Name', description: 'Description', blocks: 'Sections' } };
+      /* 0.148.0: the other eleven kinds. The words and the written-body columns are the API's (Revisions::LABELS / BODY_COLUMNS). */
+      const KIND_COLUMNS = { blog_post: 'body', knowledge_article: 'body', case_study: 'body', solution: 'overview', service: 'body',
+        product: 'description', store_product: 'description', event: 'body', job_opening: 'description', entry: 'body' };
+      const COLUMN_WORDS = { title: 'Title', name: 'Name', slug: 'Address', body: 'Written body', overview: 'Overview', description: 'Description',
+        heading: 'Heading', intro: 'Introduction', body_layout: 'Body layout', blocks: 'Sections' };
+      const BODY_COLUMNS = { page: ['body'], landing_page: ['intro', 'body'] };
+      for (const [kind, column] of Object.entries(KIND_COLUMNS)) {
+        BODY_COLUMNS[kind] = [column];
+        const named = kind === 'product' || kind === 'store_product' ? 'name' : 'title';
+        REV_LABELS[kind] = Object.fromEntries(['created', named, 'slug', column, 'body_layout', 'blocks'].map((k) => [k, k === 'created' ? 'Created' : COLUMN_WORDS[k]]));
+      }
+      REV_LABELS.landing_page = Object.fromEntries(['created', 'title', 'heading', 'intro', 'body'].map((k) => [k, k === 'created' ? 'Created' : COLUMN_WORDS[k]]));
+      const sample = cmsPages.find((x) => x.id === 6);
+      const revSnap = (title, blocks) => ({ blocks, body: null, slug: 'sample-builder-page', template: 'builder', title });
+      const REVISIONS = [
+        { id: 1, type: 'page', subject_id: 6, saved_at: '2026-09-26T09:00:00Z', created_at: '2026-09-26T09:00:00Z', actor_name: 'Mock Admin',
+          changed: ['created'], snapshot: revSnap('Sample builder page', sample.blocks.slice(0, 1)) },
+        { id: 2, type: 'page', subject_id: 6, saved_at: '2026-09-28T11:30:00Z', created_at: '2026-09-28T11:25:00Z', actor_name: 'Mock Admin',
+          changed: ['title', 'blocks'], snapshot: revSnap('Sample builder page (draft 2)', sample.blocks.slice(0, 2)) },
+        { id: 3, type: 'page', subject_id: 6, saved_at: '2026-10-02T14:05:00Z', created_at: '2026-10-02T14:05:00Z', actor_name: 'Another Editor',
+          changed: ['title', 'blocks'], snapshot: revSnap('Sample builder page', sample.blocks) },
+        /* A solution (id 1) shows a non-page kind: its written body is `overview`, and its form takes a version back. */
+        ...[
+          ['created', '2026-09-20T09:00:00Z', '<p>First draft of the overview.</p>'],
+          ['overview', '2026-09-27T10:15:00Z', '<p>A tighter overview.</p>'],
+          ['overview', '2026-10-03T16:40:00Z', '<p>The overview as it stands now.</p>'],
+        ].map(([changed, at, overview], i) => ({
+          id: 10 + i, type: 'solution', subject_id: 1, saved_at: at, created_at: at, actor_name: i === 2 ? 'Another Editor' : 'Mock Admin',
+          changed: [changed], snapshot: { title: 'Enterprise Networking', slug: 'networking', overview, body_layout: 'body', blocks: null },
+        })),
+      ].map((r) => ({ ...r, blocks_count: Array.isArray(r.snapshot.blocks) ? r.snapshot.blocks.length : 0 }));
+      const revRow = (r) => ({ id: r.id, saved_at: r.saved_at, created_at: r.created_at, actor_name: r.actor_name, changed: r.changed, blocks_count: r.blocks_count });
+      const revMeta = (type) => ({ labels: REV_LABELS[type] ?? {}, keep: 30, coalesce_minutes: 5, fields: {}, body_columns: BODY_COLUMNS[type] ?? [], restorable: true });
+      if (p === '/admin/revisions' && req.method === 'GET') {
+        const type = url.searchParams.get('type'); const id = Number(url.searchParams.get('id'));
+        if (!REV_LABELS[type]) return json(res, 422, { message: 'The selected type is invalid.', errors: { type: ['The selected type is invalid.'] } });
+        const rows = REVISIONS.filter((r) => r.type === type && r.subject_id === id).sort((a, b) => b.id - a.id)
+          .map((r) => ({ ...revRow(r), size: JSON.stringify(r.snapshot).length }));
+        return json(res, 200, { data: rows, meta: revMeta(type) });
+      }
+      const rv = p.match(/^\/admin\/revisions\/(\d+)$/);
+      if (rv && req.method === 'GET') {
+        const r = REVISIONS.find((x) => x.id === Number(rv[1]));
+        if (!r) return json(res, 404, { message: 'Not found.' });
+        return json(res, 200, { data: { ...revRow(r), type: r.type, subject_id: r.subject_id, snapshot: r.snapshot, blocks_media: {} }, meta: revMeta(r.type) });
       }
     }
 
@@ -2708,14 +5097,169 @@ createServer(async (req, res) => {
           /* Each average carries its own biggest wins, ranked the way `top_issues` is, opened through `?aeo_check=` / `?geo_check=`. */
           aeo: { value: 62, band: 'fair', top_issues: topIssues(AEO_SCORES), groups: { answer: 'Answers', structure: 'Structure', links: 'Links' } },
           geo: { value: 48, band: 'poor', top_issues: topIssues(GEO_SCORES), groups: { entity: 'Entity', authority: 'Authority', content: 'Content' } } },
-        ai: { enabled: false, configured: false, model: 'gpt-4o-mini', models: [], actions: [], today: { runs: 0, cap: 100, remaining: 100, reached: false } },
+        ai: { enabled: false, configured: false, model: 'google/gemini-2.5-flash', models: [], actions: [], today: { runs: 0, cap: 100, remaining: 100, reached: false } },
         search: { configured: false, days: 28, error: null },
         analytics: { configured: false, days: 28, error: null },
         types: [{ value: 'solution', label: 'Solutions' }],
       } });
     }
 
+    /* Shop tags (0.141.0): the Tags screen and the product form's Suggest button, in the real envelopes. */
+    if (p === '/admin/store/products/tag-suggest' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const have = new Set((body.current || []).map(tagSlugOf));
+      const tags = ['Cisco', 'Switches', '24 Ports', 'Rack Mount'].filter((n) => !have.has(tagSlugOf(n)));
+      return json(res, 200, { data: { tags, source: 'rules' } });
+    }
+    if (p.startsWith('/admin/store/tags')) {
+      const meta = () => ({
+        settings: { store_tags_enabled: tagSettings.store_tags_enabled === '1', store_tags_limit: Number(tagSettings.store_tags_limit), store_tags_auto: tagSettings.store_tags_auto === '1' },
+        untagged: storeProducts.filter((sp) => (tagLinks.get(sp.id) ?? []).length === 0).length,
+        max_per_product: 12, name_max: 32,
+      });
+      const refuse = (field, message) => json(res, 422, { message, errors: { [field]: [message] } });
+      const id = Number((p.match(/^\/admin\/store\/tags\/(\d+)/) || [])[1]);
+
+      if (p === '/admin/store/tags' && req.method === 'GET') return json(res, 200, { data: [...mockTags].sort(tagOrder).map(tagResource), meta: meta() });
+      if (p === '/admin/store/tags' && req.method === 'POST') {
+        const { name = '' } = await readJsonBody(req);
+        const clean = String(name).replace(/\s+/g, ' ').trim();
+        if (!clean || clean.length > 32 || !tagSlugOf(clean)) return refuse('name', 'A tag needs a name of 1 to 32 characters with a letter or number.');
+        if (mockTags.some((t) => t.slug === tagSlugOf(clean))) return refuse('name', 'There is already a tag with that name.');
+        const tag = { id: Math.max(0, ...mockTags.map((t) => t.id)) + 1, name: clean, slug: tagSlugOf(clean), is_visible: true, sort_order: 0 };
+        mockTags.push(tag);
+        syncProductTags();
+        return json(res, 201, { data: tagResource(tag) });
+      }
+      if (p === '/admin/store/tags/reorder' && req.method === 'PATCH') {
+        const { ids = [] } = await readJsonBody(req);
+        ids.forEach((tid, i) => { const t = mockTags.find((x) => x.id === tid); if (t) t.sort_order = i + 1; });
+        syncProductTags();
+        return json(res, 200, { message: 'Order saved.' });
+      }
+      if (p === '/admin/store/tags/settings' && req.method === 'PATCH') {
+        const { settings = [] } = await readJsonBody(req);
+        for (const { key, value } of settings) {
+          if (!(key in tagSettings)) return refuse('settings', `${key} is not a tag setting.`);
+          tagSettings[key] = String(value);
+        }
+        return json(res, 200, { message: 'Tag settings saved.', meta: meta() });
+      }
+      if (p === '/admin/store/tags/auto' && req.method === 'POST') {
+        let tagged = 0;
+        for (const sp of storeProducts) {
+          if ((tagLinks.get(sp.id) ?? []).length) continue;
+          const wanted = [sp.brand?.name, sp.category?.name].filter(Boolean)
+            .map((n) => mockTags.find((t) => t.name === n)?.id).filter(Boolean);
+          if (wanted.length) { tagLinks.set(sp.id, wanted); tagged++; }
+        }
+        syncProductTags();
+        return json(res, 200, { message: `Tagged ${tagged} products.`, data: { tagged, untagged: meta().untagged } });
+      }
+      const tag = mockTags.find((t) => t.id === id);
+      if (id && !tag) return json(res, 404, { message: 'Not found.' });
+      if (id && /\/merge$/.test(p) && req.method === 'POST') {
+        const { into } = await readJsonBody(req);
+        const target = mockTags.find((t) => t.id === into);
+        if (!target || target.id === tag.id) return refuse('into', 'Choose a different tag to merge into.');
+        let moved = 0;
+        for (const [pid, ids] of tagLinks) {
+          if (!ids.includes(tag.id)) continue;
+          if (!ids.includes(target.id)) { ids.push(target.id); moved++; }
+          tagLinks.set(pid, ids.filter((x) => x !== tag.id));
+        }
+        mockTags.splice(mockTags.indexOf(tag), 1);
+        syncProductTags();
+        return json(res, 200, { message: `Merged into ${target.name}.`, data: { moved, into: tagResource(target) } });
+      }
+      if (id && req.method === 'GET') return json(res, 200, { data: tagDetail(tag) });
+      if (id && req.method === 'PATCH') {
+        const body = await readJsonBody(req);
+        if ('heading' in body) tag.heading = body.heading ? String(body.heading).slice(0, 160) : null;
+        // The API sanitises rich text on write; the mock drops script blocks and handlers so the probe's check means something.
+        if ('intro' in body) tag.intro = body.intro ? String(body.intro).replace(/<script[\s\S]*?<\/script>/gi, '').replace(/\son\w+="[^"]*"/gi, '') : null;
+        if (body.seo && typeof body.seo === 'object') tag.seo = { ...(tag.seo ?? {}), ...body.seo };
+        if (typeof body.name === 'string') {
+          const clean = body.name.replace(/\s+/g, ' ').trim();
+          if (!clean || clean.length > 32 || !tagSlugOf(clean)) return refuse('name', 'A tag needs a name of 1 to 32 characters with a letter or number.');
+          if (mockTags.some((t) => t.id !== tag.id && t.slug === tagSlugOf(clean))) return refuse('name', 'Another tag already has that name. Use Merge to combine them.');
+          tag.name = clean; tag.slug = tagSlugOf(clean);
+        }
+        if (typeof body.is_visible === 'boolean') tag.is_visible = body.is_visible;
+        syncProductTags();
+        return json(res, 200, { data: tagDetail(tag) });
+      }
+      if (id && req.method === 'DELETE') {
+        mockTags.splice(mockTags.indexOf(tag), 1);
+        for (const [pid, ids] of tagLinks) tagLinks.set(pid, ids.filter((x) => x !== tag.id));
+        syncProductTags();
+        res.writeHead(204);
+        return res.end();
+      }
+    }
+
     // The promo band's own door: its eight rows and the two tiles' seven each, in the settings row shape.
+    /*
+      Tax and invoicing (0.176.0): the sixteen rows in the settings row
+      shape, with their options, and the `meta` the screen draws itself
+      from. Switched off and unconfigured, because that is what an install
+      ships as and is the state the screen has most to say about.
+    */
+    if (p === '/admin/store/invoicing') {
+      if (req.method === 'PATCH') {
+        for (const { key } of (await readJsonBody(req)).settings ?? []) {
+          if (!(key in mockInvoicingSettings)) {
+            return json(res, 422, { message: 'The given data was invalid.', errors: { 'settings.0.key': ['The selected setting is invalid.'] } });
+          }
+        }
+        for (const { key, value } of (await readJsonBody(req)).settings ?? []) mockInvoicingSettings[key] = value ?? '';
+      }
+
+      const rates = ['0', '0.25', '3', '5', '12', '18', '28'].map((r) => ({ value: r, label: `${r}%` }));
+      const bases = [
+        { value: 'inclusive', label: 'Show prices with GST', blurb: 'The website shows what a customer pays, and the basket notes the GST inside it.' },
+        { value: 'exclusive', label: 'Show prices before GST', blurb: 'The website shows prices before GST, and the basket adds it as a row of its own. The total is the same.' },
+      ];
+      // 0.178.0: how the console takes a price. Neither setting moves money.
+      const entries = [
+        { value: 'inclusive', label: 'I type prices with GST', blurb: 'The price you type on a product is what a customer pays.' },
+        { value: 'exclusive', label: 'I type prices before GST', blurb: "The price you type is before GST. Each product's rate is added when you save, and the form shows what the customer will pay." },
+      ];
+      const states = INDIAN_STATES.map(([value, label]) => ({ value, label }));
+      const options = { store_gst_percent: rates, store_price_basis: bases.map(({ value, label }) => ({ value, label })), store_price_entry: entries.map(({ value, label }) => ({ value, label })), invoice_state: states };
+
+      const rows = Object.entries(mockInvoicingSettings).map(([key, value]) => ({
+        key, value: value === '' ? null : value,
+        type: key === 'invoice_enabled' ? 'boolean' : /address|terms|declaration/.test(key) ? 'text' : 'string',
+        is_secret: false, is_set: value !== '', url: null, options: options[key] ?? null,
+      }));
+
+      const missing = [];
+      if (!mockInvoicingSettings.invoice_legal_name) missing.push('Enter the registered business name the invoice is issued in.');
+      if (!mockInvoicingSettings.invoice_gstin) missing.push('Enter your GSTIN.');
+      if (!mockInvoicingSettings.invoice_state) missing.push('Choose the state you are registered in — it decides whether a sale is CGST and SGST or IGST.');
+      if (!mockInvoicingSettings.invoice_address) missing.push('Enter the address the invoice is issued from.');
+
+      const meta = {
+        ready: mockInvoicingSettings.invoice_enabled === '1' && missing.length === 0,
+        missing, zoho_active: false, rates, bases, entries, states,
+        rate: mockInvoicingSettings.store_gst_percent || '18',
+        products_with_own_rate: 0, products_without_hsn: 0, issued: 0,
+        financial_year: '2026-27',
+      };
+
+      if (req.method === 'PATCH') return json(res, 200, { message: 'Tax and invoicing saved.', data: rows, meta });
+      return json(res, 200, { data: rows, meta });
+    }
+
+    /* An order's own GST invoice: made, or refused in one sentence. */
+    if (/^\/admin\/store\/orders\/[^/]+\/invoice\/generate$/.test(p) && req.method === 'POST') {
+      return json(res, 422, {
+        message: 'GST invoices are switched off.',
+        errors: { invoice: ['GST invoices are switched off.'] },
+      });
+    }
+
     if (p === '/admin/store/promo') {
       const row = (key, value, type = 'string') => ({ key, value, type, is_secret: false, is_set: value !== null && value !== '', url: null, options: null });
       const rows = [
@@ -2730,6 +5274,125 @@ createServer(async (req, res) => {
       ];
       if (req.method === 'PATCH') return json(res, 200, { message: 'Promo banner saved.', data: rows });
       return json(res, 200, { data: rows });
+    }
+
+    /* "Shop the videos": the eleven rows in the settings row shape, the shape and order with their options, and the count of products that carry a video. */
+    if (p === '/admin/store/videos') {
+      if (req.method === 'PATCH') {
+        for (const { key, value } of (await readJsonBody(req)).settings ?? []) {
+          if (!(key in mockVideoSettings)) return json(res, 422, { message: 'The given data was invalid.', errors: { 'settings.0.key': ['The selected setting is invalid.'] } });
+          mockVideoSettings[key] = value ?? '';
+        }
+      }
+      const options = {
+        store_videos_shape: [
+          { value: 'portrait', label: 'Portrait (9:16)', description: 'Tall, like a phone video or a YouTube Short. About five to a row.' },
+          { value: 'square', label: 'Square (1:1)', description: 'Even all round.' },
+          { value: 'landscape', label: 'Landscape (16:9)', description: 'Wide, like a normal YouTube video. About three to a row.' },
+        ],
+        store_videos_order: [
+          { value: 'newest', label: 'Newest products first', description: 'The most recently added product with a video leads.' },
+          { value: 'featured', label: 'Featured first', description: 'Products ticked as featured lead, then the shop\'s own order.' },
+        ],
+      };
+      const rows = Object.entries(mockVideoSettings).map(([key, value]) => ({
+        key, value: value === '' ? null : value, type: /enabled|autoplay|show_sku|others/.test(key) ? 'boolean' : 'string',
+        is_secret: false, is_set: value !== '', url: null, options: options[key] ?? null,
+      }));
+      return json(res, 200, { ...(req.method === 'PATCH' ? { message: 'Product videos saved.' } : {}), data: rows, meta: { products_with_video: Object.keys(MOCK_VIDEOS).length } });
+    }
+
+    /* Delivery charges (0.142.0): the shipping screen's data, its settings and its zones. The
+       rules are the API's (one default zone, a state in one active zone, a slab to quote
+       from); the mock keeps the ones the screen's states and the audit can meet. */
+    if (p === '/admin/store/shipping' && req.method === 'GET') {
+      return json(res, 200, { data: shippingScreen() });
+    }
+    if (p === '/admin/store/shipping/settings' && req.method === 'PUT') {
+      const body = await readJsonBody(req);
+      if (body.mode === 'zones' && !zonesReady()) {
+        return json(res, 422, { message: 'Zones need a default zone.', errors: { mode: ['Zones need a default zone — "Rest of India" — that delivers and has at least one weight slab.'] } });
+      }
+      if (body.mode) shipping.mode = body.mode;
+      if (body.flat_paise !== undefined) shipping.flat_paise = body.flat_paise;
+      if (body.default_weight_grams !== undefined) shipping.default_weight_grams = body.default_weight_grams;
+      return json(res, 200, { message: 'Delivery settings saved.', data: shippingScreen() });
+    }
+    if (p === '/admin/store/shipping/zones' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const zone = { id: ++shipping.seq, sort_order: shipping.zones.length, ...zoneFrom(body) };
+      shipping.zones.push(zone);
+      return json(res, 201, { data: zone });
+    }
+    {
+      const zm = p.match(/^\/admin\/store\/shipping\/zones\/(\d+)(\/move)?$/);
+      if (zm) {
+        const zone = shipping.zones.find((z) => z.id === Number(zm[1]));
+        if (!zone) return json(res, 404, { message: 'Not found.' });
+        if (zm[2] && req.method === 'POST') {
+          const body = await readJsonBody(req);
+          const at = shipping.zones.indexOf(zone);
+          const to = body.direction === 'up' ? at - 1 : at + 1;
+          if (to >= 0 && to < shipping.zones.length) {
+            [shipping.zones[at], shipping.zones[to]] = [shipping.zones[to], shipping.zones[at]];
+            shipping.zones.forEach((z, i) => { z.sort_order = i; });
+          }
+          return json(res, 200, { data: shippingScreen() });
+        }
+        if (req.method === 'PATCH') {
+          Object.assign(zone, zoneFrom(await readJsonBody(req), zone));
+          return json(res, 200, { data: zone });
+        }
+        if (req.method === 'DELETE') {
+          if (zone.is_default && shipping.mode === 'zones') {
+            return json(res, 422, { message: 'Customers are being charged by zone.', errors: { zone: ['Customers are being charged by zone, which needs a default zone. Switch to a flat charge first, then change it.'] } });
+          }
+          shipping.zones.splice(shipping.zones.indexOf(zone), 1);
+          return json(res, 200, { message: 'Zone deleted.', data: shippingScreen() });
+        }
+      }
+    }
+
+    /* Returns (docs/store.md "Returns"): the desk's list, one return, and its moves. */
+    if (p === '/admin/store/returns' && req.method === 'GET') {
+      const status = url.searchParams.get('status');
+      const rows = mockReturns.filter(r => !status || r.status === status).map(r => adminReturn(r));
+      const page = paginate(rows);
+      return json(res, 200, { ...page, meta: { ...page.meta, statuses: RETURN_STATUSES, reasons: RETURN_REASONS,
+        waiting_count: mockReturns.filter(r => r.status === 'requested').length,
+        open_count: mockReturns.filter(r => ['requested', 'approved', 'received'].includes(r.status)).length } });
+    }
+    {
+      const m = p.match(/^\/admin\/store\/returns\/([A-Z][A-Z0-9]{1,5}-\d{4}-\d{5})(?:\/(approve|reject|receive|refund|close))?$/);
+      const r = m && mockReturns.find(x => x.reference === m[1]);
+      if (m && !r) return json(res, 404, { message: 'Not found.' });
+      if (r && !m[2] && req.method === 'GET') return json(res, 200, { data: adminReturn(r, true) });
+      if (r && !m[2] && req.method === 'PATCH') {
+        r.staff_note = (await readJsonBody(req)).staff_note ?? null;
+        return json(res, 200, { data: adminReturn(r, true) });
+      }
+      if (r && m[2] && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const to = { approve: 'approved', reject: 'rejected', receive: 'received', refund: 'refunded', close: 'closed' }[m[2]];
+        // The enum's own rule: a move the status does not allow is a 422 naming both states.
+        if (!RETURN_NEXT[r.status].includes(to)) {
+          const message = `A return that is ${r.status} cannot become ${to}.`;
+          return json(res, 422, { message, errors: { status: [message] } });
+        }
+        if (to === 'rejected' && !body.note) return json(res, 422, { message: 'Say why, as the customer will read it.', errors: { note: ['Say why, as the customer will read it.'] } });
+        if (to === 'refunded' && !body.reference) return json(res, 422, { message: 'Give the refund\'s reference.', errors: { reference: ['Give the refund\'s reference.'] } });
+        const now = new Date().toISOString();
+        r.status = to;
+        r[{ approved: 'approved_at', rejected: 'rejected_at', received: 'received_at', refunded: 'refunded_at', closed: 'closed_at' }[to]] = now;
+        if (to === 'approved' || to === 'rejected') r.decision_note = body.note ?? null;
+        if (to === 'received') for (const line of r.items) {
+          const sent = (body.items || []).find(i => i.id === line.id);
+          line.received_quantity = sent?.received_quantity ?? line.quantity;
+          line.restocked_quantity = sent?.restock ? line.received_quantity : 0;
+        }
+        if (to === 'refunded') { r.refund_paise = body.amount_paise; r.refund_reference = body.reference; }
+        return json(res, 200, { data: adminReturn(r, true) });
+      }
     }
 
     /* The review queue: waiting by default, `all` for everything. */
@@ -2765,13 +5428,18 @@ createServer(async (req, res) => {
         orders: { total: 0, paid: 0, pending_payment: 0, cancelled: 0, period: 0, with_physical: 0, with_digital: 0 },
         revenue: { total_paise: 0, period_paise: 0, gst_paise: 0, discount_paise: 0, refunded_paise: 0, average_paise: null, sample: 0 },
         catalogue: { products: 0, published: 0, out_of_stock: 0 },
-        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, reviews_pending: 1, refund_requested: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
+        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, reviews_pending: 1, refund_requested: 0, returns_requested: mockReturns.filter(r => r.status === 'requested').length, zoho_failed: 0, shipments_in_trouble: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
         funnel: { product_views: null, paid_orders: 0, views_to_orders: null },
         // Null, not zeros: the mock never reminds anybody about a basket.
         recovered: null,
         series, recent: [], low_stock: [], codes_low: [],
         most_wished: [{ id: storeProducts[0].id, name: storeProducts[0].name, wishes: 3 }],
       } });
+    }
+
+    /* The models the "Test this model" control offers beside the OpenRouter key. */
+    if (p === '/admin/seo/ai/models' && req.method === 'GET') {
+      return json(res, 200, { data: SEO_AI_META.models, meta: { seo_model: SEO_AI_META.model, chatbot_model: SEO_AI_META.model, key_configured: false, custom: false } });
     }
 
     if (p === '/admin/seo/ai/suggestions' && req.method === 'GET') {
@@ -2850,6 +5518,8 @@ createServer(async (req, res) => {
         motion: [
           s('motion_reveal', 'lift', { group: 'motion' }), s('motion_buttons', 'lift', { group: 'motion' }), s('motion_page', 'none', { group: 'motion' }),
           s('motion_loader', 'none', { group: 'motion' }), s('motion_splash', '0', { group: 'motion', type: 'boolean' }), s('motion_hero', 'grid', { group: 'motion' }),
+          s('motion_progress', 'none', { group: 'motion' }),
+          s('motion_headline', 'none', { group: 'motion' }), s('motion_micro', 'lively', { group: 'motion' }),
         ],
         themes: [s('site_theme', 'classic', { group: 'themes' }), s('site_theme_options', null, { group: 'themes', type: 'text' })],
         announcement: [
@@ -2861,6 +5531,11 @@ createServer(async (req, res) => {
           s('announcement_starts_at', null, { group: 'announcement' }), s('announcement_ends_at', null, { group: 'announcement' }),
         ],
         portal: [s('portal_enabled', '1'), s('registration_enabled', '1'), s('customer_approval_required', '0')],
+        /* Events → Settings (docs/events-contract.md): three private rows. */
+        events: [
+          s('events_email', null, { group: 'events' }), s('event_reminder_hours', '24', { group: 'events' }),
+          s('event_max_seats', '5', { group: 'events' }),
+        ],
         auth: [s('otp_login_enabled', '1'), s('otp_admin_login_enabled', '1'), s('password_login_enabled', '1')],
         mail: [
           s('mail_transport'), s('smtp_host'), s('smtp_port', '587'), s('smtp_username'),
@@ -2933,11 +5608,54 @@ createServer(async (req, res) => {
           s('push_fcm_service_account', null, { group: 'messaging', type: 'text', is_secret: true, is_set: true }),
           s('messaging_whatsapp_error', null, { group: 'messaging' }), s('messaging_rcs_error', null, { group: 'messaging' }), s('messaging_push_error', null, { group: 'messaging' }),
         ],
+        /* Zoho Books (Store -> Settings): off and unconnected. */
+        zoho_books: [
+          s('zoho_books_enabled', '0', { group: 'zoho_books', type: 'boolean' }),
+          s('zoho_books_invoice_when', 'dispatched', { group: 'zoho_books', options: [
+            { value: 'dispatched', label: 'When the order is dispatched', description: 'An order with nothing to ship is invoiced when it is paid.' },
+            { value: 'paid', label: 'When the order is paid', description: 'As soon as the money is confirmed.' },
+          ] }),
+          s('zoho_books_dc', 'in', { group: 'zoho_books', options: [
+            { value: 'in', label: 'India (zoho.in)', description: 'Accounts signed in at zoho.in.' },
+            { value: 'com', label: 'United States (zoho.com)', description: 'Accounts signed in at zoho.com.' },
+          ] }),
+          s('zoho_books_home_state', null, { group: 'zoho_books', options: [
+            { value: 'MH', label: 'Maharashtra', description: '' }, { value: 'WB', label: 'West Bengal', description: '' },
+          ] }),
+          s('zoho_books_oauth_client_id', null, { group: 'zoho_books' }),
+          s('zoho_books_oauth_client_secret', null, { group: 'zoho_books', is_secret: true, is_set: false }),
+          s('zoho_books_organization_id', null, { group: 'zoho_books' }),
+          s('zoho_books_tax_intra', null, { group: 'zoho_books' }), s('zoho_books_tax_inter', null, { group: 'zoho_books' }),
+          s('zoho_books_oauth_account', null, { group: 'zoho_books' }), s('zoho_books_oauth_connected_at', null, { group: 'zoho_books' }),
+          s('zoho_books_error', null, { group: 'zoho_books' }),
+          s('zoho_books_send_payments', '1', { group: 'zoho_books', type: 'boolean' }),
+          s('zoho_books_account_gateway', null, { group: 'zoho_books' }), s('zoho_books_account_cod', null, { group: 'zoho_books' }),
+          s('zoho_books_account_bank_transfer', null, { group: 'zoho_books' }), s('zoho_books_account_upi', null, { group: 'zoho_books' }),
+          s('zoho_books_scope_version', null, { group: 'zoho_books' }),
+        ],
+        /* Shiprocket (Store -> Settings): "By hand", nothing saved. The pickup location and the error row are
+           drawn by the panel, not the generic grid. */
+        shiprocket: [
+          s('store_courier_provider', 'manual', { group: 'shiprocket', options: [
+            { value: 'manual', label: 'By hand', description: 'You type the courier and tracking number on each order, as before.' },
+            { value: 'shiprocket', label: 'Shiprocket', description: 'Book the parcel from the order page.' },
+          ] }),
+          s('shiprocket_email', null, { group: 'shiprocket' }),
+          s('shiprocket_password', null, { group: 'shiprocket', is_secret: true, is_set: false }),
+          s('shiprocket_pickup_location', null, { group: 'shiprocket' }),
+          s('shiprocket_parcel_length', '20', { group: 'shiprocket' }), s('shiprocket_parcel_breadth', '15', { group: 'shiprocket' }),
+          s('shiprocket_parcel_height', '10', { group: 'shiprocket' }),
+          s('shiprocket_webhook_token', null, { group: 'shiprocket', is_secret: true, is_set: false }),
+          s('shiprocket_error', null, { group: 'shiprocket' }),
+        ],
         push: [
           s('push_api_key', 'AIzaMockKey000000000000000000000000000', { group: 'push' }), s('push_project_id', 'technoware-push', { group: 'push' }),
           s('push_messaging_sender_id', '123456789012', { group: 'push' }), s('push_app_id', '1:123456789012:web:0a1b2c3d4e5f', { group: 'push' }),
           s('push_vapid_key', 'BMockVapidKey', { group: 'push' }),
         ],
+      }, meta: {
+        // The ids a theme's header and footer rows may name (ThemeOptions::HEADER_PARTS / FOOTER_PARTS); site_theme_options itself is stored verbatim, as before.
+        theme_parts: { header: ['topbar', 'phone', 'email', 'search', 'utility', 'cta', 'cta2', 'cart', 'scheme'], footer: ['brand', 'tagline', 'address', 'phone', 'social', 'columns', 'signup', 'legal', 'credit', 'scheme'], cta_label_max: 30 },
       } });
     }
     if (p === '/admin/settings' && req.method === 'PATCH') return json(res, 200, { data: [] });
@@ -3122,6 +5840,7 @@ createServer(async (req, res) => {
         notices: ['Every imported page, post, product and category gets a redirect from its old address. Old "?p=123" links cannot be redirected.'],
         decisions: {
           media_scope: { value: 'referenced', library: 1480 },
+          page_layout: { value: 'sections', pages: 18 },
           currency: 'INR',
           tax_basis: { value: 'keep', choices: ['keep', 'add_gst'] },
           content_types: [{ source: 'portfolio', name: 'Portfolio', slug: 'portfolio', problem: null, imported: false, entries: 14 }],
@@ -3136,6 +5855,12 @@ createServer(async (req, res) => {
           { key: 'posts', label: 'Blog posts', create: 40, update: 0, skip: 2, warn: 6, reasons: [
             { reason: 'In the bin on the old site.', count: 2, kind: 'skip', examples: ['Old launch notes'] },
             { reason: 'Had tags, which are not kept: the blog has categories only.', count: 6, kind: 'warn', examples: ['Cabling guide', 'Wi-Fi survey'] },
+          ] },
+          { key: 'page_parts', label: 'Forms, pricing tables and galleries', create: 5, update: 0, skip: 0, warn: 1, reasons: [
+            { reason: 'Forms, placed as form sections', count: 2, kind: 'info', examples: ['Contact', 'Get a quote'] },
+            { reason: 'Galleries and carousels, made galleries', count: 2, kind: 'info', examples: ['Projects', 'About us'] },
+            { reason: 'Pricing tables, made pricing blocks', count: 1, kind: 'info', examples: ['AMC plans'] },
+            { reason: 'A file upload field has no field here and was left out of its form.', count: 1, kind: 'warn', examples: ['Careers — Your CV'] },
           ] },
           { key: 'media', label: 'Files and pictures', create: 212, update: 0, skip: 1, warn: 0, reasons: [
             { reason: 'Not a file type the library accepts (.psd).', count: 1, kind: 'skip', examples: ['brochure.psd'] },
@@ -3434,6 +6159,114 @@ createServer(async (req, res) => {
     }
     if (p === '/admin/auth/logout' && req.method === 'POST') return json(res, 200, { message: 'Signed out.' });
     if (p === '/admin/dashboard') return json(res, 200, { data: buildAdminDashboard(url.searchParams.get('volume') || 'month') });
+    // The "Getting started" checklist (App\Support\Onboarding): half done, like a fresh install part-way through.
+    if (p === '/admin/onboarding') {
+      const steps = [
+        ['logo', 'Add your logo', '/admin/settings?tab=general#setting__logo_path', true],
+        ['contact', 'Replace the sample phone number and address', '/admin/settings?tab=contact', false],
+        ['figures', 'Put your own figures on the homepage', '/admin/site/settings?tab=homepage', false],
+        ['social', 'Check the social links', '/admin/settings?tab=social', true],
+        ['look', 'Choose a look', '/admin/themes', true],
+        ['mail', 'Send a test email', '/admin/settings?tab=mail', false],
+        ['scheduler', 'Add the scheduler’s cron line', '/admin/system/status#scheduler', true],
+        ['backups', 'Turn on backups', '/admin/backups/settings', false],
+        ['team', 'Invite your team', '/admin/users/new', true],
+        ['legal', 'Have the privacy and terms pages reviewed', '/admin/pages', false],
+      ].map(([key, label, href, done]) => ({ key, label, hint: '', href, done }));
+      return json(res, 200, { data: { steps, done: steps.filter((s) => s.done).length, total: steps.length } });
+    }
+    /*
+     * Ask ALTIS (0.177.0). The console's drawer reads its suggestions from
+     * here and nothing of its own, so the mock has to answer both calls or
+     * the drawer renders empty against it.
+     *
+     * The matching is the words' first pass only — the real one has a model
+     * behind it, and this file is a contract rather than a second
+     * implementation.
+     */
+    if (p === '/admin/copilot/questions') {
+      return json(res, 200, { data: MOCK_COPILOT.map(({ key, label }) => ({ key, label })), meta: { ai: false } });
+    }
+    if (p === '/admin/copilot/ask' && req.method === 'POST') {
+      const asked = String((await readJsonBody(req))?.question || '').toLowerCase();
+      if (!asked.trim()) return json(res, 422, { message: 'A question is required.', errors: { question: ['A question is required.'] } });
+      // The same noise list and the same crude singularisation as `Copilot`:
+      // the mock has to agree with the real one about which question an
+      // asking is, or the console looks right against it and wrong in life.
+      const NOISE = ['how', 'many', 'much', 'what', 'which', 'who', 'is', 'are', 'the', 'a', 'an',
+        'do', 'does', 'did', 'we', 'i', 'my', 'me', 'have', 'has', 'there', 'any',
+        'of', 'to', 'in', 'on', 'for', 'and', 'or', 'show', 'tell', 'give', 'list',
+        'please', 'now', 'currently', 'right'];
+      const read = (text) => [...new Set(text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)
+        .map((w) => (w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w)))].filter((w) => !NOISE.includes(w));
+      const words = read(asked);
+      let best = null;
+      let score = 0;
+      for (const q of MOCK_COPILOT) {
+        const vocabulary = read(`${q.words} ${q.label}`);
+        const hits = words.filter((w) => vocabulary.includes(w)).length;
+        const s2 = words.length ? hits / words.length : 0;
+        if (s2 > score) { best = q; score = s2; }
+      }
+      if (!best || score === 0) {
+        return json(res, 200, { data: {
+          matched: false, key: null, question: null, source: 'none', figure: null,
+          sentence: 'That is not something I can answer. Here is what I can tell you:',
+          href: null, suggestions: MOCK_COPILOT.slice(0, 6).map(({ key, label }) => ({ key, label })),
+        } });
+      }
+      return json(res, 200, { data: {
+        matched: true, key: best.key, question: best.label, source: 'words',
+        figure: best.figure, sentence: best.sentence, href: best.href, suggestions: [],
+      } });
+    }
+    if (p === '/admin/system/status') {
+      return json(res, 200, { data: {
+        version: { version: '0.128.0', commit: null, built_at: null },
+        code_schema: '2026_10_06_000000', database_schema: '2026_10_06_000000', installed: null,
+        php: { version: '8.3.0', checks: [], max_execution_time: 30, memory_limit: '256M' },
+        scheduler: {
+          known: true, last_run_seconds: null, running: false,
+          setup: {
+            os: 'linux', panel: 'plesk', php: '/opt/plesk/php/8.3/bin/php', php_checked: null, php_version: null,
+            artisan: '/var/www/vhosts/example.com/altis-tech-cms/api/artisan', user: 'example',
+            command: '/opt/plesk/php/8.3/bin/php /var/www/vhosts/example.com/altis-tech-cms/api/artisan schedule:run >> /dev/null 2>&1',
+            cron: '* * * * * /opt/plesk/php/8.3/bin/php /var/www/vhosts/example.com/altis-tech-cms/api/artisan schedule:run >> /dev/null 2>&1',
+            work: '/opt/plesk/php/8.3/bin/php /var/www/vhosts/example.com/altis-tech-cms/api/artisan schedule:work',
+            windows_task: null, dev: true,
+          },
+        },
+        disk: { free: null, total: null },
+        website: { reachable: true, version: '0.128.0', api: true, url: 'http://127.0.0.1:3000', error: null },
+        // The speed suggestions (App\Support\System\SpeedChecks): one of each state, in the API's order.
+        speed: {
+          measured: { boot_ms: 142, db_ms: 0.4, website_ms: 38 },
+          summary: { good: 4, attention: 3, unknown: 1 },
+          checks: [
+            { key: 'opcache', group: 'server', impact: 'high', state: 'attention', label: 'OPcache is switched on',
+              detail: 'OPcache is switched off, so PHP reads and compiles the whole application again on every single request.',
+              fix: 'Switch it on in the PHP settings for this domain (Plesk: Websites & Domains → PHP Settings), then save.', snippet: 'opcache.enable=1' },
+            { key: 'xdebug', group: 'server', impact: 'high', state: 'good', label: 'The Xdebug debugger is off',
+              detail: 'The Xdebug debugger is not loaded.', fix: '', snippet: null },
+            { key: 'optimize', group: 'app', impact: 'high', state: 'attention', label: 'Configuration and routes are cached',
+              detail: 'The application has not prepared the configuration and the routes, so it reads and works them out again on every request.',
+              fix: 'Run this once from the API folder — the Apply step of any update on System → Updates does it for you too.', snippet: 'php artisan optimize' },
+            { key: 'debug', group: 'app', impact: 'high', state: 'good', label: 'Debug mode is off', detail: 'Debug mode is off.', fix: '', snippet: null },
+            { key: 'cache_store', group: 'app', impact: 'medium', state: 'attention', label: 'The cache is kept in files or memory',
+              detail: 'The cache is kept in the database, so every setting read is a database question on every page.',
+              fix: 'Keep it in files instead, in the API’s environment file (.env); the queue worker and the website share the same folder.', snippet: 'CACHE_STORE=file' },
+            { key: 'queue', group: 'app', impact: 'medium', state: 'good', label: 'Mail and background jobs are not made to wait',
+              detail: 'Mail and background jobs are picked up by the scheduler, away from the visitor.', fix: '', snippet: null },
+            { key: 'realpath_cache', group: 'server', impact: 'low', state: 'unknown', label: 'PHP remembers where its files are',
+              detail: 'This could not be checked on this server.', fix: 'The hosting does not let the website look at this. Ask your host, or leave it.', snippet: null },
+            { key: 'php_version', group: 'server', impact: 'low', state: 'info', label: 'PHP version',
+              detail: 'This server runs PHP 8.3.0. PHP 8.4 is a little faster.', fix: 'If your host offers PHP 8.4 for this domain, you can choose it in the hosting panel.', snippet: null },
+            { key: 'media_cdn', group: 'content', impact: 'medium', state: 'good', label: 'A CDN serves videos and documents',
+              detail: 'Videos, documents and vector logos are served from your CDN.', fix: '', snippet: null },
+          ],
+        },
+      } });
+    }
     if (p === '/admin/users') return json(res, 200, { data: staffList });
 
     if (p === '/admin/tickets' && req.method === 'GET') {
@@ -3660,13 +6493,30 @@ createServer(async (req, res) => {
   if (p === '/team') return json(res, 200, { data: team });
   if (p === '/clients') return json(res, 200, { data: clients });
   if (p === '/certifications') return json(res, 200, { data: certifications });
+  // The support network (0.170.0, docs/support-network.md): staff by name and title only.
+  if (p === '/support-centres') {
+    const centres = [
+      { name: 'Sample Kolkata Service Centre', slug: 'sample-kolkata-service-centre', kind: 'service_centre', kind_label: 'Service centre',
+        country_code: 'IN', country: 'India', region: 'West Bengal', city: 'Kolkata', address: '12 Park Street', phone: '+91 33 0000 0001',
+        phone_alt: null, email: null, hours: 'Mon–Sat, 9:30 am – 6:30 pm', latitude: 22.553, longitude: 88.352,
+        staff: [{ name: 'Asha Roy', title: 'Field engineer' }], updated_at: '2026-10-12T10:00:00+05:30' },
+      { name: 'Sample Mumbai Office', slug: 'sample-mumbai-office', kind: 'office', kind_label: 'Office',
+        country_code: 'IN', country: 'India', region: 'Maharashtra', city: 'Mumbai', address: 'Andheri East', phone: '+91 22 0000 0002',
+        phone_alt: null, email: null, hours: null, latitude: 19.1136, longitude: 72.8697, staff: [], updated_at: '2026-10-12T10:00:00+05:30' },
+    ];
+    return json(res, 200, { data: centres, meta: { schema: null } });
+  }
   // Editor-built forms. 404 for an unknown slug and for a form with no fields,
   // because the frontend's fallback depends on that being a miss.
   if (p.startsWith('/forms/')) {
     const f = forms.find(x => x.slug === p.split('/')[2]);
-    if (!f || !f.fields.length) return json(res, 404, { message: 'Not found.' });
-    if (req.method === 'POST') return json(res, 201, { message: f.success_message, data: { id: 1 } });
-    return json(res, 200, { data: f });
+    // A form of headings and step breaks alone asks nothing, so it is a miss too.
+    if (!f || f.status !== 'published' || !f.fields.some((field) => !FORM_LAYOUT_KINDS.includes(field.kind))) {
+      return json(res, 404, { message: 'Not found.' });
+    }
+    // `redirect_url` rides on the answer: where to send the visitor instead of showing `message`, or null.
+    if (req.method === 'POST') return json(res, 201, { message: f.success_message, redirect_url: f.redirect_url ?? null, data: { id: 1 } });
+    return json(res, 200, { data: publicForm(f) });
   }
   /*
    * Popups. A collection and a 200 even when empty, unlike a slider or a
@@ -3785,6 +6635,33 @@ createServer(async (req, res) => {
       });
     }
 
+    // Delivery, quoted again from the address in use (0.142.0) — never from the request.
+    let delivery = { charge: 0, zone: null, weight: null };
+    if (shipped && summary.shipping_mode === 'zones') {
+      const block = body?.shipping_same === false ? 'shipping_address' : 'address';
+      const code = stateCode((body?.shipping_same === false ? body?.shipping_address : body?.address)?.state);
+      if (!code) {
+        return json(res, 422, { message: 'Choose your state from the list so delivery can be worked out.', errors: { [`${block}.state`]: ['Choose your state from the list so delivery can be worked out.'] } });
+      }
+      const quoted = quoteDelivery(
+        [{ quantity: 1, weight: summary.shipping_weight_grams ?? 0 }],
+        code, summary.subtotal_paise - summary.discount_paise,
+      );
+      if (!quoted.deliverable) {
+        return json(res, 422, { message: 'We do not deliver there yet.', errors: { [`${block}.state`]: [`We do not deliver to ${stateName(code)} yet. Please use another delivery address, or contact us.`] } });
+      }
+      if (cartDestinations.get(token) !== code) {
+        cartDestinations.set(token, code);
+        const message = `Delivery to ${stateName(code)} is ${quoted.charge === 0 ? 'free' : quoteLabel(quoted)}, so your total is now ₹${((summary.subtotal_paise + quoted.charge) / 100).toLocaleString('en-IN')}. Please check it and place your order again.`;
+        return json(res, 422, { message, errors: { shipping: [message] } });
+      }
+      delivery = { charge: quoted.charge, zone: quoted.zone, weight: quoted.weight };
+    } else if (shipped) {
+      delivery = { charge: summary.shipping_paise ?? 0, zone: null, weight: summary.shipping_weight_grams };
+    }
+    const orderTotal = summary.subtotal_paise + delivery.charge;
+    const orderTaxable = Math.floor((orderTotal * 10000 + 5900) / 11800);
+
     orderSeq += 1;
     const number = `ORD-2026-${String(orderSeq).padStart(5, '0')}`;
     // 64 hex characters, the shape `bin2hex(random_bytes(32))` gives and the
@@ -3797,9 +6674,11 @@ createServer(async (req, res) => {
       status_label: 'Pending payment',
       subtotal_paise: summary.subtotal_paise,
       discount_paise: 0,
-      taxable_paise: summary.taxable_paise,
-      gst_paise: summary.gst_paise,
-      total_paise: summary.total_paise,
+      shipping_paise: delivery.charge,
+      shipping_zone: delivery.zone,
+      taxable_paise: orderTaxable,
+      gst_paise: orderTotal - orderTaxable,
+      total_paise: orderTotal,
       customer_name: body?.name ?? 'Someone',
       customer_email: body?.email ?? 'someone@example.test',
       customer_phone: body?.phone ?? null,
@@ -3810,6 +6689,7 @@ createServer(async (req, res) => {
       gstin: body?.gstin ?? null,
       company_name: body?.company_name ?? null,
       has_invoice: false,
+      invoice_number: null, invoice_date: null, invoice_source: null,
       courier: null, tracking_number: null, tracking_url: null,
       placed_at: new Date().toISOString(), paid_at: null,
       items: summary.items.map((i) => ({
@@ -3819,6 +6699,16 @@ createServer(async (req, res) => {
         returnable: i.returnable, slug: i.slug,
       })),
       payments: [],
+      // Returns (docs/store.md "Returns"): a mock order is never dispatched,
+      // so the form is not offered and the one sentence says why.
+      returns: [],
+      return_policy: {
+        enabled: true, open: false,
+        message: 'A return can be asked for once the order has been dispatched.',
+        closes_on: null, closes_label: null, days: 7,
+        items: summary.items.map((i) => ({ order_item_id: i.id, returnable: 0 })),
+        reasons: RETURN_REASONS, max_photos: 4, max_photo_kb: 5120,
+      },
     };
 
     orders.set(number, { order, accessToken });
@@ -3851,6 +6741,11 @@ createServer(async (req, res) => {
       } });
     }
 
+    if (action === 'returns' && req.method === 'POST') {
+      const message = held.order.return_policy.message;
+      return json(res, 422, { message, errors: { return: [message] } });
+    }
+
     if (action === 'verify') {
       held.order.status = 'paid';
       held.order.status_label = 'Paid';
@@ -3860,13 +6755,47 @@ createServer(async (req, res) => {
   }
 
   /* The store, the cart, and nothing shared with the catalogue above. */
+  // The tag row's chips (0.141.0): visible tags with their counts, curated first then most used; `data: []` in a 200.
+  // One tag's page (0.157.0): a shown tag only (404 otherwise, and while the row is off); the count is published products, indexable from three.
+  const tagPageMatch = p.match(/^\/store\/tags\/([^/]+)$/);
+  if (tagPageMatch) {
+    const t = mockTags.find((x) => x.slug === decodeURIComponent(tagPageMatch[1]));
+    if (!t || !t.is_visible || tagSettings.store_tags_enabled !== '1') return json(res, 404, { message: 'Not found.' });
+    const count = tagPublishedCount(t);
+    const seo = { ...tagSeoDefaults(t), ...Object.fromEntries(Object.entries(t.seo ?? {}).filter(([, v]) => v !== null && v !== '' && !Array.isArray(v) && typeof v !== 'boolean')) };
+    return json(res, 200, { data: { name: t.name, slug: t.slug, heading: t.heading ?? null, intro: t.intro ?? null, count, indexable: count >= 3, updated_at: '2026-10-10T10:00:00+05:30', seo, schema: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: t.heading || t.name, url: `https://www.technoware.in/store/tags/${t.slug}` } } });
+  }
+  if (p === '/store/tags') {
+    const cat = url.searchParams.get('category');
+    if (url.searchParams.get('all') === '1') {
+      // The sitemap's read: every shown tag with a published product, with updated_at, indexable and the sitemap switch.
+      const data = tagSettings.store_tags_enabled !== '1' ? [] : mockTags
+        .filter((t) => t.is_visible && tagPublishedCount(t) > 0)
+        .map((t) => ({ name: t.name, slug: t.slug, count: tagPublishedCount(t), updated_at: '2026-10-10T10:00:00+05:30', indexable: tagPublishedCount(t) >= 3, seo: { sitemap_include: t.seo?.sitemap_include !== false } }));
+      return json(res, 200, { data });
+    }
+    const limit = Math.min(30, Math.max(1, Number(url.searchParams.get('limit')) || Number(tagSettings.store_tags_limit)));
+    const data = tagSettings.store_tags_enabled !== '1' ? [] : mockTags
+      .filter((t) => t.is_visible)
+      .map((t) => ({ t, count: storeProducts.filter((sp) => (!cat || sp.category?.slug === cat) && (tagLinks.get(sp.id) ?? []).includes(t.id)).length }))
+      .filter(({ count }) => count > 0)
+      .sort((a, b) => ((a.t.sort_order === 0) - (b.t.sort_order === 0)) || (a.t.sort_order - b.t.sort_order) || (b.count - a.count) || a.t.name.localeCompare(b.t.name))
+      .slice(0, limit)
+      .map(({ t, count }) => ({ name: t.name, slug: t.slug, count }));
+    return json(res, 200, { data });
+  }
   if (p === '/store/products') {
     const cat = url.searchParams.get('category');
     const q = (url.searchParams.get('q') || '').toLowerCase();
     const sort = url.searchParams.get('sort');
+    const tag = url.searchParams.get('tag');
     let rows = storeProducts;
     if (cat) rows = rows.filter(x => x.category?.slug === cat);
-    if (q) rows = rows.filter(x => (x.name + ' ' + (x.sku || '') + ' ' + (x.brand?.name || '')).toLowerCase().includes(q));
+    if (tag) {
+      const wanted = mockTags.find((t) => t.slug === tagSlugOf(tag));
+      rows = rows.filter(x => wanted && (tagLinks.get(x.id) ?? []).includes(wanted.id));
+    }
+    if (q) rows = rows.filter(x => (x.name + ' ' + (x.sku || '') + ' ' + (x.brand?.name || '') + ' ' + (tagLinks.get(x.id) ?? []).map((id) => mockTags.find((t) => t.id === id)?.name).join(' ')).toLowerCase().includes(q));
     const specs = specSelection(url.searchParams);
     if (Object.keys(specs).length) rows = rows.filter(x => matchesSpecs(x, specs));
     if (sort === 'name') rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));
@@ -3874,6 +6803,15 @@ createServer(async (req, res) => {
     if (sort === 'price-high') rows = [...rows].sort((a, b) => b.price_paise - a.price_paise);
     if (sort === 'newest') rows = [...rows].slice().reverse();
     return json(res, 200, paginate(rows));
+  }
+  /* "Shop the videos": `?limit=`, `?category=`, `?product=` and `?others=0` — the API's `VideoShelf`. */
+  if (p === '/store/videos') {
+    return json(res, 200, { data: storeVideoRows({
+      limit: Number(url.searchParams.get('limit')) || 12,
+      category: url.searchParams.get('category') || null,
+      product: url.searchParams.get('product') || null,
+      others: url.searchParams.get('others') !== '0',
+    }) });
   }
   if (p === '/store/feed') {
     const rows = storeFeedRows();
@@ -3993,6 +6931,16 @@ createServer(async (req, res) => {
       if ('email' in body) current.email = body.email ? String(body.email).trim().toLowerCase() : null;
       if ('phone' in body) current.phone = phone || null;
       cartContacts.set(token, current);
+      return json(res, 200, { data: summarise(token, lines) });
+    }
+    // Where the checkout says this is going (0.142.0): a name or a code, blank to clear.
+    if (p === '/cart/destination' && req.method === 'PATCH') {
+      const body = await readJsonBody(req);
+      const code = body.state ? stateCode(body.state) : null;
+      if (body.state && !code) {
+        return json(res, 422, { message: 'Choose your state from the list.', errors: { state: ['Choose your state from the list.'] } });
+      }
+      if (code) cartDestinations.set(token, code); else cartDestinations.delete(token);
       return json(res, 200, { data: summarise(token, lines) });
     }
     if (p.startsWith('/cart/restore/') && req.method === 'GET') {
@@ -4204,6 +7152,8 @@ createServer(async (req, res) => {
       group('article', 'Knowledge base', '/knowledge-base', kbArticles, 'title', 'excerpt'),
       group('post', 'Blog', '/blog', posts, 'title', 'excerpt'),
       group('case_study', 'Case studies', '/case-studies', caseStudies, 'title', 'summary'),
+      // Published events, past or upcoming (docs/events-contract.md).
+      group('event', 'Events', '/events', events.filter((e) => e.status === 'published'), 'title', 'summary'),
       group('page', 'Pages', '', cmsPages, 'title', 'body', (r) => `/${r.slug}`),
     ].filter(Boolean);
     return json(res, 200, {
@@ -4277,6 +7227,26 @@ createServer(async (req, res) => {
             k2.id === 1 ? { services: [{ name: services[2].title, path: `/services/${services[2].slug}` }] } : {}) } })
       : json(res, 404, { message: 'Not found.' });
   }
+  // A draft opened from its share link (0.138.0): one 404 for every dead token. The mock knows the
+  // kinds it has data for; the record is the public detail read without `schema`/`faq_schema`.
+  {
+    const pv = p.match(/^\/preview\/([a-f0-9]{64})$/);
+    if (pv && req.method === 'GET') {
+      const link = PREVIEW_LINKS.find((l) => l.token === pv[1] && new Date(l.expires_at) > new Date());
+      const source = link && ({ page: cmsPages, solution: solutions, blog_post: posts, case_study: caseStudies, product: products })[link.type];
+      const found = source && source.find((x) => x.id === link.subject_id);
+      if (!found) return json(res, 404, { message: 'Not found.' });
+      link.views += 1; link.last_viewed_at = new Date().toISOString();
+      const record = Object.fromEntries(Object.entries(found).filter(([k]) => !['schema', 'faq_schema', 'blocks'].includes(k)));
+      return json(res, 200, { data: { type: link.type, slug: found.slug ?? null, type_slug: null, path: null,
+        record: { ...record, faqs: found.faqs ?? [], answer_blocks: found.answer_blocks ?? [], entity: found.entity ?? { solutions: [], services: [], industries: [], articles: [], faq_count: 0 } } },
+        meta: { title: found.title ?? found.name, status: 'draft', status_label: 'Draft', published: false,
+          expires_at: link.expires_at,
+          expires_label: new Date(link.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) } });
+    }
+  }
+  // The 404 page reporting an address (0.137.0): 204 for everything, as the API does.
+  if (p === '/not-found' && req.method === 'POST') { res.writeHead(204); return res.end(); }
   if (p === '/enquiries' && req.method === 'POST') return json(res, 201, { message: 'Thanks', data: { id: 1 } });
   // Online meetings (docs/meetings-contract.md): the options, the slots in
   // both forms, a booking, and the guest link scoped by its token.
@@ -4331,6 +7301,221 @@ createServer(async (req, res) => {
     if (req.method === 'POST' && gm[2] === '/reschedule' && body.start) moveMeeting(m, body.start);
     return json(res, 200, { data: customerMeeting(m), ...(req.method === 'POST' ? { message: 'Done.' } : {}) });
   }
+  /* Events (docs/events-contract.md): the list, an event's page, what its
+     registration panel asks after mount, its calendar file, a registration,
+     and the registrant's own link. Published events only — a draft or an
+     archived one is a 404 everywhere here — and `online_url` is on none of
+     them. The registrant's routes are matched first: `registrations` would
+     otherwise be read as an event's slug. */
+  {
+    const m = p.match(/^\/events\/registrations\/([^/]+)(\/cancel)?$/);
+    if (m) {
+      const r = eventRegistrations.find((x) => x.id === eventTokenRegistration);
+      const e = r ? eventOf(r.event_id) : null;
+      // A token that is not 64 hex, or nobody's, is a 404.
+      if (!/^[0-9a-f]{64}$/.test(m[1]) || m[1] !== EVENT_TOKEN || !r || !e) return json(res, 404, { message: 'Not found.' });
+      if (m[2]) {
+        if (req.method !== 'POST') return json(res, 405, { message: 'Method not allowed.' });
+        if (eventHasStarted(e) || r.status === 'attended' || r.status === 'no_show') {
+          return invalid(res, 'registration', 'This event has started, so the registration can no longer be cancelled.');
+        }
+        // Idempotent for one already cancelled.
+        if (r.status !== 'cancelled') Object.assign(r, { status: 'cancelled', cancelled_at: new Date().toISOString() });
+      }
+      return json(res, 200, { data: registrantView(r, e) });
+    }
+  }
+  /* The downloads centre (docs/downloads.md): the list, its shelves, and the
+     file. A customers-only file is a 401 here — the mock holds no customer
+     session on this route — and a library file is answered as an address. */
+  if (p === '/downloads' && req.method === 'GET') {
+    const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+    const category = url.searchParams.get('category');
+    const access = url.searchParams.get('access');
+    const rows = publishedDownloads().filter((d) =>
+      (!q || `${d.title} ${d.summary ?? ''} ${d.version ?? ''}`.toLowerCase().includes(q))
+      && (!category || downloadShelf(d)?.slug === category)
+      && (!['public', 'customers'].includes(access ?? '') || d.access === access))
+      .sort((a, b) => (downloadShelf(a)?.sort_order ?? 99) - (downloadShelf(b)?.sort_order ?? 99));
+    return json(res, 200, paginate(rows.map(publicDownload)));
+  }
+  if (p === '/download-categories' && req.method === 'GET') {
+    const rows = publishedDownloads();
+    return json(res, 200, {
+      data: downloadCategories.filter((c) => c.is_active)
+        .map((c) => ({ id:c.id, name:c.name, slug:c.slug, description:c.description, count: rows.filter((d) => d.download_category_id === c.id).length }))
+        .filter((c) => c.count > 0),
+      meta: { total: rows.length, updated_at: rows.map((d) => d.updated_at).sort().pop() ?? null },
+    });
+  }
+  const downloadFile = p.match(/^\/downloads\/(\d+)\/file$/);
+  if (downloadFile && req.method === 'GET') {
+    const row = publishedDownloads().find((d) => d.id === Number(downloadFile[1]));
+    if (!row) return json(res, 404, { message:'Not found.' });
+    if (row.access === 'customers') return json(res, 401, { message:'Sign in to the customer portal to download this file.', reason:'sign_in_required' });
+    row.download_count += 1;
+    return json(res, 200, { data: { url: `http://127.0.0.1:8899/storage/${row.file_path}` } });
+  }
+  if (p === '/tenders' && req.method === 'GET') {
+    const now = new Date();
+    const when = ['open', 'closed', 'upcoming', 'all'].includes(url.searchParams.get('when'))
+      ? url.searchParams.get('when') : 'open';
+    const term = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+    const category = url.searchParams.get('category');
+    const compact = term.replace(/[^a-z0-9]/g, '');
+
+    const rows = tenders
+      .filter((t) => t.status === 'published')
+      .filter((t) => {
+        const w = tenderWindow(t, now).state;
+        if (when === 'open') return w === 'open' || w === 'closing_soon';
+        if (when === 'closed') return w === 'closed';
+        if (when === 'upcoming') return w === 'upcoming';
+        return true;
+      })
+      .filter((t) => !category || tenderCategoryOf(t)?.slug === category)
+      .filter((t) => {
+        if (!term) return true;
+        const hay = `${t.reference} ${t.title} ${t.summary ?? ''} ${t.description ?? ''}`.toLowerCase();
+        // The reference, with its punctuation stripped — nobody types the slashes.
+        return hay.includes(term)
+          || (compact.length >= 3 && t.reference.toLowerCase().replace(/[^a-z0-9]/g, '').includes(compact));
+      })
+      // Open first and soonest, then closed and most recent — two keys,
+      // because the halves want opposite directions.
+      .sort((a, b) => {
+        const ac = new Date(a.closes_at) > now, bc = new Date(b.closes_at) > now;
+        if (ac !== bc) return ac ? -1 : 1;
+        return ac
+          ? a.closes_at.localeCompare(b.closes_at)
+          : b.closes_at.localeCompare(a.closes_at);
+      });
+
+    const page = paginate(rows.map(tenderRow));
+    page.meta.per_page = 20;
+    return json(res, 200, page);
+  }
+  if (p === '/tender-categories' && req.method === 'GET') {
+    const published = tenders.filter((t) => t.status === 'published');
+    const rows = tenderCategories
+      .filter((c) => c.is_active && published.some((t) => t.tender_category_id === c.id))
+      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+      .map((c) => ({
+        id: c.id, name: c.name, slug: c.slug, description: c.description,
+        count: published.filter((t) => t.tender_category_id === c.id).length,
+      }));
+    return json(res, 200, {
+      data: rows,
+      meta: {
+        total: published.length,
+        open: published.filter((t) => !tenderWindow(t).closed).length,
+        updated_at: published.map((t) => t.updated_at).sort().pop() ?? null,
+      },
+    });
+  }
+  {
+    const m = p.match(/^\/tenders\/([a-z0-9-]+)(\/state)?$/);
+    if (m && req.method === 'GET') {
+      const tender = tenders.find((t) => t.slug === m[1] && t.status === 'published');
+      if (!tender) return json(res, 404, { message: 'Not found.' });
+      if (m[2]) {
+        // Never cached: it is the answer the cached page cannot give.
+        res.setHeader('Cache-Control', 'no-store');
+        return json(res, 200, { data: tenderWindow(tender) });
+      }
+      return json(res, 200, { data: publicTender(tender) });
+    }
+  }
+  if (p === '/events' && req.method === 'GET') {
+    const past = url.searchParams.get('when') === 'past';
+    const format = url.searchParams.get('format');
+    const featured = url.searchParams.get('featured') === '1';
+    // Upcoming soonest first; past newest first.
+    const rows = events
+      .filter((e) => e.status === 'published' && eventIsPast(e) === past
+        && (!format || e.format === format) && (!featured || e.is_featured))
+      .sort((a, b) => (past ? b.starts_at.localeCompare(a.starts_at) : a.starts_at.localeCompare(b.starts_at)));
+    const page = paginate(rows.map(publicEvent));
+    page.meta.per_page = 12;
+    return json(res, 200, page);
+  }
+  {
+    const m = p.match(/^\/events\/([a-z0-9-]+)(\/availability|\/calendar|\/register)?$/);
+    if (m) {
+      const e = events.find((x) => x.slug === m[1] && x.status === 'published');
+      if (!e) return json(res, 404, { message: 'Not found.' });
+
+      if (m[2] === '/availability') {
+        // Never cached: the page around it is, and this is the part that moves.
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        return res.end(JSON.stringify({ data: eventAvailability(e) }));
+      }
+
+      if (m[2] === '/calendar') {
+        // The event as an .ics, with no join link in it.
+        const stamp = (wall) => `${wall.replace(/[-:]/g, '')}00`;
+        const ics = [
+          'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Technoware//Events//EN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+          `UID:event-${e.id}@technoware.test`, `DTSTART;TZID=Asia/Kolkata:${stamp(e.starts_at)}`,
+          ...(e.ends_at ? [`DTEND;TZID=Asia/Kolkata:${stamp(e.ends_at)}`] : []),
+          `SUMMARY:${e.title.replace(/([,;])/g, '\\$1')}`,
+          ...(e.format !== 'online' && e.venue_name ? [`LOCATION:${e.venue_name.replace(/([,;])/g, '\\$1')}`] : []),
+          'END:VEVENT', 'END:VCALENDAR',
+        ].join('\r\n');
+        res.writeHead(200, { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename=${e.slug}.ics` });
+        return res.end(`${ics}\r\n`);
+      }
+
+      if (m[2] === '/register') {
+        if (req.method !== 'POST') return json(res, 405, { message: 'Method not allowed.' });
+        const body = await readJsonBody(req);
+        const seats = body.seats === undefined || body.seats === null || body.seats === '' ? 1 : Number(body.seats);
+        const done = (status) => ({
+          message: status === 'waitlisted'
+            ? `This event is full, so you are on the waiting list. We have emailed ${body.email} and will write again if a place opens.`
+            : `You are registered. We have emailed your confirmation to ${body.email}.`,
+          // No manage link here: it is in the confirmation email only (docs/events.md).
+          data: { status, seats },
+        });
+        // A filled honeypot: the ordinary success answer, and nothing stored.
+        if (body.website) return json(res, 201, done('confirmed'));
+        if (!body.name) return invalid(res, 'name', 'Please tell us your name.');
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email ?? '')) return invalid(res, 'email', 'Enter a valid email address.');
+        if (!Number.isInteger(seats) || seats < 1 || seats > e.max_seats) {
+          return invalid(res, 'seats', `You can register between 1 and ${e.max_seats} seats.`);
+        }
+        const state = eventAvailability(e);
+        if (state.state === 'none' || state.state === 'external') return invalid(res, 'registration', 'This event does not take registrations here.');
+        if (state.message) return invalid(res, 'registration', state.message);
+
+        // The typed address proves nothing, so a repeat is answered exactly as a
+        // stranger would be and a live registration is left as it is; only a
+        // cancelled one is revived, like a newcomer (docs/events.md).
+        const found = eventRegistrations.find((r) => r.event_id === e.id && r.email.toLowerCase() === String(body.email).toLowerCase());
+        const left = eventCounts(e).seats_left;
+        let status = 'confirmed';
+        if (left !== null && seats > left) {
+          if (e.waitlist_enabled) status = 'waitlisted';
+          else return invalid(res, 'seats', `Only ${left} ${left === 1 ? 'seat is' : 'seats are'} left.`);
+        }
+        if (found && found.status !== 'cancelled') return json(res, 201, done(status));
+        const again = found;
+        const fields = {
+          name: body.name, email: body.email, phone: body.phone ?? null, company: body.company ?? null,
+          seats, note: body.note ?? null, status, cancelled_at: null,
+        };
+        const r = again
+          ? Object.assign(again, fields)
+          : { id: Math.max(30, ...eventRegistrations.map((x) => x.id)) + 1, event_id: e.id, ...fields, staff_note: null,
+              customer_id: null, lead_id: 1, source: 'public', reminded_at: null, created_at: new Date().toISOString() };
+        if (!again) eventRegistrations.push(r);
+        eventTokenRegistration = r.id;
+        return json(res, 201, done(status));
+      }
+
+      return json(res, 200, { data: publicEventDetail(e) });
+    }
+  }
   // Engineer visits (docs/visits.md): what the form offers, a request, and the
   // guest link — scoped by its token, a wrong one the same 404 as Laravel's.
   if (p === '/visits/options') {
@@ -4364,7 +7549,8 @@ createServer(async (req, res) => {
     { from: '/solutions/old-networking', to: '/solutions/networking', status: 301 },
     { from: '/old-privacy', to: '/privacy', status: 301 },
   ];
-  if (p === '/redirects') return json(res, 200, { data: REDIRECTS });
+  // `meta.coming_soon` is what the proxy reads for the coming-soon page (0.122.0).
+  if (p === '/redirects') return json(res, 200, { data: REDIRECTS, meta: { coming_soon: false, media_cdn: null } });
   if (p === '/redirects/lookup') {
     const hit = REDIRECTS.find((r) => r.from === url.searchParams.get('path'));
     return hit ? json(res, 200, { data: { to: hit.to, status: hit.status } }) : json(res, 404, { data: null });

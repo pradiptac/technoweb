@@ -33,7 +33,17 @@ final class ReservedSlugs
         'about', 'blog', 'brands', 'careers', 'cart', 'case-studies', 'certifications',
         'checkout', 'clients', 'contact', 'industries', 'knowledge-base', 'locations',
         'newsletter', 'order', 'products', 'resources', 'search', 'services', 'solutions',
-        'store', 'support', 'team', 'book-a-visit', 'visit', 'book-a-meeting', 'meeting', 'ticket-survey',
+        'store', 'support', 'team', 'book-a-visit', 'visit', 'book-a-meeting', 'meeting', 'ticket-survey', 'preview', 'offline', 'pwa-icon', 'sw.js', 'manifest.webmanifest', 'coming-soon', 'font', 'icons', 'motion-file',
+        // The events module's own pages (0.118.0, docs/events.md). Until
+        // then `events` was the example a custom content type was given.
+        'events',
+        // The downloads centre (0.131.0, docs/downloads.md). A CMS page was
+        // seeded at this address until then; `RetireDownloadsPage` moves it.
+        'downloads',
+        // The support network (0.170.0, docs/support-network.md).
+        'support-network',
+        // Tenders (0.174.0, docs/tenders.md).
+        'tenders',
         // The application root.
         'admin', 'api', 'embed', 'portal', 'push', 'theme-preview', 'indexnow',
         'favicon.ico', 'sitemap.xml', 'robots.txt', 'llms.txt', 'llms-full.txt',
@@ -46,13 +56,14 @@ final class ReservedSlugs
         'blocks', 'galleries', 'forms', 'menus', 'settings', 'redirects', 'landing-pages',
         'enquiries', 'chat', 'auth', 'companies', 'client-errors', 'messaging', 'tickets',
         'ticket-attachments', 'ticket-categories', 'orders', 'payments', 'wishlist', 'my', 'visits',
+        'download-categories', 'support-centres',
     ];
 
     /** Words a server, a crawler or the framework already means something by. */
     private const OTHER = [
         '_next', 'static', 'public', 'storage', 'assets', 'images', 'media', 'feed',
         'rss', 'well-known', 'login', 'logout', 'register', 'account', 'home', 'index',
-        'preview', 'entries', 'content', 'custom-content',
+        'entries', 'content', 'custom-content',
     ];
 
     /** @return array<int, string> */
@@ -70,5 +81,37 @@ final class ReservedSlugs
     public static function reserved(string $slug): bool
     {
         return in_array(strtolower($slug), self::all(), true);
+    }
+
+    /** One of the Next application's own top-level routes. */
+    public static function isFrontendRoute(string $slug): bool
+    {
+        return in_array(strtolower($slug), self::FRONTEND, true);
+    }
+
+    /**
+     * A validation rule for a **CMS page's** slug: not one of the site's own
+     * routes.
+     *
+     * A page lives at `/{slug}`, the same segment every route of the site
+     * lives at, and Next resolves a static segment before the catch-all — so
+     * a page saved at `/events` is not a broken page, it is one nobody can
+     * ever open, with nothing saying so. The page forms had no such check
+     * until the events module made the commonest example of it real.
+     *
+     * Only the frontend's routes, not the whole list: the API prefixes and
+     * the server words are reserved so a *content type* cannot take them,
+     * and a page at `/media` or `/account` is one this install may already
+     * have. And only when the slug is **changing** — `$current` is the
+     * stored slug on an edit — so a page that already sits on one of these
+     * can still be saved while somebody decides what to call it.
+     */
+    public static function pageSlugRule(?string $current = null): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($current): void {
+            if (is_string($value) && strcasecmp($value, (string) $current) !== 0 && self::isFrontendRoute($value)) {
+                $fail("/{$value} is one of the site's own pages, so a page cannot take that address. Choose another slug.");
+            }
+        };
     }
 }

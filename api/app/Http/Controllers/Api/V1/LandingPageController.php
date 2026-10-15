@@ -87,11 +87,20 @@ class LandingPageController extends Controller
 
         abort_if(! $page, 404);
 
+        return response()->json(['data' => $this->present($page)]);
+    }
+
+    /**
+     * The page as the public read answers it. `$page` must have been loaded
+     * `withContext()`; the draft preview calls this too.
+     */
+    public function present(LandingPage $page): LandingPageResource
+    {
         // The products this page is about, attached under the name the resource
         // renders. Not a real relation — which products belong here depends on
         // the kind, and Eloquent cannot branch on a column of its own row.
         $page->setRelation('relatedProducts', $page->evidenceProducts());
 
-        return response()->json(['data' => new LandingPageResource($page)]);
+        return new LandingPageResource($page);
     }
 }

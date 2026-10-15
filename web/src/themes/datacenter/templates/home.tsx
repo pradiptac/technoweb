@@ -12,7 +12,7 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { HomeSection as Bg, homeSeeds } from "@/components/ui/section-bg";
 import { SliderFor } from "@/components/ui/slider-for";
-import { IconArrowRight, IdentityIcon, iconMap } from "@/components/icons";
+import { IconArrowRight, IdentityIcon, isIdentityIcon } from "@/components/icons";
 import { statFigures } from "@/components/ui/stat";
 import { statLookFor } from "@/lib/stat-look";
 import { IconTile } from "@/components/ui/icon-tile";
@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
 import { StatValue } from "@/components/ui/stat-value";
+import { HeroTitle } from "@/lib/hero-heading";
 
 /**
  * Datacenter's front page: the operations floor.
@@ -65,7 +66,7 @@ export function Home({
               <span className="font-mono text-12 font-semibold uppercase tracking-[.14em] text-brand-300">
                 <span aria-hidden className="text-dark-muted">{"// "}</span>{kicker}
               </span>
-              <h1 className="display-1 mt-5 max-w-[16ch] text-balance">{heading}</h1>
+              <HeroTitle className="display-1 mt-5 max-w-[16ch] text-balance">{heading}</HeroTitle>
               <p className="lede mt-5 text-dark-muted">{lede}</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <ButtonLink href="/contact" variant="onDark">
@@ -103,7 +104,7 @@ export function Home({
             <dl className={cn("stat-figures grid divide-dark-line font-mono sm:divide-x", stripColumns(stats.length))} {...statFigures(look, true)}>
               {stats.map((s, i) => (
                 <div key={s.label} className={cn("flex items-baseline gap-3 py-3 sm:py-4 sm:px-6", i === 0 && "sm:pl-0")}>
-                  {s.icon && s.icon in iconMap
+                  {s.icon && isIdentityIcon(s.icon)
                     ? <IdentityIcon name={s.icon} className="size-4 shrink-0 self-center" />
                     : <i aria-hidden className="size-1.5 shrink-0 self-center rounded-full bg-brand-300" />}
                   <dd className="whitespace-nowrap font-mono"><StatValue value={s.value} /></dd>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\IconKey;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -34,7 +35,7 @@ class ServiceCategoryRequest extends FormRequest
                 Rule::unique('service_categories', 'slug')->ignore($this->route('service_category')),
             ],
             'description' => [...$sometimes, 'nullable', 'string', 'max:1000'],
-            'icon' => [...$sometimes, 'nullable', 'string', 'max:40'],
+            'icon' => [...$sometimes, 'nullable', 'string', 'max:40', IconKey::RULE],
             'sort_order' => [...$sometimes, 'nullable', 'integer', 'min:0', 'max:65535'],
             'image_background' => [...$sometimes, 'boolean'],
             'is_active' => [...$sometimes, 'boolean'],

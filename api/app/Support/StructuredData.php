@@ -9,6 +9,7 @@ use App\Models\BlogComment;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Faq;
 use App\Models\KnowledgeArticle;
 use App\Models\LandingPage;
@@ -20,8 +21,13 @@ use App\Models\Setting;
 use App\Models\Solution;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
+use App\Models\StoreTag;
+use App\Models\SupportCentre;
+use App\Models\Tender;
+use App\Support\Events\EventText;
 use App\Support\Mail\MailBrand;
 use App\Support\Store\Fulfilment;
+use App\Support\Tenders\TenderText;
 
 /**
  * Every JSON-LD block this site emits, built where the data is.
@@ -152,7 +158,7 @@ class StructuredData
             'url' => self::url('/products/'.$product->slug),
             'sku' => $product->sku ?: null,
             'image' => collect($product->images ?? [])
-                ->map(fn ($p) => asset('storage/'.$p))->take(6)->values()->all(),
+                ->map(fn ($p) => MediaUrl::for($p))->take(6)->values()->all(),
             'brand' => $product->brand
                 ? ['@type' => 'Brand', 'name' => $product->brand->name]
                 : null,
@@ -215,7 +221,7 @@ class StructuredData
             'gtin' => $identifiers['gtin'],
             'mpn' => $identifiers['mpn'],
             'image' => collect($product->images ?? [])
-                ->map(fn ($p) => asset('storage/'.$p))->take(6)->values()->all(),
+                ->map(fn ($p) => MediaUrl::for($p))->take(6)->values()->all(),
             'brand' => $product->brand
                 ? ['@type' => 'Brand', 'name' => $product->brand->name]
                 : null,
@@ -264,7 +270,10 @@ class StructuredData
                     default => 'OutOfStock',
                 },
                 'itemCondition' => ($product->condition ?? ProductCondition::New)->schemaUrl(),
-                'shippingDetails' => self::shippingDetails(),
+                // Absent in zones mode: the charge depends on where it goes and
+                // what it weighs, and one figure here would be a price the
+                // page does not charge (0.142.0).
+                'shippingDetails' => Fulfilment::usesZones() ? null : self::shippingDetails(),
                 'hasMerchantReturnPolicy' => self::returnPolicy($product),
                 'seller' => self::publisher(),
             ],
@@ -352,7 +361,7 @@ class StructuredData
                 '@type' => 'VideoObject',
                 'name' => filled($v['title'] ?? null) ? $v['title'] : $product->name,
                 'description' => filled($v['title'] ?? null) ? $v['title'].' — '.$product->name : $product->name,
-                'thumbnailUrl' => asset('storage/'.$v['poster_path']),
+                'thumbnailUrl' => MediaUrl::for($v['poster_path']),
                 'uploadDate' => $product->updated_at?->toIso8601String(),
                 'embedUrl' => 'https://www.youtube-nocookie.com/embed/'.$v['youtube_id'],
             ])
@@ -521,7 +530,7 @@ class StructuredData
             '@type' => SchemaTypes::resolve($type, $record->seo?->schema_type),
             'headline' => $record->title,
             'description' => $record->excerpt ? HtmlSanitiser::toText($record->excerpt) : null,
-            'image' => $record->cover_image_path ? asset('storage/'.$record->cover_image_path) : null,
+            'image' => $record->cover_image_path ? MediaUrl::for($record->cover_image_path) : null,
             'datePublished' => $published?->toIso8601String(),
             // The one that was wrong everywhere.
             'dateModified' => $record->updated_at?->toIso8601String(),
@@ -546,6 +555,114 @@ class StructuredData
         ] + self::relationships(EntityLinks::for($record)));
     }
 
+    /* -------------------------------------------------------------- event */
+
+    /**
+     * An event (docs/events.md): when it is, how it is attended, and where.
+     *
+     * `location` follows the format — a `Place` for somewhere to go, a
+     * `VirtualLocation` for something to join, both for a hybrid. **The
+     * `VirtualLocation`'s `url` is the page, never the join link.** The join
+     * link is sent to people who registered; markup is read by everybody,
+     * and a crawler that indexed a Meet address would have published the
+     * door to the room. This method does not read `online_url` at all.
+     *
+     * The address is the editor's own text, as one string — schema.org takes
+     * `Text` for an address, and splitting a free-text block into street,
+     * locality and postcode would be guessing at which line is which.
+     * Nothing is guessed: no country, no `offers` (nothing is sold, and an
+     * `Offer` without a price is the error `product()` documents), and no
+     * `eventStatus` other than scheduled — an event taken off the site is a
+     * 404, not a page that says it was cancelled.
+     *
+     * `endDate` is the stored end and is absent when there is none; the
+     * hour a calendar file assumes is for calendars, not a claim to make
+     * here.
+     */
+    public static function event(Event $event): array
+    {
+        $url = self::url($event->publicPath());
+
+        $place = $event->format->hasVenue() && filled($event->venue_name) ? [
+            '@type' => 'Place',
+            'name' => $event->venue_name,
+            'address' => filled($event->venue_address)
+                ? trim((string) preg_replace('/\s*\R\s*/', ', ', (string) $event->venue_address))
+                : $event->venue_city,
+        ] : null;
+
+        $virtual = $event->format->isOnline() ? ['@type' => 'VirtualLocation', 'url' => $url] : null;
+
+        $speakers = array_values(array_filter(array_map(
+            fn (array $s) => filled($s['name'] ?? null) ? [
+                '@type' => 'Person',
+                'name' => (string) $s['name'],
+                'jobTitle' => $s['role'] ?? null,
+            ] : null,
+            $event->speakers ?? [],
+        )));
+
+        return self::graph([
+            // The editor's refinement when they picked one — `BusinessEvent`
+            // rather than `Event` — and the derived type otherwise.
+            '@type' => SchemaTypes::resolve('Event', $event->seo?->schema_type),
+            'name' => $event->title,
+            'description' => $event->summary ? HtmlSanitiser::toText($event->summary) : null,
+            'image' => $event->cover_image_path ? MediaUrl::for($event->cover_image_path) : null,
+            'startDate' => EventText::iso($event->starts_at),
+            'endDate' => EventText::iso($event->ends_at),
+            'eventAttendanceMode' => $event->format->attendanceMode(),
+            'eventStatus' => 'https://schema.org/EventScheduled',
+            // One node for one kind of place, a list of the two for a hybrid.
+            'location' => $place !== null && $virtual !== null ? [$place, $virtual] : ($place ?? $virtual),
+            'organizer' => self::publisher(),
+            'performer' => $speakers,
+            'url' => $url,
+            'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $url],
+        ]);
+    }
+
+    /* ----------------------------------------------------------- tenders */
+
+    /**
+     * A tender notice (0.174.0, `docs/tenders.md`).
+     *
+     * **A `WebPage` and nothing more, deliberately.** Schema.org has no
+     * tender or request-for-quotation type, and Google has no tender rich
+     * result — so there is nothing richer to emit that would be true.
+     * Reaching for `Offer` would be the worst of the options: it says
+     * somebody is selling something at a price, and a tender is this company
+     * asking others to quote.
+     *
+     * So the node claims what a notice actually is: a page, with a name, a
+     * description, when it went up, when it last changed, who published it,
+     * and what it is about. `validThrough` is not here either: it is an
+     * `Offer` property, and putting the closing date on a type that does not
+     * define it is markup a validator reports rather than reads.
+     */
+    public static function tender(Tender $tender): array
+    {
+        $url = self::url($tender->publicPath());
+
+        return self::graph([
+            '@type' => SchemaTypes::resolve('WebPage', $tender->seo?->schema_type),
+            'name' => $tender->title,
+            'description' => $tender->summary
+                ? HtmlSanitiser::toText($tender->summary)
+                : ($tender->description ? str(HtmlSanitiser::toText($tender->description))->limit(200)->value() : null),
+            'url' => $url,
+            'datePublished' => TenderText::iso($tender->opens_at),
+            'dateModified' => TenderText::iso($tender->updated_at),
+            'publisher' => self::publisher(),
+            // The category, when one is loaded — the only thing about a
+            // tender that is a subject rather than a date or a rule.
+            'about' => $tender->relationLoaded('category') && $tender->category !== null
+                ? ['@type' => 'Thing', 'name' => $tender->category->name]
+                : null,
+            'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $url],
+        ]);
+    }
+
     /* ---------------------------------------------------- custom content */
 
     /**
@@ -567,7 +684,7 @@ class StructuredData
 
         $url = self::url($entry->publicPath());
         $description = $entry->summary ? HtmlSanitiser::toText($entry->summary) : null;
-        $image = $entry->image_path ? asset('storage/'.$entry->image_path) : null;
+        $image = $entry->image_path ? MediaUrl::for($entry->image_path) : null;
         $type = SchemaTypes::resolve($base, $entry->seo?->schema_type);
 
         if ($base === 'WebPage') {
@@ -745,6 +862,58 @@ class StructuredData
     }
 
     /**
+     * The support network page's graph (0.170.0, docs/support-network.md): an
+     * `ItemList` of the centres, each a `LocalBusiness` (`ProfessionalService`
+     * for an office or partner too — every one is a building with a phone)
+     * whose `parentOrganization` is the site's own `Organization` node. This is
+     * the physical-place case `localBusiness()`'s rule allows: each centre is
+     * an address somebody can walk into, entered as one.
+     *
+     * @param  iterable<SupportCentre>  $centres
+     */
+    public static function supportNetwork(iterable $centres): ?array
+    {
+        $items = [];
+        $i = 0;
+        foreach ($centres as $centre) {
+            $items[] = [
+                '@type' => 'ListItem',
+                'position' => ++$i,
+                'item' => array_filter([
+                    '@type' => 'LocalBusiness',
+                    'name' => $centre->name,
+                    'url' => self::url('/support-network#'.$centre->slug),
+                    'parentOrganization' => self::publisher(),
+                    'telephone' => $centre->phone ?: null,
+                    'email' => $centre->email ?: null,
+                    'openingHours' => $centre->hours ?: null,
+                    'address' => array_filter([
+                        '@type' => 'PostalAddress',
+                        'streetAddress' => $centre->address ?: null,
+                        'addressLocality' => $centre->city,
+                        'addressRegion' => $centre->region ?: null,
+                        'addressCountry' => $centre->country_code,
+                    ]),
+                    'geo' => $centre->latitude !== null && $centre->longitude !== null ? [
+                        '@type' => 'GeoCoordinates',
+                        'latitude' => $centre->latitude,
+                        'longitude' => $centre->longitude,
+                    ] : null,
+                ], fn ($v) => $v !== null),
+            ];
+        }
+        if (! $items) {
+            return null;
+        }
+
+        return self::graph([
+            '@type' => 'ItemList',
+            'name' => self::company().' — support network',
+            'itemListElement' => $items,
+        ]);
+    }
+
+    /**
      * What a landing page is, which depends on what it is about.
      *
      * A catalogue page is a `CollectionPage` and not a `Product`, however
@@ -769,6 +938,19 @@ class StructuredData
             'about' => $page->brand
                 ? ['@type' => 'Brand', 'name' => $page->brand->name]
                 : null,
+        ]);
+    }
+
+    /** A shop tag's page: a listing of the products carrying it, so a `CollectionPage`. */
+    public static function storeTag(StoreTag $tag, int $count): array
+    {
+        return self::graph([
+            '@type' => 'CollectionPage',
+            'name' => $tag->heading ?: $tag->name,
+            'description' => str(HtmlSanitiser::toText($tag->intro ?? ''))->limit(300)->value() ?: null,
+            'url' => self::url($tag->publicPath()),
+            'isPartOf' => ['@type' => 'WebSite', '@id' => self::url().'/#website', 'name' => self::company(), 'url' => self::url()],
+            'mainEntity' => $count > 0 ? ['@type' => 'ItemList', 'numberOfItems' => $count] : null,
         ]);
     }
 }

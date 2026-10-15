@@ -5,7 +5,12 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { FileDrop, type UploadProgress } from "@/components/ui/file-drop";
 import { uploadMediaFile } from "@/lib/media-upload";
+import { importMediaUrlAction } from "@/components/admin/media-browser-actions";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { MediaBrowser } from "@/components/admin/media-browser";
+import { useCropBeforeUpload } from "@/components/admin/crop-before-upload";
+import { imageHint, type ImageSpec, type ImageSpecKey } from "@/lib/image-specs";
 
 type UploadState = { error?: string; path?: string; url?: string };
 const initial: UploadState = {};
@@ -22,9 +27,10 @@ const initial: UploadState = {};
 export function CoverField({
   defaultPath, defaultUrl, name = "cover_image_path", label = "Cover image",
   accept = ".png,.jpg,.jpeg,.gif,.webp,.svg",
-  hint = "PNG, JPG, GIF, WebP or SVG. Around 1200 x 800 px is plenty.",
+  hint, spec,
   description, className,
   onPathChange,
+  kind = "image",
 }: {
   defaultPath: string | null;
   defaultUrl: string | null;
@@ -33,7 +39,14 @@ export function CoverField({
   label?: string;
   /** Widened for video slides, which pick an MP4 rather than an image. */
   accept?: string;
+  /** Overrides the line built from `spec`. */
   hint?: string;
+  /**
+   * The shape and size this picture is drawn at (`lib/image-specs.ts`): the
+   * hint under the drop zone says it, and the crop step that opens before an
+   * upload starts on — or is locked to — its ratio (0.169.0).
+   */
+  spec?: ImageSpecKey | ImageSpec;
   /**
    * A line under the label saying what this image is for.
    *
@@ -58,6 +71,13 @@ export function CoverField({
    * one JSON field — so it needs the value rather than the input.
    */
   onPathChange?: (path: string | null) => void;
+  /**
+   * What the field holds (0.172.0): a picture, or a Lottie animation or 3D
+   * model, which browse their own half of the library, preview as a file
+   * name rather than an `<img>`, and offer "Or paste a link" — the API copies
+   * the file into the library, so no visitor ever fetches from that site.
+   */
+  kind?: "image" | "lottie" | "model";
 }) {
   /*
     Uploaded by the browser itself through `uploadMediaFile`, not a Server
@@ -68,6 +88,17 @@ export function CoverField({
   const [state, setState] = useState<UploadState>(initial);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const pending = progress !== null;
+  const { prepare, limits } = useCropBeforeUpload();
+  const isVideo = accept.includes("mp4");
+  const motion = kind === "lottie" || kind === "model";
+  // The caller's sentence (what the picture is for), then what to upload.
+  const line = isVideo
+    ? hint ?? "An MP4 or WebM video."
+    : motion
+      ? hint ?? (kind === "lottie" ? "A Lottie animation, .json or .lottie, up to 5 MB." : "A binary glTF model (.glb), up to 25 MB, not Draco-compressed.")
+      : [hint, imageHint(spec, limits)].filter(Boolean).join(" ");
+  const [link, setLink] = useState("");
+  const [linkState, setLinkState] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null });
   // Derived, not synced: a fresh upload wins over the saved cover, and
   // clearing wins over both. Mirroring the action result into state with an
   // effect would just be a slower way to say the same thing.
@@ -126,7 +157,11 @@ export function CoverField({
       */}
       <div className="mb-2 grid gap-3 sm:grid-cols-2">
         <div className="min-w-0">
-          {url ? (
+          {url && motion ? (
+            <div className="grid min-h-[6rem] place-items-center rounded border border-line-strong bg-surface px-3 py-4 text-center text-12-5 text-ink-2 [overflow-wrap:anywhere]">
+              {`${kind === "lottie" ? "Animation" : "3D model"}: ${decodeURIComponent(url.split("?")[0]!.split("/").pop() ?? "")}`}
+            </div>
+          ) : url ? (
             <div className="grid place-items-center overflow-hidden rounded border border-line-strong bg-surface p-3">
           {/*
             One preview treatment everywhere: the whole file, contained, capped
@@ -173,12 +208,15 @@ export function CoverField({
       <FileDrop
         accept={accept}
         label={`Select ${label.toLowerCase()}…`}
-        hint={hint}
+        hint={line}
         // One file, measured in bytes: the percentage is the picture going up.
         progress={progress}
-        onFiles={(files) => {
-          const file = files[0];
-          if (!file || pending) return;
+        onFiles={async (files) => {
+          const picked = files[0];
+          if (!picked || pending) return;
+          // The crop step first (a JPEG, PNG or WebP); Cancel uploads nothing.
+          const file = (await prepare([picked], spec))?.[0];
+          if (!file) return;
           // Uploaded the moment a file is chosen — one less button to press,
           // and the preview updates immediately.
           setCleared(false);
@@ -241,10 +279,47 @@ export function CoverField({
         </div>
       </div>
 
+      {motion && (
+        <div className="mt-2">
+          <div className="flex gap-2">
+            <Input
+              value={link}
+              onChange={(e) => setLink(e.currentTarget.value)}
+              placeholder="Or paste a link — https://…"
+              aria-label={`Paste a link to ${kind === "lottie" ? "an animation" : "a 3D model"}`}
+              className="min-w-0 flex-1"
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              pending={linkState.busy}
+              disabled={linkState.busy || !link.trim()}
+              onClick={async () => {
+                setLinkState({ busy: true, error: null });
+                const res = await importMediaUrlAction(link);
+                if ("error" in res) { setLinkState({ busy: false, error: res.error }); return; }
+                setLinkState({ busy: false, error: null });
+                setLink("");
+                setCleared(false);
+                setPicked({ path: res.path, url: res.url });
+              }}
+            >
+              Add
+            </Button>
+          </div>
+          <p className="mt-1 text-12 text-muted">The file is copied into the media library once, so visitors never load it from that site.</p>
+          {linkState.error && <p role="alert" className="mt-1 text-12-5 text-err">{linkState.error}</p>}
+        </div>
+      )}
+
       <MediaBrowser
         open={browsing}
         onClose={() => setBrowsing(false)}
         onPick={(image) => { setCleared(false); setPicked({ path: image.path, url: image.url }); }}
+        spec={spec}
+        kind={motion ? kind : "image"}
+        accept={motion ? accept : undefined}
       />
 
     </div>

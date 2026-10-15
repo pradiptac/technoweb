@@ -5,11 +5,12 @@ import { useActionState } from "react";
 import { Form } from "@/components/ui/form";
 import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import {
   createMeetingTypeAction, deleteMeetingTypeAction, updateMeetingTypeAction, type MeetingActionState,
 } from "../actions";
 import type { AdminMeetingType } from "@/types/meetings";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: MeetingActionState = {};
 
@@ -104,20 +105,10 @@ export function MeetingTypeForm({
         </div>
 
         <aside className="grid content-start gap-0">
-          <Field label="Switched on" htmlFor="is_active" variant="float-static" error={err("is_active")}
-            hint="Off takes it off the booking page and the scheduler. Its meetings stay as they are.">
-            <Select id="is_active" name="is_active" defaultValue={type?.is_active === false ? "0" : "1"}>
-              <option value="1">On</option>
-              <option value="0">Off</option>
-            </Select>
-          </Field>
-          <Field label="Offered on the website" htmlFor="is_public" variant="float-static" error={err("is_public")}
-            hint="No keeps it to bookings made here in the console.">
-            <Select id="is_public" name="is_public" defaultValue={type?.is_public === false ? "0" : "1"}>
-              <option value="1">Yes</option>
-              <option value="0">No, console only</option>
-            </Select>
-          </Field>
+          <RecordSwitch className="mb-[18px]" name="is_active" defaultChecked={type?.is_active !== false} label="Switched on"
+            hint="Off takes it off the booking page and the scheduler. Its meetings stay as they are." />
+          <RecordSwitch className="mb-[18px]" name="is_public" defaultChecked={type?.is_public !== false} label="Offered on the website"
+            hint="Off keeps it to bookings made here in the console." />
           <Field label="Order" htmlFor="sort_order" variant="float-static" error={err("sort_order")} hint="Lower comes first on the booking page.">
             <Input id="sort_order" name="sort_order" type="number" min={0} max={9999} defaultValue={type?.sort_order ?? 0} />
           </Field>

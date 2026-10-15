@@ -4,7 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { IdentityIcon, iconMap } from "@/components/icons";
+import { IdentityIcon, isIdentityIcon } from "@/components/icons";
 import { IconArrowRight } from "@/components/icons-ui";
 import { MarqueeToggle } from "@/components/company/marquee-toggle";
 import { getSiteSettings } from "@/lib/settings";
@@ -124,7 +124,7 @@ function StackDisc({ item, sizes, className }: { item: StackItem; sizes: string;
       </span>
     );
   }
-  if (item.icon && item.icon in iconMap) {
+  if (item.icon && isIdentityIcon(item.icon)) {
     return (
       <span className={cn("stack-disc stack-disc--icon", className)} aria-hidden="true">
         <IdentityIcon name={item.icon} className="stack-disc__mark" />

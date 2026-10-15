@@ -12,21 +12,58 @@
  * renders nothing rather than failing a check nobody runs across the wire.
  */
 import type { ContentBlock } from "./blocks";
+import type { TeamMember } from "./api";
 import type { SectionBackground } from "@/themes/options";
 
 export type PageSectionType =
   | "hero" | "rich_text" | "media_text" | "features" | "cards" | "content_block"
-  | "slider" | "gallery" | "form" | "faq" | "logos" | "testimonial" | "video" | "divider";
+  | "slider" | "gallery" | "form" | "faq" | "logos" | "testimonial" | "video" | "divider"
+  /** The five self-contained bands of 0.107.0. */
+  | "stats" | "steps" | "tabs" | "checklist" | "cta"
+  /** The four of 0.109.0. */
+  | "comparison" | "timeline" | "before_after" | "testimonials"
+  /** The five of 0.111.0. */
+  | "team" | "downloads" | "countdown" | "columns" | "map"
+  /** One of the active theme's homepage sections, by its `HOME_SECTIONS` id (0.113.0). */
+  | "theme_section"
+  /** Rows and columns of widgets, arranged by hand (0.147.0). */
+  | "layout"
+  /** Code pasted in as it is (0.158.0): drawn in a sandboxed frame unless an administrator chose the page itself. */
+  | "custom_code"
+  /** A scroll story (0.114.0): steps that scroll past a picture held beside them. */
+  | "story"
+  /** A diagram (0.115.0): two to six steps joined by arrows that draw as the page scrolls. */
+  | "flow"
+  /** An in-page menu (0.126.0): links to the page's own anchored sections, worked out by the API. */
+  | "subnav"
+  /** The shop's "shop the videos" row (0.140.0): a live list, resolved by the API through `VideoShelf`. */
+  | "product_videos"
+  /** The support network's map and centres (0.170.0), live from the API. */
+  | "support_network"
+  /** A Lottie animation and a 3D model from the media library (0.172.0). */
+  | "lottie" | "model"
+  /** A library section placed linked (0.106.0): stored as `{saved_id}`, drawn as the library's section. */
+  | "saved";
 
 export type SectionButton = { label?: string | null; href?: string | null };
 
 /** A picture as the public read carries it: the URL, its alt text and its focal point. */
-type Picture<N extends string> = { [K in N]?: string | null } & { [K in `${N}_alt`]?: string } & { [K in `${N}_focus`]?: string | null };
+type Picture<N extends string> = { [K in N]?: string | null } & { [K in `${N}_alt`]?: string } & { [K in `${N}_focus`]?: string | null } & { [K in `${N}_blur`]?: string | null };
 
 export type HeroSectionData = Picture<"image"> & {
   kicker?: string; heading: string; lede?: string;
   layout: "split" | "centered" | "cover";
   primary?: SectionButton; secondary?: SectionButton;
+  /**
+   * A background video's public URL (0.115.0) — `cover` only, and only over a
+   * picture, which stays the first paint and the poster: the video fades in
+   * over it once it plays, and never plays for reduced motion or Save-Data.
+   */
+  video?: string | null;
+  /** The heading's effect (0.171.0, `lib/kinetic.ts`); absent follows Motion → Hero heading. */
+  kinetic?: string | null;
+  /** Rotating words' alternatives, or the word to underline — one per line. */
+  kinetic_words?: string | null;
 };
 
 export type RichTextSectionData = { heading?: string; body: string };
@@ -46,7 +83,7 @@ export type FeaturesSectionData = { kicker?: string; heading?: string; lede?: st
 
 export type CardItem = {
   title: string; summary: string | null; path: string;
-  image: string | null; image_alt: string | null; image_focus: string | null;
+  image: string | null; image_alt: string | null; image_focus: string | null; image_blur?: string | null;
   icon: string | null; kicker: string | null; meta: string | null;
 };
 export type CardsSectionData = {
@@ -61,11 +98,270 @@ export type EmbedSectionData = { heading?: string; lede?: string; slug: string }
 export type FaqSectionData = { heading?: string; source: "page" | "custom"; items: { question: string; answer: string }[] };
 export type LogosSectionData = { heading?: string; source: "clients" | "brands" };
 export type TestimonialSectionData = Picture<"photo"> & { quote: string; name: string; role?: string };
+/** A Lottie animation (0.172.0): the file, its format and its width ÷ height, from the media row. */
+export type LottieSectionData = {
+  heading?: string; lede?: string; file: string; format: "json" | "lottie"; ratio: number;
+  alt?: string | null; loop?: boolean; size?: "s" | "m" | "l"; align?: "center" | "start";
+};
+/** A 3D model (0.172.0): a binary glTF, a description, an optional poster. */
+export type ModelSectionData = {
+  heading?: string; lede?: string; file: string; alt: string;
+  poster?: string | null; poster_alt?: string | null; rotate?: boolean; height?: "s" | "m" | "l";
+};
 export type VideoSectionData = { heading?: string; source: "youtube" | "mp4"; youtube?: string | null; video?: string | null; caption?: string };
 export type DividerSectionData = { size?: "small" | "medium" | "large"; rule?: boolean };
 
+type Head = { kicker?: string; heading?: string; lede?: string };
+export type StatFigure = { value: string; label: string; icon?: string; percent?: number };
+export type StatsSectionData = Head & { display: "figures" | "rings" | "bars"; columns?: 2 | 3 | 4; items: StatFigure[] };
+export type StepItem = { title: string; body?: string; icon?: string };
+export type StepsSectionData = Head & { layout: "vertical" | "horizontal"; items: StepItem[] };
+export type TabItem = Picture<"image"> & { label: string; heading?: string; body: string };
+export type TabsSectionData = Head & { items: TabItem[] };
+export type ChecklistSectionData = Head & {
+  columns?: 1 | 2 | 3; items: { text: string; icon?: string }[]; primary?: SectionButton; secondary?: SectionButton;
+};
+export type CtaSectionData = {
+  kicker?: string; heading: string; lede?: string; tone?: "brand" | "accent";
+  /** No second button: offer the site's "Call" button, as the theme's own band does. */
+  call?: boolean;
+  primary?: SectionButton; secondary?: SectionButton;
+};
+
+export type ComparisonSectionData = Head & {
+  plans: { name: string; note?: string }[];
+  /** The plan drawn as recommended, by position. */
+  highlight?: number;
+  /** One cell per plan, by position: "yes", "no", a few words, or null. */
+  rows: { label: string; cells?: (string | null)[] }[];
+  primary?: SectionButton;
+};
+export type TimelineSectionData = Head & { items: { date: string; title: string; body?: string }[] };
+export type BeforeAfterSectionData = Picture<"before"> & Picture<"after"> & {
+  heading?: string; lede?: string; before_label?: string; after_label?: string; start?: number; caption?: string;
+};
+export type TestimonialItem = Picture<"photo"> & { quote: string; name: string; role?: string };
+export type TestimonialsSectionData = Head & { items: TestimonialItem[] };
+/** The team as a live list — the public read carries `members` in `/team`'s shape. */
+export type TeamSectionData = Head & { department?: string; limit?: number; group?: boolean; members?: TeamMember[] };
+/**
+ * Each file resolved for the page: a typed one from the library carries its
+ * `url`; one read from the downloads centre (`source: "centre"`, 0.131.0)
+ * carries `download_id` instead and is fetched through `/api/downloads/{id}`.
+ */
+export type DownloadsSectionData = Head & {
+  source?: "custom" | "centre";
+  category_id?: number;
+  limit?: number;
+  /** Where "All downloads" goes, for a section reading the centre. */
+  index_path?: string;
+  items: {
+    title: string; note?: string; url?: string; size?: number; extension?: string;
+    download_id?: number; locked?: boolean; version?: string; released_label?: string;
+  }[];
+};
+/** `ends_at` is an instant with its offset; `ends_label` the API's words for it. */
+export type CountdownSectionData = Head & {
+  heading: string; ends_at: string; ends_label?: string; done_text?: string;
+  primary?: SectionButton; secondary?: SectionButton;
+};
+export type ColumnsSectionData = Head & { columns: { heading?: string; body: string }[] };
+/** `section` is an id from `HOME_SECTIONS` in `themes/options.ts`; the active theme draws it. */
+export type ThemeSectionData = { section: string };
+/** `html` is raw by design; `mode` and `height` are absent at their defaults (a frame, sized by its content). */
+export type CustomCodeSectionData = {
+  label: string; html: string; mode?: "frame" | "page"; height?: "auto" | "s" | "m" | "l";
+};
+export type MapSectionData = { heading?: string; lede?: string; url: string; address?: string };
+
+/**
+ * The custom layout section (0.147.0, `LayoutPresenter`'s shape): rows of one
+ * to four columns, each a short stack of widgets. A value that is the API's
+ * default is absent — the website applies the default — and a widget carries
+ * only the fields its own type declares. Only a container widget holds widgets, one level deep.
+ */
+export type LayoutWidgetDevice = "phone" | "tablet" | "desktop";
+type WidgetBase = { id: string; show_on?: LayoutWidgetDevice[] };
+export type LayoutAlign = "inherit" | "start" | "center" | "end";
+/** What a container's slot may hold (and a column): every widget but the embeds and the containers. */
+export type LayoutLeaf =
+  | { type: "heading"; text: string; size?: "s" | "m" | "l" | "xl"; align?: LayoutAlign }
+  | { type: "text"; html: string; lead?: boolean }
+  | { type: "button"; label: string; href: string; variant?: "primary" | "secondary" | "link"; align?: LayoutAlign }
+  | {
+      type: "image"; image: string; image_alt?: string; image_focus?: string | null; image_blur?: string | null;
+      ratio?: "1:1" | "4:3" | "3:2" | "16:9" | "3:4"; rounded?: "none" | "s" | "m" | "l" | "full"; href?: string; caption?: string;
+    }
+  | { type: "spacer"; size?: "s" | "m" | "l" | "xl" }
+  | { type: "divider"; short?: boolean }
+  | { type: "icon_box"; icon?: string; title: string; body?: string; href?: string; link_label?: string; layout?: "stacked" | "inline" }
+  | { type: "accordion"; items: { question: string; answer: string }[] }
+  | { type: "list"; items: { text: string; icon?: string }[]; marker?: "tick" | "dot" | "number" }
+  | {
+      type: "video"; source?: "youtube" | "mp4"; youtube?: string; video?: string; poster?: string; poster_alt?: string;
+      ratio?: "16:9" | "4:3" | "1:1" | "9:16"; caption?: string;
+    }
+  /** A Lottie animation and a 3D model (0.172.0); `loop`/`rotate` are the widget's yes/no choices. */
+  | { type: "lottie"; file?: string; format?: "json" | "lottie"; ratio?: number; alt?: string; loop?: "yes" | "no" | boolean }
+  | { type: "model"; file?: string; alt?: string; poster?: string; poster_alt?: string; rotate?: "yes" | "no" | boolean };
+/**
+ * The four container widgets (0.154.0): each holds `slots`, and a slot holds
+ * ordinary widgets — one level, never another container, form, slider or gallery.
+ */
+export type LayoutChild = WidgetBase & LayoutLeaf;
+export type LayoutWidget = WidgetBase & (LayoutLeaf | { type: "form" | "slider" | "gallery"; slug: string } | LayoutContainer);
+export type LayoutSlot = { id: string; label?: string; title?: string; open?: boolean; widgets: LayoutChild[] };
+export type LayoutContainer = WidgetBase & (
+  | { type: "box"; surface?: "card" | "raised" | "tint"; pad?: "s" | "m" | "l"; align?: LayoutAlign; slots: LayoutSlot[] }
+  | { type: "tabs"; slots: LayoutSlot[] }
+  | { type: "panels"; slots: LayoutSlot[] }
+  | { type: "inner_row"; split?: "equal" | "wide_first" | "wide_last"; gap?: "s" | "m" | "l"; valign?: "stretch" | "top" | "center" | "bottom"; stack_from?: "md" | "lg"; slots: LayoutSlot[] }
+);
+export type LayoutColumn = {
+  surface?: "none" | "card" | "raised"; pad?: "none" | "s" | "m"; align?: LayoutAlign; valign?: "top" | "center" | "bottom";
+  widgets: LayoutWidget[];
+};
+export type LayoutRow = {
+  id: string;
+  split?: "equal" | "wide_first" | "wide_last"; gap?: "s" | "m" | "l"; valign?: "stretch" | "top" | "center" | "bottom";
+  stack_from?: "md" | "lg"; reverse_stacked?: boolean;
+  columns: LayoutColumn[];
+};
+export type LayoutSectionData = Head & { rows: LayoutRow[] };
+
+/**
+ * What the console draws a layout's controls from (`LayoutRules::options()`):
+ * one descriptor per field, so a widget type or a field added to the API needs
+ * no change here. `default` is the choice that is never stored.
+ */
+export type LayoutField = {
+  key: string;
+  kind: "text" | "html" | "choice" | "bool" | "link" | "path" | "icon" | "youtube" | "video" | "ref" | "lottie" | "model";
+  label: string;
+  max?: number;
+  required?: boolean;
+  multiline?: boolean;
+  hint?: string | null;
+  default?: string;
+  choices?: { value: string; label: string }[];
+  /** Drawn only while a sibling field holds this value (a missing sibling counts as its `default`). */
+  when?: Record<string, string>;
+  /** A `ref` field: which published record it chooses, and whether a section may hold only one. */
+  record?: "form" | "slider" | "gallery";
+  single?: boolean;
+};
+export type LayoutWidgetSpec = {
+  value: string; label: string; blurb: string; fields: LayoutField[];
+  list?: { key: string; label: string; min: number; max: number; fields: LayoutField[] };
+  /** A container widget (0.154.0): its slots (tabs, panels, columns), their own fields, and the widget types a slot may hold. */
+  container?: { key: string; label: string; min: number; max: number; fields: LayoutField[]; child_types: string[] };
+};
+export type LayoutOptions = {
+  widgets: LayoutWidgetSpec[];
+  row: LayoutField[];
+  column: LayoutField[];
+  limits: { rows: number; columns: number; widgets_per_column: number; widgets: number; characters: number; html: number; items: number };
+};
+
+/**
+ * One step of a scroll story as the public read carries it: the picture
+ * resolved to its URL with alt text and focal point. Stored, the step holds
+ * `image_path` instead (the console edits `StoredSection.data`).
+ */
+export type StoryItem = {
+  title: string; body: string;
+  image: string; image_alt: string | null; image_focus: string | null; image_blur?: string | null;
+};
+/** A scroll story (0.114.0): two to six steps, each with its own picture. */
+export type StorySectionData = {
+  kicker?: string | null; heading?: string | null; lede?: string | null;
+  items: StoryItem[];
+};
+
+/**
+ * A diagram (0.115.0, "Diagram" in the builder): two to six nodes in order,
+ * each an identity icon (an `iconMap` key) over a title and a note, joined by
+ * arrows. Every word is HTML; the arrows are decoration.
+ */
+/** An in-page menu (0.126.0). `items` is derived on the public read; a stored section holds only `label`. */
+export type SubnavSectionData = { label?: string | null; items?: { anchor: string; label: string }[] };
+
+/**
+ * "Product videos" (0.140.0): the stored fields are the heading, an optional
+ * shop category, a count and a shape; the API adds `items` — the tiles
+ * `GET /store/videos` answers — and drops the section when there are none.
+ * A shape left out is the Store → Product videos setting's.
+ */
+export type ProductVideosSectionData = {
+  kicker?: string | null; heading?: string | null; lede?: string | null;
+  shape?: import("./store-merch").VideoShape | null;
+  items: import("./store-merch").VideoShelfRow[];
+};
+
+export type SupportNetworkSectionData = {
+  kicker?: string | null; heading?: string | null; lede?: string | null;
+  /** Open on this country (ISO alpha-2). */
+  country?: string | null;
+  centres: import("./support").SupportCentre[];
+};
+
+export type FlowItem = { icon?: string | null; title: string; note?: string | null };
+export type FlowSectionData = {
+  kicker?: string | null; heading?: string | null; lede?: string | null;
+  caption?: string | null;
+  items: FlowItem[];
+};
+
+/**
+ * How a section sits on the page (2026-10-05, `SectionRules::STYLE`): only
+ * the keys that differ from the section's own behaviour are ever sent.
+ */
+export type SectionStyle = {
+  pad_top?: "none" | "s" | "l" | "xl";
+  pad_bottom?: "none" | "s" | "l" | "xl";
+  width?: "medium" | "narrow";
+  align?: "center";
+  heading?: "s" | "l";
+  /** An in-page link target: `/about#pricing`. */
+  anchor?: string;
+  /** The devices it shows on; absent is all three. */
+  show_on?: ("phone" | "tablet" | "desktop")[];
+  /** How the section's heading arrives as it scrolls into view (0.114.0). */
+  headline?: "rise" | "wipe" | "shimmer";
+  /** A scroll-linked effect on the whole section (0.114.0). */
+  scroll?: "parallax" | "zoom" | "fade";
+  /** A shaped edge where the section's ground meets its neighbour (0.126.0). Only with a background of its own. */
+  edge_top?: SectionEdge;
+  edge_bottom?: SectionEdge;
+  /** A least height, a step on a fixed scale (0.146.0). */
+  min_h?: SectionMinHeight;
+  /** The heading's ink: one of the three coloured inks (0.146.0). Ignored on a band of fixed colour. */
+  heading_color?: "brand" | "secondary" | "accent";
+  /** Space above and below the section, outside its ground (0.153.0). Never the sides, never negative. */
+  mt?: SectionSpace;
+  mb?: SectionSpace;
+  /** A rule above and below the section's ground, and a shadow under it (0.153.0). */
+  border?: "line" | "strong" | "brand";
+  shadow?: "s" | "m" | "l";
+  /** Per-device overrides (0.146.0). A missing key inherits the base; `m` is the section's normal rhythm. */
+  responsive?: Partial<Record<SectionDevice, SectionDeviceStyle>>;
+};
+
+export type SectionEdge = "wave" | "slant" | "curve" | "peak";
+export type SectionDevice = "phone" | "tablet" | "desktop";
+export type SectionMinHeight = "s" | "m" | "l" | "screen";
+export type SectionSpace = "none" | "s" | "m" | "l" | "xl";
+export type SectionDeviceStyle = {
+  mt?: SectionSpace;
+  mb?: SectionSpace;
+  pad_top?: "none" | "s" | "m" | "l" | "xl";
+  pad_bottom?: "none" | "s" | "m" | "l" | "xl";
+  align?: "start" | "center" | "end";
+  min_h?: "none" | SectionMinHeight;
+};
+
 /** `reveal` is an id from `SECTION_REVEALS` (lib/motion-choices.ts), or null for the section's own default. */
-type Of<T extends PageSectionType, D> = { id: string; type: T; background: SectionBackground | null; reveal?: string | null; data: D };
+type Of<T extends PageSectionType, D> = { id: string; type: T; background: SectionBackground | null; reveal?: string | null; style?: SectionStyle | null; data: D };
 
 /** One section as the public site draws it. */
 export type PageSection =
@@ -82,7 +378,31 @@ export type PageSection =
   | Of<"logos", LogosSectionData>
   | Of<"testimonial", TestimonialSectionData>
   | Of<"video", VideoSectionData>
-  | Of<"divider", DividerSectionData>;
+  | Of<"divider", DividerSectionData>
+  | Of<"stats", StatsSectionData>
+  | Of<"steps", StepsSectionData>
+  | Of<"tabs", TabsSectionData>
+  | Of<"checklist", ChecklistSectionData>
+  | Of<"cta", CtaSectionData>
+  | Of<"comparison", ComparisonSectionData>
+  | Of<"timeline", TimelineSectionData>
+  | Of<"before_after", BeforeAfterSectionData>
+  | Of<"testimonials", TestimonialsSectionData>
+  | Of<"team", TeamSectionData>
+  | Of<"downloads", DownloadsSectionData>
+  | Of<"countdown", CountdownSectionData>
+  | Of<"columns", ColumnsSectionData>
+  | Of<"map", MapSectionData>
+  | Of<"theme_section", ThemeSectionData>
+  | Of<"story", StorySectionData>
+  | Of<"flow", FlowSectionData>
+  | Of<"subnav", SubnavSectionData>
+  | Of<"product_videos", ProductVideosSectionData>
+  | Of<"support_network", SupportNetworkSectionData>
+  | Of<"layout", LayoutSectionData>
+  | Of<"custom_code", CustomCodeSectionData>
+  | Of<"lottie", LottieSectionData>
+  | Of<"model", ModelSectionData>;
 
 /** A section as stored and edited: paths and ids, and whatever the type's fields are. */
 export type StoredSection = {
@@ -91,6 +411,7 @@ export type StoredSection = {
   hidden: boolean;
   background: SectionBackground | null;
   reveal?: string | null;
+  style?: SectionStyle | null;
   data: Record<string, unknown>;
 };
 
@@ -109,4 +430,200 @@ export type PageBuilderOptions = {
   forms: { id: number; name: string; slug: string }[];
   product_categories: { id: number; name: string; slug: string }[];
   store_categories: { id: number; name: string; slug: string }[];
+  /** The downloads centre's shelves a downloads section may name (0.131.0). Optional for an older API. */
+  download_categories?: { id: number; name: string; slug: string }[];
+  /** The countries with a support centre, for a support network section (0.170.0). */
+  support_countries?: { value: string; label: string }[];
+  /** The section library and the page templates (0.106.0). Optional for an older API. */
+  library?: {
+    sections: { id: number; name: string; type: string | null }[];
+    templates: { id: number; name: string; description: string | null; count: number; category: string | null; category_label: string | null }[];
+    /** The categories a page template files under (0.162.0), the API's list. Optional for an older API. */
+    categories?: TemplateCategory[];
+  };
+  /** The assistant on a section (0.127.0). Optional for an older API, which has none. */
+  ai_section?: AiSectionOptions;
+  /**
+   * Edit on the page (0.128.0): per section type, the plain-text fields the
+   * live preview lets an editor change in place — a path with `*` for a row,
+   * and the length the save holds it to. The API's, read off its own rules.
+   */
+  inline_fields?: Record<string, { path: string; max: number; widget?: string }[]>;
+  /** Detail templates (0.161.0): only on `GET /admin/detail-templates/options`. */
+  detail_templates?: DetailTemplateOptions;
+  /** The custom layout section (0.147.0): its widgets with every field, the row and column settings and the limits. Optional for an older API. */
+  layout?: LayoutOptions;
+  /** Custom code (0.158.0): whether this account may run it on the page itself. Optional for an older API, which has the section not at all. */
+  custom_code?: { page_mode: boolean };
+  /** The Design tab (0.146.0): the section types whose heading colour the site ignores. Optional for an older API. */
+  style_options?: { heading_color_except: string[] };
+  /**
+   * Sections on records other than pages (0.129.0): the two things a record's
+   * body area may show, and the section types it cannot hold — the API's
+   * (`RecordSections`), so neither is listed here.
+   */
+  record_sections?: {
+    excluded_types: string[];
+    layouts: { value: RecordBodyLayout; label: string; blurb: string }[];
+  };
+  /**
+   * Set by `recordBuilderOptions()` on the copy of these options a record's
+   * form hands the builder — never sent by the API. It is what tells an
+   * editor it is inside a record: no "this page's FAQs", no page templates.
+   */
+  in_record?: boolean;
+};
+
+/**
+ * `GET /admin/detail-templates/options` → `detail_templates` (0.161.0): the
+ * kinds of record this account may lay out, the blocks each may place — with
+ * the label that kind of page knows each by, and which of the two settings
+ * it honours — and the layout the page has today. All the API's.
+ */
+export type DetailTemplateKind = {
+  value: string;
+  label: string;
+  noun: string;
+  role: string;
+  /** The public cache tag a save purges. */
+  tag: string;
+  /** Record block types in the order the page draws them now — what "Start from today's layout" seeds. */
+  today: RecordBlockType[];
+  blocks: { value: RecordBlockType; label: string; blurb: string; heading: boolean; limit: boolean }[];
+};
+
+export type DetailTemplateOptions = {
+  types: DetailTemplateKind[];
+  required_block: RecordBlockType;
+  record_block_types: { value: RecordBlockType; label: string; blurb: string }[];
+};
+
+/** A detail template as the console reads it (`/admin/detail-templates`). */
+export type AdminDetailTemplate = {
+  id: number;
+  type: string;
+  type_label: string;
+  name: string;
+  is_active: boolean;
+  count: number;
+  cache_tag: string | null;
+  author?: string | null;
+  updated_at: string | null;
+  /** Detail only. */
+  blocks?: StoredSection[];
+  blocks_media?: Record<string, string>;
+};
+
+/** What a record's page draws in its body area (0.129.0). */
+export type RecordBodyLayout = "body" | "sections";
+
+/**
+ * A record that may lay out its body area as sections — a solution, a
+ * service, an industry, a case study and, since 0.130.0, a blog post, a
+ * knowledge article, a product, a shop product, an event, a vacancy and a
+ * custom content entry. On the public read `sections` is
+ * present only on the record's own page and only while it is laid out that
+ * way; the written body is still sent.
+ */
+export type RecordSectionsRead = { sections?: PageSection[] };
+
+/**
+ * Parts of a record's own page that only a detail template places (0.161.0,
+ * docs/page-builder.md "Detail templates"). The API never presents their
+ * content: a block arrives as `{id, type, data}` and the website draws it
+ * from the record the route already loaded. `data` is the two little settings
+ * a block may carry — the words over it and a count.
+ */
+export type RecordBlockType =
+  | "record_hero" | "record_body" | "record_highlights" | "record_specs" | "record_gallery"
+  | "record_custom_fields" | "record_answer_blocks" | "record_faqs" | "record_related"
+  | "record_enquiry" | "record_buy" | "record_downloads" | "record_reviews" | "record_comments";
+
+export type RecordBlockSection = {
+  id: string;
+  type: RecordBlockType;
+  background: null;
+  reveal?: null;
+  style?: null;
+  data: { heading?: string; limit?: number };
+};
+
+/** An active template's stack on a record's page: ordinary sections presented, record blocks passed through. */
+export type DetailTemplateRead = { id: number; sections: (PageSection | RecordBlockSection)[] };
+
+/** The public read of a record whose kind has an active detail template — present only on its own page. */
+export type DetailTemplated = { detail_template?: DetailTemplateRead };
+
+export function isRecordBlock(section: PageSection | RecordBlockSection): section is RecordBlockSection {
+  return section.type.startsWith("record_");
+}
+
+/** The same record as the console reads it: the choice on every row, the list on a detail read. */
+export type AdminRecordSections = {
+  body_layout?: RecordBodyLayout;
+  blocks?: StoredSection[];
+  blocks_media?: Record<string, string>;
+};
+
+export type AiSectionMode = "write" | "rewrite" | "shorten" | "expand";
+
+/**
+ * What the builder is told about the assistant on a section (0.127.0,
+ * `ai_section` on `GET /admin/pages/builder`): whether it can be asked now
+ * and the API's sentence when it cannot, the section types it words, and
+ * the things it can do — all the API's, so nothing is listed here.
+ */
+export type AiSectionOptions = {
+  available: boolean;
+  reason: string | null;
+  types: string[];
+  modes: { value: AiSectionMode; label: string; blurb: string; needs_brief: boolean }[];
+};
+
+/**
+ * Whether the AI page builder can draft a page (0.116.0): `meta.ai_draft` on
+ * the pages index. `reason` is the API's own sentence when it cannot —
+ * switched off, no key, the day's cap — and null when it can.
+ */
+export type AiDraftAvailability = { available: boolean; reason: string | null };
+
+/** `POST /admin/pages/ai-draft`'s 201: the draft page it saved, and what it left out. */
+export type AiDraftResult = {
+  id: number;
+  title: string;
+  slug: string;
+  admin_path: string;
+  /** How many sections the saved draft holds. */
+  sections: number;
+  /** Sections the assistant proposed that failed the page's rules, each with the rule's sentence. */
+  dropped: { type: string; reason: string }[];
+};
+
+export type AiDraftLength = "short" | "standard" | "long";
+
+/** What a page template is for (0.162.0). */
+export type TemplateCategory = { value: string; label: string };
+
+/** A library item (`/admin/saved-sections`, 0.106.0). */
+export type SavedSection = {
+  id: number;
+  kind: "section" | "template";
+  name: string;
+  description: string | null;
+  /** Templates only (0.162.0); null on a section and on a template filed under none. */
+  category?: string | null;
+  category_label?: string | null;
+  type: string | null;
+  type_label: string | null;
+  count: number;
+  author?: string | null;
+  updated_at: string | null;
+  /** Detail only. */
+  blocks?: StoredSection[];
+  blocks_media?: Record<string, string>;
+  /** The public shape, for a preview. */
+  sections?: PageSection[];
+  linked_from?: { id: number; title: string; kind: "page" | "template" | "solution" | "service" | "industry" | "case_study"
+      | "blog_post" | "knowledge_article" | "product" | "store_product" | "event" | "job_opening" | "entry";
+  }[];
 };

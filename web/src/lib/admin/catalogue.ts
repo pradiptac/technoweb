@@ -25,6 +25,9 @@ export type SolutionQueryParams = {
 export type SolutionPayload = Partial<{
   /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
   custom_fields: Record<string, unknown>;
+  /** Sections in place of the written body (0.129.0); absent leaves both alone. */
+  body_layout: import("@/types/page-sections").RecordBodyLayout;
+  blocks: import("@/types/page-sections").StoredSection[];
   title: string;
   slug: string | null;
   summary: string | null;
@@ -111,6 +114,9 @@ export async function deleteSolution(id: number): Promise<void> {
 export type ServicePayload = Partial<{
   /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
   custom_fields: Record<string, unknown>;
+  /** Sections in place of the written body (0.129.0); absent leaves both alone. */
+  body_layout: import("@/types/page-sections").RecordBodyLayout;
+  blocks: import("@/types/page-sections").StoredSection[];
   title: string; slug: string | null; summary: string | null; body: string | null;
   icon: string | null; status: PublishStatus; sort_order: number | null;
   faqs: FaqItem[]; answer_blocks: AnswerBlock[]; seo: Partial<SeoOverride>;
@@ -204,6 +210,9 @@ export async function deleteServiceCategory(id: number): Promise<void> {
 export type IndustryPayload = Partial<{
   /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
   custom_fields: Record<string, unknown>;
+  /** Sections in place of the written body (0.129.0); absent leaves both alone. */
+  body_layout: import("@/types/page-sections").RecordBodyLayout;
+  blocks: import("@/types/page-sections").StoredSection[];
   name: string; slug: string | null; summary: string | null; body: string | null;
   icon: string | null; sort_order: number | null;
   solution_ids: number[]; faqs: FaqItem[]; answer_blocks: AnswerBlock[]; seo: Partial<SeoOverride>;
@@ -244,6 +253,9 @@ export type ProductQueryParams = {
 };
 
 export type ProductPayload = Partial<{
+  /** Sections in place of the written body (0.130.0); absent leaves both alone. */
+  body_layout: import("@/types/page-sections").RecordBodyLayout;
+  blocks: import("@/types/page-sections").StoredSection[];
   /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
   custom_fields: Record<string, unknown>;
   name: string; slug: string | null; sku: string | null;

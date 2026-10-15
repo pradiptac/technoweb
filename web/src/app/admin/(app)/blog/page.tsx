@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkPostsAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -118,10 +120,13 @@ export default async function AdminBlogPage({
             : "Published posts appear on the public blog; drafts stay private until you publish them."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="blog" ids={posts.map((p) => p.id)} noun={{ one: "post", many: "posts" }} action={bulkPostsAction} />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[760px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="blog" ids={posts.map((p) => p.id)} noun="post" /></th>
                 <th scope="col" className="px-3 py-1.5">Post</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
                 <th scope="col" className="px-3 py-1.5">Author</th>
@@ -132,6 +137,7 @@ export default async function AdminBlogPage({
             <tbody>
               {posts.map((p) => (
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="blog" id={p.id} label={p.title} /></td>
                   <td data-label="Post" className="px-3 py-2">
                     <Link href={`/admin/blog/${p.id}`} className="block hover:underline">
                       <p className="max-w-[44ch] text-13-5 font-medium text-ink">{p.title}</p>
@@ -151,6 +157,7 @@ export default async function AdminBlogPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/blog" params={paginationParams} />

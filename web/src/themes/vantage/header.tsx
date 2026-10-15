@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
-import { ONE_ROW_GATE, PrimaryNavItems, UtilityLinks, useHeaderNav } from "@/components/layout/header-parts";
+import { ONE_ROW_GATE, PrimaryNavItems, UtilityLinks, useHeaderNav, Arranged, CtaWords, HeaderScheme } from "@/components/layout/header-parts";
+import type { ResolvedHeader } from "@/themes/chrome-parts";
 import { Logo } from "@/components/layout/logo";
 import type { MenuPanelStyle } from "@/components/layout/mega-menu";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
@@ -46,13 +47,15 @@ const scrolledNow = () => window.scrollY > 24;
 const scrolledOnServer = () => false;
 
 export function VantageHeader({
-  menu = {}, settings = {}, links, topBar, menuStyle = "semi",
+  menu = {}, settings = {}, links, topBar, menuStyle = "semi", chrome,
 }: {
   menu?: Record<string, MenuSection>;
   settings?: SiteSettings;
   links?: NavLink[];
   topBar: TopBarLink[];
   menuStyle?: MenuPanelStyle;
+  /** Which parts to draw and in what order (the Header & footer screen). */
+  chrome: ResolvedHeader;
 }) {
   const { nav, utility, phone, isStoreItem, open, setOpen, toggleRef, drawerProps } = useHeaderNav({ settings, links, topBar });
   const bigMenu = menuStyle === "big";
@@ -81,42 +84,53 @@ export function VantageHeader({
                     menu={menu}
                     menuStyle={menuStyle}
                     isStoreItem={isStoreItem}
+                  showCart={chrome.show.cart}
                     linkClassName="vantage-link relative flex items-center gap-1.5 whitespace-nowrap px-3.5 py-2 text-13-5 font-semibold text-ink-2 transition-colors duration-(--duration-base) hover:text-accent-ink group-[:focus-within:not([data-closed])]:text-accent-ink after:absolute after:bottom-0 after:left-1/2 after:size-1.5 after:-translate-x-1/2 after:rounded-full after:bg-accent-500 after:opacity-0 after:transition-opacity after:duration-(--duration-base) hover:after:opacity-100"
                   />
                 </ul>
               </nav>
 
               <div className="ml-auto flex shrink-0 items-center gap-1.5">
-                <UtilityLinks
-                  utility={utility}
-                  menuStyle={menuStyle}
-                  gate={ONE_ROW_GATE}
-                  linkClassName="vantage-link flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-13 font-medium text-muted transition-colors duration-(--duration-base) hover:text-ink group-[:hover:not([data-closed])]:text-ink group-[:focus-within:not([data-closed])]:text-ink"
-                />
-                <SiteSearch
-                  placeholders={["Search…", "part number", "firewall"]}
-                  className="vantage-search hidden h-9 w-[180px] max-w-none rounded-full border-line bg-surface pl-3.5 pr-0.5 min-[1760px]:flex"
-                  inputClassName="text-13"
-                  buttonClassName="size-7 rounded-full"
-                />
-                {phone ? (
-                  <a
-                    href={telHref(phone)}
-                    aria-label={`Call ${phone}`}
-                    title={phone}
-                    className="vantage-link hidden size-10 place-items-center rounded-full text-ink-2 transition-colors duration-(--duration-base) hover:bg-surface-2 hover:text-ink sm:grid"
+                <Arranged chrome={chrome} nodes={{
+                  utility: (
+                  <UtilityLinks
+                    utility={utility}
+                    menuStyle={menuStyle}
+                    gate={ONE_ROW_GATE}
+                    linkClassName="vantage-link flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-13 font-medium text-muted transition-colors duration-(--duration-base) hover:text-ink group-[:hover:not([data-closed])]:text-ink group-[:focus-within:not([data-closed])]:text-ink"
+                  />
+                  ),
+                  search: (
+                  <SiteSearch
+                    placeholders={["Search…", "part number", "firewall"]}
+                    className="vantage-search hidden h-9 w-[180px] max-w-none rounded-full border-line bg-surface pl-3.5 pr-0.5 min-[1760px]:flex"
+                    inputClassName="text-13"
+                    buttonClassName="size-7 rounded-full"
+                  />
+                  ),
+                  phone: (
+                  phone ? (
+                    <a
+                      href={telHref(phone)}
+                      aria-label={`Call ${phone}`}
+                      title={phone}
+                      className="vantage-link hidden size-10 place-items-center rounded-full text-ink-2 transition-colors duration-(--duration-base) hover:bg-surface-2 hover:text-ink sm:grid"
+                    >
+                      <IconPhone className="size-4" />
+                    </a>
+                  ) : null
+                  ),
+                  cta: (
+                  <Link
+                    href={chrome.cta.href ?? "/support"}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-full bg-accent-600 px-4 text-13-5 font-semibold text-accent-on transition-colors duration-(--duration-base) hover:bg-accent-700 max-[419px]:px-3"
                   >
-                    <IconPhone className="size-4" />
-                  </a>
-                ) : null}
-                <Link
-                  href="/support"
-                  className="inline-flex h-10 items-center gap-1.5 rounded-full bg-accent-600 px-4 text-13-5 font-semibold text-accent-on transition-colors duration-(--duration-base) hover:bg-accent-700 max-[419px]:px-3"
-                >
-                  <span className="hidden min-[560px]:inline">Support ticket</span>
-                  <span className="min-[560px]:hidden">Support</span>
-                  <IconArrowRight className="size-3.5" />
-                </Link>
+                    <CtaWords label={chrome.cta.label} long="Support ticket" short="Support" />
+                    <IconArrowRight className="size-3.5" />
+                  </Link>
+                  ),
+                }} />
+                {chrome.show.scheme && <HeaderScheme />}
                 <button
                   ref={toggleRef}
                   type="button"

@@ -45,9 +45,13 @@ export async function TrustStrip() {
   const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
   const shippingPaise = Math.max(0, parseInt(settings.store_shipping_paise ?? "0", 10) || 0);
 
-  const delivery: (typeof storeTrustFeatures)[number] = shippingPaise === 0
-    ? { title: "Free Delivery", icon: "truck", body: "On every order across India — no minimum spend." }
-    : { title: `${formatPaise(shippingPaise)} Delivery`, icon: "truck", body: "Flat rate on every order across India." };
+  // Zones mode (0.142.0): the charge depends on the state and the weight, so
+  // the card makes no claim about a figure the checkout will not charge.
+  const delivery: (typeof storeTrustFeatures)[number] = settings.store_shipping_mode === "zones"
+    ? { title: "Delivery across India", icon: "truck", body: "Worked out at checkout from your state and the weight." }
+    : shippingPaise === 0
+      ? { title: "Free Delivery", icon: "truck", body: "On every order across India — no minimum spend." }
+      : { title: `${formatPaise(shippingPaise)} Delivery`, icon: "truck", body: "Flat rate on every order across India." };
 
   return (
     <Collection kind="trust" cols={4}>

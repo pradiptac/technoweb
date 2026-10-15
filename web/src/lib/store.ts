@@ -110,3 +110,21 @@ export async function cancelStockNotice(token: string): Promise<string> {
 
   return res.message;
 }
+
+/**
+ * Ask to return lines of an order, by the link's token (docs/store.md
+ * "Returns"). The path a request takes when it carries no photograph; with
+ * one, the browser posts multipart to `/order/{n}/returns` instead.
+ */
+export async function requestReturn(
+  orderNumber: string,
+  token: string,
+  payload: { reason: string; details: string | null; items: { order_item_id: number; quantity: number }[] },
+): Promise<{ message: string }> {
+  const res = await apiFetch<{ message?: string }>(
+    `/orders/${encodeURIComponent(orderNumber)}/returns`,
+    { method: "POST", body: { ...payload, token }, cache: "no-store" },
+  );
+
+  return { message: res.message ?? "We have your return request." };
+}

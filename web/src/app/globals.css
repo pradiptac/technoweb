@@ -144,6 +144,10 @@
   --color-topbar-line:  #2a2e20;
   --color-topbar-ink:   #f6f7f2;
   --color-topbar-muted: #9ba095;
+  /* Menu badge inks on that panel (`badgeInks` in lib/palette.ts derives them per bar colour; these are the default bar's). SOON uses `-muted`. */
+  --color-topbar-live:  #85cc87;
+  --color-topbar-beta:  #bda8fc;
+  --color-topbar-new:   #adc367;
   /*
    * On the dark bands only, which stay dark in both schemes so none of these
    * invert: the muted copy on a brand-900/accent-900 CTA card, tinted with the
@@ -345,6 +349,14 @@
      flick rather than a stroke). Arriving only; the underline retracts at
      `slow`, because leaving is shorter than arriving. */
   --duration-draw: 600ms;
+  /* A dropdown menu opening and closing (the client, 2026-10-09: "increase
+     menu dropdown fade in fade out timing"). Until then a panel arrived at
+     `base` and left at `exit` — 200ms and 140ms, a reaction's timing, which
+     on a sheet the width of the header read as a blink. A pair of its own
+     rather than a change to `base` and `exit`, which time every other state
+     change on the site; leaving is still the shorter of the two. */
+  --duration-menu: 340ms;
+  --duration-menu-exit: 240ms;
   /* Velora's shimmer-button sweep (`components/velora/shimmer-button.tsx`);
      the keyframe is beside the other guarded ones further down. */
   --animate-shimmer: shimmer 2.5s linear infinite;
@@ -744,12 +756,15 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
    * The console does not use these. Its density is deliberate and it is worked
    * at a desk for hours; this is about a marketing page read once.
    */
-  .section-y { padding-block: 3rem; }        /* was 4rem   (py-16) */
-  .section-y-lg { padding-block: 3.5rem; }   /* was 4.75rem (py-19) */
+  /* `--density` is 1 unless Site → Appearance says otherwise
+     (`[data-density]` below, `lib/look.ts`); `calc(3rem * 1)` computes to
+     exactly 3rem, so an untouched install did not move a pixel. */
+  .section-y { padding-block: calc(3rem * var(--density, 1)); }        /* was 4rem   (py-16) */
+  .section-y-lg { padding-block: calc(3.5rem * var(--density, 1)); }   /* was 4.75rem (py-19) */
 
   @media (width >= 64rem) {
-    .section-y { padding-block: 4rem; }      /* was 5rem    (py-20) */
-    .section-y-lg { padding-block: 4.5rem; } /* was 5.75rem (py-23) */
+    .section-y { padding-block: calc(4rem * var(--density, 1)); }      /* was 5rem    (py-20) */
+    .section-y-lg { padding-block: calc(4.5rem * var(--density, 1)); } /* was 5.75rem (py-23) */
   }
 
   /*
@@ -764,9 +779,11 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
    * 3.3vw + 14px holds 36px to ~670, passes 44px at 900 and reaches the 62px
    * cap around 1470 — where the two-column layout has had room for a while.
    */
-  .display-1 { font-size: clamp(36px, 3.3vw + 14px, 62px); line-height:1.02; font-weight:700; letter-spacing:-.032em; }
-  .display-2 { font-size: clamp(27px,4.2vw,42px); line-height:1.08; font-weight:600; letter-spacing:-.028em; }
-  .display-3 { font-size: clamp(21px,2.8vw,27px); line-height:1.2;  font-weight:600; letter-spacing:-.022em; }
+  /* `--type-scale` is the Appearance tab's "Headings" (0.121.0): unset it is 1
+     and these compute to the pixels they always did. */
+  .display-1 { font-size: calc(clamp(36px, 3.3vw + 14px, 62px) * var(--type-scale, 1)); line-height:1.02; font-weight:700; letter-spacing:-.032em; }
+  .display-2 { font-size: calc(clamp(27px,4.2vw,42px) * var(--type-scale, 1)); line-height:1.08; font-weight:600; letter-spacing:-.028em; }
+  .display-3 { font-size: calc(clamp(21px,2.8vw,27px) * var(--type-scale, 1)); line-height:1.2;  font-weight:600; letter-spacing:-.022em; }
   .lede      { font-size: clamp(16px,2vw,18.5px); line-height:1.62; color: var(--color-muted); }
 
   /*
@@ -778,11 +795,23 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
    * different. Same shape as `.section-y` above, and the same reason: this is a
    * number to change now rather than a find-and-replace across six files.
    *
-   * 92 characters is the ceiling, not a preference. These are one to three
-   * lines, scanned once above a full-width table, so they take the wide end of
-   * what is readable — but a line long enough that the eye cannot find the
-   * start of the next one is a line nobody finishes. For reference, dropping
-   * the cap on /admin/seo at 1920px gives 185 characters per line.
+   * **There is no cap any more, anywhere** — the client, twice. The public
+   * site lost its on 2026-09-16 ("why are you not using full container width
+   * for text?"); the console lost its on 2026-10-14, asked of the Shiprocket
+   * settings screen, where the intro wrapped at roughly half the width of the
+   * two-column grid of fields directly beneath it and read as ragged rather
+   * than as typeset. The argument for 92ch was real and is recorded here
+   * rather than deleted: an uncapped 13px paragraph on /admin/seo at 1920px
+   * runs to about 185 characters, which is past the width at which the eye
+   * reliably finds the start of the next line. What that argument missed is
+   * that a console intro almost never has the room to reach it — nearly every
+   * one of them sits in a panel, a tab or a grid column that bounds it long
+   * before 185 characters, so the cap was doing nothing on most screens and
+   * on the few where it bit it only disagreed with the controls below it.
+   *
+   * The class stays, with no declaration of its own. It is still the name for
+   * this role, it is still where a cap would go if one is ever wanted again,
+   * and leaving the ~100 call sites alone keeps that one number in one place.
    *
    * Used on the public site too, on `PageHero`'s lede — which is the same role
    * wearing different clothes. The first cut kept this to the console on the
@@ -800,19 +829,7 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
    * In `@layer components` so a `max-w-*` utility on the same element still
    * wins — a screen with a genuine reason to differ can say so.
    */
-  .measure { max-width: 92ch; }
-  /*
-   * And on the public site, no cap at all — the client's decision
-   * (2026-09-16): "why are you not using full container width for text?",
-   * seen on the Gallery page's body and subtitle and on several others.
-   * Every paragraph in a page's flow — the hero lede, `Prose`, the CMS
-   * page body, a section's intro — runs to its container. The console
-   * keeps 92ch: it is a different screen, and nobody asked for it to
-   * change. The deliberately narrow ones (a centred CTA band, a footer
-   * column, a menu summary, a caption on a photograph) are layout widths,
-   * not measures, and stay.
-   */
-  .public-site .measure { max-width: none; }
+  .measure { max-width: none; }
 
   /* The reviews widget's "Powered by Elfsight" line, hidden at the client's
      request (`components/home/reviews.tsx` says whose call that is). Two
@@ -1234,6 +1251,85 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   [data-motion-page="zoom"] .page-enter.page-enter-active { animation: page-zoom 380ms var(--ease-brand) both; }
 }
 
+/*
+ * Crossfade and Slide (0.115.0) are View Transitions: `PageEnter` wraps the
+ * page in React's `<ViewTransition update="tw-page-…">` for these two ids
+ * only, and names it after the pathname, so a navigation is an old page with
+ * no partner and a new page with no partner (`page-enter.tsx` says why).
+ * Those are the `:only-child` images below, and the only ones that move: a
+ * pair — the same pathname re-rendered by an action, a search param or a
+ * Suspense reveal — is drawn with no animation and no old image, so it is
+ * over in a frame.
+ *
+ * Leaving is shorter than arriving and accelerates, the motion tokens' rule.
+ * The slide is the one horizontal movement on the site, and it is safe where
+ * a reveal's would not be: the pseudo-elements live in the view transition's
+ * own fixed overlay above the page, never in the document, so nothing they
+ * do can reach `scrollWidth` — and the overlay is gone 300ms later.
+ *
+ * The header and footer are part of the root snapshot, which the theme
+ * toggler's rule further down already draws with no animation — they simply
+ * stay. The sticky header is lifted out as well, but only while the page is
+ * being named (the `:has()` on React's inline name), because the page's
+ * snapshot is painted above the root's and a visitor scrolled down a long
+ * page would otherwise see the old page slide across the header. Never
+ * named for the theme toggler's wipe, which must take the header with it.
+ *
+ * `pointer-events: none` on the overlay keeps a click during the animation
+ * from being swallowed, the guide's own recommendation.
+ */
+::view-transition { pointer-events: none; }
+
+::view-transition-group(.tw-page-crossfade),
+::view-transition-group(.tw-page-slide),
+::view-transition-old(.tw-page-crossfade),
+::view-transition-new(.tw-page-crossfade),
+::view-transition-old(.tw-page-slide),
+::view-transition-new(.tw-page-slide) {
+  animation: none;
+}
+::view-transition-old(.tw-page-crossfade):not(:only-child),
+::view-transition-old(.tw-page-slide):not(:only-child) {
+  display: none;
+}
+
+.public-site:is([data-motion-page="crossfade"], [data-motion-page="slide"]):has(.page-enter[style*="tw-page-"])
+  :is(header.sticky, .sticky:has(> header)):not(#main *) {
+  view-transition-name: tw-site-header;
+}
+::view-transition-group(tw-site-header) { animation: none; z-index: 2; }
+::view-transition-old(tw-site-header) { display: none; }
+::view-transition-new(tw-site-header) { animation: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes tw-page-fade-out { to { opacity: 0; } }
+  @keyframes tw-page-fade-in { from { opacity: 0; } }
+  @keyframes tw-page-slide-out { to { opacity: 0; translate: -8% 0; } }
+  @keyframes tw-page-slide-in { from { opacity: 0; translate: 8% 0; } }
+
+  ::view-transition-old(.tw-page-crossfade):only-child {
+    animation: tw-page-fade-out var(--duration-exit) var(--ease-exit) both;
+  }
+  ::view-transition-new(.tw-page-crossfade):only-child {
+    animation: tw-page-fade-in var(--duration-slow) var(--ease-brand) both;
+  }
+  ::view-transition-old(.tw-page-slide):only-child {
+    animation: tw-page-slide-out var(--duration-base) var(--ease-exit) both;
+  }
+  ::view-transition-new(.tw-page-slide):only-child {
+    animation: tw-page-slide-in var(--duration-slow) var(--ease-brand) both;
+  }
+}
+
+/* Reduced motion: every view transition on the site is an instant swap. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 /* ----------------------------------------------------------- route loader */
 /*
  * Fixed and two pixels tall, so it can never contribute to the document's
@@ -1271,6 +1367,42 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   .route-progress[data-style="bar"][data-state="done"]     { animation: route-done .35s var(--ease-brand) both; }
   .route-progress[data-style="pulse"][data-state="active"] { animation: route-pulse 1.2s ease-in-out infinite; }
   .route-progress[data-style="pulse"][data-state="done"]   { animation: page-fade .25s var(--ease-brand) reverse both; }
+}
+
+/* ------------------------------------------------------- reading progress */
+/*
+ * The reading-progress line (`motion_progress`, 0.114.0): one empty
+ * `[data-scroll-progress]` the marketing layout always renders, drawn only
+ * under `[data-motion-progress="bar"]`, with motion allowed and in a browser
+ * that has scroll-driven animations. Its length is the page's own scroll
+ * position — `scroll(root block)` — so there is no listener and nothing to
+ * hydrate. Fixed and inset on both sides, so it is never wider than the
+ * viewport and can never add to the document's width; `scale`, never
+ * `width`, for the route loader's reason; above the sticky header (`z-40`)
+ * and below the route loader (60), which means more while it runs; and
+ * `pointer-events: none`, so it never takes a press meant for the header.
+ * Everywhere else it is `display: none`, which the audit skips.
+ */
+[data-scroll-progress] { display: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    @keyframes scroll-progress { from { scale: 0 1; } to { scale: 1 1; } }
+
+    [data-motion-progress="bar"] [data-scroll-progress] {
+      display: block;
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 50;
+      height: 3px;
+      pointer-events: none;
+      background: var(--color-brand-600);
+      transform-origin: left center;
+      scale: 0 1;
+      animation: scroll-progress linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
 }
 
 /* ---------------------------------------------------------------- splash */
@@ -1427,6 +1559,12 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   .motion-tile:hover [data-demo="reveal-fade"]  { animation: demo-fade .6s var(--ease-brand); }
   .motion-tile:hover [data-demo="reveal-zoom"]  { animation: demo-zoom .6s var(--ease-brand); }
   .motion-tile:hover [data-demo="reveal-blur"]  { animation: demo-blur .6s var(--ease-brand); }
+  /* The hero heading tiles (0.171.0): drawings of the effect, replayed on hover. */
+  .motion-tile:hover [data-demo="kinetic-type"] { animation: demo-k-type 1.1s steps(14) both; }
+  .motion-tile:hover [data-demo="kinetic-decode"] { animation: demo-k-decode .8s steps(6) both; }
+  .motion-tile:hover [data-demo="kinetic-highlight"] > span { text-decoration: underline 3px color-mix(in oklab, var(--color-brand-600) 55%, transparent); text-underline-offset: 6px; }
+  @keyframes demo-k-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+  @keyframes demo-k-decode { 0%, 60% { filter: blur(2px); opacity: .5; } }
   .motion-tile:hover [data-demo="reveal-assemble"] > span { animation: assemble-in .8s var(--ease-spring) backwards; }
   .motion-tile:hover [data-demo="reveal-assemble"] > span:nth-child(even) { --piece-tilt: -2deg; }
   .motion-tile:hover [data-demo="reveal-cascade"] > span  { animation: cascade-in .6s var(--ease-brand) backwards; }
@@ -1871,6 +2009,58 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   .admin-table td:empty {
     display: none;
   }
+}
+
+/*
+ * The console's own table view (0.119.0, `admin/(app)/table-view.tsx`).
+ *
+ * Scoped to `[data-console]`, which only the admin layout stamps: the portal
+ * draws `.admin-table`s too, under a different header. Both blocks start at a
+ * width where a table is a table — below `md` a row is a card and neither
+ * rule means anything.
+ *
+ * **Compact** is a preference kept in the browser and put on `<html>` before
+ * first paint by the root layout's script, so a list never draws roomy and
+ * then tightens. Unlayered, which is how it beats the `py-2`/`py-1.5`
+ * utilities on the cells without `!important`. It changes padding and half a
+ * pixel of type and nothing else: a row holding a 32px select is still as
+ * tall as its select.
+ */
+@media (width >= 48rem) {
+  html[data-console-density="compact"] [data-console] .admin-table { font-size: 12.5px; }
+  html[data-console-density="compact"] [data-console] .admin-table :is(th, td) { padding-top: 0.1875rem; padding-bottom: 0.1875rem; }
+}
+
+/*
+ * The header row stays under the console's bar while a long list scrolls.
+ *
+ * A sticky cell sticks to its nearest *scroll container*, and every list sits
+ * in an `overflow-x-auto` wrapper — which makes the wrapper that container,
+ * so the head scrolled away with the rows. `overflow-x: clip` clips without
+ * creating one, and the head then sticks to the viewport. The price is that
+ * a table wider than its wrapper can no longer be scrolled sideways — and no
+ * breakpoint can promise one is not: the SEO overview's floor is 1240px, and
+ * 1500px with Search Console and Analytics connected, which a sweep of every
+ * list at 1440px found clipped by 98px under a first cut that began at
+ * 90rem. So the rule is **measured, not assumed**: `TableView` renders a
+ * `[data-table-fits]` marker only while every table on the screen is no
+ * wider than its wrapper, and without the marker the wrapper keeps its
+ * scrollbar and the head scrolls away as it always did. From `xl`, where the
+ * floors are honoured. `top` is the bar: `h-13` and its hairline. The cell
+ * paints its own ground and its own rule, because a `border-b` on the `<tr>`
+ * does not travel with a sticky cell.
+ */
+@media (width >= 80rem) {
+  [data-console]:has([data-table-fits]) :is(div, section):has(> table.admin-table) { overflow-x: clip; overflow-y: visible; }
+  [data-console]:has([data-table-fits]) .admin-table thead th {
+    position: sticky;
+    top: calc(3.25rem + 1px);
+    z-index: 2;
+    background: var(--color-card);
+    box-shadow: inset 0 -1px 0 var(--color-line-strong);
+  }
+  [data-console]:has([data-table-fits]) .admin-table thead th:first-child { border-start-start-radius: calc(var(--radius-lg) - 1px); }
+  [data-console]:has([data-table-fits]) .admin-table thead th:last-child { border-start-end-radius: calc(var(--radius-lg) - 1px); }
 }
 
 /*
@@ -2549,6 +2739,10 @@ summary:focus-visible {
     /* The thread's ground and its ink; Settings → Assistant → Background overrides both inline. */
     --chat-bg: var(--color-brand-50);
     --chat-bg-ink: var(--color-ink);
+    /* The panel's header: the theme's brand fill under its own ink unless
+       Assistant → Settings chooses a colour (lib/chat-look.ts derives that ink). */
+    --chat-head: var(--color-brand-600);
+    --chat-head-ink: var(--color-brand-on);
   }
 
   /*
@@ -2942,6 +3136,32 @@ summary:focus-visible {
   @starting-style {
     dialog.dialog-motion[open]::backdrop { opacity: 0; }
   }
+  /* The side sheet (the help drawer, 0.168.0) slides in from the right edge
+     rather than growing in place; `translate`, never `transform` (the v4 trap). */
+  dialog.dialog-motion[data-side] {
+    scale: 1;
+    translate: 100% 0;
+    transition:
+      opacity var(--duration-exit) var(--ease-exit),
+      translate var(--duration-exit) var(--ease-exit),
+      display var(--duration-exit) allow-discrete,
+      overlay var(--duration-exit) allow-discrete;
+  }
+  dialog.dialog-motion[data-side][open] {
+    translate: 0 0;
+    transition:
+      opacity var(--duration-slow) var(--ease-brand),
+      translate var(--duration-slow) var(--ease-brand),
+      display var(--duration-slow) allow-discrete,
+      overlay var(--duration-slow) allow-discrete;
+  }
+  @starting-style {
+    dialog.dialog-motion[data-side][open] { opacity: 0; scale: 1; translate: 100% 0; }
+  }
+  /* A guided tour's card (0.168.0) fades in once when the tour starts; it is
+     keyed on the tour, so moving between steps never replays it. */
+  .tour-card { animation: tour-in var(--duration-base) var(--ease-brand) both; }
+  @keyframes tour-in { from { opacity: 0; translate: 0 4px; } }
 }
 
 /* -------------------------------------------------------- arrivals
@@ -3179,6 +3399,42 @@ summary:focus-visible {
   will-change: transform;
 }
 .strip-cascade { height: calc(var(--slot-h) * 3 + 2 * 1.25rem); }
+/*
+ * Without motion a moving strip is its list once, as a still wrapped grid —
+ * never its frozen loop, which repeats every logo to fill the track
+ * (`LogoMarquee`, 2026-10-05). The still list is in the markup always and
+ * shown only here, so nothing depends on JavaScript.
+ */
+/*
+ * A wrapped logo list sets its marks two to a row on a phone: two 160px
+ * slots and a 40px gap are wider than a 360px screen's column, so every
+ * logo took a row to itself (the proportion review, 2026-10-05). The mark
+ * is `object-contain` in its slot, so a narrower slot only scales it.
+ */
+@media (width < 40rem) {
+  .strip-wrap > li { width: calc(50% - .5rem); }
+}
+
+/*
+ * Two category tiles to a row on a phone leave a name about ninety pixels
+ * beside its icon, and "Virtualisation" is wider than that: it broke as
+ * "Virtualisati-on". The picture above already says what the tile is, so the
+ * icon steps aside there and the name takes the row a size down; the
+ * wrap is the last resort for a name longer than any seeded (the proportion
+ * review, 2026-10-05). Unlayered and after the theme imports, so it wins a
+ * theme's three-attribute idiom rule on order. Datacenter's rack and
+ * Terminal's listing are one row a category, with room for both, so they
+ * keep theirs.
+ */
+@media (width < 30rem) {
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"]) [data-collection="categories"] [data-tile]:has([data-tile-media]) [data-tile-icon] { display: none; }
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"]) [data-collection="categories"] [data-tile-title] { font-size: 14px; line-height: 1.3; hyphens: auto; overflow-wrap: break-word; }
+}
+.strip-still { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .strip-still { display: flex; }
+  .strip-moving { display: none; }
+}
 .brand-marquee-fade-y {
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%, #000 86%, transparent);
           mask-image: linear-gradient(180deg, transparent, #000 14%, #000 86%, transparent);
@@ -3267,6 +3523,41 @@ summary:focus-visible {
   @keyframes strip-wipe {
     from { clip-path: inset(0 100% 0 0); opacity: 0; }
     to { clip-path: inset(0 0 0 0); opacity: 1; }
+  }
+
+  /*
+   * swell: the logos breathe — each eases up a little and settles, the row
+   * running left to right, `--n` marks to a cycle. Aurora's, and the softest
+   * thing a strip does here: `scale` alone, so nothing moves a box and no
+   * computed colour changes for the contrast audit to read. **It rests at
+   * full opacity**: a strip that sits permanently dimmed is a dimmer logo
+   * row than every other theme draws, and the probe's grid check — a grid
+   * has finished its entrance, so the item is visible — is right to fail it.
+   */
+  [data-strip-mode="swell"][data-aos-animate] .strip-grid > li {
+    animation: strip-swell calc(var(--n, 8) * 520ms) ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 520ms);
+  }
+  @keyframes strip-swell {
+    0%, 16%, 100% { scale: 1; }
+    8% { scale: 1.07; }
+  }
+
+  /*
+   * press: each logo lands stamped — down from a touch oversized onto the
+   * line, one after another. Atelier's, after a letterpress: the overshoot
+   * is in the easing rather than in a bounce keyframe, so it reads as weight
+   * rather than as a wobble.
+   */
+  html[data-aos-ready] [data-strip-mode="press"]:not([data-aos-animate]) .strip-grid > li { opacity: 0; }
+  [data-strip-mode="press"][data-aos-animate] .strip-grid > li {
+    animation: strip-press 420ms cubic-bezier(.2, .9, .3, 1.25) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+  @keyframes strip-press {
+    from { opacity: 0; scale: 1.14; }
+    60% { opacity: 1; }
+    to { opacity: 1; scale: 1; }
   }
 
   /* pulse: once in view, a brand ring passes from logo to logo, `--n` items to a cycle. */
@@ -3786,3 +4077,1435 @@ nav:has([data-panel-host]:hover) [data-panel-host]:not(:hover) > .panel-drop { t
  * JavaScript the section is simply the whole selection.
  */
 [data-fill="rows"] > [data-row-cut] { display: none; }
+
+/*
+ * The chart kit's arrival (`components/charts/`, 2026-10-05): a line is drawn
+ * left to right, a bar grows from its baseline, a funnel stage from its
+ * centre, a donut sweeps, a heatmap's cells fade up in reading order. One
+ * pass on first paint, never again — a chart that re-animates on every
+ * filter change reads as a loading state.
+ *
+ * Every one is a `from`-only keyframe on `clip-path`, `transform` or
+ * `opacity`, so nothing here touches a computed colour the contrast audit
+ * reads, nothing widens the document, and the element's resting state is the
+ * stylesheet's own. Inside the guard with no start state outside it: under
+ * reduced motion every chart is simply there. `--duration-draw` is the
+ * existing token for a line being drawn; bars and cells take `slow`.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes chart-wipe { from { clip-path: inset(0 100% 0 0); } }
+  @keyframes chart-grow { from { transform: scaleX(0); } }
+  @keyframes chart-fade { from { opacity: 0; } }
+
+  [data-chart-draw] { animation: chart-wipe var(--duration-draw) var(--ease-brand) both; }
+  [data-chart-grow] {
+    animation: chart-grow calc(var(--duration-slow) * 2) var(--ease-brand) both;
+    transform-origin: left center;
+  }
+  [data-chart-grow-centre] {
+    animation: chart-grow calc(var(--duration-slow) * 2) var(--ease-brand) both;
+    transform-origin: center;
+  }
+  [data-chart-sweep] { animation: chart-fade var(--duration-draw) var(--ease-brand) both; }
+  [data-chart-cell] { animation: chart-fade var(--duration-slow) var(--ease-brand) both; }
+}
+
+/*
+ * A picture in a builder text section never outgrows the screen (0.109.0).
+ * A page laid out from its body — written in the editor, or imported from
+ * WordPress — carries its photographs inline, and `Prose` caps one only at
+ * the container's width: a 2400px photo became a 1300×900 wall between two
+ * short paragraphs. Capped by height instead, so it keeps its ratio and
+ * centres; a size an editor set on the picture (an inline width) still wins.
+ */
+[data-page-section="rich_text"] img {
+  width: auto;
+  max-height: min(70vh, 620px);
+  margin-inline: auto;
+}
+
+/*
+ * Text sections one after another read as one document — what a page laid
+ * out from its body is — so the second starts at the first's padding rather
+ * than doubling it: two `.section-y`s were a 130px gap between a paragraph
+ * and the next heading. Only directly adjacent and unstyled: a section with
+ * its own ground or spacing sits in a wrapper, and keeps its band.
+ */
+section[data-page-section="rich_text"] + section[data-page-section="rich_text"] {
+  padding-top: 0;
+}
+
+/*
+ * The builder's measured bands (0.107.0, `page-sections/visual-sections.tsx`):
+ * a bar grows, a ring sweeps and the steps' line draws down — once, when the
+ * reveal observer stamps `data-aos-animate` on the section, so a band below
+ * the fold moves when it is reached rather than on load. `from`-only
+ * keyframes, so the resting state is the markup's own and a section set to
+ * appear with "None" (no `data-aos`) never moves. Staggered by `--i`.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes meter-grow { from { transform: scaleX(0); } }
+  @keyframes meter-sweep { from { stroke-dasharray: 0 1000; } }
+  @keyframes step-line { from { transform: scaleY(0); } }
+
+  html[data-aos-ready] [data-aos-animate] [data-meter-fill] {
+    animation: meter-grow calc(var(--duration-slow) * 3) var(--ease-brand) both;
+    animation-delay: calc(var(--i, 0) * 90ms + 150ms);
+  }
+  html[data-aos-ready] [data-aos-animate] [data-meter-ring] svg circle + circle {
+    animation: meter-sweep calc(var(--duration-slow) * 4) var(--ease-brand) both;
+    animation-delay: calc(var(--i, 0) * 110ms + 150ms);
+  }
+  /* Without scroll timelines the line draws once, on arrival. */
+  @supports not (animation-timeline: view()) {
+    html[data-aos-ready] [data-aos-animate] [data-step-line] {
+      animation: step-line calc(var(--duration-slow) * 4) var(--ease-brand) both;
+      animation-delay: 200ms;
+    }
+  }
+
+  /*
+   * With them (0.115.0) the steps' and the timeline's line is drawn by the
+   * reading: it starts once its top is 30vh up the screen and is whole when
+   * its bottom reaches the middle, so the tip keeps pace with the step being
+   * read rather than racing to the end on a clock. Keyed on `[data-aos]`, not
+   * on the observer's stamp, so it is the same from the first paint — and a
+   * section set to appear with "None" still shows a plain, finished line.
+   * The timeline is the list's (the line's parent), never the line's own
+   * `view()`: the line is what is being scaled, and a subject should not be
+   * the thing its own animation squashes to nothing.
+   */
+  @supports (animation-timeline: view()) {
+    [data-aos] :has(> [data-step-line]) { view-timeline-name: --step-line; }
+    [data-aos] [data-step-line] {
+      animation: step-line linear both;
+      animation-timeline: --step-line;
+      animation-range: cover 30vh cover calc(100% - 50vh);
+    }
+  }
+}
+
+/*
+ * The diagram's arrows (0.115.0, `page-sections/flow-section.tsx`): each
+ * stroke scales out from where it starts — down below `md`, rightwards from
+ * it — on its connector's own view timeline (the connector box is never
+ * transformed, the stroke inside it is), and the chevron fades in as the
+ * stroke reaches it. In the row the connectors share one height, so each
+ * one's range starts 6vh after the last's (`--i` is the node's place):
+ * they draw left to right as the section rises, the last done by its top
+ * being about half way up the screen. `scale` and `opacity` only — paint,
+ * nothing the overflow or contrast checks read — and `from`-only keyframes,
+ * so a reduced-motion visitor or a browser without scroll timelines sees
+ * every arrow drawn.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    @keyframes flow-draw-y { from { scale: 1 0; } }
+    @keyframes flow-draw-x { from { scale: 0 1; } }
+    @keyframes flow-head { 0%, 75% { opacity: 0; } 100% { opacity: 1; } }
+
+    [data-flow-link] { view-timeline-name: --flow-link; }
+    [data-flow-line],
+    [data-flow-head] {
+      animation: flow-draw-y linear both;
+      animation-timeline: --flow-link;
+      animation-range: cover 15vh cover 40vh;
+    }
+    [data-flow-head] { animation-name: flow-head; }
+
+    @media (width >= 48rem) {
+      [data-flow-line] { animation-name: flow-draw-x; }
+      [data-flow-line],
+      [data-flow-head] {
+        animation-range: cover calc(12vh + (var(--i, 1) - 1) * 6vh) cover calc(28vh + (var(--i, 1) - 1) * 6vh);
+      }
+    }
+  }
+}
+
+/*
+ * Section textures (2026-10-05, `SECTION_TEXTURES` in themes/options.ts): a
+ * decorative layer `SectionBg` draws as a sibling of the content, inside the
+ * section's local palette, so every colour below resolves to that section's
+ * own tokens — a grid on a navy band is drawn in the band's ink, not the
+ * page's.
+ *
+ * Three rules each one keeps. **A whisper**: low alpha everywhere, because
+ * the ink was pushed to 4.5:1 against the ground and a texture sits between
+ * the two; the mesh pools sit in the corners, away from the words.
+ * **No text, no ancestor**: the layer holds nothing and wraps nothing, so the
+ * contrast audit reads the ground and never this. **Still**: nothing here
+ * moves — motion is the reveal's job — so there is nothing for the
+ * reduced-motion rule to stop.
+ */
+[data-texture] { z-index: 0; }
+[data-texture="grain"] {
+  /* Fractal noise as an SVG, tiled. `overlay` lifts the light and darkens the
+     dark of whatever ground it is on, in both schemes. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  opacity: .16;
+  mix-blend-mode: overlay;
+}
+[data-texture="mesh"] {
+  background-image:
+    radial-gradient(42% 60% at 0% 0%, color-mix(in oklab, var(--color-brand-500) 20%, transparent) 0, transparent 70%),
+    radial-gradient(38% 55% at 100% 8%, color-mix(in oklab, var(--color-accent-500) 16%, transparent) 0, transparent 70%),
+    radial-gradient(45% 60% at 85% 100%, color-mix(in oklab, var(--color-secondary-500) 16%, transparent) 0, transparent 70%),
+    radial-gradient(35% 50% at 8% 100%, color-mix(in oklab, var(--color-brand-400) 12%, transparent) 0, transparent 70%);
+}
+[data-texture="glow"] {
+  background-image: radial-gradient(60% 55% at 50% -10%, color-mix(in oklab, var(--color-brand-400) 26%, transparent) 0, transparent 72%);
+}
+[data-texture="grid"] {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--color-ink) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--color-ink) 7%, transparent) 1px, transparent 1px);
+  background-size: 36px 36px;
+  background-position: center;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 25%, transparent 78%);
+}
+[data-texture="dots"] {
+  background-image: radial-gradient(circle, color-mix(in oklab, var(--color-ink) 16%, transparent) 1.1px, transparent 1.6px);
+  background-size: 20px 20px;
+  background-position: center;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 25%, transparent 78%);
+}
+
+/*
+ * Corners and breathing room (2026-10-05, `lib/look.ts`, Site → Settings →
+ * Appearance). The defaults stamp no attribute, so these rules apply only
+ * when somebody chose otherwise, and only inside the wrapper that carries
+ * the attribute — the public site and the portal; the console never does.
+ *
+ * Radius re-points the tokens every `rounded*` utility reads, so a button, a
+ * card, a picture and an input change together; `rounded-full` (pills,
+ * discs) is a shape, not a style, and is left alone. Density scales the
+ * section paddings (`.section-y`), never the type or the gaps inside a
+ * component, which is what keeps a compact page from feeling cramped.
+ */
+[data-radius="sharp"] {
+  --radius-xs: 1px; --radius-sm: 2px; --radius: 3px; --radius-md: 3px;
+  --radius-lg: 4px; --radius-xl: 6px; --radius-2xl: 8px; --radius-3xl: 10px;
+}
+[data-radius="round"] {
+  --radius-xs: 4px; --radius-sm: 8px; --radius: 12px; --radius-md: 12px;
+  --radius-lg: 18px; --radius-xl: 24px; --radius-2xl: 28px; --radius-3xl: 32px;
+}
+[data-density="compact"] { --density: .72; }
+[data-density="airy"] { --density: 1.35; }
+
+/*
+ * Heading size (`theme_type_scale`, 0.121.0): one multiplier over the three
+ * display roles, read by `.display-1/2/3` above and by every rule that
+ * re-sizes one (the builder's heading sizes, Terminal's own scale).
+ * `standard` stamps no attribute. Large stops short of the phone: a 36px
+ * headline is already most of a 320px line, and a long word set bigger
+ * would run through the right edge.
+ */
+[data-type-scale="compact"] { --type-scale: .88; }
+[data-type-scale="large"] { --type-scale: 1.06; }
+@media (width >= 48rem) { [data-type-scale="large"] { --type-scale: 1.16; } }
+
+/*
+ * How a card sits on the page (`theme_surface`, 0.103.0) and what it does
+ * under the pointer (`motion_cards`). `flat` and `lift` are the site as it
+ * was and stamp nothing / change nothing here.
+ *
+ * Specificity: `.public-site[data-surface] :is([data-card],[data-tile])` is
+ * one class and two attributes — the same weight as a theme's idiom selector
+ * (`[data-theme] [data-collection] [data-tile]`) — and this file comes after
+ * the theme stylesheets, so a surface wins a tie on `box-shadow` and
+ * `border-color`. Only those two properties: the card ground (the gradient
+ * the audit requires) is never touched, so no surface can make a card fail
+ * "never a card without a ground".
+ */
+.public-site[data-surface="elevated"] :is([data-card], [data-tile]) {
+  box-shadow: var(--shadow-2);
+  border-color: color-mix(in oklab, var(--color-line-strong) 60%, transparent);
+}
+.public-site[data-surface="elevated"] :is([data-card], [data-tile]):hover {
+  box-shadow: var(--shadow-3);
+}
+.public-site[data-surface="outline"] :is([data-card], [data-tile]) {
+  box-shadow: none;
+  border-color: color-mix(in oklab, var(--color-ink) 28%, var(--color-card));
+}
+.public-site[data-surface="outline"] :is([data-card], [data-tile]):hover {
+  box-shadow: none;
+  border-color: var(--color-brand-ink);
+}
+/*
+ * Two more finishes (0.121.0), under the same rule: shadow and border only.
+ * `soft` drops the hairline for a wide, low shadow mixed from the ink, so it
+ * darkens with the scheme instead of being a fixed black. `glow` is the same
+ * shape in the brand's own colour — `brand-600` is the fill step, bright in
+ * dark, which is where a halo reads best. The border goes transparent, never
+ * `none`: the box must not change size between finishes.
+ */
+.public-site[data-surface="soft"] :is([data-card], [data-tile]) {
+  border-color: transparent;
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--color-ink) 6%, transparent),
+    0 14px 34px -12px color-mix(in oklab, var(--color-ink) 16%, transparent);
+}
+.public-site[data-surface="soft"] :is([data-card], [data-tile]):hover {
+  box-shadow: 0 2px 4px color-mix(in oklab, var(--color-ink) 7%, transparent),
+    0 24px 48px -14px color-mix(in oklab, var(--color-ink) 24%, transparent);
+}
+.public-site[data-surface="glow"] :is([data-card], [data-tile]) {
+  border-color: color-mix(in oklab, var(--color-brand-600) 22%, var(--color-line));
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--color-ink) 5%, transparent),
+    0 16px 36px -16px color-mix(in oklab, var(--color-brand-600) 42%, transparent);
+}
+.public-site[data-surface="glow"] :is([data-card], [data-tile]):hover {
+  border-color: color-mix(in oklab, var(--color-brand-600) 55%, var(--color-line));
+  box-shadow: 0 2px 4px color-mix(in oklab, var(--color-ink) 6%, transparent),
+    0 22px 48px -14px color-mix(in oklab, var(--color-brand-600) 60%, transparent);
+}
+
+/* Cards under the pointer. Fine pointers only, motion allowed only: on a
+   phone or under reduced motion every choice is simply `still`. */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  [data-motion-cards="tilt"] :is([data-card], [data-tile]) {
+    transition: transform var(--duration-slow) var(--ease-brand), translate var(--duration-base) var(--ease-brand),
+      box-shadow var(--duration-base) var(--ease-brand), border-color var(--duration-base) var(--ease-brand);
+  }
+  [data-motion-cards="tilt"] :is([data-card], [data-tile])[data-tilting] {
+    transform: perspective(900px) rotateX(calc(var(--tilt-y, 0) * -8deg)) rotateY(calc(var(--tilt-x, 0) * 8deg));
+    transition-duration: 90ms, var(--duration-base), var(--duration-base), var(--duration-base);
+  }
+  [data-motion-cards="float"] :is([data-card], [data-tile]):hover {
+    translate: 0 -6px;
+    box-shadow: var(--shadow-float);
+  }
+}
+[data-motion-cards="still"] :is([data-card], [data-tile]):hover { translate: none; }
+
+/* The Motion tab's Cards tiles: lift and tilt cannot use the live rules
+   inside the console (lift is the card's own utility, tilt needs the page's
+   pointer island), so each tile shows its effect on hover with the same
+   numbers. */
+@media (prefers-reduced-motion: no-preference) {
+  .motion-tile:hover [data-demo="cards-lift"] { translate: 0 -2px; box-shadow: var(--shadow-2); }
+  .motion-tile:hover [data-demo="cards-tilt"] { transform: perspective(600px) rotateX(5deg) rotateY(-9deg); box-shadow: var(--shadow-2); }
+}
+
+/*
+ * A section's shaped edges (0.126.0, `style.edge_top` / `style.edge_bottom`,
+ * docs/page-builder.md "Shaped edges").
+ *
+ * The section's own ground is **masked** to a wave, a slant, a curve or a
+ * peak, and the section is pulled over its neighbour by the edge's height,
+ * so what shows through the cut is whatever the neighbour really is — the
+ * page, a colour, a gradient, a photograph. An edge drawn as a strip in "the
+ * neighbour's colour" would have to know that colour, and a neighbour with a
+ * picture has none.
+ *
+ * Three mask layers: the shape across the top, a solid middle, the shape
+ * across the bottom. The middle overlaps each by a pixel, or a sub-pixel
+ * seam shows as a hairline of the neighbour. The shapes are four SVGs
+ * stretched to the edge's box (`preserveAspectRatio='none'`), black for what
+ * is kept — an alpha, not a colour of the design.
+ *
+ * The room an edge takes is added back as padding, so the words never sit
+ * in the cut; the height is a `clamp()` on the viewport, so a wave on a
+ * phone is a ripple rather than a third of the screen. Nothing here reads or
+ * changes a colour the contrast audit grades, and a mask cannot widen the
+ * document.
+ */
+[data-section][data-edge-top],
+[data-section][data-edge-bottom] {
+  --edge: clamp(1.25rem, 4.5vw, 4rem);
+  --et: 0px;
+  --eb: 0px;
+  --mt: linear-gradient(black 0 0);
+  --mb: linear-gradient(black 0 0);
+  z-index: 1;
+  -webkit-mask:
+    var(--mt) top / 100% var(--et) no-repeat,
+    linear-gradient(black 0 0) 0 calc(var(--et) - 1px) / 100% calc(100% - var(--et) - var(--eb) + 2px) no-repeat,
+    var(--mb) bottom / 100% var(--eb) no-repeat;
+  mask:
+    var(--mt) top / 100% var(--et) no-repeat,
+    linear-gradient(black 0 0) 0 calc(var(--et) - 1px) / 100% calc(100% - var(--et) - var(--eb) + 2px) no-repeat,
+    var(--mb) bottom / 100% var(--eb) no-repeat;
+}
+[data-section][data-edge-top] { --et: var(--edge); margin-top: calc(var(--sp-t, 0px) - var(--edge)); padding-top: var(--edge); }
+[data-section][data-edge-bottom] { --eb: var(--edge); margin-bottom: calc(var(--sp-b, 0px) - var(--edge)); padding-bottom: var(--edge); }
+[data-section][data-edge-top="wave"] { --mt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath d='M0 10V5C20 0 30 0 50 5S80 10 100 5V10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-bottom="wave"] { --mb: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath transform='matrix(1 0 0 -1 0 10)' d='M0 10V5C20 0 30 0 50 5S80 10 100 5V10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-top="slant"] { --mt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath d='M0 10L100 0V10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-bottom="slant"] { --mb: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath transform='matrix(1 0 0 -1 0 10)' d='M0 10L100 0V10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-top="curve"] { --mt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath d='M0 10Q50 -10 100 10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-bottom="curve"] { --mb: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath transform='matrix(1 0 0 -1 0 10)' d='M0 10Q50 -10 100 10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-top="peak"] { --mt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath d='M0 10L50 0L100 10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-bottom="peak"] { --mb: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath transform='matrix(1 0 0 -1 0 10)' d='M0 10L50 0L100 10Z'/%3E%3C/svg%3E"); }
+
+/*
+ * A builder section's style (2026-10-05, `SectionStyle`, docs/page-builder.md
+ * "Style"): `PageSections` wraps a styled section in `[data-section-style]`
+ * and these read its attributes. Every value is a step on a fixed scale, so
+ * nothing an editor picks can widen the page, shrink type under the floor or
+ * change a colour the contrast audit reads. Spacing multiplies by
+ * `--density`, so a section's own choice and the site's spacing setting
+ * compose. Unlayered: they beat `.section-y` and any `py-*` utility.
+ */
+[data-section-style] { scroll-margin-top: 6rem; }
+
+/*
+ * A page with an in-page menu (0.126.0, `subnav-section.tsx`): two bars are
+ * pinned to the top of the screen — the site header and the menu under it —
+ * so a section reached by one of the menu's links needs room for both, or
+ * its heading arrives underneath them.
+ */
+[data-page-sections]:has(> [data-page-section="subnav"]) [data-section-style] { scroll-margin-top: calc(var(--h-site-header) + 4.5rem); }
+
+[data-section-style][data-pad-top="none"] > [data-page-section] { padding-top: 0; }
+[data-section-style][data-pad-top="s"] > [data-page-section] { padding-top: calc(1.5rem * var(--density, 1)); }
+[data-section-style][data-pad-top="l"] > [data-page-section] { padding-top: calc(4.5rem * var(--density, 1)); }
+[data-section-style][data-pad-top="xl"] > [data-page-section] { padding-top: calc(6rem * var(--density, 1)); }
+[data-section-style][data-pad-bottom="none"] > [data-page-section] { padding-bottom: 0; }
+[data-section-style][data-pad-bottom="s"] > [data-page-section] { padding-bottom: calc(1.5rem * var(--density, 1)); }
+[data-section-style][data-pad-bottom="l"] > [data-page-section] { padding-bottom: calc(4.5rem * var(--density, 1)); }
+[data-section-style][data-pad-bottom="xl"] > [data-page-section] { padding-bottom: calc(6rem * var(--density, 1)); }
+@media (width >= 64rem) {
+  [data-section-style][data-pad-top="l"] > [data-page-section] { padding-top: calc(6.5rem * var(--density, 1)); }
+  [data-section-style][data-pad-top="xl"] > [data-page-section] { padding-top: calc(9rem * var(--density, 1)); }
+  [data-section-style][data-pad-bottom="l"] > [data-page-section] { padding-bottom: calc(6.5rem * var(--density, 1)); }
+  [data-section-style][data-pad-bottom="xl"] > [data-page-section] { padding-bottom: calc(9rem * var(--density, 1)); }
+}
+
+/*
+ * A builder section's frame (0.153.0, `style.mt` / `mb` / `border` / `shadow`,
+ * docs/page-builder.md "Space, rule and shadow"). `frameAttrs()` stamps these
+ * on the outermost box — the background shell when the section has a ground,
+ * else the style wrapper — so the space lies outside the ground, the rule runs
+ * along its edges and the shadow falls from it.
+ *
+ * Space is above and below only, never the sides and never negative, on the
+ * padding's own scale times `--density`. It is a custom property (`--sp-t`,
+ * `--sp-b`) read by one `margin-block` rule, so a base choice and a device's
+ * override are just two assignments, and a shaped edge — which pulls the
+ * section over its neighbour by a negative margin of its own — reads the same
+ * property and adds to it (`calc(var(--sp-t) - var(--edge))`) rather than
+ * being replaced. Border is a rule above and below, not a box: a section is as
+ * wide as the page, and side rules would be drawn at the screen's edge. The
+ * shadow lifts the section above its neighbours (`z-index: 1`) or the next
+ * section's ground would paint over it. Nothing here sets a text or background
+ * colour; a border inside `box-sizing: border-box` cannot widen the page.
+ */
+[data-section-frame] { margin-top: var(--sp-t, 0px); margin-bottom: var(--sp-b, 0px); }
+[data-section-frame][data-border="line"] { border-block: 1px solid var(--color-line); }
+[data-section-frame][data-border="strong"] { border-block: 1px solid var(--color-line-strong); }
+[data-section-frame][data-border="brand"] { border-block: 2px solid var(--color-brand-600); }
+[data-section-frame][data-shadow] { position: relative; z-index: 1; }
+[data-section-frame][data-shadow="s"] { box-shadow: var(--shadow-1); }
+[data-section-frame][data-shadow="m"] { box-shadow: var(--shadow-2); }
+[data-section-frame][data-shadow="l"] { box-shadow: var(--shadow-3); }
+[data-section-frame][data-mt="none"] { --sp-t: 0px; }
+[data-section-frame][data-mt="s"] { --sp-t: calc(1.5rem * var(--density, 1)); }
+[data-section-frame][data-mt="m"] { --sp-t: calc(3rem * var(--density, 1)); }
+[data-section-frame][data-mt="l"] { --sp-t: calc(4.5rem * var(--density, 1)); }
+[data-section-frame][data-mt="xl"] { --sp-t: calc(6rem * var(--density, 1)); }
+[data-section-frame][data-mb="none"] { --sp-b: 0px; }
+[data-section-frame][data-mb="s"] { --sp-b: calc(1.5rem * var(--density, 1)); }
+[data-section-frame][data-mb="m"] { --sp-b: calc(3rem * var(--density, 1)); }
+[data-section-frame][data-mb="l"] { --sp-b: calc(4.5rem * var(--density, 1)); }
+[data-section-frame][data-mb="xl"] { --sp-b: calc(6rem * var(--density, 1)); }
+@media (width >= 64rem) {
+  [data-section-frame][data-mt="m"] { --sp-t: calc(4rem * var(--density, 1)); }
+  [data-section-frame][data-mt="l"] { --sp-t: calc(6.5rem * var(--density, 1)); }
+  [data-section-frame][data-mt="xl"] { --sp-t: calc(9rem * var(--density, 1)); }
+  [data-section-frame][data-mb="m"] { --sp-b: calc(4rem * var(--density, 1)); }
+  [data-section-frame][data-mb="l"] { --sp-b: calc(6.5rem * var(--density, 1)); }
+  [data-section-frame][data-mb="xl"] { --sp-b: calc(9rem * var(--density, 1)); }
+}
+@media (width < 40rem) {
+  [data-section-frame][data-fr~="mt-p-none"] { --sp-t: 0px; }
+  [data-section-frame][data-fr~="mt-p-s"] { --sp-t: calc(1.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-p-m"] { --sp-t: calc(3rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-p-l"] { --sp-t: calc(4.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-p-xl"] { --sp-t: calc(6rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-p-none"] { --sp-b: 0px; }
+  [data-section-frame][data-fr~="mb-p-s"] { --sp-b: calc(1.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-p-m"] { --sp-b: calc(3rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-p-l"] { --sp-b: calc(4.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-p-xl"] { --sp-b: calc(6rem * var(--density, 1)); }
+}
+@media (40rem <= width < 64rem) {
+  [data-section-frame][data-fr~="mt-t-none"] { --sp-t: 0px; }
+  [data-section-frame][data-fr~="mt-t-s"] { --sp-t: calc(1.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-t-m"] { --sp-t: calc(3rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-t-l"] { --sp-t: calc(4.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-t-xl"] { --sp-t: calc(6rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-t-none"] { --sp-b: 0px; }
+  [data-section-frame][data-fr~="mb-t-s"] { --sp-b: calc(1.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-t-m"] { --sp-b: calc(3rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-t-l"] { --sp-b: calc(4.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-t-xl"] { --sp-b: calc(6rem * var(--density, 1)); }
+}
+@media (width >= 64rem) {
+  [data-section-frame][data-fr~="mt-d-none"] { --sp-t: 0px; }
+  [data-section-frame][data-fr~="mt-d-s"] { --sp-t: calc(1.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-d-m"] { --sp-t: calc(4rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-d-l"] { --sp-t: calc(6.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-d-xl"] { --sp-t: calc(9rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-d-none"] { --sp-b: 0px; }
+  [data-section-frame][data-fr~="mb-d-s"] { --sp-b: calc(1.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-d-m"] { --sp-b: calc(4rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-d-l"] { --sp-b: calc(6.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-d-xl"] { --sp-b: calc(9rem * var(--density, 1)); }
+}
+
+/* Width narrows the section's container, never widens it: 90% of the screen
+   stays the ceiling, so a phone is unaffected. */
+[data-section-style][data-width="medium"] [data-container] { max-width: 72rem; }
+[data-section-style][data-width="narrow"] [data-container] { max-width: 48rem; }
+
+[data-section-style][data-align="center"] :is([data-section-head], [data-page-section="rich_text"], [data-page-section="testimonial"], [data-page-section="layout"]) { text-align: center; }
+[data-section-style][data-align="center"] [data-section-head] .lede { margin-inline: auto; }
+[data-section-style][data-align="center"] [data-section-buttons] { justify-content: center; }
+/* Centred text with bullets at the left edge reads as a mistake: the markers move in with it. */
+[data-section-style][data-align="center"] :is([data-page-section="rich_text"], [data-widget="text"]) :is(ul, ol) { list-style-position: inside; padding-inline-start: 0; }
+
+/* Heading size: one rung down or up the display scale, never below it. */
+[data-section-style][data-heading="s"] [data-page-section] h2.display-2 { font-size: calc(clamp(21px, 2.8vw, 27px) * var(--type-scale, 1)); }
+[data-section-style][data-heading="s"] [data-page-section] .display-1 { font-size: calc(clamp(27px, 4.2vw, 42px) * var(--type-scale, 1)); }
+[data-section-style][data-heading="l"] [data-page-section] h2.display-2 { font-size: calc(clamp(32px, 3.3vw + 12px, 56px) * var(--type-scale, 1)); }
+[data-section-style][data-heading="l"] [data-page-section] .display-1 { font-size: calc(clamp(40px, 4.4vw + 14px, 76px) * var(--type-scale, 1)); }
+
+/*
+ * Per-device design (0.146.0, `SectionStyle.responsive`, docs/page-builder.md
+ * "Per-device design"): `StyledSection` lists a section's overrides as tokens
+ * in `data-r` — `pt-p-s` is padding-top, phone, small — and each is one rule
+ * inside its device's media query, phone below `sm`, tablet from `sm` to below
+ * `lg`, desktop from `lg`. They sit after the base rules above at the same
+ * specificity, so a device's choice wins on its own screens and the base stands
+ * everywhere else. Every value is a step on the scale the base uses, times
+ * `--density`; `m` is the section's normal rhythm (`.section-y`). Heights are
+ * vertical only. Nothing here sets a colour but the heading ink, which is one of
+ * the three `--color-*-ink` tokens the section's ground has already pushed to AA.
+ */
+[data-section-style][data-min-h] > [data-page-section] { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; }
+[data-section-style][data-min-h="s"] > [data-page-section] { min-height: 24rem; }
+[data-section-style][data-min-h="m"] > [data-page-section] { min-height: 36rem; }
+[data-section-style][data-min-h="l"] > [data-page-section] { min-height: 48rem; }
+[data-section-style][data-min-h="screen"] > [data-page-section] { min-height: calc(100svh - var(--h-site-header, 0px)); }
+
+/* The heading's ink. Never a band of fixed colour: a call to action, a hero, a theme's own section. */
+[data-section-style][data-heading-color="brand"] [data-page-section]:not([data-page-section="cta"], [data-page-section="hero"], [data-page-section="theme_section"]) :is([data-section-heading], [data-widget-heading]) { color: var(--color-brand-ink); }
+[data-section-style][data-heading-color="secondary"] [data-page-section]:not([data-page-section="cta"], [data-page-section="hero"], [data-page-section="theme_section"]) :is([data-section-heading], [data-widget-heading]) { color: var(--color-secondary-ink); }
+[data-section-style][data-heading-color="accent"] [data-page-section]:not([data-page-section="cta"], [data-page-section="hero"], [data-page-section="theme_section"]) :is([data-section-heading], [data-widget-heading]) { color: var(--color-accent-ink); }
+
+@media (width < 40rem) {
+  [data-section-style][data-r~="pt-p-none"] > [data-page-section] { padding-top: 0; }
+  [data-section-style][data-r~="pb-p-none"] > [data-page-section] { padding-bottom: 0; }
+  [data-section-style][data-r~="pt-p-s"] > [data-page-section] { padding-top: calc(1.5rem * var(--density, 1)); }
+  [data-section-style][data-r~="pb-p-s"] > [data-page-section] { padding-bottom: calc(1.5rem * var(--density, 1)); }
+  [data-section-style][data-r~="pt-p-m"] > [data-page-section] { padding-top: calc(3rem * var(--density, 1)); }
+  [data-section-style][data-r~="pb-p-m"] > [data-page-section] { padding-bottom: calc(3rem * var(--density, 1)); }
+  [data-section-style][data-r~="pt-p-l"] > [data-page-section] { padding-top: calc(4.5rem * var(--density, 1)); }
+  [data-section-style][data-r~="pb-p-l"] > [data-page-section] { padding-bottom: calc(4.5rem * var(--density, 1)); }
+  [data-section-style][data-r~="pt-p-xl"] > [data-page-section] { padding-top: calc(6rem * var(--density, 1)); }
+  [data-section-style][data-r~="pb-p-xl"] > [data-page-section] { padding-bottom: calc(6rem * var(--density, 1)); }
+  [data-section-style][data-r~="al-p-start"] :is([data-section-head], [data-page-section="rich_text"], [data-page-section="testimonial"], [data-page-section="layout"]) { text-align: start; }
+  [data-section-style][data-r~="al-p-start"] [data-section-head] .lede { margin-inline: 0; }
+  [data-section-style][data-r~="al-p-start"] [data-section-buttons] { justify-content: flex-start; }
+  [data-section-style][data-r~="al-p-start"] :is([data-page-section="rich_text"], [data-widget="text"]) :is(ul, ol) { list-style-position: outside; padding-inline-start: 1.375rem; }
+  [data-section-style][data-r~="al-p-center"] :is([data-section-head], [data-page-section="rich_text"], [data-page-section="testimonial"], [data-page-section="layout"]) { text-align: center; }
+  [data-section-style][data-r~="al-p-center"] [data-section-head] .lede { margin-inline: auto; }
+  [data-section-style][data-r~="al-p-center"] [data-section-buttons] { justify-content: center; }
+  [data-section-style][data-r~="al-p-center"] :is([data-page-section="rich_text"], [data-widget="text"]) :is(ul, ol) { list-style-position: inside; padding-inline-start: 0; }
+  [data-section-style][data-r~="al-p-end"] :is([data-section-head], [data-page-section="rich_text"], [data-page-section="testimonial"], [data-page-section="layout"]) { text-align: end; }
+  [data-section-style][data-r~="al-p-end"] [data-section-head] .lede { margin-inline: auto 0; }
+  [data-section-style][data-r~="al-p-end"] [data-section-buttons] { justify-content: flex-end; }
+  [data-section-style][data-r~="al-p-end"] :is([data-page-section="rich_text"], [data-widget="text"]) :is(ul, ol) { list-style-position: outside; padding-inline-start: 1.375rem; }
+  [data-section-style][data-r~="mh-p-none"] > [data-page-section] { min-height: revert-layer; display: revert-layer; grid-template-columns: revert-layer; align-content: revert-layer; }
+  [data-section-style][data-r~="mh-p-s"] > [data-page-section] { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: 24rem; }
+  [data-section-style][data-r~="mh-p-m"] > [data-page-section] { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: 36rem; }
+  [data-section-style][data-r~="mh-p-l"] > [data-page-section] { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: 48rem; }
+  [data-section-style][data-r~="mh-p-screen"] > [data-page-section] { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: calc(100svh - var(--h-site-header, 0px)); }
+}
+@media (40rem <= width < 64rem) {
+  [data-section-style][data-r~="pt-t-none"] > [data-page-section] { padding-top: 0; }
+  [data-section-style][data-r~="pb-t-none"] > [data-page-section] { padding-bottom: 0; }
+  [data-section-style][data-r~="pt-t-s"] > [data-page-section] { padding-top: calc(1.5rem * var(--density, 1)); }
+  [data-section-style][data-r~="pb-t-s"] > [data-page-section] { padding-bottom: calc(1.5rem * var(--density, 1)); }
+  [data-section-style][data-r~="pt-t-m"] > [data-page-section] { padding-top: calc(3rem * var(--density, 1)); }
+  [data-section-style][data-r~="pb-t-m"] > [data-page-section] { padding-bottom: calc(3rem * var(--density, 1)); }
+  [data-section-style][data-r~="pt-t-l"] > [data-page-section] { padding-top: calc(4.5rem * var(--density, 1)); }
+  [data-section-style][data-r~="pb-t-l"] > [data-page-section] { padding-bottom: calc(4.5rem * var(--density, 1)); }
+  [data-section-style][data-r~="pt-t-xl"] > [data-page-section] { padding-top: calc(6rem * var(--density, 1)); }
+  [data-section-style][data-r~="pb-t-xl"] > [data-page-section] { padding-bottom: calc(6rem * var(--density, 1)); }
+  [data-section-style][data-r~="al-t-start"] :is([data-section-head], [data-page-section="rich_text"], [data-page-section="testimonial"], [data-page-section="layout"]) { text-align: start; }
+  [data-section-style][data-r~="al-t-start"] [data-section-head] .lede { margin-inline: 0; }
+  [data-section-style][data-r~="al-t-start"] [data-section-buttons] { justify-content: flex-start; }
+  [data-section-style][data-r~="al-t-start"] :is([data-page-section="rich_text"], [data-widget="text"]) :is(ul, ol) { list-style-position: outside; padding-inline-start: 1.375rem; }
+  [data-section-style][data-r~="al-t-center"] :is([data-section-head], [data-page-section="rich_text"], [data-page-section="testimonial"], [data-page-section="layout"]) { text-align: center; }
+  [data-section-style][data-r~="al-t-center"] [data-section-head] .lede { margin-inline: auto; }
+  [data-section-style][data-r~="al-t-center"] [data-section-buttons] { justify-content: center; }
+  [data-section-style][data-r~="al-t-center"] :is([data-page-section="rich_text"], [data-widget="text"]) :is(ul, ol) { list-style-position: inside; padding-inline-start: 0; }
+  [data-section-style][data-r~="al-t-end"] :is([data-section-head], [data-page-section="rich_text"], [data-page-section="testimonial"], [data-page-section="layout"]) { text-align: end; }
+  [data-section-style][data-r~="al-t-end"] [data-section-head] .lede { margin-inline: auto 0; }
+  [data-section-style][data-r~="al-t-end"] [data-section-buttons] { justify-content: flex-end; }
+  [data-section-style][data-r~="al-t-end"] :is([data-page-section="rich_text"], [data-widget="text"]) :is(ul, ol) { list-style-position: outside; padding-inline-start: 1.375rem; }
+  [data-section-style][data-r~="mh-t-none"] > [data-page-section] { min-height: revert-layer; display: revert-layer; grid-template-columns: revert-layer; align-content: revert-layer; }
+  [data-section-style][data-r~="mh-t-s"] > [data-page-section] { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: 24rem; }
+  [data-section-style][data-r~="mh-t-m"] > [data-page-section] { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: 36rem; }
+  [data-section-style][data-r~="mh-t-l"] > [data-page-section] { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: 48rem; }
+  [data-section-style][data-r~="mh-t-screen"] > [data-page-section] { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: calc(100svh - var(--h-site-header, 0px)); }
+}
+@media (width >= 64rem) {
+  [data-section-style][data-r~="pt-d-none"] > [data-page-section] { padding-top: 0; }
+  [data-section-style][data-r~="pb-d-none"] > [data-page-section] { padding-bottom: 0; }
+  [data-section-style][data-r~="pt-d-s"] > [data-page-section] { padding-top: calc(1.5rem * var(--density, 1)); }
+  [data-section-style][data-r~="pb-d-s"] > [data-page-section] { padding-bottom: calc(1.5rem * var(--density, 1)); }
+  [data-section-style][data-r~="pt-d-m"] > [data-page-section] { padding-top: calc(4rem * var(--density, 1)); }
+  [data-section-style][data-r~="pb-d-m"] > [data-page-section] { padding-bottom: calc(4rem * var(--density, 1)); }
+  [data-section-style][data-r~="pt-d-l"] > [data-page-section] { padding-top: calc(6.5rem * var(--density, 1)); }
+  [data-section-style][data-r~="pb-d-l"] > [data-page-section] { padding-bottom: calc(6.5rem * var(--density, 1)); }
+  [data-section-style][data-r~="pt-d-xl"] > [data-page-section] { padding-top: calc(9rem * var(--density, 1)); }
+  [data-section-style][data-r~="pb-d-xl"] > [data-page-section] { padding-bottom: calc(9rem * var(--density, 1)); }
+  [data-section-style][data-r~="al-d-start"] :is([data-section-head], [data-page-section="rich_text"], [data-page-section="testimonial"], [data-page-section="layout"]) { text-align: start; }
+  [data-section-style][data-r~="al-d-start"] [data-section-head] .lede { margin-inline: 0; }
+  [data-section-style][data-r~="al-d-start"] [data-section-buttons] { justify-content: flex-start; }
+  [data-section-style][data-r~="al-d-start"] :is([data-page-section="rich_text"], [data-widget="text"]) :is(ul, ol) { list-style-position: outside; padding-inline-start: 1.375rem; }
+  [data-section-style][data-r~="al-d-center"] :is([data-section-head], [data-page-section="rich_text"], [data-page-section="testimonial"], [data-page-section="layout"]) { text-align: center; }
+  [data-section-style][data-r~="al-d-center"] [data-section-head] .lede { margin-inline: auto; }
+  [data-section-style][data-r~="al-d-center"] [data-section-buttons] { justify-content: center; }
+  [data-section-style][data-r~="al-d-center"] :is([data-page-section="rich_text"], [data-widget="text"]) :is(ul, ol) { list-style-position: inside; padding-inline-start: 0; }
+  [data-section-style][data-r~="al-d-end"] :is([data-section-head], [data-page-section="rich_text"], [data-page-section="testimonial"], [data-page-section="layout"]) { text-align: end; }
+  [data-section-style][data-r~="al-d-end"] [data-section-head] .lede { margin-inline: auto 0; }
+  [data-section-style][data-r~="al-d-end"] [data-section-buttons] { justify-content: flex-end; }
+  [data-section-style][data-r~="al-d-end"] :is([data-page-section="rich_text"], [data-widget="text"]) :is(ul, ol) { list-style-position: outside; padding-inline-start: 1.375rem; }
+  [data-section-style][data-r~="mh-d-none"] > [data-page-section] { min-height: revert-layer; display: revert-layer; grid-template-columns: revert-layer; align-content: revert-layer; }
+  [data-section-style][data-r~="mh-d-s"] > [data-page-section] { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: 24rem; }
+  [data-section-style][data-r~="mh-d-m"] > [data-page-section] { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: 36rem; }
+  [data-section-style][data-r~="mh-d-l"] > [data-page-section] { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: 48rem; }
+  [data-section-style][data-r~="mh-d-screen"] > [data-page-section] { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: calc(100svh - var(--h-site-header, 0px)); }
+}
+
+/*
+ * A builder section's motion (0.114.0, the section style's "Heading arrives"
+ * and "As the page scrolls"; docs/motion.md). Every effect here is a CSS
+ * scroll-driven animation — progress is the section's or the heading's place
+ * on the screen, not time — so there is no observer, no listener and nothing
+ * written onto the server's markup. All of it sits inside
+ * `prefers-reduced-motion: no-preference` *and* `@supports
+ * (animation-timeline: view())`: a reduced-motion visitor, or a browser
+ * without scroll timelines, gets every section at rest and fully visible,
+ * because the hidden start states exist only in keyframes declared in here.
+ *
+ * The three rules every motion rule keeps hold here too. Nothing moves
+ * sideways: words rise, pictures drift vertically, and a section only ever
+ * scales *down* — a picture scaled up does so inside a frame that clips it.
+ * Nothing changes a computed `color` or `background-color` the contrast audit
+ * reads: opacity, `translate`, `scale` and `clip-path` are paint. And the
+ * shimmer's gradient text is graded inks only (`currentColor` — the heading's
+ * own ink — `brand-ink`, `accent-ink`), which is how the audit grades gradient
+ * text, by its stops.
+ *
+ * Ranges are offsets into `cover` in `vh` rather than percentages: `cover` is
+ * as long as the screen *plus* the element, so a percentage would finish a
+ * tall section's effect a different distance up the screen from a short one's.
+ * `cover 33vh` is "once the element's top is a third of the way up" whatever
+ * its height, and an element already that far up when the page loads simply
+ * paints its final state.
+ *
+ * The heading the headline effects reach is a builder section's own
+ * (`[data-section-heading]`, `SectionHead` and the media-and-text heading) or,
+ * in a theme section, the theme's `SectionHeader` (`h2.display-2`). An
+ * Assemble or Cascade reveal animates that same `h2` as one of its pieces,
+ * and its much more specific rule wins: the heading then arrives with the
+ * reveal and a wipe or shimmer is simply not seen — never stuck hidden, since
+ * the hidden state lives only in these keyframes. Rise animates the words,
+ * not the `h2`, and composes with either.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    @keyframes headline-rise { from { opacity: 0; translate: 0 .55em; } to { opacity: 1; translate: none; } }
+    @keyframes headline-wipe {
+      from { clip-path: inset(-.25em 100% -.25em -.25em); }
+      to { clip-path: inset(-.25em); }
+    }
+    @keyframes headline-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+    /*
+     * Rise: each word on the heading's own timeline, staggered by its place
+     * (`--w`, written by `HeadlineWords`). A scroll timeline has no clock, so
+     * a delay staggers nothing — the stagger is each word's range starting
+     * 1.5vh later than the last, capped at the ninth word so a long heading
+     * is whole by 34vh. `inline-block` only here, because `translate` does
+     * not move an inline box; outside the guard the words are plain inline
+     * text. A theme's heading has no word spans and rises whole.
+     */
+    [data-section-style][data-headline="rise"] [data-section-heading] { view-timeline-name: --section-headline; }
+    [data-section-style][data-headline="rise"] [data-section-heading] [data-word] {
+      display: inline-block;
+      animation: headline-rise var(--ease-brand) both;
+      animation-timeline: --section-headline;
+      animation-range: cover calc(min(var(--w, 0), 8) * 1.5vh) cover calc(22vh + min(var(--w, 0), 8) * 1.5vh);
+    }
+    [data-section-style][data-headline="rise"] [data-page-section="theme_section"] h2.display-2 {
+      animation: headline-rise var(--ease-brand) both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 30vh;
+    }
+
+    /*
+     * Wipe: uncovered left to right. The insets reach a quarter of an em
+     * past the box at the end, so a descender or an accent that overhangs a
+     * tight display line-height is never shaved off once it has arrived.
+     */
+    [data-section-style][data-headline="wipe"] :is([data-section-heading], [data-page-section="theme_section"] h2.display-2) {
+      animation: headline-wipe var(--ease-brand) both;
+      animation-timeline: view();
+      animation-range: cover 2vh cover 32vh;
+    }
+
+    /*
+     * Shimmer: a band of brand and accent ink crosses the words once. The
+     * fill is `currentColor` on both sides of the band, so at rest — before,
+     * after, and should an Assemble reveal's rule take the animation over —
+     * the heading reads in its own ink. `-webkit-text-fill-color`, not
+     * `color: transparent`, so `currentColor` is still the heading's ink and
+     * the words inside keep a real `color` for the audit to grade.
+     */
+    [data-section-style][data-headline="shimmer"] :is([data-section-heading], [data-page-section="theme_section"] h2.display-2) {
+      background-image: linear-gradient(100deg, currentColor 0 38%, var(--color-brand-ink) 45%, var(--color-accent-ink) 50%, var(--color-brand-ink) 55%, currentColor 62% 100%);
+      background-size: 300% 100%;
+      background-repeat: no-repeat;
+      background-position: 0 0;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: headline-shimmer linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 40vh;
+    }
+
+    /*
+     * Parallax: the pictures drift a little slower than the page. Only
+     * pictures that already sit in a frame that clips — `[data-frame]`: the
+     * media-and-text and split-hero frames, the cover hero, a tab's picture,
+     * a story step's — plus the section's own background picture, which
+     * `SectionBg`'s shell clips. Scaled to 114% so a 6% drift either way
+     * never shows the frame's edge. Sliders, galleries and the before/after
+     * pair carry no `[data-frame]`: they move by themselves already. A cover
+     * hero's background video (0.115.0) drifts with its picture, so the two
+     * stay registered while the video fades in over it.
+     */
+    @keyframes scroll-drift { from { translate: 0 -6%; scale: 1.14; } to { translate: 0 6%; scale: 1.14; } }
+
+    [data-section-style][data-scroll="parallax"] [data-frame] { overflow: clip; }
+    [data-section-style][data-scroll="parallax"] [data-frame] > :is(img, video),
+    [data-section]:has(> div > [data-section-style][data-scroll="parallax"]) > img {
+      animation: scroll-drift linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+
+    /*
+     * Zoom: the section settles in from 94% and 40% opacity, done once its
+     * top is 45vh up the screen. Scaled down only, so its box never grows
+     * past the page; `scale` and `opacity` on the style wrapper, never on the
+     * `<section>`, whose `transform` and `opacity` belong to its reveal.
+     */
+    @keyframes scroll-zoom { from { opacity: .4; scale: .94; } to { opacity: 1; scale: 1; } }
+    [data-section-style][data-scroll="zoom"] {
+      animation: scroll-zoom var(--ease-brand) both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 45vh;
+    }
+
+    /*
+     * Fade: in as the section enters, and gently out over the last stretch
+     * of its leaving — never below a quarter, so a section scrolled past
+     * still reads as there.
+     */
+    @keyframes scroll-fade {
+      entry 0% { opacity: .25; }
+      entry 100% { opacity: 1; }
+      exit 40% { opacity: 1; }
+      exit 100% { opacity: .25; }
+    }
+    [data-section-style][data-scroll="fade"] {
+      animation: scroll-fade linear both;
+      animation-timeline: view();
+      animation-range: entry 0% exit 100%;
+    }
+  }
+}
+
+/*
+ * The scroll story (0.114.0, `story-section.tsx`). By default, and always
+ * below `lg`, it is a list: each step's own picture (`[data-story-inline]`)
+ * above its words, the stage `display: none` — so its pictures are never
+ * fetched and never announced twice.
+ *
+ * From `lg`, with motion allowed and both `animation-timeline` and
+ * `timeline-scope` supported, it becomes the staged layout: steps on the left,
+ * each about two-thirds of a screen tall so it can be scrolled past, and the
+ * stage sticky on the right holding every picture stacked. Each step is a
+ * named view timeline (`--story-tl`, set per step by the component) and the
+ * story hoists all of them with `timeline-scope`, so picture *n* can fade in
+ * on step *n*'s timeline as that step nears the middle of the screen. Later
+ * pictures sit on top of earlier ones, so a picture only ever has to fade
+ * *in*: the first is simply there, and scrolling back up reverses the fades
+ * by itself. Steps not in the middle dim to half, never less.
+ *
+ * `overflow: clip` on a section background's shell in that mode: the shell
+ * is `overflow-hidden`, which makes it a scroll container and would pin the
+ * sticky stage to nothing. `clip` clips the same and creates no container.
+ */
+[data-story-stage] { display: none; }
+[data-story-steps] { display: grid; gap: 3.5rem; }
+[data-story-inline] { max-width: 42rem; }
+
+@media (prefers-reduced-motion: no-preference) and (width >= 64rem) {
+  @supports (animation-timeline: view()) and (timeline-scope: none) {
+    @keyframes story-pic { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes story-step { 0% { opacity: .5; } 35%, 65% { opacity: 1; } 100% { opacity: .5; } }
+
+    [data-section]:has([data-story]) { overflow: clip; }
+
+    [data-story] {
+      display: grid;
+      grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+      column-gap: clamp(3rem, 5vw, 6rem);
+      timeline-scope: var(--story-scope);
+    }
+    [data-story-steps] { grid-column: 1; grid-row: 1; gap: 0; }
+    [data-story-inline] { display: none; }
+    [data-story-step] {
+      display: flex;
+      min-height: 70vh;
+      flex-direction: column;
+      justify-content: center;
+      view-timeline-name: var(--story-tl);
+      animation: story-step linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+    [data-story-stage] {
+      display: block;
+      position: sticky;
+      top: calc(var(--h-site-header) + 2rem);
+      grid-column: 2;
+      grid-row: 1;
+      align-self: start;
+      height: min(70vh, 46rem);
+    }
+    [data-story-pic] {
+      animation: story-pic linear both;
+      animation-timeline: var(--story-tl);
+      animation-range: cover 28% cover 44%;
+    }
+    [data-story-pic]:first-child { animation: none; }
+  }
+}
+
+/*
+ * The builder's live preview (0.112.0, docs/page-builder.md "Live preview"):
+ * a section can be pressed to open its card, so it says so under the pointer,
+ * and the one being edited is outlined for a moment when the preview scrolls
+ * to it. Only inside the framed draft preview (`BuilderPreviewBridge` sets
+ * the attribute); never on a public page. An outline paints no ground, so
+ * the contrast audit is untouched.
+ */
+html[data-builder-preview] [data-builder-id] {
+  cursor: pointer;
+  outline: 2px dashed transparent;
+  outline-offset: -4px;
+}
+html[data-builder-preview] [data-builder-id]:hover {
+  outline-color: color-mix(in oklab, var(--color-brand-ink) 60%, transparent);
+}
+html[data-builder-preview] [data-builder-id][data-builder-flash] {
+  outline: 3px solid var(--color-brand-ink);
+}
+
+/*
+ * Edit on the page (0.128.0): words the bridge has made editable. The ring
+ * is the words' own colour, so it reads on a light section and a dark band
+ * alike without a token per ground; like the section's, it is an outline and
+ * paints nothing. `cursor: text` says the press will type rather than open
+ * the card.
+ */
+html[data-builder-preview] [data-edit] {
+  cursor: text;
+  border-radius: 3px;
+  outline: 1px dashed transparent;
+  outline-offset: 3px;
+}
+html[data-builder-preview] [data-edit]:hover {
+  outline-color: color-mix(in oklab, currentColor 55%, transparent);
+}
+html[data-builder-preview] [data-edit]:focus {
+  outline: 2px solid currentColor;
+}
+
+/* ------------------------------------------------- editor-built forms
+ *
+ * `components/forms/form-block.tsx` (0.117.0): conditions, steps and the
+ * star rating.
+ *
+ * ### First paint
+ *
+ * The server's HTML is the form a visitor without JavaScript needs: every
+ * step one under another, every conditional field showing, one submit
+ * button. Hydration then narrows it to the first step and the fields whose
+ * conditions hold — which, drawn naively, is a long form that collapses a
+ * moment after it appears. So until the first hydrated render the markup
+ * carries two attributes, and both are gone after it:
+ *
+ *   `data-form-wait`  what hydration is about to hide (a later step, a field
+ *                     whose condition is false on an untouched form)
+ *   `data-form-js`    what only means something once it has run (the step
+ *                     counter and its bar, the word "Next")
+ *
+ * **The base state is the no-JavaScript one**: `wait` shows, `js` does not.
+ * Where scripting is enabled a four-second animation holds the opposite, so
+ * the page opens as it will be after hydration and nothing moves when React
+ * arrives. An animation rather than a plain rule, on purpose: it *ends*. If
+ * the script never comes — a chunk that 404s after a deploy, a blocked
+ * bundle — the form falls back to whole and sendable instead of staying a
+ * first step with a button that does nothing. `display` in a keyframe is
+ * recent; a browser without it ignores the declaration and gets the base
+ * state and one reflow at hydration, which is the old behaviour and never a
+ * broken form. Inside `no-preference` like every other animation here: the
+ * global reduced-motion rule would switch it off regardless, and this says
+ * so. After hydration the `hidden` attribute does the hiding and none of
+ * this matches anything.
+ */
+[data-form-js] { display: none; }
+
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  @keyframes form-hold-off { from, to { display: none; } }
+  @keyframes form-hold-on { from, to { display: block; } }
+
+  [data-form-wait] { animation: form-hold-off 4s step-end; }
+  [data-form-js] { animation: form-hold-on 4s step-end; }
+}
+
+/*
+ * The rating's stars are lit by the radios themselves, so the value lives in
+ * the DOM and nowhere else (see `RatingControl`). A star is gold when its own
+ * input is checked or any star after it is; under a pointer the row lights
+ * to the star about to be chosen instead. `:has()` carries the specificity
+ * of its argument, which is why the hover reset is written
+ * `label:not(:hover)` — as a bare `label` it would lose to the checked rules
+ * and a row rated five could not preview a three. The row is `w-fit` for the
+ * same preview: full width, the empty space beside the stars would be "over
+ * the row and over no star" and would blank a rating already given. Both
+ * colours are the shop's review tokens, graphics held to 3:1 on a card by
+ * `npm run themes`.
+ */
+[data-form-rating] path {
+  fill: none;
+  stroke: var(--color-rating-empty);
+  transition: fill var(--duration-fast) var(--ease-brand), stroke var(--duration-fast) var(--ease-brand);
+}
+[data-form-rating] label:has(input:checked) path,
+[data-form-rating] label:has(~ label input:checked) path {
+  fill: var(--color-rating);
+  stroke: var(--color-rating);
+}
+@media (hover: hover) {
+  [data-form-rating]:hover label:not(:hover) path {
+    fill: none;
+    stroke: var(--color-rating-empty);
+  }
+  [data-form-rating]:hover label:hover path,
+  [data-form-rating]:hover label:has(~ label:hover) path {
+    fill: var(--color-rating);
+    stroke: var(--color-rating);
+  }
+}
+
+/*
+ * Pressing Next moves focus to the new step's title, and the browser scrolls
+ * a focused element only just into view — which on the public site is
+ * underneath the sticky header: measured at 7px from the top of a 390px
+ * screen, behind a 69px bar. The margin clears the header and the "Step N of
+ * M" line that sits above the title, so both are read on arrival. Harmless in
+ * the embed frame, which has no header.
+ */
+[data-form-step-title] { scroll-margin-top: calc(var(--h-site-header) + 4.5rem); }
+
+/*
+ * Events (0.118.0, docs/events-contract.md) — the one block for the module.
+ *
+ * `/events` draws its lists as a `Collection` of `Tile`s, so each theme's
+ * idiom draws them; what is here is only the arithmetic that keeps a list
+ * from ending on a half-empty row, which a three-column grid does for every
+ * count that is not a multiple of three. `EventTiles` says which tile is
+ * which and nothing about how it looks:
+ *
+ *   li[data-event-row="lead"]   one event with a row to itself (1, 4, 7 …)
+ *   li[data-event-row="pair"]   the first two, sharing a row (2, 5, 8 …)
+ *   li[data-event-row="tail"]   the last tile when the rows of three hold an
+ *                               odd number — alone on its row while those
+ *                               rows are two across, 640px to 1024px
+ *   ul[data-event-grid="six"]   a list with a lead or a pair above rows of
+ *                               three: six tracks, so 3+3, 2+2+2 and one
+ *                               across are all whole rows of one grid
+ *
+ * **Which themes**, each measured in a browser with one to five events.
+ * Datacenter and Terminal are listings — one tile to a row whatever the
+ * count — so none of this reaches them. Editorial keeps its columns under
+ * the rules, so it takes the spans and keeps its own ruled row. Vantage
+ * takes the spans too: its mosaic tile is a picture at any width.
+ *
+ * **Launch is the exception, and has two marks of its own.** Its bento
+ * makes the first pictured tile a lead (eight of twelve tracks, two rows)
+ * with the next two stacked beside it, so its whole shapes are multiples of
+ * three counted from the *start* and what is left over is at the *end* —
+ * the opposite end from every other theme. Four events drew a lead, two
+ * beside it, and one tile alone under them. So:
+ *
+ *   li[data-event-end="one"]    the last tile, when one is left over
+ *   li[data-event-end="two"]    the last two, when two are
+ *   li[data-event-odd]          the last tile when Launch's tablet grid — a
+ *                               full-width lead, then two across — would
+ *                               leave it alone
+ *
+ * **A wide tile puts its picture beside its words**, and "wide" is measured,
+ * not assumed: each marked item is a size container, and its tile turns
+ * side by side when *the item itself* is 40rem across. So the same rule is a
+ * lead on a tablet, a pair on a 1440px screen and a tail between 712px and
+ * 1024px, with no breakpoint per case — and it cannot fire on an ordinary
+ * tile, which is at most 629px in the widest container the site has. Not in
+ * Vantage (the words sit on the picture there) or Editorial (the picture is
+ * a thumbnail in the rule). While still stacked, a tile with a row to itself
+ * takes a 16:9 picture: at 4:3 a full-width cover was 430px tall on a tablet.
+ *
+ * Specificity: the theme idioms are `[data-theme] [data-collection]
+ * [data-tile-…]`, three or four attributes; every selector below carries
+ * `.public-site:not(…)` or `.public-site[data-theme]`, an attribute on the
+ * list and one on the item, so it wins on its own terms and needs no
+ * `!important`. Unlayered, like the rest of this file's overrides, which is
+ * what beats the `sm:grid-cols-2` on the list.
+ */
+@media (40rem <= width < 64rem) {
+  .public-site[data-theme="launch"] [data-collection="events"] > li[data-event-odd] { grid-column: span 12; }
+  .public-site[data-theme="launch"] [data-collection="events"] > li[data-event-odd] [data-tile-media] { aspect-ratio: 16 / 9; }
+}
+@media (width >= 64rem) {
+  .public-site[data-theme="launch"] [data-collection="events"] > li[data-event-end="one"] { grid-column: span 12; }
+  .public-site[data-theme="launch"] [data-collection="events"] > li[data-event-end="two"] { grid-column: span 6; }
+  /*
+    Two events are a pair, not a lead and a follower. The bento's two-row
+    lead beside a single tile ended 14px lower than its neighbour (the row
+    gap it spans) and set one of two equal tiles in larger type; here the
+    first tile goes back to being a tile.
+  */
+  .public-site[data-theme="launch"] [data-collection="events"][data-cols="2"] > li:first-child { grid-row: auto; }
+  .public-site[data-theme="launch"] [data-collection="events"][data-cols="2"] > li:first-child [data-tile-body] { padding: 22px; }
+  .public-site[data-theme="launch"] [data-collection="events"][data-cols="2"] > li:first-child [data-tile-title] { font-size: 15.5px; }
+  .public-site[data-theme="launch"] [data-collection="events"][data-cols="2"] > li:first-child [data-tile-summary] { font-size: 13.5px; }
+  .public-site[data-theme="launch"] [data-collection="events"][data-cols="2"] > li:first-child [data-tile-media] { aspect-ratio: 4 / 3; flex: 0 1 auto; min-height: 0; }
+}
+@media (40rem <= width < 64rem) {
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"]) [data-collection="events"] > li:is([data-event-row="lead"], [data-event-row="tail"]) { grid-column: 1 / -1; }
+  .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row="tail"] [data-tile-media] { aspect-ratio: 16 / 9; }
+}
+@media (width >= 64rem) {
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"]) [data-collection="events"][data-event-grid="six"] { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"]) [data-collection="events"][data-event-grid="six"] > li { grid-column: span 2; }
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"]) [data-collection="events"][data-event-grid="six"] > li[data-event-row="pair"] { grid-column: span 3; }
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"]) [data-collection="events"][data-event-grid="six"] > li[data-event-row="lead"] { grid-column: 1 / -1; }
+}
+@media (width >= 40rem) {
+  .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li:is([data-event-row="lead"], [data-event-row="pair"]) [data-tile-media] { aspect-ratio: 16 / 9; }
+}
+:is(
+  .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row],
+  .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+) { container: event-tile / inline-size; }
+@container event-tile (width >= 40rem) {
+  :is(
+    .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row],
+    .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+  ) > [data-tile]:has(> [data-tile-media]) { flex-direction: row; }
+  :is(
+    .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row],
+    .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+  ) > [data-tile]:has(> [data-tile-media]) > [data-tile-media] {
+    flex: 0 0 42%;
+    aspect-ratio: auto;
+    min-height: 15rem;
+    border-radius: 0;
+  }
+  /* Not Summit: its body has no padding of its own — each part is a band to the tile's edge — and a padded, centred body left the dark title band floating inside the card. */
+  :is(
+    .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"], [data-theme="summit"]) [data-collection="events"] > li[data-event-row],
+    .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+  ) > [data-tile]:has(> [data-tile-media]) > [data-tile-body] {
+    justify-content: center;
+    padding: clamp(1.5rem, 4cqi, 2.75rem);
+  }
+  :is(
+    .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row],
+    .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+  ) > [data-tile]:has(> [data-tile-media]) [data-tile-title] { font-size: clamp(19px, 2.6cqi, 27px); line-height: 1.2; }
+  /* The summary is a sentence beside a picture here, not the tile's filler: it keeps its own height and a readable line. */
+  :is(
+    .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row],
+    .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+  ) > [data-tile]:has(> [data-tile-media]) [data-tile-summary] { flex: 0 0 auto; max-width: 62ch; }
+  /* The closing link sits under the words it closes; pushed to the foot it would leave a gap in a body that is centred. */
+  :is(
+    .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row],
+    .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+  ) > [data-tile]:has(> [data-tile-media]) [data-tile-cta] { margin-top: 0; }
+}
+
+/*
+ * An event's speakers are row cards in one or two columns. With an odd
+ * number in two columns the last would sit beside a hole, so it takes the
+ * row — which a row card can do without looking stretched. In one column
+ * the span is the column, and nothing changes.
+ */
+.public-site [data-event-speakers] > li:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+/*
+ * The phone's action bar (0.122.0, `components/layout/action-bar.tsx`).
+ *
+ * The bar is `position: fixed`, so by itself it would sit over the last 52px
+ * of every page — the footer's policy links — and under the three things
+ * already pinned to the foot of a phone screen. Keyed on the bar being a
+ * direct child of `.public-site`, so a page without one is untouched:
+ *
+ * - the page's foot is padded by the bar's height, so nothing is covered;
+ * - the assistant's launcher and its panel, the compare tray and the install
+ *   card each rise by the same height. `bottom`, never `translate`: the
+ *   launcher's hop and every `.rise-in` already animate `translate`.
+ *
+ * Unlayered, so it beats the `bottom-*` utilities on those elements without
+ * `!important`. Below `sm` only — the bar is `sm:hidden`.
+ */
+@media (width < 40rem) {
+  .public-site:has(> [data-action-bar]) {
+    --action-bar-h: calc(3.25rem + 1px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: var(--action-bar-h);
+  }
+  .public-site:has(> [data-action-bar]) .assistant-launcher { bottom: calc(1rem + var(--action-bar-h)); }
+  .public-site:has(> [data-action-bar]) #chat-panel { bottom: calc(6rem + var(--action-bar-h)); }
+  .public-site:has(> [data-action-bar]) [data-compare-tray] { bottom: calc(1rem + var(--action-bar-h)); }
+  .public-site:has(> [data-action-bar]) [data-install-prompt] { bottom: calc(.75rem + var(--action-bar-h)); }
+}
+
+/*
+ * The menu badge (0.150.0, `components/ui/menu-badge.tsx`): a small outlined
+ * status chip beside a menu entry — uppercase, letter-spaced, a one-pixel
+ * border in the same colour as its text and no fill, so the contrast is the
+ * colour's own against the panel behind it. 12px, the public site's floor.
+ *
+ * Which colour: the scheme's status tokens on a light panel (the mega menu,
+ * the drawer) — `--color-tag-5` is the violet identity token, graded against
+ * the card like the other tags — and the `--color-topbar-*` inks on the top
+ * bar's panel, which `badgeInks()` walks to 4.5:1 on the bar's own raised step
+ * whatever colour the bar is set to. Themes whose top-bar panel is a light card
+ * re-token those three in their own `[data-panel="topbar"]` block.
+ */
+[data-menu-badge] {
+  --badge-ink: var(--color-brand-ink);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 .375rem;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--badge-ink);
+  font-size: .75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+[data-menu-badge="live"] { --badge-ink: var(--color-ok); }
+[data-menu-badge="beta"] { --badge-ink: var(--color-tag-5); }
+[data-menu-badge="soon"] { --badge-ink: var(--color-muted); }
+[data-menu-badge="new"]  { --badge-ink: var(--color-brand-ink); }
+[data-panel="topbar"] [data-menu-badge="live"] { --badge-ink: var(--color-topbar-live); }
+[data-panel="topbar"] [data-menu-badge="beta"] { --badge-ink: var(--color-topbar-beta); }
+[data-panel="topbar"] [data-menu-badge="soon"] { --badge-ink: var(--color-topbar-muted); }
+[data-panel="topbar"] [data-menu-badge="new"]  { --badge-ink: var(--color-topbar-new); }
+
+/* Simple view (docs/help-and-tours.md): an entity form's SEO, AEO and
+   custom-field tabs are hidden, by CSS on the attribute the root layout
+   stamps before paint, so the strip never flashes them. Never the open tab,
+   and never one holding a validation error. The panels stay mounted. */
+html[data-console-simple] [role="tablist"] [data-advanced]:not([aria-selected="true"]):not([data-has-error]) { display: none; }
+
+/* Console 2.0 — the sidebar folded to its icon rail (docs/console-portal.md).
+   `html[data-console-nav="rail"]` is set before paint (lib/console-prefs.ts),
+   so a folded sidebar never paints expanded first. From `lg` only: below it
+   the sidebar is the drawer, and folding means nothing there. A label is
+   visually hidden rather than removed, so it stays the row's accessible
+   name. The flyout shows on hover and on focus, so the keyboard reaches
+   every screen the pointer does. */
+@media (width >= 64rem) {
+  html[data-console-nav="rail"] [data-console] [data-console-grid] { grid-template-columns: 64px minmax(0, 1fr); }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] { padding-right: 0.5rem; }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] :is(.rail-hide, [data-rail-group] > ul, [data-rail-group] > hr) { display: none; }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] .rail-label {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] :is(a, button) { justify-content: center; }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] .rail-badge { position: absolute; top: 1px; right: 2px; margin: 0; padding-inline: 0.3rem; }
+  html[data-console-nav="rail"] [data-console] [data-rail-group] > button > svg:last-child { display: none; }
+  html[data-console-nav="rail"] [data-console] [data-rail-group]:is(:hover, :focus-within) > .rail-flyout { display: block; }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] .rail-flyout :is(a, button) { justify-content: flex-start; }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] .rail-flyout .rail-label { position: static; width: auto; height: auto; overflow: hidden; clip-path: none; }
+}
+
+/* Console 2.0 motion (docs/console-portal.md). The existing tokens only.
+   The command palette and every keyboard-initiated action are deliberately
+   absent: something used a hundred times a day must never make anybody wait.
+   The route fade is `PageEnter` under `data-motion-page="fade"` (the admin
+   layout stamps it), shortened from the public 320ms. Rows arrive once per
+   insertion — a `from`-only keyframe, so the resting state is the row's own
+   and nothing is hidden outside the guard. Subtle (lib/console-prefs.ts)
+   keeps opacity and drops movement; so does reduced motion, by the guard. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-console] .page-enter.page-enter-active { animation-duration: 160ms; }
+  [data-console] :is(.btn, [data-press]) { transition-property: color, background-color, border-color, outline-color, box-shadow, opacity, scale; }
+  [data-console] :is(.btn, [data-press]):active { scale: .97; transition-duration: var(--duration-fast); }
+  [data-console] main table.admin-table tbody tr:nth-child(-n+12) { animation: console-row var(--duration-slow) var(--ease-brand) both; animation-delay: calc(var(--row, 0) * 40ms); }
+  [data-console] main table.admin-table tbody tr:nth-child(2) { --row: 1; }
+  [data-console] main table.admin-table tbody tr:nth-child(3) { --row: 2; }
+  [data-console] main table.admin-table tbody tr:nth-child(4) { --row: 3; }
+  [data-console] main table.admin-table tbody tr:nth-child(5) { --row: 4; }
+  [data-console] main table.admin-table tbody tr:nth-child(6) { --row: 5; }
+  [data-console] main table.admin-table tbody tr:nth-child(7) { --row: 6; }
+  [data-console] main table.admin-table tbody tr:nth-child(8) { --row: 7; }
+  [data-console] main table.admin-table tbody tr:nth-child(9) { --row: 8; }
+  [data-console] main table.admin-table tbody tr:nth-child(10) { --row: 9; }
+  [data-console] main table.admin-table tbody tr:nth-child(11) { --row: 10; }
+  [data-console] main table.admin-table tbody tr:nth-child(12) { --row: 11; }
+  @keyframes console-row { from { opacity: 0; translate: 0 6px; } }
+  @keyframes console-fade { from { opacity: 0; } }
+  html[data-console-motion="subtle"] [data-console] main table.admin-table tbody tr:nth-child(-n+12) { animation-name: console-fade; }
+}
+html[data-console-motion="subtle"] [data-console] [data-nav-pill] { transition-duration: 0s; }
+html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active { scale: none; }
+@media (prefers-reduced-motion: reduce) { [data-console] [data-nav-pill] { transition-duration: 0s; } }
+
+/* The support network's map (0.170.0, docs/support-network.md): outlines in
+   tokens, so it follows the palette and the scheme; a pin keeps its size on
+   screen however far the map is zoomed (`--s` is the zoom, set by the server
+   for the first paint and by the island after); the zoom glides only with
+   motion allowed. The SVG is aria-hidden — the cards are the content. */
+.support-land {
+  fill: color-mix(in oklab, var(--color-brand-600) 12%, var(--color-card));
+  stroke: var(--color-card);
+  stroke-width: .6;
+  vector-effect: non-scaling-stroke;
+}
+.support-land[data-has-centre] { fill: color-mix(in oklab, var(--color-brand-600) 30%, var(--color-card)); }
+[data-map-zoom] { transform-box: view-box; transform-origin: 0 0; }
+.support-pin { cursor: pointer; }
+.support-pin-halo { r: calc(10px / (var(--s, 1) * var(--px, 1))); fill: color-mix(in oklab, var(--color-brand-600) 28%, transparent); }
+.support-pin-dot {
+  r: calc(4.5px / (var(--s, 1) * var(--px, 1)));
+  fill: var(--color-brand-600);
+  stroke: var(--color-card);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+.support-pin[data-active] .support-pin-dot { fill: var(--color-accent-600); r: calc(6.5px / (var(--s, 1) * var(--px, 1))); }
+.support-pin[data-active] .support-pin-halo { fill: color-mix(in oklab, var(--color-accent-600) 32%, transparent); r: calc(15px / (var(--s, 1) * var(--px, 1))); }
+@media (prefers-reduced-motion: no-preference) {
+  [data-map-zoom] { transition: transform 700ms var(--ease-brand); }
+  .support-pin circle { transition: r var(--duration-base) var(--ease-brand), fill var(--duration-base) var(--ease-brand); }
+}
+
+/* "AI Powered" (0.169.0, docs/console-portal.md): the badge in the console's
+   version chip. A brand → accent wash under gradient ink — the audit takes a
+   gradient text's stops as its colours, and both are graded inks — and one
+   light sweep when the console loads and on hover, drawn by `::after` so the
+   ground the audit reads never changes. Inside the reduced-motion guard;
+   Subtle keeps the badge and drops the sweep. Tokens only. */
+.ai-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--color-brand-ink) 30%, transparent);
+  background-image: linear-gradient(100deg, var(--color-brand-50), var(--color-accent-50));
+  background-color: var(--color-card);
+  padding: 1px 6px 1px 5px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--color-brand-ink);
+}
+/*
+ * From `lg` only: at 768 the console bar (logo, chip, palette, table view,
+ * help, scheme, account) ran 95px past the screen with the badge in it —
+ * the dashboard-view probe at 768 (0.171.0).
+ */
+@media (width < 64rem) { .ai-badge { display: none; } }
+
+.ai-badge svg { color: var(--color-accent-ink); flex: none; }
+.ai-badge-text {
+  color: var(--color-brand-ink);
+  background-image: linear-gradient(90deg, var(--color-brand-ink), var(--color-accent-ink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ai-badge::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 30%, color-mix(in oklab, var(--color-card) 75%, transparent) 50%, transparent 70%);
+    translate: -110% 0;
+    animation: ai-sweep 1400ms var(--ease-brand) 900ms 1 both;
+  }
+  .group\/logo:hover .ai-badge::after { animation: ai-sweep-again 900ms var(--ease-brand) 1 both; }
+  .ai-badge svg { animation: ai-twinkle 1400ms var(--ease-brand) 900ms 1 both; }
+  @keyframes ai-sweep { from { translate: -110% 0; } to { translate: 110% 0; } }
+  @keyframes ai-sweep-again { from { translate: -110% 0; } to { translate: 110% 0; } }
+  @keyframes ai-twinkle { 0%, 100% { scale: 1; rotate: 0deg; } 45% { scale: 1.25; rotate: 20deg; } }
+  html[data-console-motion="subtle"] .ai-badge::after,
+  html[data-console-motion="subtle"] .ai-badge svg { animation: none; }
+}
+
+/* Console 2.0 entrance — the dashboard and the portal home, once a session
+   (components/app-shell/entrance.tsx; the root layout stamps the attribute
+   before paint). Hero wash, then the tiles rise; the figures count and the
+   charts draw by themselves. `from`-only keyframes, so the resting state is
+   each element's own, and nothing is hidden outside the guard. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-entrance] [data-hero-band] { animation: hero-in var(--duration-slow) var(--ease-brand) both; }
+  html[data-entrance] [data-hero-wash] { animation: hero-drift 1200ms var(--ease-brand) both; }
+  html[data-entrance] [data-entrance-item] { animation: hero-tile var(--duration-slow) var(--ease-brand) both; animation-delay: calc(120ms + var(--i, 0) * 40ms); }
+  @keyframes hero-in { from { opacity: 0; } }
+  @keyframes hero-drift { from { opacity: 0; translate: -8% 6%; } }
+  @keyframes hero-tile { from { opacity: 0; translate: 0 8px; } }
+  html[data-console-motion="subtle"][data-entrance] :is([data-hero-wash], [data-entrance-item]) { animation-name: hero-in; }
+}
+
+/*
+ * Kinetic headings (0.171.0, docs/motion.md "Kinetic headings") —
+ * `components/ui/kinetic-text.tsx`. The finished heading is the default:
+ * every rule that hides anything sits inside no-preference *and*
+ * `scripting: enabled`, and an island that never armed (no JS ran, a chunk
+ * failed) is revealed by a 3s failsafe. Letters keep their boxes; a decode
+ * glyph is drawn over a transparent final one; the rotating slot holds
+ * every word in one grid cell, so it is as wide as the widest, and may wrap
+ * (`max-width: 100%`) rather than run past a phone's edge.
+ */
+.kinetic [data-k-char] { position: relative; }
+/*
+ * A lettered heading has no break opportunity of its own: each letter is its
+ * own inline box, so one long word ran 30px past a 320px screen (the probe
+ * measured 350). `anywhere` lets the line break between letters, which in a
+ * heading split into letters is the same thing as breaking inside the word,
+ * and it applies to the two effects that split one.
+ */
+.kinetic:is([data-kinetic="type"], [data-kinetic="decode"]) { overflow-wrap: anywhere; }
+.k-slot { display: inline-grid; max-width: 100%; justify-items: start; vertical-align: baseline; }
+.k-slot > [data-k-alt] { grid-area: 1 / 1; }
+.k-slot > [data-k-alt]:not([data-cur]) { visibility: hidden; }
+.k-markword { position: relative; display: inline-block; max-width: 100%; }
+.k-mark { position: absolute; left: -2%; width: 104%; bottom: -.14em; height: .34em; overflow: visible; pointer-events: none; }
+.k-mark path {
+  fill: none; stroke: var(--color-brand-600); stroke-opacity: .55; stroke-width: 3; stroke-linecap: round;
+  vector-effect: non-scaling-stroke; stroke-dasharray: 1; stroke-dashoffset: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .kinetic:is([data-kinetic="type"], [data-kinetic="decode"]):not([data-kinetic-done]) [data-k-char]:not([data-on]) { opacity: 0; }
+  .kinetic:is([data-kinetic="type"], [data-kinetic="decode"]):not([data-kinetic-done]):not([data-kinetic-armed]) [data-k-char]:not([data-on]) {
+    animation: k-failsafe 1ms 3s forwards;
+  }
+  .kinetic[data-kinetic="highlight"]:not([data-kinetic-done]) .k-mark path { stroke-dashoffset: 1; }
+  .kinetic[data-kinetic="highlight"]:not([data-kinetic-done]):not([data-kinetic-armed]) .k-mark path { animation: k-failsafe-draw 1ms 3s forwards; }
+  .kinetic[data-kinetic="highlight"][data-kinetic-run] .k-mark path { animation: k-draw 700ms 250ms var(--ease-brand) forwards; }
+  .kinetic [data-k-char][data-s] { -webkit-text-fill-color: transparent; clip-path: inset(0); }
+  .kinetic [data-k-char][data-s]::after { content: attr(data-g); position: absolute; left: 0; top: 0; -webkit-text-fill-color: currentColor; }
+  .kinetic [data-k-char][data-caret]::after {
+    content: ""; position: absolute; right: -.06em; top: .12em; bottom: .12em; width: .06em;
+    background: currentColor; animation: k-blink 1s steps(1) infinite;
+  }
+  .kinetic[data-kinetic-run] [data-k-alt][data-cur] { animation: k-rot-in 420ms var(--ease-brand); }
+  @keyframes k-failsafe { to { opacity: 1; } }
+  @keyframes k-failsafe-draw { to { stroke-dashoffset: 0; } }
+  @keyframes k-draw { to { stroke-dashoffset: 0; } }
+  @keyframes k-blink { 50% { opacity: 0; } }
+  @keyframes k-rot-in { from { opacity: 0; translate: 0 .4em; } }
+}
+
+/*
+ * Small interactions (0.171.0, docs/motion.md "Small interactions") —
+ * `motion_micro`, stamped as `data-motion-micro` on the marketing and portal
+ * wrappers; the console's half is keyed on [data-console] and dropped under
+ * Subtle. Movement lives only inside the reduced-motion guard. Two
+ * properties here are not transforms, by name: a body link's underline
+ * thickness and offset (it already carries an underline; this only changes
+ * its weight), and the refused field's ring. The arrow's 3px nudge is
+ * horizontal but stays inside its own button's padding, so the document
+ * never widens.
+ */
+[data-motion-micro="lively"] [data-prose] a {
+  text-decoration-thickness: 1px; text-underline-offset: 2px;
+  transition: text-decoration-thickness var(--duration-fast) var(--ease-brand), text-underline-offset var(--duration-fast) var(--ease-brand), color var(--duration-fast) var(--ease-brand);
+}
+[data-motion-micro="lively"] [data-prose] a:is(:hover, :focus-visible) { text-decoration-thickness: 2px; text-underline-offset: 3px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  :is([data-motion-micro="lively"], [data-console]) :is(.btn, a, button) svg[data-icon="arrow-right"] { transition: translate var(--duration-fast) var(--ease-brand); }
+  :is([data-motion-micro="lively"], [data-console]) :is(.btn, a, button):is(:hover, :focus-visible) svg[data-icon="arrow-right"] { translate: 3px 0; }
+
+  :is([data-motion-micro="lively"], [data-console]) [data-switch]::after { transition-timing-function: cubic-bezier(.34, 1.56, .64, 1); }
+
+  :is([data-motion-micro="lively"], [data-console]) input:is([type="checkbox"]:not([role="switch"]), [type="radio"]):checked:focus-visible,
+  :is([data-motion-micro="lively"], [data-console]) input:is([type="checkbox"]:not([role="switch"]), [type="radio"]):checked:active { animation: micro-pop 160ms var(--ease-brand); }
+
+  :is([data-motion-micro="lively"], [data-console]) [data-copied] { transition: scale var(--duration-base) var(--ease-brand), opacity var(--duration-base) var(--ease-brand); }
+  @starting-style {
+    :is([data-motion-micro="lively"], [data-console]) [data-copied] { scale: .8; opacity: 0; }
+  }
+
+  :is([data-motion-micro="lively"], [data-console]) :is(input, select, textarea)[aria-invalid="true"] { animation: field-refused 600ms var(--ease-brand) 1; }
+
+  html[data-console-motion="subtle"] [data-console] :is(.btn, a, button):is(:hover, :focus-visible) svg[data-icon="arrow-right"] { translate: none; }
+  html[data-console-motion="subtle"] [data-console] [data-switch]::after { transition-timing-function: var(--ease-brand); }
+  html[data-console-motion="subtle"] [data-console] :is(input:checked, [data-copied], [aria-invalid="true"]) { animation: none; }
+
+  @keyframes micro-pop { from { scale: .85; } }
+  @keyframes field-refused { from { outline: 6px solid color-mix(in oklab, var(--color-err) 35%, transparent); outline-offset: 0; } to { outline: 6px solid transparent; outline-offset: 6px; } }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  [data-motion-micro="lively"] [data-tile] [data-tile-icon] { transition: scale var(--duration-base) var(--ease-brand); }
+  [data-motion-micro="lively"] [data-tile]:hover [data-tile-icon] { scale: 1.08; }
+}
+
+/* The console's "Saved ✓" (form-actions.tsx) and the new-items badge pop (admin-nav.tsx), 0.171.0. */
+[data-console] button[data-saved-swap] { position: relative; }
+[data-console] button[data-saved-swap] > :not([data-saved]) { visibility: hidden; }
+[data-console] [data-saved] { position: absolute; inset: 0; display: grid; place-items: center; white-space: nowrap; visibility: visible; background: inherit; border-radius: inherit; }
+@media (prefers-reduced-motion: no-preference) {
+  [data-console] [data-saved] { animation: saved-in 200ms var(--ease-brand); }
+  [data-console] [data-bumped] { animation: badge-bump 300ms var(--ease-brand); }
+  html[data-console-motion="subtle"] [data-console] :is([data-saved], [data-bumped]) { animation: none; }
+  @keyframes saved-in { from { opacity: 0; scale: .9; } }
+  @keyframes badge-bump { 50% { scale: 1.25; } }
+}
+
+/* A Google icon written into a sentence (0.179.0): the size of the text, in its colour. */
+.prose-icon {
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+}

@@ -406,4 +406,197 @@ styles through the Motion tab); `audit.mjs` light and dark and
 `audit:mobile` clean on a page carrying all four, and 0px of overflow at
 320px sampled every 30ms through each reveal.
 
+## Page transitions, hero video, diagrams (0.115.0, 2026-10-06)
 
+**Crossfade and Slide are React `<ViewTransition>`s**, which the App Router
+runs on every navigation with no configuration (`import { ViewTransition }
+from "react"`, typed in `@types/react` 19.3). `PageEnter` wraps its
+`.page-enter` div in one **only** when `motion_page` is `crossfade` or
+`slide` (`pageViewTransition()` in `lib/motion-choices.ts`), so every other
+choice renders the same markup as before; the wrapper adds no element.
+
+- It animates on `update`, not `enter`/`exit`: `PageEnter` lives in a layout
+  that persists across navigations, so nothing mounts or unmounts.
+- **The name changes with the pathname** (`tw-page-<hash>`). React names the
+  old snapshot with the old props and the new one with the new, so a
+  navigation is an unpaired old page and an unpaired new one. With one name
+  they would be a morphing pair, and because Next scrolls to the top in the
+  same commit the whole page would glide down by the old scroll offset. Only
+  `:only-child` images animate; a same-path update (a Server Action refresh,
+  a search parameter) keeps one name, gets `animation: none` and is over in
+  a frame — a cost every such update pays while either choice is on.
+- The header and footer are in the root snapshot, which has no animation.
+  The sticky header is lifted out as `tw-site-header` (no animation,
+  `z-index: 2`) so a sliding page cannot paint over it, and only while a
+  `tw-page-*` name is on the page, so the scheme toggle's circle wipe still
+  takes the header with it.
+- Leaving is shorter than arriving: the old page goes over
+  `--duration-exit`/`--duration-base`, the new arrives over `--duration-slow`.
+  The slide is ±8% and horizontal — acceptable only because
+  `::view-transition` is a fixed overlay in the top layer and adds nothing to
+  `scrollWidth`. One direction only: Next tags no navigation with a type.
+- `::view-transition { pointer-events: none }`, and under reduced motion
+  every group and image has `animation: none !important`.
+
+**Hero video** (`components/page-sections/hero-video.tsx`, a client island
+on the Cover hero when `data.video` is set): `muted loop playsInline
+preload="none"`, `aria-hidden`, absolutely over the `next/image` picture
+with the picture's focal point. It starts only after mount, with motion
+allowed (`useMotionOk`) and no Save-Data; pauses while the tab is hidden
+(`useDocumentHidden`) and resumes unless the visitor paused it; fades to the
+picture's own opacity once `playing` fires. **No `poster` attribute** — the
+picture beneath already is the poster and the LCP element, and a poster
+would download it again outside its srcset. The Pause/Play button copies
+the carousels' and is rendered only once the video may play (the server
+assumes Save-Data, so no button is in the HTML) — WCAG 2.2.2 for anything
+moving longer than five seconds.
+
+**The Diagram's arrows** are HTML — a stroke span and a border-drawn
+chevron, never SVG `<text>` — living in the node they point at: a 40px
+column above the tile below `md`, absolutely between the tiles from `md`.
+Each draws (`scale: 1 0` → `1`, or `0 1` across) on its own view timeline
+`--flow-link`, across the row staggered by `(--i − 1) × 6vh`, inside both
+guards, from-only keyframes so they are fully drawn otherwise.
+
+**The timeline's and steps' rail** (`[data-step-line]`) draws on its list's
+view timeline `--step-line` (the parent's, so the box measured is never the
+one scaled) from `cover 30vh` to `cover calc(100% − 50vh)`; the older
+time-based draw on `data-aos-animate` stays for browsers without scroll
+timelines (`@supports not`).
+
+## Scroll-driven motion (0.114.0, 2026-10-06)
+
+Everything in this release is a CSS scroll-driven animation
+(`animation-timeline: view()`, `scroll()` and named view timelines), so no
+script runs, nothing is written onto the server's markup, and a browser
+without support simply shows the finished page. Every rule that hides or
+moves anything sits inside `prefers-reduced-motion: no-preference` **and**
+`@supports (animation-timeline: view())`; outside them the content is static
+and whole. A heading already on screen when the page loads is past its range,
+so it is drawn in its final state.
+
+**Heading arrives** (a section's `style.headline`, stamped as
+`data-headline` by `StyledSection`). `SectionHead` and the media-and-text
+heading render every word as `<span data-word style="--w:i">` with the
+spaces kept as text — always, so the markup does not depend on the choice.
+`rise` makes each word `inline-block` (inside the guard only) and staggers it
+by *range*, not by delay — a delay means time, and a scroll timeline has none
+— each word over `cover calc(min(var(--w),8)*1.5vh)` to `+22vh`, so even a
+long heading has finished a third of the way up the screen. `wipe` is a
+`clip-path` from `inset(-.25em 100% -.25em -.25em)` (the negative inset
+keeps descenders). `shimmer` sweeps a gradient of `currentColor`, `brand-ink`
+and `accent-ink` with `-webkit-text-fill-color: transparent`, never
+`color: transparent`, so the words keep their real ink for the contrast
+audit. A theme section's heading (no word spans) rises whole. With an
+Assemble or Cascade reveal, their more specific rule animates the same `h2`,
+so wipe and shimmer do not show — the heading is never left hidden.
+
+**While scrolling** (`style.scroll`, `data-scroll`). `parallax` drifts a
+picture between `translate: 0 -6%` and `0 6%` at `scale: 1.14`, only inside a
+frame marked `data-frame` (media-and-text, hero, tabs, the story's inline
+pictures), which the rule clips with `overflow: clip` — a scale-up outside a
+clipping box would widen the document. A section's background picture drifts
+the same way. `zoom` scales the wrapper from .94 (down only) and fades it from
+.4; `fade` fades in on entry and to .25 on exit. Both act on the
+`[data-section-style]` wrapper, never on the `<section>`, whose transform
+belongs to its reveal.
+
+**Reading progress** (`motion_progress`, `none`|`bar`, stamped as
+`data-motion-progress` by `motionAttrs()`): one `<div data-scroll-progress>`
+in the marketing layout and the theme preview, `display: none` unless the
+attribute says `bar`, then a fixed 3px brand line whose `scale` runs `0 1` to
+`1 1` on `scroll(root block)` — `scale`, so it never adds to `scrollWidth`;
+`z-index` 50, above the header (40) and below the route loader (60).
+
+**Presets** (`lib/motion-presets.ts`, drawn by `motion-picker.tsx`): Standard,
+Calm, Lively, Cinematic, Still — each sets the seven motion choices (never
+the splash) in the picker's own state and fires a bubbling `change`, so the
+leave guard knows; nothing is saved until Save. A preset reads as pressed
+when every value it sets is the current one.
+
+## A frozen loop is a repeat (0.108.0, 2026-10-05)
+
+Under `prefers-reduced-motion: reduce` every moving `LogoMarquee` mode —
+marquee, drift, bob, spotlight, parallax, lens, cascade, ring — stops, and
+a stopped loop is its list repeated to fill the track: a still page showed
+one logo two or three times and the client wall each client twice. Each
+moving mode now renders the list once as a wrapped grid (`.strip-still`,
+`aria-hidden`) beside its moving markup (`.strip-moving`), and one rule in
+`globals.css` shows the first and hides the second under the reduced-motion
+query. Both are in the server's HTML, so nothing waits on JavaScript. The
+grid modes (rise, wipe, pulse, flicker, deal) render the list once already
+and carry no still copy. `.strip-wrap` sets a wrapped list two to a row
+below 40rem.
+
+## Kinetic headings (0.171.0, 2026-10-13)
+
+A hero's heading can move: **rotating words**, **typewriter**, **decode** or
+**highlight**.
+
+- `KINETIC` in `lib/motion-choices.ts` is the list.
+- `lib/kinetic.ts` resolves which effect a heading plays, through `kineticFor(site, override, words)`:
+  - `default` or blank follows `motion_headline`;
+  - an unknown id is `none`;
+  - rotate with no words is `none`, so the site-wide choice (`KINETIC_SITE`) never offers rotate.
+- Words are one per line, at most six of 40 characters each. The API checks this on the setting and on a builder hero alike.
+
+**Two choke points.**
+- `HeroTitle` (`lib/hero-heading.tsx`) serves every theme's homepage hero. It resolves `hero_kinetic` → `motion_headline` itself, from the cached settings, so no theme threads a prop.
+- The classic hero passes `text` and `lastWordClassName`, because it splits its last word into a coloured span.
+- The builder's `HeroSection` reads the section's own `kinetic` and `kinetic_words`.
+- Both render `components/ui/kinetic-text.tsx`.
+
+**The server HTML is the finished heading.**
+- A `sr-only` copy carries the words. The animated copy is `aria-hidden`, split into word spans (`whitespace-nowrap`, so a word never breaks between letters) and letter spans.
+- Every box is its final size from the first frame:
+  - a letter is hidden by opacity;
+  - a decode glyph is drawn by `::after { content: attr(data-g) }` over a transparent final glyph;
+  - the rotating slot is an `inline-grid` with every word in one cell, and `max-width: 100%` lets a long word wrap rather than run past 320px.
+- `kinetic-type.mjs` samples the h1's box ten times while each effect plays, and fails on a pixel of movement.
+
+**The hidden start state is CSS inside `prefers-reduced-motion: no-preference` *and* `scripting: enabled`.**
+- No-JS and reduced-motion visitors get the finished heading, with no flash.
+- The island stamps `data-kinetic-armed` on mount. An island that never armed (a failed chunk, a hydration error) is revealed by a 3s failsafe animation keyed on `:not([data-kinetic-armed])`.
+- The probe proves the failsafe by making `IntersectionObserver` throw and stripping the attribute.
+
+**Automated browsers see the final state** unless `localStorage.tw_kinetic_force === "1"`, the tours' rule. The audits therefore grade finished text, never a half-typed or scrambled heading.
+
+**Rotating words**
+- They turn through the list once and rest on the original word.
+- They pause under the pointer and in a hidden tab, and carry a Pause button inside the heading (WCAG 2.2.2).
+- So that the heading's accessible name is the words alone, it names itself by `aria-labelledby` pointing at the `sr-only` copy: `k-hero-title` on the homepage, `k-<section id>` in the builder.
+
+`kinetic_words` is in `SectionRules::NOT_INLINE`. Its words are not one run on the page, so the live preview must not offer to edit them in place.
+
+**Two things the rerun after the review fixes measured** (0.172.0, both regressions from that pass):
+
+- **A lettered heading has no break opportunity of its own.** Each letter is its own inline box, so a single long word cannot break and ran 30px past a 320px screen — the probe measured `scrollWidth` 350. The two effects that split a word into letters carry `overflow-wrap: anywhere`, which lets the line break between letter boxes; that is the same thing as breaking inside the word, because the word *is* the boxes. Removing `whitespace-nowrap` (the fix for the wide case) did not cover this, since a word with no space in it has nowhere to wrap.
+- **A button hidden with `opacity-0` is still a button.** Under reduced motion the words never move, and the Pause button was rendered anyway with `pointer-events-none opacity-0 focus-visible:opacity-100` — a 28px box that a screen reader and the probe both find, and that the audit's tap-target check would read as a target. It is not rendered at all unless `useMotionOk()` has answered yes. That hook answers false until it has asked, which is what the server renders too, so the first client render agrees with the HTML and there is no mismatch.
+
+## Small interactions (0.171.0, 2026-10-13)
+
+`motion_micro` is **Lively** (the default) or **None**. `motionAttrs()` stamps it as `data-motion-micro` on the marketing and portal wrappers.
+
+**Lively is the default by the client's choice.** It is the one deliberate exception to "the first entry is the site as it moved before", justified because every effect is a few pixels or a few hundred milliseconds. The console's half is keyed on `[data-console]` and drops movement under Subtle (`docs/console-portal.md`).
+
+**Arrows nudge.**
+- `IconArrowRight` carries `data-icon="arrow-right"`. In a `.btn`, a link or a button, it moves `translate: 3px 0` on hover or focus-visible.
+- The movement is horizontal but stays inside its own button's padding, so the document never widens.
+
+**Body links thicken.**
+- A link in `Prose` (`data-prose`) goes from a 1px to a 2px underline.
+- `text-decoration-thickness` and `text-underline-offset` are the first of two named non-transform properties here. The link always kept its underline.
+
+**Smaller effects**
+- **Switches spring:** an overshoot curve on the thumb's `translate`.
+- **Tick boxes and radios pop:** `scale` .85 → 1 on `:checked`.
+- **Copy confirms:** `[data-copied]` arrives through `@starting-style` in `CopyLink` and `CopyText`.
+- **A tile's icon** scales to 1.08 under a fine pointer.
+
+**A refused field rings once.**
+- `[aria-invalid="true"]` plays an outline that expands and fades.
+- It is an outline, not a box-shadow, because the field already draws its ring with a box-shadow. This is the second named non-transform property.
+
+Field focus is unchanged: the `field` class already transitions its ring.
+
+`scripts/probes/micro-interactions.mjs` samples each effect. Its console half runs only with credentials. Run probes with `BASE=http://localhost:3000`: `shared.mjs` defaults to `127.0.0.1`, which is a different cookie host from a probe's own default.

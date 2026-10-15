@@ -43,7 +43,7 @@ class ArticleBriefTest extends TestCase
     private function enable(): void
     {
         $this->setting('seo_ai_enabled', '1', 'boolean');
-        $this->setting('openai_api_key', 'sk-test', 'string', 'integrations');
+        $this->setting('openrouter_api_key', 'sk-test', 'string', 'integrations');
     }
 
     private function fakeProvider(string $says, bool $ok = true): object
@@ -54,12 +54,15 @@ class ArticleBriefTest extends TestCase
 
             public array $lastMessages = [];
 
+            public array $lastOptions = [];
+
             public function __construct(private string $says, private bool $ok) {}
 
             public function complete(array $messages, int $maxTokens = 500, array $options = []): AiReply
             {
                 $this->calls++;
                 $this->lastMessages = $messages;
+                $this->lastOptions = $options;
 
                 return $this->ok ? AiReply::of($this->says, 42) : AiReply::failed('quota exceeded');
             }
@@ -131,6 +134,21 @@ class ArticleBriefTest extends TestCase
         $this->assertSame(1, substr_count($context, 'do you set up guest wifi?') + substr_count($context, 'Do you set up guest WiFi?'));
         $this->assertStringContainsString('---VISITOR QUESTIONS---', $context);
         $this->assertStringContainsString('Never invent one', $fake->lastMessages[0]['content']);
+    }
+
+    /** An article is a long reply: more than a visitor's thirty seconds, and readable through a fence. */
+    public function test_the_provider_is_given_time_and_a_fenced_reply_is_read(): void
+    {
+        $this->enable();
+        $fake = $this->fakeProvider("```json\n".self::REPLY."\n```");
+        $ids = $this->unanswered('do you set up guest wifi?');
+
+        $this->actingAs($this->staff('admin'))
+            ->postJson('/api/v1/admin/chat/unanswered/brief', ['ids' => $ids])
+            ->assertStatus(201)
+            ->assertJsonPath('data.title', 'Setting up a guest Wi-Fi network for visitors');
+
+        $this->assertSame(90, $fake->lastOptions['timeout']);
     }
 
     public function test_it_refuses_when_switched_off_and_writes_nothing(): void

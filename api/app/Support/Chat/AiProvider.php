@@ -24,7 +24,7 @@ interface AiProvider
      * unchanged; a model that cannot see answers about the text alone.
      *
      * @param  array<int, array{role: string, content: string|array<int, array<string, mixed>>}>  $messages
-     * @param  array{model?: string, response_format?: array, temperature?: float}  $options
+     * @param  array{model?: string, response_format?: array, temperature?: float, timeout?: int}  $options
      *
      * `$options` is additive and defaults to empty, which sends exactly the
      * request this interface sent before it existed — so the assistant's
@@ -37,6 +37,11 @@ interface AiProvider
      * validate rather than prose it has to guess the shape of. Both are
      * provider-agnostic ideas, which is why they are here rather than smuggled
      * in as a magic message.
+     *
+     * **`timeout`** is seconds to wait for the reply, for a caller that asks
+     * for a long one with nobody watching a typing indicator — a page draft,
+     * an article draft. Absent, the provider's own short default stands,
+     * which is the one a visitor's question should keep.
      */
     public function complete(array $messages, int $maxTokens = 500, array $options = []): AiReply;
 

@@ -94,6 +94,12 @@ export function useToast(): (t: ToastInput) => void {
  * region and not of the item in it. A failure interrupts; a confirmation waits
  * for a gap. One region could only ever do one of those.
  */
+/** When the last `ok` toast was raised — for a listener that mounted just after it (form-actions.tsx). */
+let okAt = 0;
+export function lastOkToastAt(): number {
+  return okAt;
+}
+
 export function ToastProvider({ children, okDuration = null }: { children: ReactNode; okDuration?: number | null }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(1);
@@ -107,6 +113,16 @@ export function ToastProvider({ children, okDuration = null }: { children: React
     const id = nextId.current++;
 
     setToasts((current) => [...current, { ...input, tone, id }].slice(-MAX_VISIBLE));
+    // The console's Save button turns into "Saved" when its own form's save
+    // raised this (form-actions.tsx, 0.171.0) — an event rather than a
+    // context, so the bar needs nothing threaded to it.
+    if (tone === "ok" && typeof window !== "undefined") {
+      okAt = Date.now();
+      window.dispatchEvent(new CustomEvent("tw:saved", { detail: { title: input.title } }));
+    } else if ((tone === "err" || tone === "warn") && typeof window !== "undefined") {
+      // A refusal ends the wait for a "Saved" (form-actions.tsx).
+      window.dispatchEvent(new CustomEvent("tw:refused"));
+    }
   }, []);
 
   const assertive = toasts.filter((t) => t.tone === "err" || t.tone === "warn");

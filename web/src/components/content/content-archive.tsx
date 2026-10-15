@@ -8,6 +8,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { IconLayers } from "@/components/icons";
 import { formatDate } from "@/lib/dates";
 import type { ContentEntry, ContentTypeSummary, Paginated } from "@/types/api";
+import { blurProps } from "@/lib/blur";
 
 /**
  * A custom content type's archive — `/events`, `/downloads`
@@ -52,7 +53,7 @@ export function ContentArchive({
                 summary={e.summary}
                 focus={e.image_focus}
                 media={e.image ? (
-                  <Image
+                  <Image {...blurProps(e.image_blur)}
                     src={e.image}
                     alt={e.image_alt ?? ""}
                     fill

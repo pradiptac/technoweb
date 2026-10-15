@@ -9,6 +9,7 @@ use App\Models\StoreProductVariation;
 use App\Models\Wishlist;
 use App\Models\WishlistItem;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -238,7 +239,10 @@ final class Wishlists
         /** @var StoreProduct $product */
         $product = $item->product;
         $variation = $item->variation;
-        $now = $item->currentPricePaise();
+        // Stored with GST; shown as the website shows prices (0.178.0).
+        $rate = Tax::rateFor($product);
+        $now = Tax::shown($item->currentPricePaise(), $rate);
+        $saved = Tax::shown((int) $item->price_at_save, $rate);
         $image = is_array($product->images) && filled($product->images) ? (string) $product->images[0] : null;
 
         return [
@@ -248,14 +252,14 @@ final class Wishlists
             'name' => $product->name,
             'variation_name' => $variation?->name,
             'slug' => $product->slug,
-            'image_url' => $image !== null ? asset('storage/'.$image) : null,
+            'image_url' => $image !== null ? MediaUrl::for($image) : null,
             'image_alt' => $image !== null ? MediaMeta::alt($image) : null,
             'price_paise' => $now,
-            'price_at_save_paise' => $item->price_at_save,
+            'price_at_save_paise' => $saved,
             // A saving since it was saved, when there is one — the figure the
             // list is for. Null rather than zero or negative: a rise is not a
             // saving, and saying "0% down" is noise.
-            'saving_paise' => $now < $item->price_at_save ? $item->price_at_save - $now : null,
+            'saving_paise' => $now < $saved ? $saved - $now : null,
             'in_stock' => $item->buyable(),
             // A product-level line on a product with options cannot go
             // straight into a basket — somebody has to choose one.

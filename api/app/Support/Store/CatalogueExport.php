@@ -23,7 +23,9 @@ use App\Support\Money;
  *
  * Money is `Money::toRupeeString()`, a plain decimal, for the reason
  * `docs/store.md` gives: a formatted amount is text to Excel and cannot be
- * summed. Every cell goes through `Csv::escape` on the way out.
+ * summed. Every cell goes through `Csv::escape` on the way out. Prices are
+ * written as the console types them (`store_price_entry`, 0.178.0), so the
+ * file reads like the product form and the import takes it straight back.
  */
 class CatalogueExport
 {
@@ -36,7 +38,7 @@ class CatalogueExport
     public static function rows(): \Generator
     {
         $products = StoreProduct::query()
-            ->with(['category:id,slug', 'brand:id,slug', 'variations'])
+            ->with(['category:id,slug', 'brand:id,slug', 'variations', 'tags'])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->orderBy('id')
@@ -62,8 +64,8 @@ class CatalogueExport
             $product->type->value,
             $product->category->slug ?? '',
             $product->brand->slug ?? '',
-            Money::toRupeeString((int) $product->price_paise),
-            $product->compare_at_paise === null ? '' : Money::toRupeeString((int) $product->compare_at_paise),
+            Money::toRupeeString(Tax::entered((int) $product->price_paise, Tax::rateFor($product))),
+            $product->compare_at_paise === null ? '' : Money::toRupeeString(Tax::entered((int) $product->compare_at_paise, Tax::rateFor($product))),
             (string) (int) $product->stock,
             $product->track_stock ? '1' : '0',
             $product->allow_oversell ? '1' : '0',
@@ -74,6 +76,8 @@ class CatalogueExport
             $product->status->value,
             $product->feed_include ? '1' : '0',
             (string) ($product->short_description ?? ''),
+            // Shop tags, `;` between them (a comma is common inside a name).
+            $product->tags->pluck('name')->implode('; '),
         ];
     }
 
@@ -95,7 +99,7 @@ class CatalogueExport
             '',
             '',
             '',
-            Money::toRupeeString((int) ($variation->price_paise ?? $product->price_paise)),
+            Money::toRupeeString(Tax::entered((int) ($variation->price_paise ?? $product->price_paise), Tax::rateFor($product))),
             '',
             (string) (int) $variation->stock,
             '',
@@ -104,6 +108,7 @@ class CatalogueExport
             (string) ($variation->mpn ?? ''),
             '',
             $variation->weight_grams === null ? '' : (string) $variation->weight_grams,
+            '',
             '',
             '',
             '',

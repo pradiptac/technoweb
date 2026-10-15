@@ -21,6 +21,7 @@ import { stripColumns } from "@/lib/strip-columns";
 import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
+import { HeroTitle } from "@/lib/hero-heading";
 
 /**
  * Canvas's front page, from the design document's components.
@@ -54,7 +55,7 @@ export function Home({
       <Container className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16 [&>*]:min-w-0">
         <div>
           <span className="inline-block rounded-full bg-surface-2 px-3 py-1 text-13 font-medium text-ink">{kicker}</span>
-          <h1 className="display-1 mt-6 text-balance">{heading}</h1>
+          <HeroTitle className="display-1 mt-6 text-balance">{heading}</HeroTitle>
           <p className="lede mt-6">{lede}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <ButtonLink href="/contact">Talk to an engineer <IconArrowRight /></ButtonLink>

@@ -48,7 +48,22 @@ a strong password. Keep the name, user and password to hand.
    *Acme Networks* gives `AN-2026-00001`, and engineer visits `ANV-2026-00001`.
    You can change them later under **System → Settings → Reference numbers**.
 
-## 6. Start the website (the Node.js app)
+## 6. Your logo (optional)
+
+After the install finishes, the wizard offers to take your logo. Upload a
+PNG, JPG, WebP or SVG under 2 MB — a version on a transparent background
+works best — and it is saved to your media library and set as the site's
+logo.
+
+If the logo has colour in it, the wizard then offers up to three palettes
+made from it: the colour there is most of, the boldest, and the darkest.
+Press one to use it. A black, white or grey logo has no colour to take, and
+it says so.
+
+Both are optional. **Skip this** goes straight on, and you can upload the
+logo and choose colours later in the console — chapter 15.
+
+## 7. Start the website (the Node.js app)
 
 When the wizard reaches **Start the website**, go back to Plesk:
 
@@ -68,7 +83,7 @@ You do **not** need to press "NPM install" or add environment variables
 there. The website reads its settings from `altis-tech-cms/config/web.env`,
 which the wizard wrote.
 
-## 7. Add the scheduler
+## 8. Add the scheduler
 
 The wizard shows one line starting `* * * * *`. In Plesk:
 
@@ -78,7 +93,10 @@ The wizard shows one line starting `* * * * *`. In Plesk:
    command, and choose **Every minute** (or cron style `* * * * *`).
 3. Save. Within a minute the wizard sees it and finishes.
 
-## 8. Done
+If you need the line again later, it is on **System → System status** in the
+console, under **The scheduler**, with a Copy button.
+
+## 9. Done
 
 The wizard shows a link to the console, `https://www.example.com/admin`. Sign
 in with the administrator email you gave; a six-digit code is emailed to it,

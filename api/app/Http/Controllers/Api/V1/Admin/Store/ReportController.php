@@ -69,7 +69,7 @@ class ReportController extends Controller
             } else {
                 Csv::write($handle, [
                     'Order', 'Placed', 'Status', 'Customer', 'Email', 'Items',
-                    'Subtotal (INR)', 'Discount (INR)', 'Coupon',
+                    'Subtotal (INR)', 'Discount (INR)', 'Coupon', 'Delivery (INR)',
                     'Taxable (INR)', 'GST (INR)', 'Total (INR)',
                 ], $this->orderRows($from, $to));
             }
@@ -101,6 +101,7 @@ class ReportController extends Controller
                 Money::toRupeeString($order->subtotal_paise),
                 Money::toRupeeString($order->discount_paise),
                 $order->coupon_code ?? '',
+                Money::toRupeeString((int) $order->shipping_paise),
                 Money::toRupeeString($order->taxable_paise),
                 Money::toRupeeString($order->gst_paise),
                 Money::toRupeeString($order->total_paise),

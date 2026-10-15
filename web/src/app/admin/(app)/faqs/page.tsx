@@ -3,6 +3,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconLifebuoy } from "@/components/icons";
@@ -80,7 +81,7 @@ export default async function AdminFaqsPage({
       </FilterBar>
 
       {faqs.length === 0 ? (
-        <EmptyState icon={<IconLifebuoy />} title={filtered ? "No FAQs match those filters" : "No FAQs yet"}>
+        <EmptyState icon={<IconLifebuoy />} title={filtered ? "No FAQs match those filters" : "No FAQs yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/faqs" newHref="/admin/faqs/new" noun="FAQ" />}>
           {filtered
             ? "Try a different term, or clear the filters."
             : "Questions shown on solution, service, product and page detail screens."}

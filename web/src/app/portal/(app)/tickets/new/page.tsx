@@ -32,7 +32,7 @@ export default async function NewTicketPage({
   return (
     <>
       <div className="mb-6">
-        <h2 className="display-3">Submit a ticket</h2>
+        <h1 className="display-3">Submit a ticket</h1>
         <p className="mt-1.5 text-14-5 text-muted">
           The more specific you are, the faster this gets resolved without a round of
           clarifying questions.

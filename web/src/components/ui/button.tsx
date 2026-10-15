@@ -169,6 +169,21 @@ export function ButtonLink({
   return <Link href={href} className={cn(shared, variants[variant], sizes[size], className)} {...props} />;
 }
 
+/**
+ * The same look on a plain `<a>` — for a route handler, a download or
+ * another site, where `ButtonLink`'s `next/link` would prefetch something
+ * that is not a page (CLAUDE.md, "A `next/link` at a route handler
+ * prefetches it").
+ */
+export function ButtonAnchor({
+  variant = "primary",
+  size = "md",
+  className,
+  ...props
+}: BaseProps & ComponentProps<"a">) {
+  return <a className={cn(shared, variants[variant], sizes[size], className)} {...props} />;
+}
+
 /** Inline text link with the arrow that nudges on hover. */
 export function ArrowLink({
   href, children, className,

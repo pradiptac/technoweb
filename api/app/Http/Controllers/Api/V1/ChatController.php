@@ -269,7 +269,7 @@ class ChatController extends Controller
 
         /*
          * Resolved, not constructed. The specification asks for a provider
-         * abstraction so one can be swapped; naming `OpenAiProvider` here would
+         * abstraction so one can be swapped; naming `OpenRouterProvider` here would
          * make that abstraction decorative — and it is what lets a test put a
          * fake in front of it without reaching for `Http::fake` to prove
          * something that is not about HTTP.

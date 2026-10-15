@@ -8,8 +8,12 @@
  * `/push/sw-config`, a route handler built from the site's settings, because
  * a static file cannot read them.
  *
- * Registered only when somebody presses the push bell (`lib/push-client.ts`);
- * nothing on the site registers it on load.
+ * Since 2026-10-05 it is not registered on its own: `/sw.js`, the site's one
+ * worker, imports it (`importScripts`), because a scope holds one worker and
+ * the installable app needs the same scope. Kept at this path for the
+ * browsers that registered it before, which keep receiving pushes until
+ * `/sw.js` replaces it on their next visit. Nothing here may assume it is the
+ * whole worker.
  */
 
 let config = null;

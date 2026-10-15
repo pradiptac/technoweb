@@ -4,10 +4,13 @@ namespace App\Support;
 
 use App\Enums\MessageChannel;
 use App\Enums\PaymentGateway;
+use App\Models\GoogleFont;
 use App\Models\Location;
 use App\Models\Media;
+use App\Models\Page;
 use App\Models\Setting;
 use App\Models\Solution;
+use App\Support\Auth\GoogleSignIn;
 use App\Support\Chat\ChatSettings;
 use App\Support\Meetings\MeetingSettings;
 use App\Support\Visits\VisitSettings;
@@ -31,7 +34,7 @@ class PublicSettings
      * `payments`, `newsletter`, `chatbot`, `seo`, `media`, `security` — stays
      * server-side unless a key below names it deliberately.
      */
-    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'login', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'store_promo', 'store_tiles', 'blog', 'embeds', 'indexnow', 'push'];
+    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'login', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'store_promo', 'store_tiles', 'store_videos', 'store_tags', 'blog', 'embeds', 'indexnow', 'push', 'pwa', 'action_bar', 'coming_soon'];
 
     /**
      * Rows in a public group that are nobody's business on this endpoint.
@@ -43,7 +46,10 @@ class PublicSettings
      * because the settings screen reads them from `store` and a migration
      * of the rows would be a second change for the same fact.
      */
-    public const PRIVATE_KEYS = ['activation_procedure', 'activation_pdf_path', 'digital_auto_fulfil'];
+    public const PRIVATE_KEYS = ['activation_procedure', 'activation_pdf_path', 'digital_auto_fulfil', 'store_return_instructions'];
+
+    /** The settings pictures that publish a blurred preview: the ones drawn large. */
+    private const BLUR_PREFIXES = ['banner_', 'login_image', 'coming_soon_image', 'store_promo_image', 'store_tile_'];
 
     /** @return array<string, string> */
     public static function build(): array
@@ -163,6 +169,22 @@ class PublicSettings
         $values['announcement_live'] = Announcement::isLive($values->all()) ? '1' : '0';
 
         /*
+         * The homepage as a builder page (0.113.0): the slug of the page the
+         * id names, and only while it is a published builder page — so an
+         * unpublished or deleted page puts the theme's homepage back rather
+         * than leaving `/` addressed at nothing. The frontend fetches the
+         * page by this slug; the id itself is not what it needs.
+         */
+        unset($values['homepage_page_id']);
+        $homeId = Setting::get('homepage_page_id');
+        if (filled($homeId)) {
+            $slug = Page::query()->published()->where('template', 'builder')->whereKey((int) $homeId)->value('slug');
+            if (is_string($slug) && $slug !== '') {
+                $values['homepage_page_slug'] = $slug;
+            }
+        }
+
+        /*
          * Which messaging channels the site may offer an opt-in for: the
          * checkout's WhatsApp and RCS boxes, the push bell. One bit each —
          * the provider and its keys are private (`messaging`), and a box
@@ -170,6 +192,22 @@ class PublicSettings
          * the first order. Push also needs the browser half of Firebase,
          * the public `push` group, or the bell has nothing to subscribe with.
          */
+        // Whether the portal's sign-in and registration screens may offer
+        // "Continue with Google": the switch and a whole client. The client
+        // itself is private (`google_login`).
+        $values['google_login_live'] = GoogleSignIn::live() ? '1' : '0';
+
+        // Google fonts copied to this server (0.179.0): every installed one,
+        // so the console's live preview can draw a font chosen before Save.
+        // Paths only — the website builds its own URLs from them and checks
+        // their shape.
+        $google = GoogleFont::query()->orderBy('slug')->get(['slug', 'family', 'category', 'faces']);
+        if ($google->isNotEmpty()) {
+            $values['google_fonts'] = json_encode($google->map(fn (GoogleFont $f) => [
+                'id' => $f->id(), 'slug' => $f->slug, 'family' => $f->family, 'category' => $f->category, 'faces' => $f->faces,
+            ])->all(), JSON_THROW_ON_ERROR);
+        }
+
         $values['messaging_whatsapp_live'] = MessageChannel::WhatsApp->ready() ? '1' : '0';
         $values['messaging_rcs_live'] = MessageChannel::Rcs->ready() ? '1' : '0';
         $values['push_live'] = MessageChannel::Push->ready() && collect(['push_api_key', 'push_project_id', 'push_messaging_sender_id', 'push_app_id', 'push_vapid_key'])
@@ -229,7 +267,7 @@ class PublicSettings
                 ->filter(fn ($k) => $values->has($k))
                 ->map(fn ($k) => $values[$k])
                 ->all())
-            ->get(['path', 'width', 'height', 'focal_x', 'focal_y'])
+            ->get(['path', 'width', 'height', 'focal_x', 'focal_y', 'blur'])
             ->keyBy('path');
 
         // Stored as paths, served as URLs — the same split the media library
@@ -240,7 +278,7 @@ class PublicSettings
                 continue;
             }
 
-            $values[$prefix.'_url'] = asset('storage/'.$values[$path]);
+            $values[$prefix.'_url'] = MediaUrl::for($values[$path]);
 
             $file = $dimensions->get($values[$path]);
 
@@ -264,6 +302,19 @@ class PublicSettings
 
             if ($focus !== null) {
                 $values[$prefix.'_focus'] = $focus;
+            }
+
+            /*
+             * The blurred preview (0.123.0), absent when the file has none —
+             * and only for the pictures a page draws large. This map rides in
+             * every public page's payload, so a preview for the logo, the
+             * favicon or the app icon would be a few hundred bytes on every
+             * page for a picture nobody watches load.
+             */
+            $blur = $file?->blur;
+
+            if (is_string($blur) && $blur !== '' && Str::startsWith($prefix, self::BLUR_PREFIXES)) {
+                $values[$prefix.'_blur'] = $blur;
             }
         }
 

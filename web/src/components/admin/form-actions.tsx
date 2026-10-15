@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { lastOkToastAt } from "@/components/ui/toast";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { SaveMessage } from "@/lib/hooks/use-save-status";
@@ -87,6 +88,14 @@ function register(check: () => boolean) {
   };
 }
 
+/**
+ * When a bar's form was last submitted. Module scope, not a ref: a create
+ * redirects to the record's edit screen, whose bar is a new instance, and
+ * that is the bar the "Saved" belongs on. It survives a client-side
+ * navigation and nothing else.
+ */
+let lastSubmitAt = 0;
+
 export function FormActions({
   children, className, dirty: controlled, onSave,
 }: {
@@ -112,8 +121,10 @@ export function FormActions({
     const form = ref.current?.closest("form");
     if (!form) return;
 
-    const touched = () => { dirtyRef.current = true; };
-    const saved = () => { dirtyRef.current = false; };
+    // A control marked `data-no-dirty` (Simple view's switch) is a view
+    // preference, not an edit.
+    const touched = (e: Event) => { if (!(e.target as Element | null)?.closest?.("[data-no-dirty]")) dirtyRef.current = true; };
+    const saved = () => { dirtyRef.current = false; lastSubmitAt = Date.now(); };
 
     form.addEventListener("input", touched);
     form.addEventListener("change", touched);
@@ -125,6 +136,40 @@ export function FormActions({
       form.removeEventListener("submit", saved);
     };
   }, [controlled]);
+
+  /*
+   * "Saved ✓" on the submit button for a moment (0.171.0): the toast
+   * provider announces every `ok` toast as `tw:saved`, and a bar whose form
+   * was submitted in the last fifteen seconds — on this screen or the one
+   * that redirected here — takes it as its own. Written
+   * to the DOM, never through state, so the button is not re-rendered; the
+   * label overlays the button's own children in one grid cell (globals.css),
+   * so its width never changes. The toast is still what announces it.
+   */
+  useEffect(() => {
+    const onSaved = () => {
+      if (Date.now() - lastSubmitAt > 15000) return;
+      // Used once: a second `ok` toast, or another screen opened straight
+      // after, is not this save.
+      lastSubmitAt = 0;
+      const button = ref.current?.querySelector<HTMLButtonElement>('button[type="submit"]');
+      if (!button || button.querySelector("[data-saved]")) return;
+      const label = document.createElement("span");
+      label.dataset.saved = "";
+      label.setAttribute("aria-hidden", "true");
+      label.textContent = "Saved ✓";
+      button.dataset.savedSwap = "";
+      button.append(label);
+      window.setTimeout(() => { label.remove(); delete button.dataset.savedSwap; }, 1600);
+    };
+    const onRefused = () => { lastSubmitAt = 0; };
+    window.addEventListener("tw:saved", onSaved);
+    window.addEventListener("tw:refused", onRefused);
+    // A create redirects here and its toast may be raised before this bar
+    // is listening: take one that arrived a moment ago.
+    if (Date.now() - lastOkToastAt() < 3000) onSaved();
+    return () => { window.removeEventListener("tw:saved", onSaved); window.removeEventListener("tw:refused", onRefused); };
+  }, []);
 
   // Ctrl/⌘ S.
   useEffect(() => {

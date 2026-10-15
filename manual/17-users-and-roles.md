@@ -13,11 +13,11 @@ completely separate: a customer can never sign in to the console.
 |---|---|
 | **Administrator** | Everything, including staff accounts, all settings, email templates, the website assistant (Assistant), the Info bar and Themes, webhooks, imports, backups, updates and the activity log |
 | **Support engineer** | Dashboard, Tickets, Customers (including "View as"), job Applications, engineer Visits, online Meetings |
-| **Content manager** | Pages, Knowledge base, Case studies, FAQs, Media, Team, Clients, Certifications, Custom fields and content types, the Blog and its comments, the Catalogue, Menus, Sliders, Galleries, Popups, content blocks, Forms, Vacancies |
+| **Content manager** | Pages, Knowledge base, Case studies, FAQs, Media, Team, Clients, Certifications, Custom fields and content types, the Blog and its comments, the Catalogue, Menus, Sliders, Galleries, Popups, content blocks, Forms, Vacancies, Events and their registrations |
 | **SEO manager** | SEO overview, Landing pages, Places, Redirects |
 | **Campaign manager** | The newsletter (Campaign), Messaging |
 | **Store manager** | The shop (Store), Messaging |
-| **Sales manager** | Leads, engineer Visits, online Meetings and Meeting types |
+| **Sales manager** | Leads, engineer Visits, online Meetings and Meeting types, an event's registrations |
 | **Meeting host** | Takes online meetings: offered to customers for booking in their working hours, and sees their own list under My meetings |
 
 An **Administrator passes every role check**, so there is no need to give an

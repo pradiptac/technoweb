@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { PrimaryNavItems, UtilityLinks, useHeaderNav, STRIP_GATE } from "@/components/layout/header-parts";
+import { Arranged, CtaWords, HeaderScheme, PrimaryNavItems, UtilityLinks, useHeaderNav, STRIP_GATE } from "@/components/layout/header-parts";
+import type { ResolvedHeader } from "@/themes/chrome-parts";
 import { Logo } from "@/components/layout/logo";
 import type { MenuPanelStyle } from "@/components/layout/mega-menu";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
@@ -33,7 +34,7 @@ import { CountUp } from "@/components/ui/count-up";
  * `CartBadge` and the whole `MobileDrawer`.
  */
 export function ConsoleHeader({
-  menu = {}, settings = {}, links, topBar, menuStyle = "mega",
+  menu = {}, settings = {}, links, topBar, menuStyle = "mega", chrome,
 }: {
   menu?: Record<string, MenuSection>;
   settings?: SiteSettings;
@@ -41,6 +42,8 @@ export function ConsoleHeader({
   topBar: TopBarLink[];
   /** The theme option; see `MegaMenu`. A big panel positions against the header's container. */
   menuStyle?: MenuPanelStyle;
+  /** Which parts to draw and in what order (the Header & footer screen). */
+  chrome: ResolvedHeader;
 }) {
   const bigMenu = menuStyle === "big";
   const readouts = statPairs(settings.hero_stats, heroStats).slice(0, 2);
@@ -49,6 +52,7 @@ export function ConsoleHeader({
   return (
     <>
       {/* The status strip. */}
+      {chrome.show.topbar && (
       <div className="border-b border-dark-line bg-dark-2 font-mono text-12 text-dark-muted">
         <Container className="flex h-9 items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-5">
@@ -59,7 +63,7 @@ export function ConsoleHeader({
                 <span className="lowercase">{s.label}</span>
               </span>
             ))}
-            {phone ? (
+            {chrome.show.phone && phone ? (
               <a href={telHref(phone)} className="flex items-center gap-1.5 whitespace-nowrap py-1.5 hover:text-dark-ink">
                 <IconPhone className="size-3" />
                 {phone}
@@ -67,25 +71,34 @@ export function ConsoleHeader({
             ) : null}
           </div>
           <div className="flex items-center gap-4">
-            <SiteSearch
-              placeholders={["search…", "part number", "firewall", "wi-fi survey"]}
-              className="hidden h-7 w-[200px] max-w-none rounded border-dark-line bg-dark pl-2.5 pr-0.5 text-dark-ink focus-within:border-brand-300 md:flex [&>span]:left-2.5 [&>span]:font-mono [&>span]:text-12 [&>span]:text-dark-muted"
-              inputClassName="font-mono text-12 text-dark-ink"
-              buttonClassName="size-6 rounded-sm"
-            />
-            <UtilityLinks
-              utility={utility}
-              menuStyle={menuStyle}
-              gate={STRIP_GATE}
-              linkClassName="flex items-center gap-1 whitespace-nowrap py-1.5 hover:text-dark-ink group-[:hover:not([data-closed])]:text-dark-ink group-[:focus-within:not([data-closed])]:text-dark-ink"
-                chevronClassName="size-[11px]"
-            />
-            {email ? (
+            <Arranged chrome={chrome} nodes={{
+              search: (
+              <SiteSearch
+                placeholders={["search…", "part number", "firewall", "wi-fi survey"]}
+                className="hidden h-7 w-[200px] max-w-none rounded border-dark-line bg-dark pl-2.5 pr-0.5 text-dark-ink focus-within:border-brand-300 md:flex [&>span]:left-2.5 [&>span]:font-mono [&>span]:text-12 [&>span]:text-dark-muted"
+                inputClassName="font-mono text-12 text-dark-ink"
+                buttonClassName="size-6 rounded-sm"
+              />
+              ),
+              utility: (
+              <UtilityLinks
+                utility={utility}
+                menuStyle={menuStyle}
+                gate={STRIP_GATE}
+                linkClassName="flex items-center gap-1 whitespace-nowrap py-1.5 hover:text-dark-ink group-[:hover:not([data-closed])]:text-dark-ink group-[:focus-within:not([data-closed])]:text-dark-ink"
+                  chevronClassName="size-[11px]"
+              />
+              ),
+              email: (
+                email ? (
               <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-dark-ink lg:inline-flex">{email}</a>
-            ) : null}
+            ) : null
+              ),
+            }} />
           </div>
         </Container>
       </div>
+      )}
 
       {/* The header proper. */}
       <header className="sticky top-0 z-40 border-b border-dark-line bg-dark text-dark-ink">
@@ -111,6 +124,7 @@ export function ConsoleHeader({
                 menu={menu}
                 menuStyle={menuStyle}
                 isStoreItem={isStoreItem}
+                showCart={chrome.show.cart}
                 linkClassName="relative flex items-center gap-1.5 whitespace-nowrap px-2 py-3 text-12 font-semibold uppercase tracking-[.07em] text-dark-muted transition-colors duration-(--duration-base) hover:text-dark-ink min-[1440px]:px-3 min-[1440px]:text-12-5 min-[1440px]:tracking-[.1em] after:absolute after:inset-x-2 min-[1440px]:after:inset-x-3 after:-bottom-[10px] after:h-[2px] after:origin-left after:scale-x-0 after:bg-brand-300 after:transition-[scale] after:duration-(--duration-slow) hover:after:duration-(--duration-draw) focus-visible:after:duration-(--duration-draw) group-[:focus-within:not([data-closed])]:after:duration-(--duration-draw) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
                   chevronClassName="size-[11px]"
                   cartBadgeClassName="relative -top-[7px] -ml-1"
@@ -119,13 +133,13 @@ export function ConsoleHeader({
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <Link
-              href="/contact"
+              href={chrome.cta.href ?? "/contact"}
               className="inline-flex h-9 items-center gap-2 rounded bg-brand-600 px-4 text-13 font-semibold text-brand-on transition-colors duration-(--duration-base) hover:bg-brand-700 max-[419px]:px-3 max-[419px]:text-12"
             >
-              <span className="hidden min-[560px]:inline">Talk to an engineer</span>
-              <span className="min-[560px]:hidden">Engineer</span>
+              <CtaWords label={chrome.cta.label} long="Talk to an engineer" short="Engineer" />
               <IconArrowRight className="size-3.5" />
             </Link>
+            {chrome.show.scheme && <HeaderScheme onDark />}
             <button
               ref={toggleRef}
               type="button"

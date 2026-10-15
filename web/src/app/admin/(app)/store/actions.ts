@@ -1,13 +1,17 @@
 "use server";
 
+import { runBulkAction } from "@/lib/admin/bulk";
+import type { BulkState } from "@/types/bulk";
+
 import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import {
   analyseStoreImport, createStoreCategory, createStoreProduct, deleteStoreCategory, deleteStoreProduct, runStoreImport,
-  saveStorePromo, updateStoreCategory, updateStoreProduct,
+  saveInvoicing,
+  saveStorePromo, saveStoreVideos, updateStoreCategory, updateStoreProduct,
 } from "@/lib/admin";
-import { customFieldsFromFormData, jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import { customFieldsFromFormData, jsonListFromFormData, sectionsFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import { rupeesToPaise } from "@/lib/money";
 import type { AdminProductVideo } from "@/types/store-merch";
 import type { AdminProductVariation, AnswerBlock, FaqItem, PublishStatus, StoreImportAnalysis, StoreImportResult, StoreProductType } from "@/types/api";
@@ -45,6 +49,8 @@ function productPayload(formData: FormData): Record<string, unknown> {
   return {
     // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
     ...customFieldsFromFormData(formData),
+    // The Sections tab: which of the two the page shows, and the builder's list.
+    ...sectionsFromFormData(formData),
     name: str(formData, "name") ?? "",
     slug: str(formData, "slug"),
     sku: str(formData, "sku"),
@@ -59,6 +65,8 @@ function productPayload(formData: FormData): Record<string, unknown> {
     track_stock: formData.get("track_stock") === "1",
     stock: Number(str(formData, "stock") ?? 0) || 0,
     returnable: formData.get("returnable") === "1",
+    // Only when the control was drawn (stock counted, no variations): absent leaves the column alone.
+    ...(formData.has("allow_oversell") ? { allow_oversell: formData.get("allow_oversell") === "1" } : {}),
     // The Shopping tab. Blank identifiers are sent as null rather than "",
     // so a cleared field clears the column instead of storing an empty
     // string the feed would then have to treat as absent.
@@ -73,6 +81,12 @@ function productPayload(formData: FormData): Record<string, unknown> {
     sort_order: sortOrder ? Number(sortOrder) : 0,
     specifications,
     features: jsonListFromFormData<string>(formData, "features"),
+    // Shop tags (0.141.0), as names, replaced wholesale. Sent only when a
+    // person changed the list (`tags_changed`): a form that posted its
+    // untouched, empty list would "decide" every new product's tags and the
+    // automatic rule would never run. Sent even when empty after a change,
+    // which is how a person clears them.
+    ...(formData.get("tags_changed") === "1" ? { tags: jsonListFromFormData<string>(formData, "tags") } : {}),
     images: formData.getAll("images").map(String).filter(Boolean),
     // Up to four, replaced wholesale (2026-09-26). A pasted YouTube link
     // travels as typed; the API keeps the id and refuses anything else.
@@ -118,6 +132,7 @@ export async function createStoreProductAction(_p: StoreFormState, formData: For
   }
 
   updateTag("store-products");
+  updateTag("store-videos");
   revalidatePath("/admin/store/products");
   redirect(`/admin/store/products/${id}?saved=1`);
 }
@@ -134,6 +149,7 @@ export async function updateStoreProductAction(_p: StoreFormState, formData: For
   }
 
   updateTag("store-products");
+  updateTag("store-videos");
   revalidatePath("/admin/store/products");
   revalidatePath(`/admin/store/products/${id}`);
   redirect(`/admin/store/products/${id}?saved=1`);
@@ -144,8 +160,11 @@ export async function deleteStoreProductAction(formData: FormData) {
 
   if (!id) return;
 
-  await deleteStoreProduct(id).catch(() => null);
+  // Only a delete the API accepted may purge anything.
+  const deleted = await deleteStoreProduct(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/store/products?done=not-deleted");
   updateTag("store-products");
+  updateTag("store-videos");
   revalidatePath("/admin/store/products");
   redirect("/admin/store/products?done=store-product-deleted");
 }
@@ -258,7 +277,9 @@ export async function deleteStoreCategoryAction(formData: FormData) {
 
   if (!id) return;
 
-  await deleteStoreCategory(id).catch(() => null);
+  // Only a delete the API accepted may purge anything.
+  const deleted = await deleteStoreCategory(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/store/categories?done=not-deleted");
   updateTag("store-categories");
   updateTag("store-products");
   revalidatePath("/admin/store/categories");
@@ -303,4 +324,112 @@ export async function savePromoAction(_prev: PromoFormState, formData: FormData)
   updateTag("settings");
 
   return { ok: true };
+}
+
+export type InvoicingFormState = { error?: string; ok?: boolean };
+
+/**
+ * Store -> Tax and invoicing (0.176.0). The product videos' save, key for
+ * key: every control posts `setting__<key>` and the API refuses anything
+ * outside its fifteen by name.
+ *
+ * It purges `settings` because the rate and the price basis are read by the
+ * shop on every page, and `store-products` because a product card's price
+ * line says whether GST is included.
+ */
+export async function saveInvoicingAction(_prev: InvoicingFormState, formData: FormData): Promise<InvoicingFormState> {
+  const settings = [...formData.entries()]
+    .filter(([name]) => name.startsWith("setting__"))
+    .map(([name, value]) => ({
+      key: name.replace("setting__", ""),
+      value: typeof value === "string" ? value.trim() : "",
+    }));
+
+  if (settings.length === 0) return { error: "Nothing to save." };
+
+  try {
+    await saveInvoicing(settings);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) redirect("/admin/login");
+      if (error.status === 403) return { error: "Only a store manager or an administrator can change tax and invoicing." };
+      if (error.status === 422) {
+        const first = Object.values(error.errors ?? {}).flat()[0];
+        return { error: typeof first === "string" ? first : "Some values were rejected. Check the fields and try again." };
+      }
+    }
+    return { error: "We could not save tax and invoicing. Try again shortly." };
+  }
+
+  revalidatePath("/admin/store/invoicing");
+  updateTag("settings");
+  // Every shop read carries this tag, and every price on it is shown the way
+  // `store_price_basis` says (0.178.0) — so is a builder page's shop cards.
+  updateTag("store-products");
+  updateTag("pages");
+
+  return { ok: true };
+}
+
+export type VideosFormState = { error?: string; ok?: boolean };
+
+/**
+ * "Shop the videos" — Store → Product videos (0.140.0). The promo band's save
+ * again: every control is a `setting__*` input and `PATCH /admin/store/videos`
+ * refuses any key outside the eleven by name.
+ *
+ * Purges `settings` (the public map every placement reads its switches and
+ * look from) and `store-videos` (the tiles themselves, which the setting
+ * `store_videos_order` and `_limit` shape), so the shop front, a product page
+ * and the homepage pick the change up on their next request.
+ */
+export async function saveVideosAction(_prev: VideosFormState, formData: FormData): Promise<VideosFormState> {
+  const settings = [...formData.entries()]
+    .filter(([name]) => name.startsWith("setting__"))
+    .map(([name, value]) => ({
+      key: name.replace("setting__", ""),
+      value: typeof value === "string" ? value.trim() : "",
+    }));
+
+  if (settings.length === 0) return { error: "Nothing to save." };
+
+  try {
+    await saveStoreVideos(settings);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) redirect("/admin/login");
+      if (error.status === 403) return { error: "Only a store manager or an administrator can change the product videos." };
+      if (error.status === 422) {
+        const first = Object.values(error.errors ?? {}).flat()[0];
+        return { error: typeof first === "string" ? first : "Some values were rejected. Check the fields and try again." };
+      }
+    }
+    return { error: "We could not save the product videos. Try again shortly." };
+  }
+
+  revalidatePath("/admin/store/videos");
+  updateTag("settings");
+  updateTag("store-videos");
+
+  return { ok: true };
+}
+
+/** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
+export async function bulkStoreProductsAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  return runBulkAction(formData, {
+    path: "store/products",
+    noun: ["product", "products"],
+    tags: ["store-products", "store-videos"],
+    paths: ["/admin/store/products"],
+  });
+}
+
+/** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
+export async function bulkStoreCategoriesAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  return runBulkAction(formData, {
+    path: "store/categories",
+    noun: ["category", "categories"],
+    tags: ["store-categories", "store-products"],
+    paths: ["/admin/store/categories"],
+  });
 }

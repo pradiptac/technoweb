@@ -27,7 +27,7 @@
  * differ today.
  */
 
-import { composite, contrast, darkNeutrals, darkRamp, hueOf, neonFor, ramp, ratingFor, rotated, tagFills, tagsFor, topBarBand, type Band, type Ramp } from "./palette.ts";
+import { badgeInks, composite, contrast, darkNeutrals, darkRamp, hexToLch, hueOf, neonFor, ramp, ratingFor, rotated, tagFills, tagsFor, topBarBand, type Band, type Ramp } from "./palette.ts";
 import { AURORA_ALPHA } from "./motion-choices.ts";
 
 export type ThemeFont = {
@@ -206,6 +206,12 @@ function bandPairs(prefix: string, b: Band): [string, string][] {
   ];
 }
 
+/** The menu badges' inks on the top bar's panel (`badgeInks`); SOON uses the band's own muted. */
+function badgePairs(b: Band, brand: string): [string, string][] {
+  const ink = badgeInks(b, hexToLch(brand).h);
+  return [["--color-topbar-live", ink.live], ["--color-topbar-beta", ink.beta], ["--color-topbar-new", ink.new]];
+}
+
 function rampPairs(prefix: string, r: Ramp): [string, string][] {
   return [
     [`--color-${prefix}-50`, r[50]], [`--color-${prefix}-100`, r[100]],
@@ -247,6 +253,7 @@ export function themeVars(theme: Theme, scheme: Scheme = "light"): Record<string
     ["--color-dark-line", c.darkLine], ["--color-dark-ink", c.darkInk],
     ["--color-dark-muted", c.darkMuted],
     ...bandPairs("topbar", topBarFor(theme, scheme)),
+    ...badgePairs(topBarFor(theme, scheme), c.brand600),
     ...rampPairs("secondary", x.secondary),
     ...rampPairs("accent", x.accent),
     ...x.neon.map((hex, i): [string, string] => [`--color-neon-${i + 1}`, hex]),
@@ -307,4 +314,15 @@ export function auroraAlpha(theme: Theme, scheme: Scheme): number {
 
 export function themeCss(theme: Theme, scheme: Scheme = "light"): string {
   return `:root{${Object.entries(themeVars(theme, scheme)).map(([k, v]) => `${k}:${v}`).join(";")}}`;
+}
+
+/**
+ * Both palettes, light then dark, exactly as the root layout's
+ * `<style id="theme-tokens">` carries them — dark second, because `:root`
+ * and `:root[data-scheme="dark"]` have equal specificity and source order
+ * decides. One function so the appearance screen's live preview sends the
+ * page the very string the page would render (2026-10-05).
+ */
+export function themeTokensCss(theme: Theme): string {
+  return themeCss(theme, "light") + `:root[data-scheme="dark"]{${themeCss(theme, "dark").replace(/^:root\{|\}$/g, "")}}`;
 }

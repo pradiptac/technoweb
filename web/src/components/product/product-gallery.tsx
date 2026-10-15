@@ -3,6 +3,7 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
 import { IconBox, IconZoomIn } from "@/components/icons-ui";
 import { Lightbox } from "@/components/ui/gallery";
@@ -36,13 +37,15 @@ import type { ProductVideo } from "@/types/store-merch";
  * than the first five, and a hover magnifier in the well.
  */
 export function ProductGallery({
-  images, alts, focuses, name, priority = false, videos = [], store = false,
+  images, alts, focuses, blurs, name, priority = false, videos = [], store = false,
 }: {
   images: string[];
   /** From the media library, resolved by path — a description of the picture. */
   alts?: (string | null)[];
   /** Parallel to `images` too: each file's focal point, or null for the centre. */
   focuses?: (string | null)[];
+  /** Parallel to `images`: each file's blurred preview, shown until the picture loads. */
+  blurs?: (string | null)[];
   /** The fallback alt, and only ever the product's name. */
   name: string;
   priority?: boolean;
@@ -54,7 +57,10 @@ export function ProductGallery({
   const [open, setOpen] = useState(false);
   const clips = store ? videos : [];
   const slots = images.length + clips.length;
-  const onVideo = index >= images.length;
+  // A product with no picture and no video is on neither: with nothing in
+  // `clips`, slot 0 past an empty picture list is not a video, and reading one
+  // there was a 500 on every picture-less product page (found 0.138.0).
+  const onVideo = clips.length > 0 && index >= images.length;
   const shown = onVideo ? undefined : images[index];
   /*
     The shop's hover magnifier: the picture at twice its size inside the
@@ -149,6 +155,7 @@ export function ProductGallery({
               store && "transition-[scale] duration-(--duration-slow) ease-brand",
             )}
             style={focalStyle(focuses?.[index])}
+            {...blurProps(blurs?.[index])}
             priority={priority}
           />
         ) : (

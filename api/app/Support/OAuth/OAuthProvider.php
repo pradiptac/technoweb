@@ -16,12 +16,15 @@ enum OAuthProvider: string
 {
     case Google = 'google';
     case Microsoft = 'microsoft';
+    /** Zoho, for Zoho Books (0.134.0). `$tenant` is its data centre: `in` or `com`. */
+    case Zoho = 'zoho';
 
     public function label(): string
     {
         return match ($this) {
             self::Google => 'Google',
             self::Microsoft => 'Microsoft',
+            self::Zoho => 'Zoho',
         };
     }
 
@@ -40,6 +43,13 @@ enum OAuthProvider: string
                 'auth' => 'https://login.microsoftonline.com/'.self::tenant($tenant).'/oauth2/v2.0/authorize',
                 'token' => 'https://login.microsoftonline.com/'.self::tenant($tenant).'/oauth2/v2.0/token',
                 'revoke' => null,
+            ],
+            // Zoho signs each customer in on their own region's domain, and a
+            // code minted on one is refused by another.
+            self::Zoho => [
+                'auth' => 'https://accounts.zoho.'.self::zohoDomain($tenant).'/oauth/v2/auth',
+                'token' => 'https://accounts.zoho.'.self::zohoDomain($tenant).'/oauth/v2/token',
+                'revoke' => 'https://accounts.zoho.'.self::zohoDomain($tenant).'/oauth/v2/token/revoke',
             ],
         };
     }
@@ -68,7 +78,18 @@ enum OAuthProvider: string
                 'response_mode' => 'query',
                 'prompt' => 'select_account',
             ],
+            // Like Google: a refresh token comes only with offline access and a fresh consent.
+            self::Zoho => [
+                'access_type' => 'offline',
+                'prompt' => 'consent',
+            ],
         };
+    }
+
+    /** Only the domains `ZohoSettings::DATA_CENTRES` offers; anything else is India's. */
+    private static function zohoDomain(?string $dataCentre): string
+    {
+        return $dataCentre === 'com' ? 'com' : 'in';
     }
 
     /**

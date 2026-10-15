@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/input";
 import { loadVersionsAction, restoreVersionAction, transformMediaAction } from "./actions";
@@ -26,7 +27,18 @@ import { formatDate } from "@/lib/dates";
  * The adjustments are the exception and keep an Apply, because three sliders
  * are one decision rather than three.
  */
-export function EditImageDialog({ item, onClose }: { item: MediaItem; onClose: () => void }) {
+export function EditImageDialog({ item, onClose, canTheme = false }: {
+  item: MediaItem;
+  onClose: () => void;
+  /**
+   * Whether this account may reach the Themes screen (0.173.0). A palette is
+   * a settings write, so only an administrator is offered "make the site's
+   * colours from this" — and it is a **link** to Themes, not a fetch: the
+   * colours do not travel between screens, the screen that owns them reads
+   * them.
+   */
+  canTheme?: boolean;
+}) {
   /*
     Which row the next edit writes to.
 
@@ -208,6 +220,21 @@ export function EditImageDialog({ item, onClose }: { item: MediaItem; onClose: (
             ))}
           </ul>
         </>
+      )}
+
+      {canTheme && (
+        <div className="mt-4 rounded-lg border border-line bg-surface p-3">
+          <p className="text-13 font-semibold text-ink">Make the site&rsquo;s colours from this</p>
+          <p className="mt-0.5 text-12-5 text-muted">
+            Opens Site &rarr; Settings &rarr; Colour palette with this picture&rsquo;s colours offered. Nothing changes until you save there.
+          </p>
+          <Link
+            href={`/admin/site/settings?tab=appearance&palette=${encodeURIComponent(target.path)}`}
+            className="mt-2 inline-block text-13 font-semibold text-brand-ink underline decoration-from-font underline-offset-2"
+          >
+            Read this picture&rsquo;s colours
+          </Link>
+        </div>
       )}
 
       <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">

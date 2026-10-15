@@ -3,6 +3,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconArrows } from "@/components/icons";
@@ -80,7 +81,7 @@ export default async function AdminRedirectsPage({
       </FilterBar>
 
       {rows.length === 0 ? (
-        <EmptyState icon={<IconArrows />} title={filtered ? "No redirects match those filters" : "No redirects yet"}>
+        <EmptyState icon={<IconArrows />} title={filtered ? "No redirects match those filters" : "No redirects yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/redirects" newHref="/admin/redirects/new" noun="redirect" />}>
           {filtered
             ? "Try a different term, or clear the filters."
             : "One will appear here the first time a slug changes."}

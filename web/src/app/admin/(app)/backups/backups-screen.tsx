@@ -168,8 +168,8 @@ export function BackupsScreen({ initial }: { initial: BackupIndex }) {
 
       {schedulerDown && (
         <Alert tone="err" title="The scheduler is not running on this server" dismissible={false}>
-          Nothing backs up by itself, and “Back up now” waits for ever. Add the cron entry{" "}
-          <code className="font-mono text-12-5">* * * * * cd /path/to/api &amp;&amp; php artisan schedule:run</code>, or
+          Nothing backs up by itself, and “Back up now” waits for ever. <Link href="/admin/system/status#scheduler" className="font-semibold underline">System → Status</Link>{" "}
+          shows the exact line to add for this server and where to add it — or
           run <code className="font-mono text-12-5">php artisan technoware:backup --wait</code> at a terminal.
         </Alert>
       )}

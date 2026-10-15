@@ -766,7 +766,7 @@ all nine. A theme still writes its own bar — the shape, the ground, the
 type on the links — and passes those as props.
 
 **Every theme has its own footer (2026-09-17).** One `layout` on
-`SiteFooter` — `FooterLayout`, nine of them — composing the same brand
+`SiteFooter` — `FooterLayout`, fourteen of them — composing the same brand
 block, link columns, policy row, signup band and social row differently, so
 a footer menu assigned in the console reaches every theme and the landmark
 structure holds. Classic keeps `columns`; Editorial is a `masthead` (the
@@ -952,3 +952,166 @@ A homepage tile section never ends on a half-empty row, in any theme (the client
 ## Canvas in solid colour (2026-09-28)
 
 Canvas's cards are solid colour (the client, 2026-09-28, chosen from three rendered options over a navy and a single-brand version): every collection tile (not the shop's products, not the resources routes) and the front page's hand-rolled cards (`data-canvas-fill`) turn through brand, accent and secondary at 600 and then 900, six to a cycle; each fill brings its own ink — the palette's `-on` on a 600, `dark-ink` on a 900 — set as a local palette (`ink`, `ink-2`, `muted`, `faint`, the coloured inks and the hairlines all become it), with `--color-card` left alone so an icon keeps its pale disc. The four statistics under the hero are Google's four colours in order, from `--color-g-*-fill`/`-on` in `globals.css` (Google's product shades with the ink each needs; yellow takes near-black). A card on a fill is never `bg-card` in the markup, or the card-ground gradient paints over it. The words under a heading are softer than it — the same hue's 100 step on a 600 fill (pale in light, dark in dark, so it softens in the right direction in both) and `dark-muted` on a 900 — and every heading sits on a solid Google-colour chip (`--color-g-*-fill` with its `-on`), paired with the fill so blue never sits on blue.
+
+## The proportion pass (0.108.0, 2026-10-05)
+
+The client's rule: a card or any other object out of proportion with the
+screen it is on reads as a fault, so every section of every theme is judged
+by eye at 360, 768, 1280 and 1920 before it is called finished. What that
+review found, and the rule each fix leaves behind:
+
+- **A split's two halves are sized by what is in them.** Editorial's hero was
+  a headline over a lede over buttons, the lede running the full 1920px. It is
+  `7fr | 5fr` from `lg`, headline left, lede and buttons right on its
+  baseline. Horizon's "why" picture was half the row against four short
+  lines; it is `7fr | 5fr` from `xl`.
+- **A moving logo strip frozen is a repeat.** Under reduced motion a loop is
+  its list repeated to fill the track, so a still page showed one logo two or
+  three times. Every moving mode renders the list once as a wrapped still
+  grid (`strip-still`) beside its moving markup (`strip-moving`), and only the
+  reduced-motion query decides which is drawn. The cascade's columns start at
+  an even share of the list, so at 1920 no two columns open on the same logo.
+- **A wrapped logo list is two to a row on a phone** (`.strip-wrap`): two
+  160px slots and a 40px gap are wider than a 360px column, so every logo
+  had a row to itself. Still flip tiles are 150px until `lg`, two to a phone
+  row and four to a tablet row.
+- **A full-width picture strip is a grid, not a stack.** Datacenter and
+  Terminal drew pictured services one per full-width row; they are two
+  columns from 40rem and three from 64rem, hairlines between.
+- **Launch's bento lead is a picture or nothing.** A text-only first tile
+  made big was an empty box; the lead rules need `:has([data-tile-media])`.
+  Beside three columns the lead is eight of twelve, and full width on a
+  tablet its picture is 21:9 — at its own ratio it was 540px tall at 768.
+  The hero picture is 16:10 from `sm`; the four statistics pair up below
+  `lg`.
+- **The categories are two to a row on a phone in every theme** — one a row
+  was ten screens of pictures. Below 30rem the name loses its icon (the
+  picture above already says what the tile is) and steps down to 14px, so
+  "Virtualisation" fits whole at 320 rather than breaking mid-word;
+  Datacenter's rack and Terminal's listing keep both.
+- **A certification's name wraps to two lines**, never an ellipsis: cut to
+  "MSME Udyam regis…" it was the one thing the card is for.
+- **Summit's caption band no longer crosses the photograph** on a pictured
+  tile, and Terminal's certification note no longer wraps under its own
+  comment marker.
+
+`scripts/probes/full-rows.mjs` and the audits measure what can be measured;
+the review is still a person looking at the four widths.
+
+## Header & footer parts (0.160.0)
+
+Each manifest declares what its header and footer draw (`chrome`, in
+`themes/<id>/theme.ts`; the model is `themes/chrome-parts.ts`) and the stored
+choices live in `site_theme_options[<theme>].header` / `.footer` — the whole
+account is `docs/site-chrome.md` "Arranging a theme's header and footer". A
+theme that adds a header or footer part declares it in its manifest and wraps it
+in `chrome.show.<id>`; one that does not still resolves to its defaults.
+
+| Theme | Header parts (cluster that can swap places) | Footer parts (movable) |
+|---|---|---|
+| Classic, Enterprise, Horizon, Canvas (the classic header) | topbar, phone, email, search, utility, cta ("Request a consultation"), cta2 ("Contact", from 1400px), cart, scheme (off) — phone/email, search/utility and cta2/cta swap among themselves | Classic `columns`, Enterprise `split`: all ten, tagline/address/social movable. Horizon `centred`: all ten, tagline/address/social movable. Canvas `cream`: all ten, none movable |
+| Editorial | topbar, phone, email, search, utility, cta (nameplate, plus the small "Consultation" link on a phone), cart, scheme — phone/email, search/utility | `masthead`: all ten (the big name is the logo), tagline/address/social |
+| Datacenter | topbar (status strip with its readouts), phone, search, utility, email, cta, cart, scheme — search/utility/email | `console`: all ten (the status line's number is `phone`), tagline/address/social |
+| Launch, Sentinel, Summit, Terminal, Vantage | utility, search, phone, cta, cart, scheme — all four in the cluster, the order the theme draws them (Vantage's button is "Support ticket" to /support) | Launch `card`, Terminal `prompt`, Sentinel `glow`: all ten, tagline/address/social. Summit `statement`: all ten, none movable. Vantage `contact`: no logo; tagline, address, phone, social, columns, signup, legal, credit, scheme |
+| Keystone | search, phone, cta, utility, cart, scheme — all four in the cluster | `plate`: all ten, tagline/address movable (its social row sits on the right, apart) |
+| Aurora | search (from 1760), utility, cta ("Talk to us"), cart, scheme — all three in the cluster | `wash`: all ten, tagline/address/social movable |
+| Atelier | phone (from 1600), utility, cta ("Start a project"), cart, scheme — all three in the cluster; **no search in the bar** | `rule`: all ten, tagline/address/social movable |
+
+Rules that held while wrapping 12 themes: a part is wrapped, never restyled; the
+default markup is what it was (Fragments only); a theme's own gates (1280 nav,
+1440/1680/1760/1920 tools, 560/419 button words) are not touched; and a part
+that lives in the top strip (classic, editorial, datacenter) is greyed in the
+console while the strip is off.
+
+
+## Aurora and Atelier (0.175.0)
+
+The thirteenth and fourteenth themes, and the first two built from a
+**direction** rather than from a reference site. Every theme before them was
+made from something — eset.com, truenas.com, the client's own
+`DESIGN-claude.md` — and these two were asked for as a pair with no source,
+so the direction was proposed and agreed before a line was written. That is
+the only way to build one without a reference: the alternative is a theme
+nobody can say is finished, because there is nothing to compare it with.
+
+They are deliberately the two extremes the other twelve sit between.
+**Aurora** has no hard edge anywhere: a wide brand-to-accent wash behind the
+hero, glass-edged frames, pill geometry, cards lifted by a hairline ring and
+a soft shadow rather than bounded by a border. **Atelier** has nothing *but*
+edges: warm paper, a serif set at its ordinary weight, hairline rules where
+every other theme draws a card, and an asymmetric hero whose picture runs
+off the container. Aurora is the light counterweight to Datacenter; Atelier
+is the printed counterweight to Launch.
+
+### What each file holds, and why it is small
+
+Both themes write out their hero and nothing else. Everything below it —
+the solutions, the categories, the industries, the services, the case
+studies, the resources — is the shared section every theme renders, and the
+whole of what makes it Aurora's or Atelier's is an idiom block in
+`theme.css` keyed on `[data-collection]`. Atelier goes further and
+`extends: "classic"`, inheriting the closing band and squaring its corners
+in CSS.
+
+That is the shape a theme should have by now. A theme that re-implements a
+list is a theme that will not get the next fix to that list.
+
+### Two new strip modes, because thirteen were all taken
+
+No two themes may share a partners mode or a Trusted-by mode, and the
+twelve themes had used all thirteen `StripMode` values in each column. Two
+more modes cover both new themes: Aurora takes `swell` for partners and
+`press` for the client wall, Atelier the reverse.
+
+- **`swell`** — the logos breathe, each easing up a little and settling,
+  `--n` marks to a cycle. `scale` alone: no computed colour changes, so the
+  contrast audit reads the same ink on the same ground throughout. **It
+  rests at full opacity.** The first cut rested at `.72`, which is both a
+  dimmer strip than any other theme draws and a grid that never satisfies
+  `strip-modes.mjs`'s check that an entrance has finished — the probe was
+  right and the keyframe was wrong.
+- **`press`** — each logo lands stamped, down from a touch oversized onto
+  the line, one after another. The overshoot is in the easing rather than
+  in a bounce keyframe, so it reads as weight rather than as a wobble.
+
+### Two new footer layouts
+
+One footer per theme is the rule, so there are fourteen. **`wash`** is the
+only light footer that does not invert to the dark band: Aurora's whole
+identity is a light page, and a near-black slab under it would be the one
+hard edge the theme is defined by not having. **`rule`** is hairlines and
+nothing else — no panel, no fill, no band — with its column headings in the
+display serif, because that is the theme's voice.
+
+### Three bugs the checks found, each worth keeping
+
+**A custom property may not reference itself.** Atelier's first cut warmed
+the paper with `--color-page: color-mix(…, var(--color-page))`, which is a
+cycle: invalid at computed-value time, so every `color: var(--color-page)`
+on the page fell back to `inherit`. The visible symptom was the header's
+call — `bg-ink text-page` — rendering as a solid black box with black text
+in it. **The contrast audit passed it**, because the two colours it
+compared were the ones the token should have had; only the screenshot
+showed it. The ground is a `background-color` on the wrapper now and the
+token is left alone.
+
+**A negative margin needs a clip on something, and saying so in a comment
+is not the same as writing it.** Atelier's hero picture runs off the
+container by design; the first cut's comment claimed the hero section
+clipped it and the class was never added — 16px of horizontal overflow at
+1440, found by `strip-modes.mjs`, which reads `scrollWidth` per theme and
+is the only check in the project that looks at a desktop width.
+
+**A tool's gate is measured, never copied.** Aurora's search joined at
+1600 and `ONE_ROW_GATE` brings the rest of the utility links in at 1680, so
+that one band — not 1600, not 1760 — ran 17px past the viewport. Atelier's
+number joined at 1440 and did the same by 16px. Both are measured figures
+now (1760 and 1600), which is how Launch and Terminal arrived at theirs.
+
+### Neither ships a photograph
+
+Launch carries two licensed Freepik pictures under `public/themes/launch/`.
+These two carry none: with no slider assigned, Atelier's narrow column
+holds the NOC panel like every other theme's hero. A theme that needs a
+stock photograph to look right is a theme that looks wrong on the install
+whose own pictures are in place.

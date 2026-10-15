@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
+import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
+import { RevisionPanel } from "@/components/admin/revision-panel";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getCaseStudy, getIndustries } from "@/lib/admin";
+import { getCaseStudy, getIndustries, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { CaseStudyForm } from "../case-study-form";
@@ -46,17 +48,21 @@ export default async function EditCaseStudyPage({
         title="Edit case study"
       >
         <Badge tone={statusTone[study.status]}>{study.status_label}</Badge>
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          <RevisionPanel type="case_study" id={study.id} />
+          <PreviewLinkPanel type="case_study" id={study.id} />
+        </span>
         {study.status === "published" && (
           <Link
             href={`/case-studies/${study.slug}`}
-            className="ml-auto py-1 text-13-5 font-semibold text-brand-ink hover:underline"
+            className="py-1 text-13-5 font-semibold text-brand-ink hover:underline"
           >
             View on site ↗
           </Link>
         )}
       </PageHeader>
 
-      <CaseStudyForm study={study} industries={industries} saved={Boolean(saved)} />
+      <CaseStudyForm study={study} industries={industries} saved={Boolean(saved)} builder={await getPageBuilderOptions()} />
     </>
   );
 }

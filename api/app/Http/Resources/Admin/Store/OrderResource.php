@@ -3,8 +3,16 @@
 namespace App\Http\Resources\Admin\Store;
 
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
 use App\Models\Order;
+use App\Models\OrderReturn;
 use App\Support\Store\DigitalFulfilment;
+use App\Support\Store\Invoice\Invoices;
+use App\Support\Store\Shipping\CourierSettings;
+use App\Support\Store\Shipping\Shipments;
+use App\Support\Store\Zoho\ZohoInvoices;
+use App\Support\Store\Zoho\ZohoPayments;
+use App\Support\Store\Zoho\ZohoSettings;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,9 +33,72 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Order */
 class OrderResource extends JsonResource
 {
+    /**
+     * Where the parcel is with the courier platform, and what the console may
+     * offer (0.143.0, docs/store.md "Shiprocket"). Every `can_*` is the
+     * answer the API will give to the press, so the screen draws a control
+     * only when it will be taken. Null when the provider is manual and no
+     * booking was ever made.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function shipment(): ?array
+    {
+        $order = $this->resource;
+        $active = CourierSettings::active();
+
+        if (! $active && $order->shipment_booking === null) {
+            return null;
+        }
+
+        $refusal = $active ? Shipments::refusalToBook($order) : 'Shiprocket is not switched on.';
+        $live = $order->shipment_booking === 'created' && filled($order->shipment_id);
+        $rebook = in_array($order->shipment_booking, [null, 'failed', 'cancelled'], true)
+            || ($order->shipment_booking === 'created' && in_array($order->shipment_problem, ['cancelled', 'returned'], true))
+            || ($order->shipment_booking === 'creating' && $order->shipment_claimed_at?->lt(now()->subMinutes(10)));
+        $canBook = $refusal === null && $rebook;
+
+        return [
+            'provider' => $order->shipment_provider ?? CourierSettings::provider(),
+            'active' => $active,
+            'booking' => $order->shipment_booking,
+            'attempts' => (int) $order->shipment_attempts,
+            'shiprocket_order_id' => $order->shipment_order_id,
+            'shipment_id' => $order->shipment_id,
+            'has_courier' => $order->shipment_awb_at !== null,
+            'pickup_requested_at' => $order->shipment_pickup_at?->toIso8601String(),
+            'label_url' => $order->shipment_label_url,
+            // The manifest (0.159.0): the PDF the driver signs, once an AWB and a pickup exist.
+            'manifest_url' => $order->shipment_manifest_url,
+            'manifest_at' => $order->shipment_manifest_at?->toIso8601String(),
+            'status_id' => $order->shipment_status_id,
+            'status' => $order->shipment_status,
+            'status_at' => $order->shipment_status_at?->toIso8601String(),
+            'problem' => $order->shipment_problem,
+            'error' => $order->shipment_error,
+            'checked_at' => $order->shipment_checked_at?->toIso8601String(),
+            'delivered_at' => $order->delivered_at?->toIso8601String(),
+            'can_book' => $canBook,
+            // Why not, in words — only worth saying while nothing is booked.
+            'book_refusal' => $canBook || ! $rebook ? null : $refusal,
+            'can_assign' => $active && $live && $order->shipment_awb_at === null,
+            'can_pickup' => $active && $live && $order->shipment_awb_at !== null && $order->shipment_pickup_at === null && $order->delivered_at === null,
+            'can_manifest' => $active && Shipments::refusalToManifest($order) === null,
+            // A quote is for a parcel not yet given a courier (0.159.0): before booking, or after a booking that lacks one.
+            'can_rates' => $active && $refusal === null && ($rebook || ($live && $order->shipment_awb_at === null)),
+            'can_label' => $active && $live && $order->shipment_awb_at !== null,
+            'can_cancel' => $active && $live && $order->delivered_at === null && $order->shipment_problem !== 'cancelled',
+            'can_track' => $active && $live && filled($order->tracking_number),
+            'defaults' => $canBook ? Shipments::defaults($order) : null,
+        ];
+    }
+
     public function toArray(Request $request): array
     {
-        $detail = $request->routeIs('*.show', '*.update', '*.status', '*.shipping', '*.fulfil');
+        $detail = $request->routeIs('*.show', '*.update', '*.status', '*.shipping', '*.fulfil', '*.shipment.*');
+        // Why this order's payments cannot be sent to Zoho Books now, or
+        // null: asked once here, read for every row below.
+        $zohoRefusal = $this->relationLoaded('payments') ? ZohoPayments::refusal($this->resource) : null;
 
         return [
             'id' => $this->id,
@@ -58,6 +129,11 @@ class OrderResource extends JsonResource
 
             'subtotal_paise' => $this->subtotal_paise,
             'discount_paise' => $this->discount_paise,
+            // Delivery as it was charged (0.142.0): the figure, the zone's name
+            // as it was then and the weight it was worked out from.
+            'shipping_paise' => (int) $this->shipping_paise,
+            'shipping_zone' => $this->shipping_zone,
+            'shipping_weight_grams' => $this->shipping_weight_grams,
             'taxable_paise' => $this->taxable_paise,
             'gst_paise' => $this->gst_paise,
             'total_paise' => $this->total_paise,
@@ -74,11 +150,51 @@ class OrderResource extends JsonResource
             'invoice_number' => $this->invoice_number,
             'invoice_date' => $this->invoice_date?->toDateString(),
             'has_invoice' => filled($this->invoice_path),
+            /*
+             * Which of the three made it (0.176.0) — `uploaded`, `zoho` or
+             * `generated` — and null on an order that predates the column,
+             * which the console reads as uploaded: the safe side, because
+             * nothing may overwrite a file a person attached.
+             */
+            'invoice_source' => $this->invoice_source,
+            /*
+             * The shop's own GST invoice. `refusal` is the one sentence the
+             * endpoint would answer with, so the console draws exactly that
+             * under a disabled button rather than keeping its own copy of
+             * the rules — the two cannot then disagree about why.
+             */
+            'invoice' => $this->whenLoaded('items', fn () => [
+                'can_generate' => Invoices::refusalFor($this->resource) === null,
+                'refusal' => Invoices::refusalFor($this->resource),
+                'print_path' => "/admin/store/orders/{$this->order_number}/invoice",
+            ]),
+            /*
+             * Where this order's invoice in Zoho Books has got to (0.134.0),
+             * or null when nothing has been asked — the integration is off,
+             * or the order is not due one yet. `error` is Zoho's own words,
+             * for staff; `can_create` says whether the button will be taken.
+             */
+            'zoho' => $this->zoho_status === null && ! ZohoSettings::ready() ? null : [
+                'status' => $this->zoho_status,
+                'invoice_id' => $this->zoho_invoice_id,
+                'attempts' => (int) $this->zoho_attempts,
+                'error' => $this->zoho_error,
+                'next_attempt_at' => $this->zoho_status === 'failed' && $this->zoho_attempts < ZohoInvoices::MAX_ATTEMPTS
+                    ? $this->zoho_next_attempt_at?->toIso8601String()
+                    : null,
+                'synced_at' => $this->zoho_synced_at?->toIso8601String(),
+                'can_create' => ZohoSettings::ready() && ! in_array($this->zoho_status, ['created', 'creating'], true),
+            ],
 
             'courier' => $this->courier,
             'tracking_number' => $this->tracking_number,
             'tracking_url' => $this->tracking_url,
             'shipping_notes' => $this->when($detail, $this->shipping_notes),
+            // The parcel with the courier platform (0.143.0): null while the
+            // provider is manual and nothing was ever booked, so the order
+            // screen is exactly what it was.
+            'shipment' => $this->when($detail, fn () => $this->shipment()),
+            'delivered_at' => $this->delivered_at?->toIso8601String(),
 
             /*
              * Whether somebody is waiting on a licence key.
@@ -89,6 +205,20 @@ class OrderResource extends JsonResource
              * waiting for.
              */
             'awaiting_codes' => $this->whenLoaded('items', fn () => DigitalFulfilment::isOutstanding($this->resource)),
+
+            // The order's returns (docs/store.md "Returns"), on the detail
+            // read — keyed on `history`, which only that read loads.
+            'returns' => $this->whenLoaded('history', fn () => OrderReturn::query()
+                ->where('order_id', $this->id)->with('items')->orderByDesc('id')->get()
+                ->map(fn (OrderReturn $r) => [
+                    'reference' => $r->reference,
+                    'status' => $r->status->value,
+                    'status_label' => $r->status->label(),
+                    'reason_label' => $r->reason->label(),
+                    'items_count' => (int) $r->items->sum('quantity'),
+                    'requested_at' => $r->created_at?->toIso8601String(),
+                    'admin_path' => $r->adminPath(),
+                ])->values()),
 
             'placed_at' => $this->placed_at?->toIso8601String(),
             'paid_at' => $this->paid_at?->toIso8601String(),
@@ -112,6 +242,19 @@ class OrderResource extends JsonResource
                 'failure_reason' => $p->failure_reason,
                 'paid_at' => $p->paid_at?->toIso8601String(),
                 'created_at' => $p->created_at?->toIso8601String(),
+                // Where this row stands in Zoho Books (0.136.0): a payment
+                // that arrived is a customer payment there, a refund a credit
+                // note. Null for a row that is neither, and while nothing
+                // was ever asked of Zoho for it and it could not be now.
+                'zoho' => ! ZohoPayments::sendable($p) || ($p->zoho_status === null && $zohoRefusal !== null) ? null : [
+                    'kind' => $p->status === PaymentStatus::Refunded ? 'credit_note' : 'payment',
+                    'status' => $p->zoho_status,
+                    'number' => $p->zoho_number,
+                    'error' => $p->zoho_error,
+                    'attempts' => (int) $p->zoho_attempts,
+                    'synced_at' => $p->zoho_synced_at?->toIso8601String(),
+                    'can_send' => $zohoRefusal === null && ! in_array($p->zoho_status, ['sent', 'sending'], true),
+                ],
             ])),
 
             'history' => $this->whenLoaded('history', fn () => $this->history->map(fn ($h) => [

@@ -9,9 +9,10 @@ import { noIndex } from "@/lib/no-index";
 import { RegisterForm } from "./register-form";
 import { brandName } from "@/lib/brand";
 import { PortalClosed } from "@/components/portal/portal-closed";
+import { GoogleButton } from "@/components/auth/google-button";
 
 export const metadata = buildMetadata({
-  title: "Create a support account",
+  title: "Create a customer account",
   description: `Register for the ${brandName()} support portal to raise and track tickets.`,
   path: "/portal/register",
   seo: noIndex,
@@ -40,7 +41,7 @@ export default async function RegisterPage() {
     <AuthLayout
       settings={settings}
       width="wide"
-      title="Create a support account"
+      title="Create a customer account"
       lede="Register once, then raise tickets and place store orders without picking up the phone."
       footer={
         /*
@@ -69,6 +70,8 @@ export default async function RegisterPage() {
         )
       }
     >
+      {/* A new address is given an account by its first Google sign-in, so the same button registers. */}
+      {settingEnabled(settings, "google_login_live") && <GoogleButton label="Sign up with Google" />}
       <RegisterForm />
     </AuthLayout>
   );

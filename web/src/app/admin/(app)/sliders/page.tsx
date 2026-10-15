@@ -3,6 +3,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconImage } from "@/components/icons";
@@ -21,6 +22,7 @@ export default async function AdminSlidersPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q);
 
   let result: Paginated<Slider>;
   try {
@@ -64,7 +66,7 @@ export default async function AdminSlidersPage({
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconImage />} title="No sliders yet">
+        <EmptyState icon={<IconImage />} title={filtered ? "No sliders match that search" : "No sliders yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/sliders" newHref="/admin/sliders/new" noun="slider" />}>
           Create one, add slides, then paste its shortcode wherever it belongs.
         </EmptyState>
       ) : (

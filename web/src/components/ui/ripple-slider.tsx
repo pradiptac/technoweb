@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
 import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
@@ -254,7 +255,7 @@ export function RippleSlider({
             sizes={sizes}
             priority={priority && index === 0}
             className="object-cover"
-            style={focalStyle(current.focus)}
+            style={focalStyle(current.focus)} {...blurProps(current.blur)}
           />
         )}
       </div>

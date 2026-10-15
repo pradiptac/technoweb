@@ -73,6 +73,7 @@ export type Certification = {
   image_alt: string;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
   /** The certificate itself, as a PDF URL. */
   file: string | null;
 };
@@ -84,6 +85,7 @@ export type Client = {
   logo_alt: string;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   logo_focus?: string | null;
+  logo_blur?: string | null;
   website_url: string | null;
   note: string | null;
   is_featured: boolean;
@@ -108,6 +110,7 @@ export type TeamMember = {
   photo_alt: string;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   photo_focus?: string | null;
+  photo_blur?: string | null;
   email: string | null;
   linkedin_url: string | null;
   certifications: TeamMemberCertification[];
@@ -127,6 +130,7 @@ export type ProductCategory = AnswerContent & {
   image_alt?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
   parent_id: number | null;
   children?: ProductCategory[];
   /** Published products in this category. Present on the catalogue endpoints. */
@@ -136,7 +140,7 @@ export type ProductCategory = AnswerContent & {
   seo?: Seo | null;
 };
 
-export type Product = PublicCustomFields & AnswerContent & {
+export type Product = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -156,7 +160,10 @@ export type Product = PublicCustomFields & AnswerContent & {
   image_alts?: (string | null)[];
   /** Parallel to `images` too: each file's focal point as `object-position` wants it, or null. */
   image_focuses?: (string | null)[];
+  image_blurs?: (string | null)[];
   datasheet_url: string | null;
+  /** Detail only (0.131.0): the downloads centre's files attached to this product. */
+  downloads?: import("./downloads").Download[];
   status: "draft" | "published" | "archived";
   brand: Brand | null;
   category: ProductCategory | null;
@@ -166,7 +173,7 @@ export type Product = PublicCustomFields & AnswerContent & {
   seo?: Seo | null;
 };
 
-export type Solution = PublicCustomFields & AnswerContent & {
+export type Solution = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -180,6 +187,7 @@ export type Solution = PublicCustomFields & AnswerContent & {
   hero_image_alt?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   hero_image_focus?: string | null;
+  hero_image_blur?: string | null;
   status: "draft" | "published";
   /* Detail-only — the index endpoint omits these to keep payloads small. */
   problem_statement?: string | null;
@@ -192,7 +200,7 @@ export type Solution = PublicCustomFields & AnswerContent & {
   seo?: Seo | null;
 };
 
-export type Service = PublicCustomFields & AnswerContent & {
+export type Service = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -211,6 +219,7 @@ export type Service = PublicCustomFields & AnswerContent & {
   image_alt?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
   body?: string | null;
   faqs?: Faq[];
   seo?: Seo | null;
@@ -281,7 +290,7 @@ export type AnswerContent = {
   faq_schema?: SchemaGraph;
 };
 
-export type Industry = PublicCustomFields & AnswerContent & {
+export type Industry = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   id: number;
   name: string;
   slug: string;
@@ -297,7 +306,7 @@ export type Industry = PublicCustomFields & AnswerContent & {
 };
 
 /** A case study carries `entity` and `faq_schema` like the rest, and has no answer blocks or FAQs of its own. */
-export type CaseStudy = PublicCustomFields & Pick<AnswerContent, "entity" | "faq_schema"> & {
+export type CaseStudy = PublicCustomFields & Pick<AnswerContent, "entity" | "faq_schema"> & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -313,11 +322,12 @@ export type CaseStudy = PublicCustomFields & Pick<AnswerContent, "entity" | "faq
   cover_image_alt?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   cover_image_focus?: string | null;
+  cover_image_blur?: string | null;
   industry?: Industry | null;
   seo?: Seo | null;
 };
 
-export type KnowledgeArticle = PublicCustomFields & AnswerContent & {
+export type KnowledgeArticle = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -335,7 +345,7 @@ export type KnowledgeArticle = PublicCustomFields & AnswerContent & {
   seo?: Seo | null;
 };
 
-export type BlogPost = PublicCustomFields & AnswerContent & {
+export type BlogPost = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -352,6 +362,7 @@ export type BlogPost = PublicCustomFields & AnswerContent & {
   cover_image_alt?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   cover_image_focus?: string | null;
+  cover_image_blur?: string | null;
   published_at: string | null;
   reading_minutes: number | null;
   author?: { name: string } | null;
@@ -600,6 +611,7 @@ export type StoreSuggestion = {
   image_alt: string | null;
   /** The file's focal point as `object-position` wants it, or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
 };
 
 export type SearchGroup = {
@@ -796,7 +808,7 @@ export type ContentTypeSummary = {
 };
 
 /** One entry of a custom content type, as the public site reads it. */
-export type ContentEntry = PublicCustomFields & AnswerContent & {
+export type ContentEntry = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
   id: number;
   title: string;
   slug: string;
@@ -809,6 +821,7 @@ export type ContentEntry = PublicCustomFields & AnswerContent & {
   image: string | null;
   image_alt?: string | null;
   image_focus?: string | null;
+  image_blur?: string | null;
   published_at: string | null;
   updated_at?: string | null;
   faqs?: Faq[];
@@ -847,7 +860,7 @@ export type ContentTypeMeta = {
   schema_types: { value: "Article" | "WebPage"; label: string }[];
 };
 
-export type AdminEntry = AdminCustomFields & {
+export type AdminEntry = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   content_type_id: number;
   title: string;
@@ -948,7 +961,7 @@ export type SeoAiMeta = {
  * round-trip. `seo` is what was typed; `seo_defaults` is what the site falls
  * back to, shown as placeholders.
  */
-export type AdminBlogPost = AdminCustomFields & {
+export type AdminBlogPost = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   title: string;
   slug: string;
@@ -978,7 +991,7 @@ export type AdminBlogPost = AdminCustomFields & {
   updated_at: string;
 };
 
-export type AdminKnowledgeArticle = AdminCustomFields & {
+export type AdminKnowledgeArticle = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   title: string;
   slug: string;
@@ -1008,7 +1021,7 @@ export type KnowledgeCategory = { id: number; name: string; slug: string };
 /** A headline stat on a case study: the figure and what it measures. */
 export type CaseStudyResult = { value: string; label: string };
 
-export type AdminCaseStudy = AdminCustomFields & {
+export type AdminCaseStudy = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   title: string;
   slug: string;
@@ -1157,7 +1170,7 @@ export type AdminProductCategory = {
   show_in_menu?: boolean;
 };
 
-export type AdminIndustry = AdminCustomFields & {
+export type AdminIndustry = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   /** `name`, not `title` — this model's slug derives from name. */
   name: string;
@@ -1178,7 +1191,7 @@ export type AdminIndustry = AdminCustomFields & {
   show_in_menu?: boolean;
 };
 
-export type AdminService = AdminCustomFields & {
+export type AdminService = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   title: string;
   slug: string;
@@ -1462,6 +1475,8 @@ export type AdminStaff = {
   is_active: boolean;
   roles?: { slug: string; label: string }[];
   role_slugs?: string[];
+  /** The support centres this person is shown at (0.170.0). */
+  support_centres?: { id: number; name: string }[];
   created_at?: string;
   /** Returned once, by create only, and never readable again. */
   generated_password?: string | null;
@@ -1527,6 +1542,8 @@ export type AdminCustomer = {
   status_note: string | null;
   email_verified: boolean;
   email_verified_at: string | null;
+  /** Whether "Continue with Google" has been used for this account. */
+  google_linked?: boolean;
   approved_at: string | null;
   approved_by?: string | null;
   ticket_count?: number;
@@ -1559,7 +1576,7 @@ export type ApplicationStatus =
   | "new" | "shortlisted" | "interviewing" | "offered" | "hired" | "rejected";
 
 /** A vacancy as the public careers pages see it. */
-export type JobOpening = {
+export type JobOpening = import("./page-sections").RecordSectionsRead & {
   id: number;
   title: string;
   slug: string;
@@ -1585,7 +1602,7 @@ export type JobOpening = {
   seo?: Seo | null;
 };
 
-export type AdminJobOpening = {
+export type AdminJobOpening = import("./page-sections").AdminRecordSections & {
   id: number;
   title: string;
   slug: string;
@@ -1655,7 +1672,7 @@ export type PickerOption = { id: number; name: string };
  * `images` holds storable paths and `image_urls` the resolved previews — the
  * form submits the former and renders the latter.
  */
-export type AdminProduct = AdminCustomFields & {
+export type AdminProduct = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   /** schema.org availability, or null when nobody has said. */
   availability?: string | null;
@@ -1701,7 +1718,7 @@ export type AdminProduct = AdminCustomFields & {
  * by parsing the text — see `lib/money.ts`. A decimal on the wire is where a
  * price becomes 1179.9999.
  */
-export type AdminStoreProduct = AdminCustomFields & {
+export type AdminStoreProduct = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   name: string;
   slug: string;
@@ -1709,14 +1726,22 @@ export type AdminStoreProduct = AdminCustomFields & {
   type: StoreProductType;
   type_label?: string;
   short_description?: string | null;
+  /** The shop tags (0.141.0), in the Tags screen's order. */
+  tags?: { id: number; name: string; slug: string }[];
+  /** True while the tags are the automatic ones, untouched. */
+  tags_auto?: boolean;
   /** Detail-only, rich text. */
   description?: string | null;
   store_category_id?: number | null;
   category_name?: string | null;
   brand_id?: number | null;
   brand_name?: string | null;
+  /** Stored with GST (0.178.0). */
   price_paise: number;
   compare_at_paise?: number | null;
+  /** The same two as the console's price field takes them (`store_price_entry`). */
+  entry_price_paise?: number | null;
+  entry_compare_at_paise?: number | null;
   track_stock: boolean;
   /** The raw column. For a product with variations it is a leftover nothing reads. */
   stock: number;
@@ -1748,6 +1773,13 @@ export type AdminStoreProduct = AdminCustomFields & {
    */
   gtin?: string | null;
   mpn?: string | null;
+  /**
+   * The invoice's two (0.176.0). `hsn` is the HS or SAC code printed
+   * against this product's lines; `gst_percent` is its own rate, and null
+   * means the shop's — which is not the same claim as zero per cent.
+   */
+  hsn?: string | null;
+  gst_percent?: string | null;
   condition?: "new" | "refurbished" | "used";
   /** Google's own taxonomy. Blank inherits the store category's. */
   google_product_category?: string | null;
@@ -1809,6 +1841,8 @@ export type AdminProductVariation = {
   /** Ordered pairs, kept in the order the selectors are meant to appear. */
   options?: Record<string, string>;
   price_paise?: number | null;
+  /** As the console's price field takes it (0.178.0). */
+  entry_price_paise?: number | null;
   stock: number;
   /** Per row, because that is where the stock is. */
   allow_oversell: boolean;
@@ -1843,7 +1877,7 @@ export type AdminStoreCategory = {
 };
 
 /** What the storefront reads. No stock count — see the API resource. */
-export type StoreProduct = PublicCustomFields & AnswerContent & {
+export type StoreProduct = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   id: number;
   name: string;
   slug: string;
@@ -1860,16 +1894,28 @@ export type StoreProduct = PublicCustomFields & AnswerContent & {
   applications?: string | null;
   /** The services that install or support it. */
   services?: { id: number; title: string; slug: string }[];
+  /** The shop tags switched on for the shop front (0.141.0), in the Tags screen's order. */
+  tags?: import("./store-tags").StoreTagRef[];
   faqs?: Faq[];
   images: string[];
   image_alts: (string | null)[];
   /** Parallel to `images` too: each file's focal point as `object-position` wants it, or null. */
   image_focuses?: (string | null)[];
+  image_blurs?: (string | null)[];
   /** Detail only (2026-09-26): YouTube ids and media-library files, after the pictures. */
   videos?: import("./store-merch").ProductVideo[];
+  /** Detail only (0.131.0): the downloads centre's files attached to this product. */
+  downloads?: import("./downloads").Download[];
+  /**
+   * As the website shows prices (0.178.0): with GST, or before it when
+   * `price_includes_gst` is false — then the card says "+ GST".
+   */
   price_paise: number;
   /** Only present when it is genuinely higher than the real price. */
   compare_at_paise?: number;
+  price_includes_gst?: boolean;
+  /** This product's GST rate, "18%" — its own or the shop's (0.178.0). */
+  gst_rate?: string;
   in_stock: boolean;
   /**
    * The three-valued answer beside the boolean: `backorder` is a shelf that is
@@ -1925,12 +1971,17 @@ export type StoreFeedItem = {
   identifier_exists?: "no";
   google_product_category?: string;
   product_type?: string;
-  shipping_price: string;
-  shipping_country: string;
+  /**
+   * The shipping block — absent in zones mode (0.142.0): the charge then depends
+   * on the destination and the weight, so no single figure is declared here and
+   * the rules are set in Merchant Center instead.
+   */
+  shipping_price?: string;
+  shipping_country?: string;
   /** The named service and its transit window, from the `store` settings. */
-  shipping_service: string;
-  min_transit_time: number;
-  max_transit_time: number;
+  shipping_service?: string;
+  min_transit_time?: number;
+  max_transit_time?: number;
   shipping_weight?: string;
   min_handling_time: number;
   max_handling_time: number;
@@ -1966,6 +2017,7 @@ export type StoreVariation = {
   image_alt?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
 };
 
 /**
@@ -1987,11 +2039,49 @@ export type CartSummary = {
   coupon_code?: string | null;
   /** "10% off" or "₹500 off", worded by the API so two places cannot disagree. */
   coupon_label?: string | null;
+  /**
+   * What delivery costs (0.142.0). `flat` charges one figure on any order
+   * that ships; `zones` quotes it from the delivery state and the basket's
+   * weight. Null `shipping_paise` means zones mode with no state chosen yet —
+   * "Worked out at checkout" — and the total does not include it.
+   */
+  shipping_mode?: "flat" | "zones";
+  shipping_paise?: number | null;
+  /** The API's own words: "Free", "₹60", "Worked out at checkout", or null when nothing ships. */
+  shipping_label?: string | null;
+  shipping_zone?: string | null;
+  shipping_weight_grams?: number | null;
+  /** The two-letter code the basket was last quoted for. */
+  shipping_state?: string | null;
+  shipping_deliverable?: boolean;
+  /** Zones mode only: the states a delivery address can be in, by name. */
+  shipping_states?: string[] | null;
+  /** Includes delivery once it is known. */
   total_paise: number;
+  /**
+   * The summary as the website shows prices (0.178.0). With GST they equal
+   * the figures above; before GST each is the value before tax, and
+   * subtotal − discount + delivery + `gst_added_paise` = `total_paise`.
+   */
+  shown_subtotal_paise?: number;
+  shown_discount_paise?: number;
+  shown_shipping_paise?: number | null;
   taxable_paise: number;
   /** Extracted from the total, never added to it. */
   gst_paise: number;
-  gst_rate: string;
+  /**
+   * Null when the basket holds two rates (0.176.0): "18%" over a basket of
+   * 18% and 5% goods is simply false.
+   */
+  gst_rate: string | null;
+  /** `inclusive` or `exclusive` — how the website shows prices. Moves no money. */
+  gst_basis: string;
+  /**
+   * What the shop adds on top of its listed prices, and zero on an
+   * inclusive shop. A checkout draws this as a row of its own and the
+   * "includes GST" note only when it is zero.
+   */
+  gst_added_paise: number;
   /** Whether anything in here needs an address and a courier. */
   has_shippable: boolean;
   /** Sentences to show the shopper: out of stock, price gone, and so on. */
@@ -2031,6 +2121,10 @@ export type Order = {
   status_label: string;
   subtotal_paise: number;
   discount_paise: number;
+  /** Delivery as it was charged (0.142.0); 0 for an order that never had it. */
+  shipping_paise?: number;
+  /** The zone's name as it was when the order was placed. */
+  shipping_zone?: string | null;
   taxable_paise: number;
   gst_paise: number;
   total_paise: number;
@@ -2052,12 +2146,19 @@ export type Order = {
   courier?: string | null;
   tracking_number?: string | null;
   tracking_url?: string | null;
+  /** The courier's own word for where the parcel is (0.143.0); null while typed by hand or not going well. */
+  shipment_status?: string | null;
   placed_at?: string | null;
   paid_at?: string | null;
   dispatched_at?: string | null;
+  /** When the courier delivered it (0.143.0). */
+  delivered_at?: string | null;
   completed_at?: string | null;
   items?: OrderLine[];
   payments?: { status: string; status_label: string; method?: string | null; paid_at?: string | null }[];
+  /** On the order's own read (0.132.0): what has been asked to come back, and whether more may be. */
+  returns?: import("./returns").CustomerReturn[];
+  return_policy?: import("./returns").ReturnPolicy;
   payment_method?: string;
   payment_instructions?: PaymentInstructions | null;
 };
@@ -2150,6 +2251,12 @@ export type StoreDashboard = {
     /** Reviews waiting for a decision. Links to `/admin/store/reviews`. */
     reviews_pending?: number;
     refund_requested: number;
+    /** Returns nobody has answered. Links to `/admin/store/returns?status=requested`. */
+    returns_requested?: number;
+    /** Orders whose Zoho Books invoice was refused. Links to `/admin/store/orders?zoho=failed`. */
+    zoho_failed?: number;
+    /** Parcels the courier is bringing back or cancelled. Links to `/admin/store/orders?shipment=problem`. */
+    shipments_in_trouble?: number;
     out_of_stock: number;
     codes_exhausted: number;
     failed_payments: number;
@@ -2225,6 +2332,8 @@ export type StoreReport = {
     units: number;
     subtotal_paise: number;
     discount_paise: number;
+    /** Delivery charged in the range (0.142.0), part of the total and not of the goods. */
+    delivery_paise?: number;
     taxable_paise: number;
     gst_paise: number;
     total_paise: number;
@@ -2311,6 +2420,10 @@ export type AdminOrder = {
   customer_id?: number | null;
   subtotal_paise: number;
   discount_paise: number;
+  /** Delivery as it was charged (0.142.0), the zone's name then, and the weight it came from. */
+  shipping_paise?: number;
+  shipping_zone?: string | null;
+  shipping_weight_grams?: number | null;
   taxable_paise: number;
   gst_paise: number;
   total_paise: number;
@@ -2324,12 +2437,28 @@ export type AdminOrder = {
   invoice_number?: string | null;
   invoice_date?: string | null;
   has_invoice: boolean;
+  /** Which of the three made it: uploaded, zoho or generated (0.176.0). */
+  invoice_source?: "uploaded" | "zoho" | "generated" | null;
+  /**
+   * The shop's own GST invoice. Absent while Zoho Books owns the invoices.
+   * `refusal` is the API's own sentence, so the console draws exactly what
+   * the endpoint would answer with rather than keeping its own rules.
+   */
+  invoice?: { can_generate: boolean; refusal: string | null; print_path: string } | null;
   courier?: string | null;
   tracking_number?: string | null;
   tracking_url?: string | null;
   shipping_notes?: string | null;
   /** Whether somebody is waiting on a licence key. On the list as well. */
   awaiting_codes?: boolean;
+  /** Detail read only (0.132.0): the order's returns, newest first. */
+  returns?: import("./returns").OrderReturnSummary[];
+  /** Where the order's Zoho Books invoice has got to (0.134.0). Null while Zoho is off and nothing was asked. */
+  zoho?: import("./zoho").OrderZohoState | null;
+  /** The parcel with the courier platform (0.143.0). Detail read only; null while the provider is manual and nothing was booked. */
+  shipment?: import("./courier").OrderShipment | null;
+  /** When the courier delivered it (0.143.0). */
+  delivered_at?: string | null;
   placed_at?: string | null;
   paid_at?: string | null;
   dispatched_at?: string | null;
@@ -2373,6 +2502,8 @@ export type AdminPayment = {
   failure_reason?: string | null;
   paid_at?: string | null;
   created_at?: string | null;
+  /** Where this row stands in Zoho Books (0.136.0); null when nothing is or could be asked of Zoho for it. */
+  zoho?: import("./zoho").PaymentZohoState | null;
 };
 
 /** One activation code, as the inventory lists it — never including the code. */
@@ -2430,6 +2561,9 @@ export type CartLine = {
   quantity: number;
   unit_price_paise: number;
   line_total_paise: number;
+  /** As the website shows prices (0.178.0). */
+  shown_unit_price_paise?: number;
+  shown_line_total_paise?: number;
   /** A term of the sale, carried on the line so the cart can say it. */
   returnable: boolean;
   shipped: boolean;
@@ -2494,6 +2628,7 @@ export type StoreCategory = AnswerContent & {
   image_url?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
   product_count?: number;
   /** The specification labels offered as filters, in order (2026-09-26). */
   filter_specs?: string[];
@@ -2504,7 +2639,7 @@ export type StoreCategory = AnswerContent & {
 /** A FAQ as the CMS edits it. The API replaces the set wholesale, so no id. */
 export type FaqItem = { question: string; answer: string };
 
-export type AdminSolution = AdminCustomFields & {
+export type AdminSolution = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   title: string;
   slug: string;
@@ -2605,7 +2740,17 @@ export type AdminDashboard = {
    * rather than showing figures whose tile answers 403 when pressed. Null and
    * not zeroes: zero is a measurement, this is the absence of one.
    */
-  leads: { new: number; open: number; overdue: number; unassigned: number } | null;
+  leads: {
+    new: number; open: number; overdue: number; unassigned: number;
+    /** New leads a day over the last thirty days, oldest first (2026-10-05). */
+    series?: number[];
+    /**
+     * What happened to the last `days` days' leads, spam left out: how many
+     * arrived, how many somebody replied to, how many were won. The stages
+     * can only narrow. Optional for an older API.
+     */
+    funnel?: { days: number; received: number; contacted: number; won: number };
+  } | null;
   /**
    * Engineer visits (2026-09-26): waiting for a time, and in today's diary.
    * Null for a role that cannot open the queue; optional for an older API.
@@ -2625,6 +2770,14 @@ export type AdminDashboard = {
 
 export type VolumePeriod = "month" | "quarter" | "half" | "year";
 
+/**
+ * The dashboard's "Getting started" checklist (`GET /admin/onboarding`,
+ * `role:admin`). Each step is answered from the install's real state; `href`
+ * is a console path.
+ */
+export type OnboardingStep = { key: string; label: string; hint: string; href: string; done: boolean };
+export type Onboarding = { steps: OnboardingStep[]; done: number; total: number };
+
 export type DashboardMetrics = {
   window_days: number;
   /** One entry per day in the window, oldest first, gaps filled with zeroes. */
@@ -2638,6 +2791,8 @@ export type DashboardMetrics = {
     period: VolumePeriod;
     bucket: "day" | "week" | "month";
     points: { date: string; end: string; created: number; resolved: number }[];
+    /** The same number of buckets immediately before, aligned by position. Optional for an older API. */
+    previous?: { date: string; end: string; created: number; resolved: number }[];
   };
   /** `change` is null when the previous window was empty — see TicketMetrics. */
   volume_trend: { current: number; previous: number; change: number | null };
@@ -2648,6 +2803,12 @@ export type DashboardMetrics = {
   sla_first_response: { pct: number | null; of: number };
   open_by_priority: { label: string; total: number }[];
   open_by_category: { label: string; total: number }[];
+  /**
+   * When tickets arrive: `cells[d][h]`, weekday `d` (0 = Monday) by hour
+   * `h` in IST, over the last `days` days, every cell present. Optional for
+   * an older API.
+   */
+  arrivals?: { days: number; cells: number[][]; peak: number; total: number };
 };
 
 /** A slide in a carousel. `kind` decides which element renders. */
@@ -2661,6 +2822,7 @@ export type Slide = {
   alt: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   focus?: string | null;
+  blur?: string | null;
   heading: string | null;
   caption: string | null;
   link_url: string | null;
@@ -2690,6 +2852,7 @@ export type Popup = {
   image_alt: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
   /**
    * The file's natural size, so the box can be reserved before the bytes land.
    * Absent — not zero — when the media library has no row for the path, in
@@ -2810,6 +2973,7 @@ export type GalleryItem = {
   alt: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   focus?: string | null;
+  blur?: string | null;
   title: string | null;
   subtitle: string | null;
   link_url: string | null;
@@ -2872,6 +3036,9 @@ export type MenuItemNode = {
   url: string | null;
   icon: string | null;
   description: string | null;
+  /** A status chip beside the entry and its tone (`live`, `beta`, `soon`, `new`); 0.150.0. */
+  badge?: string | null;
+  badge_tone?: string;
   open_in_new_tab: boolean;
   is_active: boolean;
   resolved_url: string | null;
@@ -2905,6 +3072,9 @@ export type NavNode = {
   href: string | null;
   icon: string | null;
   summary: string | null;
+  /** A status chip beside the entry (0.150.0); null when none. */
+  badge?: string | null;
+  badge_tone?: string | null;
   new_tab: boolean;
   children: NavNode[];
 };
@@ -2925,17 +3095,70 @@ export type MenuSectionOption = { value: string; label: string; path: string };
 export type MenuCatalogueOption = { value: string; label: string; path: string };
 export type MenuTarget = { id: number; label: string; url: string | null };
 
-/** A field in an editor-built form. `kind` decides which control renders. */
+/**
+ * What a field in an editor-built form is. `kind` decides which control
+ * renders (`components/forms/form-controls.tsx`).
+ *
+ * Fourteen take an answer. `hidden` is stored by the API from the form's own
+ * definition and is never drawn or posted; `heading` and `step` are layout —
+ * a heading with a paragraph, and a page break whose `label` titles the step
+ * that follows.
+ */
+export type FormFieldKind =
+  | "text" | "email" | "tel" | "number" | "url" | "date" | "textarea"
+  | "select" | "radio" | "checkboxes" | "checkbox" | "rating" | "file"
+  | "hidden" | "heading" | "step";
+
+/** The families of file an upload field may take; each is a fixed list of extensions. */
+export type FormFileAccept = "image" | "pdf" | "document";
+
+/**
+ * A field's own settings as the **public** read sends them, by kind. Every
+ * key is optional and unknown ones are ignored: `number` reads `min`/`max` as
+ * numbers, `date` reads them as null, `"today"` or a `Y-m-d` date, and `file`
+ * reads `accept`, `extensions` and `max_kb`. A `hidden` field's settings are
+ * null here — its value is the server's and never crosses the wire.
+ */
+export type FormFieldSettings = {
+  min?: string | number | null;
+  max?: string | number | null;
+  /** `file`: the families ticked by the editor. The words for the hint. */
+  accept?: FormFileAccept[] | null;
+  /** `file`: every extension those families admit, without dots — `["jpg", "pdf"]`. */
+  extensions?: string[] | null;
+  /** `file`: the limit in force, in KB — the field's own, never above the server's. */
+  max_kb?: number | null;
+};
+
+/**
+ * "Show this field only when…". `field` is the **name** of an earlier field;
+ * `filled` and `empty` take no value. `includes` is for a `checkboxes` source,
+ * and on one `equals`/`not_equals` mean includes / does not include. The API
+ * skips and drops a field its condition hides, so the browser's part is only
+ * to show and hide — by the same rules, which are `hiddenNames()` in
+ * `components/forms/form-logic.ts`.
+ */
+export type FormShowIf = {
+  field: string;
+  op: "equals" | "not_equals" | "includes" | "filled" | "empty";
+  value?: string | number | boolean | null;
+};
+
+/** A field in an editor-built form. */
 export type FormField = {
-  id: number;
-  kind: "text" | "email" | "tel" | "number" | "textarea" | "select" | "checkbox";
+  /** On admin responses. The public endpoint may leave it out — key on `name`. */
+  id?: number;
+  kind: FormFieldKind;
   name: string;
   label: string;
   placeholder: string | null;
   help: string | null;
   required: boolean;
-  options: { value: string; label: string }[];
+  /** For `select`, `radio` and `checkboxes`; null for every other kind. */
+  options: { value: string; label: string }[] | null;
   width: "half" | "full";
+  settings?: FormFieldSettings | null;
+  show_if?: FormShowIf | null;
 };
 
 export type SiteForm = {
@@ -2945,6 +3168,16 @@ export type SiteForm = {
   status?: string;
   submit_label: string;
   success_message: string | null;
+  /**
+   * Where the visitor goes after a successful submission, instead of seeing
+   * the message: a path on this site or an absolute http(s) URL, validated by
+   * the API on write. Inside the embed frame it is offered as a link instead.
+   */
+  redirect_url?: string | null;
+  /** Whether any field is an upload — such a form posts as multipart. */
+  has_files?: boolean;
+  /** How many pages the form is split into; 1 when it has no `step` field. */
+  steps?: number;
   /** Admin responses only — never on the public endpoint. */
   notify_email?: string | null;
   /** Whether this form may be framed by another site. See `/embed/forms/[slug]`. */
@@ -3453,6 +3686,24 @@ export type ClientErrorRow = {
   resolved_at: string | null;
 };
 
+/**
+ * An address visitors asked for that does not exist (0.137.0, "Missing pages").
+ * One row per distinct address, with how often it was asked for.
+ */
+export type NotFoundHitRow = {
+  id: number;
+  /** The address as asked for: a path, no host and no query string. */
+  path: string;
+  hits: number;
+  /** The last page that linked here, origin and path only. */
+  referrer: string | null;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  ignored_at: string | null;
+  /** A console path that opens the redirect form with this address filled in. */
+  redirect_path: string;
+};
+
 export type NewsletterWebhookMeta = {
   /** Whether a shared secret exists. Never the secret itself. */
   secret_set: boolean;
@@ -3769,4 +4020,30 @@ export * from "./reviews";
 export * from "./page-sections";
 export * from "./visits";
 export * from "./wordpress-import";
+export * from "./site-import";
 export * from "./backups";
+export * from "./preview";
+/**
+ * A palette read from the company's logo (0.173.0, `docs/theming.md`).
+ *
+ * The API reads the file and offers up to three readings of it; nothing is
+ * stored until the Themes screen is saved. `topbar` is `""` where the logo
+ * gives no second colour — blank means the generator derives the bar, which
+ * is better than pinning Primary into it.
+ */
+export type LogoReading = {
+  key: string;
+  label: string;
+  primary: string;
+  secondary: string;
+  accent: string;
+  topbar: string;
+  /** Secondary or Accent was turned out of Primary rather than found in the logo. */
+  derived: boolean;
+};
+
+export type LogoPalette = {
+  readings: LogoReading[];
+  colours: { hex: string; share: number }[];
+  from: { path: string; url: string };
+};

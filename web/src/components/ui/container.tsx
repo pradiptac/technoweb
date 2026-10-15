@@ -13,7 +13,9 @@ import type { ComponentProps } from "react";
  */
 export function Container({ className, children, ...props }: ComponentProps<"div">) {
   return (
-    <div className={cn("mx-auto w-[90%] max-w-[1920px]", className)} {...props}>
+    // `data-container`: what a builder section's width choice narrows
+    // (`[data-width]` in globals.css), without reaching for class names.
+    <div data-container className={cn("mx-auto w-[90%] max-w-[1920px]", className)} {...props}>
       {children}
     </div>
   );

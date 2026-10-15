@@ -2,6 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { useId, useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { setConsoleSimple, useConsoleSimple } from "@/lib/console-prefs";
 import { cn } from "@/lib/utils";
 
 export type TabDef = {
@@ -26,6 +28,13 @@ export type TabDef = {
    * project keeps being bitten by. Order is first appearance in `tabs`.
    */
   section?: string;
+  /**
+   * Hidden in Simple view (0.168.0) — set by `buildFormTabs` for SEO, AEO and
+   * custom fields. Never hidden while it is the open tab or holds an error,
+   * and hidden by CSS on `html[data-console-simple]`, stamped before paint,
+   * so the strip does not flash the tabs. Panels stay mounted either way.
+   */
+  advanced?: boolean;
 };
 
 /**
@@ -76,6 +85,8 @@ export function Tabs({
     tabs.some((t) => t.id === requested) ? requested! : tabs[0]?.id,
   );
   const base = useId();
+  const simple = useConsoleSimple();
+  const anyAdvanced = tabs.some((t) => t.advanced);
 
   // Adjusting state during render rather than in an effect: this re-renders
   // once before paint, so the correct tab is the first thing shown instead of
@@ -161,10 +172,11 @@ export function Tabs({
         </div>
       )}
 
+      <div className="mb-4 flex flex-wrap items-end gap-x-3 border-b border-line">
       <div
         role="tablist"
         aria-label="Sections"
-        className="mb-4 flex flex-wrap items-center gap-0.5 border-b border-line"
+        className="flex flex-wrap items-center gap-0.5"
       >
         {tabs.map((tab) => {
           const selected = tab.id === active;
@@ -183,6 +195,8 @@ export function Tabs({
                 by an element that is not in the document.
               */
               hidden={grouped && tab.section !== activeSection}
+              data-advanced={tab.advanced ? "" : undefined}
+              data-has-error={tab.tone === "err" && tab.badge ? "" : undefined}
               onClick={() => setActive(tab.id)}
               className={cn(
                 "-mb-px flex items-center gap-1.5 rounded-t border-b-2 px-3 py-2 text-13 transition-colors",
@@ -207,6 +221,13 @@ export function Tabs({
             </button>
           );
         })}
+      </div>
+      {anyAdvanced && (
+        <label data-no-dirty className="mb-1.5 ml-auto flex items-center gap-2 py-1 text-12-5 font-medium text-muted">
+          <Switch checked={simple} onChange={(e) => setConsoleSimple(e.target.checked)} />
+          Simple view
+        </label>
+      )}
       </div>
 
       {tabs.map((tab, i) => (

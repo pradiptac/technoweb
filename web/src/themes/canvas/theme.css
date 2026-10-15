@@ -77,6 +77,19 @@
   border-radius: 10px;
   border: 1px solid var(--color-accent-500);
   box-shadow: none;
+  --color-topbar-live: var(--color-ok);
+  --color-topbar-beta: var(--color-tag-5);
+  --color-topbar-new: var(--color-brand-ink);
+}
+
+/* Top bar, columns (0.150.0): the cream sheet under a brand line, the headings in the display serif. */
+[data-theme="canvas"] [data-panel="topbar"][data-topbar-style="columns"] {
+  border-radius: 0 0 10px 10px;
+  border-top: 2px solid var(--color-brand-600);
+}
+[data-theme="canvas"] [data-panel="topbar"][data-topbar-style="columns"] [data-topbar-heading] {
+  font-family: var(--font-display);
+  letter-spacing: .12em;
 }
 [data-theme="canvas"] [data-panel="topbar"] li > a[aria-current],
 [data-theme="canvas"] [data-panel="topbar"] li > button {

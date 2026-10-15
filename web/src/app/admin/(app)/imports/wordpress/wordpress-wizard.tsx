@@ -228,6 +228,16 @@ export function WordPressImportWizard({
             </fieldset>
           )}
 
+          {options.page_layout && (
+            <fieldset>
+              <legend className="mb-1 text-13 font-semibold">How pages arrive{options.page_layout.pages ? ` (${n(options.page_layout.pages)})` : ""}</legend>
+              <Radio name="page_layout" value="sections" checked={chosen("page_layout") !== "html"} onChange={() => setDecisions({ ...decisions, page_layout: "sections" })}
+                label="As builder sections" hint="Laid out from the WordPress blocks — a cover becomes the hero, columns become features, a quote a testimonial — or split at each main heading. Ready to rearrange in the builder." />
+              <Radio name="page_layout" value="html" checked={chosen("page_layout") === "html"} onChange={() => setDecisions({ ...decisions, page_layout: "html" })}
+                label="As one text body" hint="Each page in the text editor, as it was on the old site. It can still be laid out as sections later, from the builder." />
+            </fieldset>
+          )}
+
           <fieldset>
             <legend className="mb-1 text-13 font-semibold">Pictures and files</legend>
             <Radio name="media_scope" value="referenced" checked={chosen("media_scope") !== "all"} onChange={() => setDecisions({ ...decisions, media_scope: "referenced" })}
@@ -466,7 +476,7 @@ export function WordPressImportWizard({
   );
 }
 
-function Radio({ name, value, checked, onChange, label, hint }: {
+export function Radio({ name, value, checked, onChange, label, hint }: {
   name: string; value: string; checked: boolean; onChange: () => void; label: string; hint: string;
 }) {
   return (
@@ -477,7 +487,7 @@ function Radio({ name, value, checked, onChange, label, hint }: {
   );
 }
 
-function Progress({ title, subtitle, percent, label, children }: {
+export function Progress({ title, subtitle, percent, label, children }: {
   title: string; subtitle?: string; percent: number; label: string; children: ReactNode;
 }) {
   return (
@@ -494,7 +504,7 @@ function Progress({ title, subtitle, percent, label, children }: {
 }
 
 /** The plan (or the result), one row per kind of record, with every reason a record was skipped or lost something. */
-function StepsTable({ steps, done = false }: { steps: WordPressImportStep[]; done?: boolean }) {
+export function StepsTable({ steps, done = false }: { steps: WordPressImportStep[]; done?: boolean }) {
   return (
     <section>
       <h2 className="mb-2 text-13-5 font-semibold">{done ? "What was brought across" : "What an import would do"}</h2>
@@ -521,7 +531,7 @@ function StepsTable({ steps, done = false }: { steps: WordPressImportStep[]; don
                     <ul className="grid gap-1.5">
                       {s.reasons.map((r) => (
                         <li key={r.reason} className="text-12-5">
-                          <Badge tone={r.kind === "skip" ? "urgent" : "progress"} dot={false} className="mr-1.5">{n(r.count)}</Badge>
+                          <Badge tone={r.kind === "skip" ? "urgent" : r.kind === "info" ? "resolved" : "progress"} dot={false} className="mr-1.5">{n(r.count)}</Badge>
                           {r.reason}
                           {r.examples.length > 0 && <span className="block text-muted">e.g. {r.examples.join(" · ")}</span>}
                         </li>

@@ -61,6 +61,13 @@ const OUTCOMES: Record<string, Message> = {
     title: "Saved reply deleted",
     body: "It is off every ticket's picker. Replies already sent with it are unchanged.",
   },
+  "page-drafted": {
+    tone: "ok",
+    title: "Drafted by the assistant.",
+    // The one thing that must happen before it goes live, said where the
+    // editor lands: the draft is unpublished and its gaps are marked.
+    body: "Check every [CHECK: …] before publishing.",
+  },
   "block-saved": {
     tone: "ok",
     title: "Block saved",
@@ -111,6 +118,18 @@ const OUTCOMES: Record<string, Message> = {
     title: "Entry deleted",
     body: "Its address now answers 404; add a redirect if it was linked from anywhere.",
   },
+  "submission-deleted": {
+    tone: "ok",
+    title: "Submission deleted",
+    // What went with it: an upload is part of the submission, not a file
+    // in the media library, so it has nowhere else to live.
+    body: "Any files sent with it went too.",
+  },
+  "submission-not-deleted": {
+    tone: "err",
+    title: "Could not delete that submission",
+    body: "Nothing was changed and it is still in the list. Try again in a moment.",
+  },
   "vacancy-deleted": {
     tone: "ok",
     title: "Vacancy deleted",
@@ -142,6 +161,10 @@ const OUTCOMES: Record<string, Message> = {
     tone: "ok",
     title: "Category saved",
   },
+  "store-tag-page-saved": {
+    tone: "ok",
+    title: "Tag page saved",
+  },
   "store-category-deleted": {
     tone: "ok",
     title: "Category deleted",
@@ -172,6 +195,28 @@ const OUTCOMES: Record<string, Message> = {
     // reader is: the original's figures are untouched, and this campaign's
     // fill in as the queue works through it.
     body: "This is the resend's own report. The original campaign's figures are unchanged.",
+  },
+  "download-created": { tone: "ok", title: "Download created", body: "Once it is published it is listed on /downloads and on the pages of the products it is attached to." },
+  "download-needs-file": {
+    tone: "info",
+    title: "Saved as a draft",
+    body: "Now add its file here. A download can be published once it has one.",
+  },
+  "download-saved": { tone: "ok", title: "Download saved", body: "The site shows the change on its next load." },
+  "download-deleted": { tone: "ok", title: "Download deleted", body: "It is off the downloads page and off every product page." },
+  "download-category-created": { tone: "ok", title: "Category created", body: "It appears on the downloads page once something published is filed under it." },
+  "download-category-saved": { tone: "ok", title: "Category saved" },
+  "download-category-deleted": { tone: "ok", title: "Category deleted", body: "Its downloads were kept and are now listed without a category." },
+  "return-approved": { tone: "ok", title: "Return approved", body: "The customer has been emailed how to send it back." },
+  "return-rejected": { tone: "ok", title: "Return declined", body: "The customer has been emailed your reason. Approve it from this screen if that was a mistake." },
+  "return-received": { tone: "ok", title: "Marked as received", body: "The customer has been told. Anything ticked went back into stock." },
+  "return-refunded": { tone: "ok", title: "Refund recorded", body: "It shows on the order, and the customer has been emailed the amount." },
+  "return-closed": { tone: "ok", title: "Return closed", body: "Nobody was emailed." },
+  "return-note-saved": { tone: "ok", title: "Note saved" },
+  "support-centre-deleted": {
+    tone: "ok",
+    title: "Centre deleted",
+    body: "It has left the support network page. The staff accounts tagged to it are unchanged.",
   },
   "certification-deleted": {
     tone: "ok",
@@ -223,6 +268,51 @@ const OUTCOMES: Record<string, Message> = {
   "meeting-moved": { tone: "ok", title: "Meeting moved", body: "The customer and the host are being told, and the calendar event moves with the same Meet link." },
   "meeting-cancelled": { tone: "ok", title: "Meeting cancelled", body: "The customer has been told and the calendar event is being removed." },
   "meeting-type-deleted": { tone: "ok", title: "Meeting type deleted", body: "It is gone from the booking page too." },
+  // Events (docs/events.md).
+  "event-created": {
+    tone: "ok",
+    title: "Event created",
+    body: "A draft stays off the site until its status is Published.",
+  },
+  "event-saved": { tone: "ok", title: "Event saved", body: "A published event's page shows the change on its next load." },
+  "event-saved-notified": {
+    tone: "ok",
+    title: "Event saved",
+    // Conditional on purpose: the API emails only when the time, the place
+    // or the join link actually moved, and this toast cannot know which.
+    body: "If the time, the place or the join link changed, everyone with a confirmed place is being emailed about it.",
+  },
+  "event-duplicated": {
+    tone: "ok",
+    title: "Copy made",
+    body: "The copy is a draft with no registrations. Give it its own date, then publish it.",
+  },
+  "event-not-duplicated": { tone: "err", title: "Could not make a copy", body: "Nothing was changed. Try again in a moment." },
+  "event-deleted": { tone: "ok", title: "Event deleted", body: "Its page now answers 404; add a redirect if it was linked from anywhere." },
+  "event-has-registrations": {
+    tone: "warn",
+    title: "That event has registrations",
+    // The alternative, named — the `coupon-in-use` rule. People registered
+    // for it, and their record of having done so hangs off the event.
+    body: "It cannot be deleted while people are registered for it. Archive it instead: set its status to Archived and it leaves the site with its registrations kept.",
+  },
+  "event-not-deleted": {
+    tone: "err",
+    title: "Could not delete the event",
+    body: "Nothing was changed and it is still there. Try again in a moment.",
+  },
+  "event-registration-deleted": {
+    tone: "ok",
+    title: "Registration deleted",
+    // What did not go with it, and what did not happen: the lead is the
+    // sales desk's record, and nobody was emailed.
+    body: "The lead it filed was kept, and the person was not emailed. To tell them, cancel a registration instead.",
+  },
+  "event-registration-not-deleted": {
+    tone: "err",
+    title: "Could not delete that registration",
+    body: "Nothing was changed and it is still in the list. Try again in a moment.",
+  },
   "webhook-deleted": {
     tone: "ok",
     title: "Webhook deleted",

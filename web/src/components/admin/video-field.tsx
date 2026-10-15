@@ -76,6 +76,10 @@ export function VideoField({ defaultValue, error }: { defaultValue: AdminProduct
         somebody presses play; a file is an MP4 or WebM from the media library. A poster is the frame shown before
         play — without one a YouTube video shows a plain panel, since YouTube&apos;s own thumbnail is never loaded.
       </p>
+      <p className="measure -mt-1 mb-3 text-12-5 text-muted">
+        The first video also appears in the &ldquo;Shop the videos&rdquo; row on the shop front. A YouTube Shorts link
+        works, and a tall (9:16) poster looks best in that row.
+      </p>
 
       <input type="hidden" name="videos" value={JSON.stringify(payload)} />
 

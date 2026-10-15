@@ -3,6 +3,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconImage } from "@/components/icons";
@@ -21,6 +22,7 @@ export default async function AdminGalleriesPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q);
 
   let result: Paginated<Gallery>;
   try {
@@ -63,7 +65,7 @@ export default async function AdminGalleriesPage({
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconImage />} title="No galleries yet">
+        <EmptyState icon={<IconImage />} title={filtered ? "No galleries match that search" : "No galleries yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/galleries" newHref="/admin/galleries/new" noun="gallery" />}>
           Create one, add pictures, then paste its shortcode wherever it belongs.
         </EmptyState>
       ) : (

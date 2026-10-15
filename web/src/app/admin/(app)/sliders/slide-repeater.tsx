@@ -36,11 +36,10 @@ const BLANK: SlidePayload = {
  * phone.
  */
 const IMAGE_SIZE_HINT =
-  "PNG, JPG, GIF, WebP or SVG. Recommended at least 1920×1080px, landscape — " +
-  "the picture is cropped to fill its box on every screen, so keep the subject centred.";
+  "Cropped to fill its box on every screen, so keep the subject centred.";
 
 const POSTER_SIZE_HINT =
-  "Shown until a visitor presses play, at the same size as the video. Recommended at least 1920×1080px, landscape.";
+  "Shown until a visitor presses play, at the same size as the video.";
 
 /**
  * The slides, edited as a list and submitted as one JSON field.
@@ -167,6 +166,7 @@ export function SlideRepeater({
                   defaultPath={row.poster_path ?? null}
                   defaultUrl={row.posterUrl}
                   hint={POSTER_SIZE_HINT}
+                  spec="slide"
                   onPathChange={(path) => patch(i, { poster_path: path })}
                 />
               </div>
@@ -179,6 +179,7 @@ export function SlideRepeater({
                   defaultUrl={row.mediaUrl}
                   accept={row.kind === "video" ? ".mp4,.webm" : ".png,.jpg,.jpeg,.gif,.webp,.svg"}
                   hint={row.kind === "video" ? "MP4 or WebM, up to 20 MB." : IMAGE_SIZE_HINT}
+                  spec="slide"
                   onPathChange={(path) => patch(i, { media_path: path })}
                 />
                 {row.kind === "video" && (
@@ -188,6 +189,7 @@ export function SlideRepeater({
                     defaultPath={row.poster_path ?? null}
                     defaultUrl={row.posterUrl}
                     hint={POSTER_SIZE_HINT}
+                    spec="slide"
                     onPathChange={(path) => patch(i, { poster_path: path })}
                   />
                 )}

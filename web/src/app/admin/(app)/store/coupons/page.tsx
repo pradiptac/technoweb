@@ -3,6 +3,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconTag } from "@/components/icons";
@@ -23,6 +24,7 @@ export default async function CouponsPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q);
 
   let result: Paginated<AdminCoupon>;
 
@@ -65,7 +67,7 @@ export default async function CouponsPage({
       </FilterBar>
 
       {coupons.length === 0 ? (
-        <EmptyState icon={<IconTag />} title={params.q ? "Nothing matches that" : "No discount codes yet"}>
+        <EmptyState icon={<IconTag />} title={filtered ? "No codes match that search" : "No discount codes yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/store/coupons" newHref="/admin/store/coupons/new" noun="discount code" />}>
           {params.q
             ? "Try a different term."
             : "A code takes a percentage or an amount off the basket. Nothing else — no bundles, no tiers."}

@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils";
 import type { Order } from "@/types/api";
 
 /** The fields the line reads — the customer's order and the console's both carry them. */
-type TimelineOrder = Pick<Order, "status" | "status_label" | "placed_at" | "paid_at" | "dispatched_at" | "payment_method" | "tracking_number" | "tracking_url" | "courier">;
+type TimelineOrder = Pick<Order, "status" | "status_label" | "placed_at" | "paid_at" | "dispatched_at" | "payment_method" | "tracking_number" | "tracking_url" | "courier" | "delivered_at" | "shipment_status">;
 
-type Step = { key: string; label: string; at: string | null; done: boolean; current: boolean; note?: string };
+type Step = { key: string; label: string; at: string | null; done: boolean; current: boolean; note?: string; plain?: boolean };
 
 /**
  * An order as a line of four steps — Placed · Paid · Packed · Dispatched —
@@ -21,6 +21,13 @@ type Step = { key: string; label: string; at: string | null; done: boolean; curr
  * cancelled or refunded order shows where it stopped and says so, because a
  * line that keeps promising dispatch on a cancelled order is a lie.
  *
+ * **A fifth step, Delivered, appears only for a parcel the courier reports on**
+ * (0.143.0, docs/store.md "Shiprocket"): once it has a delivery time or a live
+ * status. An order whose courier is typed by hand keeps four steps, because
+ * nothing would ever tell it a parcel had arrived and a step that can never
+ * be reached is a promise. The live status ("Out for delivery") is the note
+ * under Dispatched until it lands.
+ *
  * One component for the customer's order page, the shared-link page and the
  * console — so the desk and the customer see one picture.
  */
@@ -31,6 +38,9 @@ export function OrderTimeline({ order, className }: { order: TimelineOrder; clas
   const paid = Boolean(order.paid_at);
   const packed = ["processing", "ready_for_dispatch", "dispatched", "completed"].includes(status) || Boolean(order.dispatched_at);
   const dispatched = ["dispatched", "completed"].includes(status) || Boolean(order.dispatched_at);
+
+  const tracked = Boolean(order.delivered_at) || Boolean(order.shipment_status);
+  const delivered = Boolean(order.delivered_at);
 
   const steps: Step[] = [
     { key: "placed", label: "Placed", at: order.placed_at ?? null, done: true, current: false },
@@ -51,11 +61,22 @@ export function OrderTimeline({ order, className }: { order: TimelineOrder; clas
       current: packed && !dispatched && !stopped,
       note: dispatched && order.tracking_number ? `${order.courier ? `${order.courier} · ` : ""}${order.tracking_number}` : undefined,
     },
+    ...(tracked
+      ? [{
+          key: "delivered",
+          label: "Delivered",
+          at: order.delivered_at ?? null,
+          done: delivered,
+          current: dispatched && !delivered && !stopped,
+          note: !delivered && dispatched ? (order.shipment_status ?? undefined) : undefined,
+          plain: true,
+        }]
+      : []),
   ];
 
   return (
     <div className={cn("rounded-lg border border-line-strong bg-card p-4", className)}>
-      <ol className="grid grid-cols-2 gap-y-4 sm:grid-cols-4 sm:gap-y-0" aria-label="Order progress">
+      <ol className={cn("grid grid-cols-2 gap-y-4 sm:gap-y-0", steps.length === 5 ? "sm:grid-cols-5" : "sm:grid-cols-4")} aria-label="Order progress">
         {steps.map((step, i) => (
           <li key={step.key} className="relative min-w-0 pr-3">
             {/* The line between steps: solid up to the last done step, hairline after. */}
@@ -79,7 +100,7 @@ export function OrderTimeline({ order, className }: { order: TimelineOrder; clas
               {step.current && <span className="sr-only"> (current)</span>}
             </p>
             {step.at && <p className="text-12 text-muted">{formatDate(step.at, "dateTime")}</p>}
-            {step.note && <p className="font-mono text-12 text-muted">{step.note}</p>}
+            {step.note && <p className={cn("text-12 text-muted", !step.plain && "font-mono")}>{step.note}</p>}
           </li>
         ))}
       </ol>

@@ -30,7 +30,7 @@ export default async function PortalOrdersPage() {
     orders = await getMyOrders();
   } catch {
     return (
-      <ErrorState title="We could not load your orders">
+      <ErrorState level={1} title="We could not load your orders">
         Try again shortly, or call us and we will look them up.
       </ErrorState>
     );
@@ -53,7 +53,7 @@ export default async function PortalOrdersPage() {
       ) : (
         <ul className="grid gap-3">
           {orders.data.map((order) => (
-            <li key={order.order_number} className="rounded-lg border border-line-strong bg-card p-4">
+            <li key={order.order_number} className="rounded-xl border border-line-strong bg-card p-4 shadow-1">
               <div className="flex flex-wrap items-center gap-3">
                 <Link
                   href={`/portal/orders/${order.order_number}`}

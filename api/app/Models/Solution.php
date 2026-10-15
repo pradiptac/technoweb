@@ -5,12 +5,14 @@ namespace App\Models;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasCustomFields;
+use App\Models\Concerns\HasRevisions;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\RepathsLandingPages;
 use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -18,13 +20,16 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Solution extends Model implements Answerable, Faqable
 {
-    use HasAnswerBlocks, HasCustomFields, HasSeo, RepathsLandingPages, Sluggable;
+    use HasAnswerBlocks, HasCustomFields, HasRevisions, HasSeo, RepathsLandingPages, Sluggable;
 
     protected $fillable = [
         'title', 'slug', 'summary', 'problem_statement', 'overview',
         'benefits', 'technologies', 'icon', 'hero_image_path', 'status', 'sort_order',
-        'show_in_menu',
+        'show_in_menu', 'body_layout', 'blocks',
     ];
+
+    /** In memory as in the column: a new record's page draws its written body. */
+    protected $attributes = ['body_layout' => 'body'];
 
     protected function casts(): array
     {
@@ -32,6 +37,7 @@ class Solution extends Model implements Answerable, Faqable
             'show_in_menu' => 'boolean',
             'benefits' => 'array',
             'technologies' => 'array',
+            'blocks' => 'array',
             'status' => PublishStatus::class,
         ];
     }
@@ -89,7 +95,7 @@ class Solution extends Model implements Answerable, Faqable
             'description' => str(HtmlSanitiser::toText($this->summary ?? $this->overview ?? ''))
                 ->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/solutions/'.$this->slug,
-            'og_image' => $this->hero_image_path ? asset('storage/'.$this->hero_image_path) : null,
+            'og_image' => $this->hero_image_path ? MediaUrl::for($this->hero_image_path) : null,
             'schema_type' => 'Service',
         ];
     }

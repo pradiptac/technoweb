@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { Suspense } from "react";
+import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
+import { Illustration } from "@/components/ui/illustrations";
+import { Input } from "@/components/ui/input";
 import { PageHero } from "@/components/ui/page-hero";
-import { KbSearchForm } from "@/components/forms/search-form";
+import { NotFoundSuggestions } from "@/components/layout/not-found-suggestions";
 
 /**
  * The body of the 404, shared by the two boundaries that can render it.
@@ -10,6 +12,10 @@ import { KbSearchForm } from "@/components/forms/search-form";
  * Deliberately no <Breadcrumbs>. That component also emits BreadcrumbList
  * structured data, and a page that answers 404 should not be describing
  * itself to search engines as a position in the site tree.
+ *
+ * Since 0.122.0 it searches the whole site rather than the knowledge base
+ * alone — most missing addresses are a product or a page, not a guide — and
+ * `NotFoundSuggestions` offers what the address itself seems to name.
  */
 
 const DESTINATIONS = [
@@ -25,26 +31,28 @@ export function NotFoundContent() {
       <PageHero
         kicker="404"
         title="We could not find that page"
-        lede="The link may be out of date, or the address may have a typo in it. Everything below is a good place to pick the thread back up."
+        lede="The link may be out of date, or the address may have a typo in it. Search for what you were after, or pick the thread back up below."
       />
 
       <Container className="section-y">
-        <div className="max-w-[640px]">
-          <h2 className="display-3">Search the knowledge base</h2>
-          <p className="mt-2.5 text-15 text-muted">
-            If you arrived here looking for a guide or a fix, this is the
-            fastest way to find it.
-          </p>
-          <div className="mt-5">
-            {/*
-              KbSearchForm reads useSearchParams, and Next prerenders this
-              route as /_not-found — without a Suspense boundary that is a
-              build error, not a runtime one.
-            */}
-            <Suspense fallback={null}>
-              <KbSearchForm />
-            </Suspense>
+        <div className="grid items-center gap-10 lg:grid-cols-[7fr_5fr] lg:gap-16">
+          <div>
+            <h2 className="display-3">Search the site</h2>
+            <p className="mt-2.5 text-15 text-muted">
+              Products, solutions, guides and articles — by name or by part number.
+            </p>
+            {/* A plain GET to `/search`, so it works before any script loads. */}
+            <form action="/search" role="search" className="mt-5 flex max-w-[560px] gap-2">
+              <label htmlFor="not-found-q" className="sr-only">Search the site</label>
+              <Input id="not-found-q" name="q" type="search" placeholder="Search…" required minLength={2} className="min-w-0 flex-1" />
+              <Button type="submit">Search</Button>
+            </form>
+
+            <NotFoundSuggestions />
           </div>
+
+          {/* Decorative, so it gives way on a phone rather than pushing the search down a screen. */}
+          <Illustration name="lost" className="mx-auto hidden h-auto w-full max-w-[320px] lg:block" />
         </div>
 
         <h2 className="display-3 mt-14">Or start from one of these</h2>

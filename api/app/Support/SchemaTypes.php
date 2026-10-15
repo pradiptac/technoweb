@@ -61,6 +61,12 @@ class SchemaTypes
         'Product' => ['Product'],
         'LocalBusiness' => ['LocalBusiness'],
         'JobPosting' => ['JobPosting'],
+
+        // An event, and the two refinements with no extra required
+        // properties: a seminar or a product demonstration is a
+        // `BusinessEvent`, a training session an `EducationEvent`. Both take
+        // `name`, `startDate` and `location`, which is what the graph has.
+        'Event' => ['Event', 'BusinessEvent', 'EducationEvent'],
     ];
 
     /**

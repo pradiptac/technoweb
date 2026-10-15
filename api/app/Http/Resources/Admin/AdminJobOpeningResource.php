@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Models\JobOpening;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -9,6 +10,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin JobOpening */
 class AdminJobOpeningResource extends JsonResource
 {
+    use IncludesSections;
+
     public function toArray(Request $request): array
     {
         return [
@@ -31,6 +34,9 @@ class AdminJobOpeningResource extends JsonResource
             'salary_currency' => $this->salary_currency,
             'summary' => $this->summary,
             'description' => $this->description,
+            // Which of the two the page draws in its body area, and the builder's
+            // sections as stored (0.130.0) — see IncludesSections.
+            ...$this->adminSections(true),
             'responsibilities' => $this->responsibilities ?? [],
             'requirements' => $this->requirements ?? [],
             'status' => $this->status->value,

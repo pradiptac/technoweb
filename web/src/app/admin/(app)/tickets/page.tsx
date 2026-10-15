@@ -4,6 +4,7 @@ import { Badge, PriorityBadge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { IconTicket } from "@/components/icons";
 import { getStaff, getTickets, type TicketQueueParams } from "@/lib/admin";
@@ -147,8 +148,10 @@ export default async function AdminTicketsPage({
       </FilterBar>
 
       {tickets.length === 0 ? (
-        <EmptyState icon={<IconTicket />} title="No tickets match those filters">
-          Try a different combination, or clear the filters to see the full queue.
+        <EmptyState icon={<IconTicket />} title={hasFilters ? "No tickets match those filters" : "No tickets yet"} action={<EmptyListAction filtered={hasFilters} clearHref="/admin/tickets" noun="ticket" />}>
+          {hasFilters
+            ? "Try a different combination, or clear the filters to see the full queue."
+            : "Tickets customers raise in the portal, or by email once the support mailbox is switched on, appear here."}
         </EmptyState>
       ) : (
         <>

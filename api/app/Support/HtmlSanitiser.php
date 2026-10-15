@@ -74,6 +74,8 @@ class HtmlSanitiser
 
         // A UTF-8 non-breaking space, which trim() leaves alone.
         $text = str_replace("\xC2\xA0", ' ', $text);
+        // An inline icon is drawn by the website and would be literal here (`expandInlineIcons`' pattern).
+        $text = preg_replace('/\[icon\s+name=["\']ms:[a-z0-9_]{1,37}["\']\s*\]/', ' ', $text) ?? $text;
 
         return trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
     }

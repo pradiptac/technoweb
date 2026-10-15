@@ -1,8 +1,8 @@
 import "server-only";
 import { apiFetch } from "@/lib/api";
-import { token } from "./_shared";
+import { token, query } from "./_shared";
 import type {
-  AdminRedirect, SeoAiActionKey, SeoAiMeta, SeoMeta, SeoRow, SeoSuggestion, Paginated, AdminLandingPage, AdminLocation, LandingOpportunity,
+  AdminRedirect, NotFoundHitRow, SeoAiActionKey, SeoAiMeta, SeoMeta, SeoRow, SeoSuggestion, Paginated, AdminLandingPage, AdminLocation, LandingOpportunity,
 } from "@/types/api";
 
 export type RedirectPayload = Partial<{
@@ -36,6 +36,32 @@ export async function updateRedirect(id: number, payload: RedirectPayload): Prom
 
 export async function deleteRedirect(id: number): Promise<void> {
   await apiFetch<void>(`/admin/redirects/${id}`, { method: "DELETE", token: await token() });
+}
+
+export type NotFoundList = Paginated<NotFoundHitRow> & {
+  meta: { live: number; ignored: number; retention_days: number };
+};
+
+/**
+ * The addresses visitors asked for that do not exist (0.137.0).
+ *
+ * `ignored` goes over the wire as "1" rather than `true`, the reason
+ * `getClientErrors` gives: a boolean has no agreed spelling in a query string.
+ */
+export async function getNotFoundList(
+  params: { q?: string; ignored?: boolean; sort?: string; dir?: string; page?: number; per_page?: number } = {},
+): Promise<NotFoundList> {
+  const { ignored, ...rest } = params;
+
+  return apiFetch<NotFoundList>(
+    `/admin/not-found${query({ ...rest, ...(ignored ? { ignored: "1" } : {}) })}`,
+    { token: await token() },
+  );
+}
+
+/** "Not worth a redirect", or its undo. Both idempotent. */
+export async function setNotFoundIgnored(id: number, ignored: boolean): Promise<void> {
+  await apiFetch<void>(`/admin/not-found/${id}/${ignored ? "ignore" : "restore"}`, { method: "POST", token: await token() });
 }
 
 /**
@@ -180,6 +206,28 @@ export async function testSeoAiModel(model?: string) {
   );
 
   return res.data;
+}
+
+/**
+ * The models the console may choose, and which two are saved — for the
+ * "Test a model" control beside the OpenRouter key. Calls no provider.
+ */
+export type AiModels = {
+  models: { value: string; label: string; description: string; custom?: boolean }[];
+  seoModel: string;
+  chatbotModel: string;
+  keyConfigured: boolean;
+  /** Whether either saved model was typed in rather than chosen from the list. */
+  custom: boolean;
+};
+
+export async function getAiModels(): Promise<AiModels> {
+  const res = await apiFetch<{
+    data: AiModels["models"];
+    meta: { seo_model: string; chatbot_model: string; key_configured: boolean; custom: boolean };
+  }>("/admin/seo/ai/models", { token: await token() });
+
+  return { models: res.data, seoModel: res.meta.seo_model, chatbotModel: res.meta.chatbot_model, keyConfigured: res.meta.key_configured, custom: res.meta.custom };
 }
 
 export async function setSitemapInclude(type: string, id: number, include: boolean): Promise<void> {

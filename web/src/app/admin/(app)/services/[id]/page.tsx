@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
+import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
+import { RevisionPanel } from "@/components/admin/revision-panel";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getAnswerBlockKinds, getService, getServiceCategoryOptions } from "@/lib/admin";
+import { getAnswerBlockKinds, getService, getServiceCategoryOptions, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ServiceForm } from "../service-form";
@@ -51,14 +53,18 @@ export default async function EditServicePage({
         title="Edit service"
       >
         <Badge tone={statusTone[service.status]}>{service.status_label}</Badge>
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          <RevisionPanel type="service" id={service.id} />
+          <PreviewLinkPanel type="service" id={service.id} />
+        </span>
         {service.status === "published" && (
-          <Link href={`/services/${service.slug}`} className="ml-auto py-1 text-13-5 font-semibold text-brand-ink hover:underline">
+          <Link href={`/services/${service.slug}`} className="py-1 text-13-5 font-semibold text-brand-ink hover:underline">
             View on site ↗
           </Link>
         )}
       </PageHeader>
 
-      <ServiceForm service={service} saved={Boolean(saved)} kinds={kinds} categories={categories} />
+      <ServiceForm service={service} saved={Boolean(saved)} kinds={kinds} categories={categories} builder={await getPageBuilderOptions()} />
     </>
   );
 }

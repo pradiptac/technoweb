@@ -5,16 +5,21 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Store\CategoryResource;
 use App\Http\Resources\Store\ProductResource;
+use App\Http\Resources\Store\TagResource;
 use App\Models\ProductReview;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
+use App\Models\StoreTag;
 use App\Support\EntityLinks;
 use App\Support\Store\ProductFeed;
 use App\Support\Store\SpecFilter;
+use App\Support\Store\Tags;
+use App\Support\Store\VideoShelf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Str;
 
 /**
  * The shop, unauthenticated.
@@ -53,7 +58,7 @@ class StoreController extends Controller
              * the product's own counter and reports "out of stock" for a switch
              * with four 48-port units on the shelf.
              */
-            ->with(['category', 'brand', 'variations', 'seo'])
+            ->with(['category', 'brand', 'variations', 'seo', 'tags'])
             ->when($request->filled('category'), fn ($q) => $q->whereHas(
                 'category', fn ($c) => $c->where('slug', $request->string('category'))
             ))
@@ -61,6 +66,11 @@ class StoreController extends Controller
                 'brand', fn ($b) => $b->where('slug', $request->string('brand'))
             ))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->string('type')))
+            // `?tag=<slug>` (0.141.0): the shop tags' filter. A hidden tag still
+            // filters — the Shown switch decides what the row offers, not what a link finds.
+            ->when($request->filled('tag'), fn ($q) => $q->whereHas(
+                'tags', fn ($t) => $t->where('store_tags.slug', Str::slug($request->string('tag')->value()))
+            ))
             ->when($specs !== [], fn ($q) => SpecFilter::apply($q, $specs))
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = $request->string('q')->value();
@@ -71,7 +81,10 @@ class StoreController extends Controller
                     // "6100 48G Switch" is an Aruba and nothing in that string
                     // says so. Searching hardware by brand is the first thing
                     // this audience tries.
-                    ->orWhereHas('brand', fn ($b) => $b->where('name', 'like', "%{$term}%")));
+                    ->orWhereHas('brand', fn ($b) => $b->where('name', 'like', "%{$term}%"))
+                    // ...and the shop tags, the same reason: "wifi 6" is how a
+                    // buyer finds it, and it is on no product's own name.
+                    ->orWhereHas('tags', fn ($t) => $t->where('store_tags.name', 'like', "%{$term}%")));
             })
             ->when($sort === 'featured', fn ($q) => $q->orderByDesc('is_featured')->orderBy('sort_order'))
             ->when($sort === 'price-low', fn ($q) => $q->orderBy('price_paise'))
@@ -86,6 +99,98 @@ class StoreController extends Controller
             ->withQueryString();
 
         return ProductResource::collection($products);
+    }
+
+    /**
+     * "Shop the videos" (0.140.0): published products that carry a video, a
+     * tile each — `{id, video, product}` with `product` the list resource the
+     * cards use. Built by `VideoShelf`, which the page builder's section reads
+     * too, so the two cannot disagree. `?limit=` (1–24, else the setting),
+     * `?category=<slug>`, `?order=newest|featured`, and `?product=<slug>`:
+     * that product's own videos first, then others — unless `?others=0`,
+     * which the website sends when the shop's "fill the row with others"
+     * setting is off (read once, there, rather than twice).
+     *
+     * An unknown query value falls back rather than answering 422 — the
+     * catalogue's rule for a mangled bookmark. A product that does not exist
+     * or has no video simply contributes no head.
+     */
+    public function videos(Request $request): JsonResponse
+    {
+        $rows = VideoShelf::presented([
+            'limit' => $request->filled('limit') ? $request->integer('limit') : null,
+            'category' => $request->filled('category') ? $request->string('category')->value() : null,
+            'product' => $request->filled('product') ? $request->string('product')->value() : null,
+            'order' => $request->filled('order') ? $request->string('order')->value() : null,
+            'others' => $request->has('others') ? $request->boolean('others') : true,
+        ]);
+
+        return response()->json(['data' => $rows]);
+    }
+
+    /**
+     * The tags the shop front's row offers (0.141.0): visible tags carried by
+     * published products — of one category when `?category=` names it — each
+     * with how many such products carry it. The Tags screen's order first
+     * (curated tags), then the most used. `{data: []}` in a 200 when there are
+     * none or the row is switched off, so the frontend's fetch cache can hold
+     * the ordinary answer (the `/menus/*` lesson).
+     */
+    public function tags(Request $request): JsonResponse
+    {
+        if (! Tags::enabled()) {
+            return response()->json(['data' => []]);
+        }
+
+        // `?all=1` is the sitemap's read (0.157.0): every visible tag with a
+        // published product, no limit, no category, each with the facts a tag
+        // page's indexing is decided on. Without it the row is unchanged.
+        $all = $request->boolean('all');
+        $limit = $all ? 5000 : ($request->filled('limit') ? min(30, max(1, $request->integer('limit'))) : Tags::limit());
+        $category = ! $all && $request->filled('category') ? $request->string('category')->value() : null;
+
+        $published = fn ($q) => $q
+            ->published()
+            ->when($category !== null, fn ($p) => $p->whereHas('category', fn ($c) => $c->where('slug', $category)));
+
+        $tags = StoreTag::query()
+            ->visible()
+            ->when($all, fn ($q) => $q->with('seo'))
+            ->whereHas('products', $published)
+            ->withCount(['products as products_count' => $published])
+            ->orderByRaw('sort_order = 0')
+            ->orderBy('sort_order')
+            ->orderByDesc('products_count')
+            ->orderBy('name')
+            ->limit($limit)
+            ->get();
+
+        return response()->json(['data' => $tags->map(fn (StoreTag $t) => [
+            'name' => $t->name,
+            'slug' => $t->slug,
+            'count' => (int) $t->products_count,
+        ] + ($all ? [
+            'updated_at' => $t->updated_at?->toIso8601String(),
+            'indexable' => $t->products_count >= StoreTag::MIN_INDEXABLE,
+            // A tag with no override row has no `seo`; the relation is typed non-null.
+            'seo' => ['sitemap_include' => (bool) ($t->seo?->sitemap_include ?? true)], // @phpstan-ignore nullsafe.neverNull
+        ] : []))->values()]);
+    }
+
+    /**
+     * One tag's page (0.157.0, `docs/store.md` "Tags"): a visible tag, 404
+     * for a hidden or unknown one and while tags are switched off. A tag
+     * nothing published carries still answers, with a count of 0 and
+     * `indexable: false` — the page exists, the search engines are told not to
+     * list it. Declared after `store/tags` so the literal wins.
+     */
+    public function tag(StoreTag $storeTag): JsonResource
+    {
+        abort_unless(Tags::enabled() && $storeTag->is_visible, 404);
+
+        $storeTag->loadCount(['products as products_count' => fn ($q) => $q->published()])->load('seo');
+
+        return (new TagResource($storeTag))->withSchema();
     }
 
     /**
@@ -145,7 +250,12 @@ class StoreController extends Controller
     {
         abort_unless($storeProduct->status?->value === 'published', 404);
 
-        $storeProduct->load(['category', 'brand', 'variations', 'services', 'faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group']);
+        return $this->presentProduct($storeProduct);
+    }
+
+    public function presentProduct(StoreProduct $storeProduct): JsonResource
+    {
+        $storeProduct->load(['category', 'brand', 'variations', 'tags', 'services', 'faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group', 'publishedDownloads.category']);
 
         // What the page lists beside it: up to six others from the same
         // category, the storefront's own query. Set as a relation so the

@@ -61,6 +61,14 @@ Schedule::command('technoware:remind-abandoned-carts')
  */
 Schedule::command('technoware:prune-client-errors')->dailyAt('03:35');
 
+// Addresses nobody has asked for in ninety days; ages on `last_seen_at` for the
+// same reason as the line above (0.137.0, docs/seo.md "Missing pages").
+Schedule::command('technoware:prune-not-found')->dailyAt('03:40');
+
+// Page history whose page is gone, and revisions over a year old (0.145.0,
+// docs/page-builder.md "Page history"); the cap of thirty is applied on insert.
+Schedule::command('technoware:prune-revisions')->dailyAt('03:42');
+
 /*
  * The inbound email ledger, which is what stops a redelivered message
  * opening a second ticket. Six months, so a row outlives any plausible
@@ -76,6 +84,7 @@ Schedule::command('technoware:prune-inbound-emails')->dailyAt('03:37');
  */
 Schedule::command('technoware:prune-newsletter-scans')->hourly();
 Schedule::command('technoware:prune-wordpress-imports')->hourly();
+Schedule::command('technoware:prune-site-imports')->hourly();
 
 /*
  * Spam and binned comments.
@@ -121,6 +130,17 @@ Schedule::command('technoware:request-reviews')->hourly()->withoutOverlapping();
  * list of addresses.
  */
 Schedule::command('technoware:prune-sign-in-codes')->hourly();
+
+/*
+ * Blurred loading previews for library pictures that have none (0.123.0).
+ *
+ * A new picture gets one when its row is created; this works through the
+ * library that already existed, 250 an hour, and is one cheap query once
+ * nothing is waiting. Scheduled rather than an upgrade step because decoding
+ * a few thousand photographs is minutes of work, and nothing waits on it: a
+ * picture without a preview loads the way every picture did before.
+ */
+Schedule::command('technoware:backfill-media-blur')->hourly()->withoutOverlapping();
 
 /*
  * Deliver the queued mail.
@@ -248,6 +268,7 @@ Schedule::command('technoware:send-broadcasts')
 // Delivery rows are a log of what was attempted, not a record anybody edits;
 // ninety days answers "did that customer get the dispatch notice".
 Schedule::command('technoware:prune-message-deliveries')->dailyAt('03:58');
+Schedule::command('technoware:prune-font-previews')->dailyAt('03:55');
 
 /*
  * Engineer visits (2026-09-26, docs/visits.md): the day-before reminder,
@@ -258,6 +279,18 @@ Schedule::command('technoware:prune-message-deliveries')->dailyAt('03:58');
  * quiet-hours gate.
  */
 Schedule::command('technoware:remind-visits')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping();
+
+/*
+ * Events (0.118.0, docs/events.md): one reminder to each confirmed
+ * registrant, `event_reminder_hours` before the start (0 sends none). Every
+ * fifteen minutes for the visits' reason — the window is "the next N hours",
+ * so each registrant is reminded about that long ahead whatever time the
+ * event is at. Each one is claimed by a conditional UPDATE on `reminded_at`
+ * before anything is sent. Transactional, so no quiet-hours gate.
+ */
+Schedule::command('technoware:remind-events')
     ->everyFifteenMinutes()
     ->withoutOverlapping();
 
@@ -282,6 +315,26 @@ Schedule::command('technoware:remind-meetings')
 Schedule::command('technoware:sync-meetings')
     ->everyMinute()
     ->withoutOverlapping(5);
+
+/*
+ * Zoho Books invoices (0.134.0, docs/store.md "Zoho Books invoices"): what
+ * the queued job did not get to, and attempts that are due again. Does
+ * nothing at all while the integration is off or not fully set up.
+ */
+Schedule::command('technoware:sync-zoho-invoices')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10);
+
+/*
+ * Courier tracking (0.143.0, docs/store.md "Shiprocket"): the backstop to
+ * the webhook. Asks the platform about booked parcels not yet delivered,
+ * oldest check first, a bounded number per run. Does nothing at all while the
+ * provider is manual or the sign-in is not saved. Above the pause loop, so
+ * it waits out an update or a restore like everything else.
+ */
+Schedule::command('technoware:track-shipments')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping(20);
 
 /*
  * Backups (2026-09-27, docs/backups.md). The worker every minute, in the

@@ -5,11 +5,13 @@ namespace App\Models;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasCustomFields;
+use App\Models\Concerns\HasRevisions;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,11 +20,12 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class BlogPost extends Model implements Answerable, Faqable
 {
-    use HasAnswerBlocks, HasCustomFields, HasSeo, Sluggable;
+    use HasAnswerBlocks, HasCustomFields, HasRevisions, HasSeo, Sluggable;
 
     protected $fillable = [
         'author_id', 'title', 'slug', 'excerpt', 'body',
         'cover_image_path', 'status', 'is_featured', 'comments_enabled', 'published_at', 'reading_minutes',
+        'body_layout', 'blocks',
     ];
 
     /**
@@ -33,7 +36,7 @@ class BlogPost extends Model implements Answerable, Faqable
      * models were fixed for, where a variation called itself unsellable
      * because `is_active` had not been read back.
      */
-    protected $attributes = ['is_featured' => false, 'comments_enabled' => true];
+    protected $attributes = ['is_featured' => false, 'comments_enabled' => true, 'body_layout' => 'body'];
 
     protected function casts(): array
     {
@@ -42,6 +45,7 @@ class BlogPost extends Model implements Answerable, Faqable
             'is_featured' => 'boolean',
             'comments_enabled' => 'boolean',
             'published_at' => 'datetime',
+            'blocks' => 'array',
         ];
     }
 
@@ -90,6 +94,14 @@ class BlogPost extends Model implements Answerable, Faqable
      */
     public function neighbours(): array
     {
+        // A draft has no publication date, so it has no place in the sequence —
+        // and comparing a column with null is an illegal query. Found by the
+        // draft preview (0.138.0): the one way to render a post that is not
+        // published.
+        if ($this->published_at === null) {
+            return ['previous' => null, 'next' => null];
+        }
+
         $columns = ['id', 'title', 'slug', 'published_at'];
 
         $before = static::published()
@@ -135,7 +147,7 @@ class BlogPost extends Model implements Answerable, Faqable
             'title' => $this->title,
             'description' => str(HtmlSanitiser::toText($this->excerpt ?? $this->body ?? ''))->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/blog/'.$this->slug,
-            'og_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
+            'og_image' => $this->cover_image_path ? MediaUrl::for($this->cover_image_path) : null,
             'schema_type' => 'Article',
         ];
     }

@@ -16,12 +16,14 @@ import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
 import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
+import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, useRecordSections } from "../pages/builder/record-sections";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import {
   createServiceAction, updateServiceAction, deleteServiceAction, type ServiceFormState,
 } from "./actions";
-import type { CustomFieldGroupDefinition, AdminService, AnswerBlockKindOption } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminService, AnswerBlockKindOption, PageBuilderOptions } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: ServiceFormState = {};
 
@@ -29,6 +31,8 @@ const initial: ServiceFormState = {};
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["title", "slug", "summary", "highlights", "body", "status", "service_category_id", "sort_order", "show_in_menu"] },
+  // Sections in place of the written body (0.129.0) — the choice and the builder.
+  SECTIONS_TAB,
   { id: "media", label: "Media", fields: ["icon", "image_path"] },
   { id: "related", label: "Related", fields: ["faqs"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
@@ -37,7 +41,7 @@ const GROUPS: TabGroup[] = [
 ];
 
 export function ServiceForm({
-  service, saved, kinds, fieldGroups, categories = [],
+  service, saved, kinds, fieldGroups, categories = [], builder,
 }: {
   service?: AdminService;
   /** The service categories, for the Category select. */
@@ -47,6 +51,8 @@ export function ServiceForm({
   kinds: AnswerBlockKindOption[];
   /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
   fieldGroups?: CustomFieldGroupDefinition[];
+  /** `GET /admin/pages/builder` — the section builder's types and pickers, for the Sections tab. */
+  builder: PageBuilderOptions;
 }) {
   const editing = Boolean(service);
   const [state, formAction, pending] = useActionState(
@@ -57,6 +63,9 @@ export function ServiceForm({
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
+
+  // The body area: the written body, or builder sections (0.129.0).
+  const body = useRecordSections(service);
 
   // Custom fields (docs/custom-content.md): the groups that apply, from the API.
   const customGroups = service?.custom_field_groups ?? fieldGroups ?? [];
@@ -107,6 +116,8 @@ export function ServiceForm({
               maxLength={40}
             />
 
+            <BodyReplacedNote state={body} />
+
             <EditorField name="body" defaultValue={service?.body ?? ""} error={err("body")} />
           </div>
 
@@ -144,19 +155,21 @@ export function ServiceForm({
               this decides whether the mega menu points at it. A catalogue outgrows a
               navigation long before it outgrows itself.
             */}
-            <label className="mb-[18px] flex items-start gap-2 text-13-5">
-              <input type="checkbox" name="show_in_menu" value="1" className="mt-0.5"
-                defaultChecked={service?.show_in_menu ?? true} />
-              <span>
-                Show in the main menu
-                <span className="mt-0.5 block text-12-5 text-faint">
-                  Unticked, it stays published and listed on the services index &mdash; it just drops out
-                  of the header navigation.
-                </span>
-              </span>
-            </label>
+            <RecordSwitch className="mb-[18px]" name="show_in_menu" defaultChecked={service?.show_in_menu ?? true} label="Show in the main menu"
+              hint="Switched off, it stays published and listed on the services index and just drops out of the header navigation." />
           </aside>
         </div>
+
+        {/* Sections in place of the written body. One child, always mounted. */}
+        <RecordSectionsPanel
+          state={body}
+          builder={builder}
+          media={service?.blocks_media ?? {}}
+          errors={state.fieldErrors ?? {}}
+          bodyField="body"
+          storedBody={service?.body ?? ""}
+          noun="service"
+        />
 
         <div className="grid gap-x-8 md:grid-cols-2">
           <IconField defaultValue={service?.icon ?? null} error={err("icon")} />
@@ -164,7 +177,8 @@ export function ServiceForm({
           <CoverField
             label="Service picture"
             name="image_path"
-            hint="PNG, JPG or WebP, landscape, around 1600 x 1000 px. Shown on the service's card — as the whole card where its category draws pictures as backgrounds."
+            spec="service"
+            hint="Shown on the service's card — as the whole card where its category draws pictures as backgrounds."
             defaultPath={service?.image_path ?? null}
             defaultUrl={service?.image ?? null}
           />

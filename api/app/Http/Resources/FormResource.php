@@ -37,6 +37,17 @@ class FormResource extends JsonResource
              * resource: the notify address fails it, this does not.
              */
             'embed_enabled' => (bool) $this->embed_enabled,
+            // Where a visitor is sent instead of being shown the success
+            // message, or null. Public: the page is what follows it.
+            'redirect_url' => $this->redirect_url,
+            /*
+             * Two facts about the fields the page would otherwise have to
+             * work out for itself: whether the form must be posted as
+             * `multipart/form-data`, and how many steps it is walked through
+             * (its step breaks, plus the one it opens on).
+             */
+            'has_files' => $this->when($this->relationLoaded('fields'), fn () => $this->hasFiles()),
+            'steps' => $this->when($this->relationLoaded('fields'), fn () => $this->stepCount()),
             'fields' => FormFieldResource::collection($this->whenLoaded('fields')),
             'fields_count' => $this->whenCounted('fields'),
             'submissions_count' => $this->whenCounted('submissions'),

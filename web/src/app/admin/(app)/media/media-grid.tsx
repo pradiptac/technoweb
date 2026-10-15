@@ -19,9 +19,11 @@ import type { MediaFolder, MediaItem } from "@/types/api";
  * markup for a thing at most one of which is ever open.
  */
 export function MediaGrid({
-  items, returnTo, folders, trashed = false, columns,
+  items, returnTo, folders, trashed = false, columns, canTheme = false,
 }: {
   items: MediaItem[];
+  /** Reaches the Edit dialog's Themes hand-over (0.173.0). */
+  canTheme?: boolean;
   returnTo: string;
   /** Destinations for the selection's Move control. */
   folders: MediaFolder[];
@@ -149,6 +151,7 @@ export function MediaGrid({
             tabIndex={i === Math.min(active, items.length - 1) ? 0 : -1}
             onFocusTile={() => setActive(i)}
             returnTo={returnTo}
+            canTheme={canTheme}
             onDelete={setConfirming}
             onPreview={() => setPreviewing(i)}
             selected={selectedIds.has(m.id)}

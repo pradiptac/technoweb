@@ -14,6 +14,8 @@ pick an existing file or upload a new one.
 | Images | PNG, JPG, GIF, WebP, SVG |
 | Video | MP4, WebM |
 | Documents | PDF, Word (DOC, DOCX), Excel (XLS, XLSX), CSV, TXT, ZIP |
+| Animations | Lottie (.json or .lottie), up to 5 MB |
+| 3D models | glTF binary (.glb), up to 25 MB |
 
 The size limits are shown on the screen under **Size limits**. By default an
 image or document may be up to 5 MB, a video up to 20 MB, and an image no
@@ -25,6 +27,14 @@ than the server allows has no effect.
 **SVG drawings** are cleaned when uploaded: anything that could run as a
 script is removed. A file that cannot be read as a proper SVG is refused.
 
+**Animations and 3D models** are checked too. A Lottie animation must have
+its pictures built in (in LottieFiles, export with images embedded); one that
+loads pictures from another website is refused. A 3D model must be a plain
+glTF binary (.glb) with its textures inside it and without Draco or other
+compression — export it uncompressed. On an animation or model field you can
+also **paste a link** to the file instead of uploading it: the file is copied
+into the library once, so your visitors never load it from that other site.
+
 ## Uploading
 
 - Drag files from your computer onto the library, or press **Upload** and
@@ -32,8 +42,34 @@ script is removed. A file that cannot be read as a proper SVG is refused.
   (its sub-folders are not kept). Each file shows its own progress bar.
 - When you are **choosing** an image for a field and upload a single file, it
   is picked for you. Upload several and they simply join the library.
-- Uploads are stored exactly as they arrive — your originals are never
-  re-compressed.
+- Every image field says the size it is best at — for example "Best at
+  1200 × 630 px (1.91 : 1) · JPG, PNG or WebP · up to 5 MB" under a blog
+  post's cover — so you know what to upload before you choose.
+
+### Cropping before you upload
+
+When you choose a JPG, PNG or WebP picture, a **crop window opens first**,
+before anything is uploaded:
+
+- It starts on the **shape the field needs** ("this field"), and a field
+  that must be one shape — a favicon, a QR code, a share image — offers only
+  that shape. Elsewhere you can pick Free, the picture's Original shape,
+  1:1, 4:3, 16:9, 3:4 or 9:16.
+- **Zoom** with the slider, Ctrl + scroll or a pinch, and **drag** the
+  picture to choose what is inside the frame. Under Free, drag the frame's
+  corners. From the keyboard: arrows move, + and − zoom.
+- **Crop & upload** uploads only the cropped picture, already sized for the
+  field (never enlarged). If your crop is smaller than the recommended size,
+  the window says so — it will still work, but may look soft.
+- **Use whole image** uploads the picture exactly as it is. **Cancel**
+  uploads nothing.
+- Choosing several pictures at once (a product gallery, the library) shows
+  them one after another, with **Upload the rest as they are** to skip the
+  remaining ones.
+- SVG logos, GIFs and other files go straight up — they are not cropped.
+
+A picture you upload whole is stored exactly as it arrived; your original is
+never re-compressed.
 
 ## Finding files
 
@@ -56,7 +92,7 @@ Right-click a file (or use its menu) for:
 | View | A full-screen preview |
 | Download | Downloads it under its human file name |
 | Edit details | File name, alt text, description, tags, folder, focal point |
-| Crop | Crop to a free shape or a fixed ratio (1:1, 4:3, 16:9 and so on) |
+| Crop | Crop to a free shape or a fixed ratio (1:1, 4:3, 16:9 and so on), with zoom |
 | Resize | A new width and height, and optional square thumbnails (90, 120 or 180 px) |
 | Edit image | Rotate, flip, brightness, contrast, greyscale |
 | Overwrite | Replace the file with a new upload at the same address |
@@ -73,9 +109,12 @@ patch cables" — not the page it is on. Leave it empty only for purely
 decorative images.
 
 If the AI SEO assistant is switched on (**SEO → Settings**, chapter 13) and
-an OpenAI key is saved, **Suggest alt text** in the same dialog proposes a
+an OpenRouter key is saved (**System → Settings → API keys**, chapter 18),
+**Suggest alt text** in the same dialog proposes a
 sentence for you to check and edit. It works on
-photographs (JPG, PNG, WebP, GIF) under 4 MB.
+photographs (JPG, PNG, WebP, GIF) under 4 MB. The picture itself is sent to
+the AI service to be described. On a free Google key a refusal usually means
+the minute's limit is used up: wait a moment and press it again.
 
 ### Description and tags
 
@@ -91,11 +130,19 @@ In **Edit details**, under **Focal point**, click the preview on the
 important part (a crosshair marks it; arrow keys nudge it). **Reset to centre** clears it. Without one,
 crops are centred.
 
+### Loading preview
+
+Every photograph gets a small blurred preview of itself automatically. On the
+website, the preview shows in the picture's place for the moment before the
+picture itself arrives. You do not set anything: it is made when a picture is
+uploaded and re-made when you edit it. Logos and other SVG files have none.
+
 ## Editing changes the file everywhere
 
 Crop, resize, edit and overwrite change the file **in place**, at the same
-address, so every page using it shows the new version straight away. That is
-usually what you want — fix a logo once and it is fixed everywhere.
+address, so every page using it shows the new version straight away —
+visitors who have seen the old one included. That is usually what you want —
+fix a logo once and it is fixed everywhere.
 
 If you want the edited version **as well as** the original, tick **Save as a
 new file, keeping the original** in the crop or resize dialog. In **Edit

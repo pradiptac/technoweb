@@ -33,6 +33,8 @@ class MenuItemResource extends JsonResource
             'url' => $this->url,
             'icon' => $this->icon,
             'description' => $this->description,
+            'badge' => $this->badge,
+            'badge_tone' => $this->badge_tone ?: 'new',
             'open_in_new_tab' => $this->open_in_new_tab,
             'is_active' => $this->is_active,
 

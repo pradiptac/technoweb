@@ -16,6 +16,7 @@ import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { createPageAction, updatePageAction, deletePageAction, type PageFormState } from "./actions";
 import { SectionBuilder } from "./builder/section-builder";
+import { REVISION_LOAD_EVENT, type RevisionLoad } from "@/lib/revisions";
 import type { CustomFieldGroupDefinition, AdminPage, AnswerBlockKindOption, PageBuilderOptions, StoredSection } from "@/types/api";
 
 const initial: PageFormState = {};
@@ -80,7 +81,16 @@ export function PageForm({
   const isBuilder = template === "builder";
   const [sections, setSections] = useState<StoredSection[]>(page?.blocks ?? []);
   const sectionsInput = useRef<HTMLInputElement>(null);
+  // Picture URLs of a version loaded from the page's history, beside the ones the page itself came with.
+  const [loadedMedia, setLoadedMedia] = useState<Record<string, string>>({});
   const tabs = isBuilder ? allTabs : allTabs.filter((t) => t.id !== "builder");
+  // The body as it stands in the editor (uncontrolled), for the builder's "This page's content".
+  // On the server — the builder renders there too — it is the stored body.
+  const readBody = () => {
+    if (typeof document === "undefined") return page?.body ?? "";
+    const field = sectionsInput.current?.closest("form")?.elements.namedItem("body");
+    return field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement ? field.value : page?.body ?? "";
+  };
 
   // A structural change — add, move, hide, remove — fires no input event of
   // its own, so the draft keeper and the leave guard are told here.
@@ -103,6 +113,16 @@ export function PageForm({
     };
     form.addEventListener("tw:draft-restored", restored);
     return () => form.removeEventListener("tw:draft-restored", restored);
+  }, []);
+
+  // A version from the history dialog brings the URLs of its pictures; the values themselves go in through FormDraft.
+  useEffect(() => {
+    const onLoad = (event: Event) => {
+      const detail = (event as CustomEvent<RevisionLoad>).detail;
+      if (detail?.type === "page") setLoadedMedia((prev) => ({ ...prev, ...detail.media }));
+    };
+    document.addEventListener(REVISION_LOAD_EVENT, onLoad);
+    return () => document.removeEventListener(REVISION_LOAD_EVENT, onLoad);
   }, []);
 
   return (
@@ -141,6 +161,7 @@ export function PageForm({
               <p className="mb-[18px] rounded border border-dashed border-line-strong bg-surface px-4 py-3 text-13-5 text-muted">
                 This page is built from sections — see the <strong>Builder</strong> tab. The body below is kept, and
                 comes back if the template is switched.
+                {sections.length === 0 && " Its content can be laid out as sections from there in one press."}
               </p>
             )}
             <div hidden={isBuilder}>
@@ -181,9 +202,10 @@ export function PageForm({
             sections={sections}
             setSections={setSections}
             options={builder}
-            media={page?.blocks_media ?? {}}
+            media={{ ...(page?.blocks_media ?? {}), ...loadedMedia }}
             errors={state.fieldErrors ?? {}}
             pageId={page?.id ?? null}
+            readBody={readBody}
           />,
         ] : []),
 

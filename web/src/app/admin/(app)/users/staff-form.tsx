@@ -5,11 +5,12 @@ import { Form } from "@/components/ui/form";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input, Select } from "@/components/ui/input";
+import { Alert, Field, Input } from "@/components/ui/input";
 import {
   createStaffAction, updateStaffAction, deleteStaffAction, type StaffFormState,
 } from "./actions";
 import type { AdminStaff, RoleOption } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: StaffFormState = {};
 
@@ -129,16 +130,8 @@ export function StaffForm({
         </div>
 
         <aside className="grid content-start gap-0">
-          <Field label="Active" htmlFor="is_active" error={err("is_active")}
-            hint="An inactive account cannot sign in and keeps its history." variant="float-static">
-            <Select
-              id="is_active" name="is_active" defaultValue={staff?.is_active === false ? "0" : "1"}
-              aria-invalid={Boolean(err("is_active"))}
-            >
-              <option value="1">Yes</option>
-              <option value="0">No</option>
-            </Select>
-          </Field>
+          <RecordSwitch className="mb-[18px]" name="is_active" defaultChecked={staff?.is_active !== false} label="Active"
+            hint="An inactive account cannot sign in and keeps its history." />
 
           {isSelf && (
             <p className="mb-[18px] rounded border border-warn-soft bg-warn-soft p-3 text-12-5 leading-[1.5] text-warn">

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { ALL_FONT_VARIABLES } from "@/lib/fonts";
-import { themeCss, topBarFor } from "@/lib/themes";
+import { themeTokensCss, topBarFor } from "@/lib/themes";
 import { themeFor } from "@/lib/presets";
 import { motionFor } from "@/lib/motion-choices";
 import { announcementFor } from "@/lib/announcement";
@@ -9,6 +9,10 @@ import { FullRows } from "@/components/ui/full-rows";
 import { SchemeSync } from "@/components/ui/scheme-sync";
 import { SITE } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
+import { customFontPreloads, customFontsCss, customFontsFor, usesCustomFonts } from "@/lib/custom-fonts";
+import { googleFontsCss, googleFontsFor } from "@/lib/google-fonts";
+import { brandName } from "@/lib/brand";
+import { pwaFor } from "@/lib/pwa";
 import "./globals.css";
 
 // Built per call rather than at module load: the origin and the company are
@@ -37,10 +41,23 @@ const baseMetadata = (): Metadata => ({
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
   const metadata = baseMetadata();
+  const pwa = pwaFor(settings, brandName());
 
-  return settings.favicon_url
-    ? { ...metadata, icons: { icon: settings.favicon_url, shortcut: settings.favicon_url, apple: settings.favicon_url } }
-    : metadata;
+  /*
+   * The installable website (2026-10-05): the manifest link is Next's, from
+   * `app/manifest.ts`; Apple reads neither the manifest's icons nor its
+   * display mode, so the touch icon is the generated square PNG (a favicon
+   * is usually an .ico or an SVG, which iOS draws as a screenshot instead)
+   * and `appleWebApp` says the site may open full screen.
+   */
+  const apple = { apple: { url: "/pwa-icon/180", sizes: "180x180", type: "image/png" } };
+  return {
+    ...metadata,
+    icons: settings.favicon_url
+      ? { icon: settings.favicon_url, shortcut: settings.favicon_url, ...apple }
+      : apple,
+    appleWebApp: pwa.enabled ? { capable: true, title: pwa.shortName, statusBarStyle: "default" } : undefined,
+  };
 }
 
 export async function generateViewport(): Promise<Viewport> {
@@ -49,8 +66,13 @@ export async function generateViewport(): Promise<Viewport> {
   // the theme's dark band otherwise, never a hex written here.
   const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
 
+  const theme = themeFor(settings);
   return {
-    themeColor: topBarFor(themeFor(settings), "light").bar,
+    // Per scheme, so an installed app's title bar matches the page it frames.
+    themeColor: [
+      { media: "(prefers-color-scheme: light)", color: topBarFor(theme, "light").bar },
+      { media: "(prefers-color-scheme: dark)", color: topBarFor(theme, "dark").bar },
+    ],
     width: "device-width",
     initialScale: 1,
   };
@@ -127,10 +149,33 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <style
           id="theme-tokens"
           dangerouslySetInnerHTML={{
-            __html: themeCss(theme, "light")
-              + `:root[data-scheme="dark"]{${themeCss(theme, "dark").replace(/^:root\{|\}$/g, "")}}`,
+            __html: themeTokensCss(theme),
           }}
         />
+        {/*
+          A company's own typefaces (0.125.0, `lib/custom-fonts.ts`): the
+          `@font-face` rules and the two `--font-custom-N` variables a theme
+          set in one resolves through. Its own element, after the tokens —
+          the appearance preview replaces the tokens' text, and these do not
+          change with a palette. Absent entirely on a site with no font of
+          its own, so that site's head is what it was.
+        */}
+        {/*
+          Google fonts copied to this server (0.179.0, `lib/google-fonts.ts`):
+          the rules and `--font-g-<slug>` variables for every installed one.
+          Absent while none is installed.
+        */}
+        {googleFontsFor(settings).length > 0 && (
+          <style id="google-fonts" dangerouslySetInnerHTML={{ __html: googleFontsCss(googleFontsFor(settings)) }} />
+        )}
+        {usesCustomFonts(settings) && (
+          <>
+            {customFontPreloads(settings).map((href) => (
+              <link key={href} rel="preload" as="font" type="font/woff2" href={href} crossOrigin="anonymous" />
+            ))}
+            <style id="custom-fonts" dangerouslySetInnerHTML={{ __html: customFontsCss(customFontsFor(settings)) }} />
+          </>
+        )}
 
         {/*
           Set the attribute before anything paints.
@@ -165,7 +210,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=location.pathname;var a=(p==="/admin"||p.indexOf("/admin/")===0);var k=a?"tw_scheme_console":"tw_scheme_site";var v=localStorage.getItem(k);var s=(v==="light"||v==="dark")?v:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var r=document.documentElement;r.dataset.scheme=s;r.style.colorScheme=s;if(${splash ? 1 : 0}&&!a&&!(p==="/portal"||p.indexOf("/portal/")===0)&&!sessionStorage.getItem("tw_splash")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){r.dataset.splash="1"}if(${JSON.stringify(announcementId)}&&sessionStorage.getItem("tw_announcement_closed")===${JSON.stringify(announcementId)}){r.dataset.announcementClosed="1"}}catch(e){}})()`,
+            __html: `(function(){try{var p=location.pathname;var a=(p==="/admin"||p.indexOf("/admin/")===0);var k=a?"tw_scheme_console":"tw_scheme_site";var v=localStorage.getItem(k);var s=(v==="light"||v==="dark")?v:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var r=document.documentElement;r.dataset.scheme=s;r.style.colorScheme=s;if(a&&localStorage.getItem("tw_console_density")==="compact"){r.dataset.consoleDensity="compact"}if(a&&localStorage.getItem("tw_console_nav")==="rail"){r.dataset.consoleNav="rail"}if(a&&localStorage.getItem("tw_console_motion")==="subtle"){r.dataset.consoleMotion="subtle"}if(a&&localStorage.getItem("tw_console_simple")==="1"){r.dataset.consoleSimple="1"}if((p==="/admin"&&!sessionStorage.getItem("tw_entrance_console"))||(p==="/portal"&&!sessionStorage.getItem("tw_entrance_portal"))){r.dataset.entrance="1"}if(${splash ? 1 : 0}&&!a&&!(p==="/portal"||p.indexOf("/portal/")===0)&&!sessionStorage.getItem("tw_splash")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){r.dataset.splash="1"}if(${JSON.stringify(announcementId)}&&sessionStorage.getItem("tw_announcement_closed")===${JSON.stringify(announcementId)}){r.dataset.announcementClosed="1"}}catch(e){}})()`,
           }}
         />
       </head>

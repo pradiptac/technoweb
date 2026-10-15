@@ -38,7 +38,13 @@ export function FullRows() {
       for (const entry of entries) settle(entry.target as HTMLElement);
     });
     const watch = () => document.querySelectorAll<HTMLElement>('[data-fill="rows"]').forEach((grid) => {
-      if (watched.has(grid)) return;
+      // A console preview (0.113.0: a builder page's theme sections) streams
+      // in under a `loading.tsx`, so its markup is here before React has
+      // hydrated it, and an attribute written now is a hydration mismatch —
+      // the reveal observer's rule, and the same marker. An async section
+      // arrives first in React's hidden holding `<div hidden id="S:…">`,
+      // outside the preview's wrapper; it is looked at again once moved.
+      if (watched.has(grid) || grid.closest('[data-reveal-static], div[hidden][id^="S:"]')) return;
       watched.add(grid);
       sizes.observe(grid);
     });

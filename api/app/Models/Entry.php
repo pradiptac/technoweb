@@ -5,12 +5,14 @@ namespace App\Models;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasCustomFields;
+use App\Models\Concerns\HasRevisions;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\CustomFields\EntryTargets;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -33,12 +35,16 @@ use Illuminate\Support\Str;
  */
 class Entry extends Model implements Answerable, Faqable
 {
-    use HasAnswerBlocks, HasCustomFields, HasSeo, Sluggable;
+    use HasAnswerBlocks, HasCustomFields, HasRevisions, HasSeo, Sluggable;
 
     protected $fillable = [
         'content_type_id', 'title', 'slug', 'summary', 'body', 'image_path',
         'status', 'published_at', 'sort_order',
+        'body_layout', 'blocks',
     ];
+
+    /** In memory as in the column: a new record's page draws its written body. */
+    protected $attributes = ['body_layout' => 'body'];
 
     private ?string $typeSlugCache = null;
 
@@ -48,6 +54,7 @@ class Entry extends Model implements Answerable, Faqable
             'status' => PublishStatus::class,
             'published_at' => 'datetime',
             'sort_order' => 'integer',
+            'blocks' => 'array',
         ];
     }
 
@@ -143,7 +150,7 @@ class Entry extends Model implements Answerable, Faqable
             'title' => $this->title,
             'description' => str(HtmlSanitiser::toText($this->summary ?: ($this->body ?? '')))->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').$this->publicPath(),
-            'og_image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
+            'og_image' => $this->image_path ? MediaUrl::for($this->image_path) : null,
             'schema_type' => in_array($schema, ContentType::SCHEMA_TYPES, true) ? $schema : 'Article',
         ];
     }

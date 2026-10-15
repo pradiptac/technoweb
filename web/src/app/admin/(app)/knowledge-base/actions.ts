@@ -1,5 +1,8 @@
 "use server";
 
+import { runBulkAction } from "@/lib/admin/bulk";
+import type { BulkState } from "@/types/bulk";
+
 import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
@@ -7,7 +10,7 @@ import {
   createKnowledgeArticle, deleteKnowledgeArticle, updateKnowledgeArticle,
   type KnowledgeArticlePayload,
 } from "@/lib/admin";
-import { customFieldsFromFormData, jsonListFromFormData, seoFromFormData, str, tagsFromFormData } from "@/lib/admin-form";
+import { customFieldsFromFormData, jsonListFromFormData, sectionsFromFormData, seoFromFormData, str, tagsFromFormData } from "@/lib/admin-form";
 import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
 export type ArticleFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -19,6 +22,8 @@ function payloadFrom(formData: FormData): KnowledgeArticlePayload {
   return {
     // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
     ...customFieldsFromFormData(formData),
+    // The Sections tab: which of the two the page shows, and the builder's list.
+    ...sectionsFromFormData(formData),
     title: str(formData, "title") ?? "",
     slug: str(formData, "slug"),
     excerpt: str(formData, "excerpt"),
@@ -93,4 +98,14 @@ export async function deleteArticleAction(formData: FormData) {
   updateTag("kb");
   revalidatePath("/admin/knowledge-base");
   redirect("/admin/knowledge-base?deleted=1");
+}
+
+/** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
+export async function bulkArticlesAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  return runBulkAction(formData, {
+    path: "knowledge-articles",
+    noun: ["article", "articles"],
+    tags: ["kb"],
+    paths: ["/admin/knowledge-base"],
+  });
 }

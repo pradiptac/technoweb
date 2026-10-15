@@ -20,6 +20,10 @@ final class UpgradeSteps
     public const STEPS = [
         Steps\RebuildStoreSpecs::class,
         Steps\DeriveMeetingPrefix::class,
+        Steps\MoveAiToOpenRouter::class,
+        Steps\RetireDownloadsPage::class,
+        Steps\SeedStarterTemplates::class,
+        Steps\PricesIncludeGst::class,
     ];
 
     /** @return list<UpgradeStep> */

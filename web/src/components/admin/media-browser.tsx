@@ -1,11 +1,14 @@
 "use client";
 
+import type { MediaKind } from "./media-browser-actions";
 import { useEffect, useState, useTransition } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Input, Select } from "@/components/ui/input";
 import { browseMediaAction, type MediaBrowse } from "@/components/admin/media-browser-actions";
 import { uploadMediaFile } from "@/lib/media-upload";
 import { FileDrop, type UploadProgress } from "@/components/ui/file-drop";
+import { useCropBeforeUpload } from "@/components/admin/crop-before-upload";
+import { imageHint, type ImageSpec, type ImageSpecKey } from "@/lib/image-specs";
 import type { MediaItem } from "@/types/api";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +27,7 @@ import { cn } from "@/lib/utils";
  * component's — see API.md.
  */
 export function MediaBrowser({
-  open, onClose, onPick, kind = "image", title, accept,
+  open, onClose, onPick, kind = "image", title, accept, spec,
 }: {
   open: boolean;
   onClose: () => void;
@@ -33,9 +36,11 @@ export function MediaBrowser({
    * almost every caller wants; `"file"` is the documents tab, which is where a
    * newsletter's PDF attachment comes from.
    */
-  kind?: "image" | "file";
+  kind?: MediaKind;
   title?: string;
   accept?: string;
+  /** The field's picture spec, for the crop step and the hint (0.169.0). */
+  spec?: ImageSpecKey | ImageSpec;
   /**
    * Given the URL, the alt text, the **path**, and the file's own name and
    * size.
@@ -60,6 +65,7 @@ export function MediaBrowser({
   const [uploading, setUploading] = useState<UploadProgress | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
+  const { prepare, limits } = useCropBeforeUpload();
 
   /*
     Uploading from inside the picker.
@@ -80,8 +86,11 @@ export function MediaBrowser({
     percentage on the bar is the file named beside it and a failure names the
     file that caused it.
   */
-  const upload = async (files: File[]) => {
-    if (files.length === 0) return;
+  const upload = async (chosen: File[]) => {
+    if (chosen.length === 0) return;
+    // Pictures go through the crop step first; Cancel uploads nothing.
+    const files = kind === "image" ? await prepare(chosen, spec) : chosen;
+    if (!files || files.length === 0) return;
 
     setUploading({ done: 0, total: files.length, label: files[0]?.name, percent: 0 });
     setUploadError(null);
@@ -167,7 +176,11 @@ export function MediaBrowser({
       title={title ?? "Insert from the media library"}
       description={kind === "file"
         ? "Choose a document. It is attached under the name shown here."
-        : "Choose an image to place at the cursor. Alt text comes with the file."}
+        : kind === "lottie"
+          ? "Choose a Lottie animation (.json or .lottie)."
+          : kind === "model"
+            ? "Choose a 3D model (.glb)."
+            : "Choose an image to place at the cursor. Alt text comes with the file."}
     >
       <div className="mb-4 flex flex-wrap gap-2">
         <Input
@@ -202,8 +215,8 @@ export function MediaBrowser({
           multiple
           accept={accept ?? ".png,.jpg,.jpeg,.gif,.webp,.svg"}
           onFiles={(files) => { void upload(Array.from(files)); }}
-          label={uploading ? "Uploading…" : kind === "file" ? "Upload a document…" : "Upload an image…"}
-          hint="It goes into the library, so it can be found and reused later."
+          label={uploading ? "Uploading…" : kind === "file" ? "Upload a document…" : kind === "lottie" ? "Upload an animation…" : kind === "model" ? "Upload a 3D model…" : "Upload an image…"}
+          hint={kind === "image" ? `${imageHint(spec, limits)}. It goes into the library, to be found and reused later.` : "It goes into the library, so it can be found and reused later."}
           progress={uploading}
         />
 

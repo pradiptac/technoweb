@@ -2,7 +2,8 @@ import Image from "next/image";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Container } from "@/components/ui/container";
 import { focalStyle } from "@/lib/focal";
-import { bannerFocusFor, bannerFor } from "@/lib/site-settings";
+import { blurProps } from "@/lib/blur";
+import { bannerBlurFor, bannerFocusFor, bannerFor } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import type { PageHeroProps } from "@/themes/contract";
 import { GradientHeading } from "../gradient-heading";
@@ -28,7 +29,7 @@ export function PageHero({ kicker, title, lede, crumbs, children, section, setti
         {picture && (
           <div className="keystone-frame mt-10 w-full max-w-[1180px] overflow-hidden rounded-2xl border border-line-strong bg-dark p-2">
             <div className="relative aspect-[21/9] overflow-hidden rounded-xl">
-              <Image src={picture} alt="" aria-hidden fill sizes="(min-width: 1280px) 1180px, 100vw" priority className="object-cover" style={focus} />
+              <Image src={picture} alt="" aria-hidden fill sizes="(min-width: 1280px) 1180px, 100vw" priority className="object-cover" style={focus} {...blurProps(bannerBlurFor(settings, section))} />
             </div>
           </div>
         )}

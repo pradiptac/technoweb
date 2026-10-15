@@ -28,6 +28,22 @@ export function formatPaise(paise: number, options: { withPaise?: boolean } = {}
 }
 
 /**
+ * ₹1.2L / ₹47.3k / ₹800 — an axis label has no room for digit grouping.
+ * Moved here from the store dashboard (2026-10-05) so the chart kit can label
+ * a money axis the same way.
+ */
+export function compactPaise(paise: number): string {
+  const rupees = paise / 100;
+
+  if (rupees === 0) return "0";
+  if (rupees >= 10_000_000) return `₹${(rupees / 10_000_000).toFixed(1).replace(/\.0$/, "")}Cr`;
+  if (rupees >= 100_000) return `₹${(rupees / 100_000).toFixed(1).replace(/\.0$/, "")}L`;
+  if (rupees >= 1_000) return `₹${(rupees / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
+
+  return `₹${Math.round(rupees)}`;
+}
+
+/**
  * "60% off" — 0 when there is nothing to discount from, never negative.
  *
  * Shared between the store card and its quick-view modal so the two cannot

@@ -42,11 +42,16 @@ const PUBLIC_ROUTES = [
   "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/products/cisco-cbs350-24t-4g", "/resources", "/blog", "/case-studies",
-  "/team", "/clients", "/certifications",
+  "/team", "/clients", "/certifications", "/support-network",
   "/knowledge-base", "/about", "/contact", "/support", "/privacy", "/terms", "/returns", "/shipping",
   "/book-a-visit",
+  // The installed app's offline page (docs/pwa.md), which the service worker serves in place of any page not yet saved.
+  "/offline",
   // Online meetings (docs/meetings.md) -- the day picker at 320px.
   "/book-a-meeting", "/book-a-meeting?type=product-demo",
+  // Events (docs/events.md): the list of cards, upcoming and past.
+  "/events", "/events?when=past",
+  "/tenders", "/tenders?when=closed",
   "/search", "/search?q=switch",
   "/this-page-does-not-exist",   // the 404
   "/careers",
@@ -77,6 +82,8 @@ const PORTAL_ROUTES = [
   "/portal/visits",
   // Online meetings (docs/meetings.md).
   "/portal/meetings",
+  // The files kept for customers (docs/downloads.md).
+  "/portal/downloads",
   ...(PORTAL_TICKET ? [`/portal/tickets/${PORTAL_TICKET}`] : []),
 ];
 
@@ -87,10 +94,10 @@ const ADMIN_ROUTES = [
   // sat on it unnoticed. The builder behind it has the same history.
   "/admin/menus",
   "/admin/jobs", "/admin/jobs/new", "/admin/jobs/reference", "/admin/applications",
-  "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/faqs",
+  "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/pages/library", "/admin/detail-templates", "/admin/detail-templates/new", "/admin/faqs",
   "/admin/faqs/new", "/admin/media", "/admin/products", "/admin/products/new",
   "/admin/product-categories", "/admin/brands", "/admin/solutions",
-  "/admin/services", "/admin/industries", "/admin/seo", "/admin/redirects",
+  "/admin/services", "/admin/industries", "/admin/seo", "/admin/redirects", "/admin/not-found",
   "/admin/service-categories", "/admin/service-categories/new",
   // The popup list and its form. The form is the one that matters here: a
   // section checklist plus a targeting summary is a lot of small controls in
@@ -100,6 +107,7 @@ const ADMIN_ROUTES = [
   "/admin/blocks/cta/showcase", "/admin/blocks/stats/showcase", "/admin/blocks/pricing/showcase", "/admin/blocks/stack/showcase",
   "/admin/team-members", "/admin/team-members/new", "/admin/clients", "/admin/clients/new",
   "/admin/certifications", "/admin/certifications/new",
+  "/admin/support-centres", "/admin/support-centres/new",
   /*
     The form builder, which this list did not name until it grew two blocks of
     pre-formatted code — an iframe snippet and a whole HTML form — each of
@@ -114,11 +122,11 @@ const ADMIN_ROUTES = [
   "/admin/custom-fields", "/admin/custom-fields/new",
   "/admin/content-types", "/admin/content-types/new", "/admin/content",
   "/admin/landing-pages", "/admin/landing-pages/opportunities", "/admin/locations",
-  "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings", "/admin/info-bar", "/admin/store/promo", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen",
+  "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings", "/admin/info-bar", "/admin/store/promo", "/admin/store/videos", "/admin/store/tags", "/admin/store/shipping", "/admin/store/invoicing", "/admin/themes", "/admin/site/chrome", "/theme-preview/classic", "/theme-preview/classic/specimen",
   // Outgoing webhooks: the form's event grid is two columns of cards from
   // `sm` and one below it, and the delivery log is a table with data-labels.
   "/admin/webhooks", "/admin/webhooks/new",
-  "/admin/imports/wordpress", "/admin/backups", "/admin/backups/settings",
+  "/admin/imports/wordpress", "/admin/imports/site", "/admin/backups", "/admin/backups/settings",
   // System → Status and Updates (2026-09-28, docs/distribution.md).
   "/admin/system/status", "/admin/system/updates",
   "/admin/profile", "/admin/customers",
@@ -130,7 +138,7 @@ const ADMIN_ROUTES = [
   // audited; the Email to ticket panel is the one the consent callback belongs
   // to, and that callback is a page nothing links to.
   "/admin/site/settings", "/admin/blog/settings", "/admin/media/settings", "/admin/seo/settings", "/admin/store/settings",
-  "/admin/newsletter/settings", "/admin/leads/settings", "/admin/tickets/settings", "/admin/customers/settings", "/admin/chat/settings",
+  "/admin/newsletter/settings", "/admin/leads/settings", "/admin/tickets/settings", "/admin/customers/settings", "/admin/chat/settings", "/admin/messaging/settings",
   // Engineer visits (docs/visits.md).
   "/admin/visits", "/admin/visits/settings",
   // Online meetings (docs/meetings.md): the table, the week view, the slot
@@ -138,13 +146,22 @@ const ADMIN_ROUTES = [
   "/admin/meetings", "/admin/meetings?view=agenda", "/admin/meetings/new",
   "/admin/meetings/types", "/admin/meetings/types/new", "/admin/meetings/hosts",
   "/admin/meetings/settings", "/admin/my-meetings",
-  "/admin/settings/tickets/callback",
+  // Events (docs/events.md): the list (cards on a phone), the seven-panel
+  // form with its two repeaters, and the settings. This script has no
+  // discovery step, so an event's edit form and its registrations are named
+  // on the command line: `node scripts/mobile-audit.mjs /admin/events/1
+  // /admin/events/1/registrations`.
+  "/admin/events", "/admin/events/new", "/admin/events/settings",
+  "/admin/tenders", "/admin/tenders/new", "/admin/tenders/categories",
+  "/admin/downloads", "/admin/downloads/new", "/admin/downloads/categories", "/admin/downloads/categories/new",
+  "/admin/settings/tickets/callback", "/admin/store/settings/zoho/callback",
   // The store: its own catalogue, its own role, and the table with the most
   // columns in the console -- which is where the phone layout bites.
   "/admin/store", "/admin/store?days=7",
   "/admin/store/products", "/admin/store/products/new", "/admin/store/products/import",
   "/admin/store/categories", "/admin/store/categories/new",
   "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new", "/admin/store/reviews",
+  "/admin/store/returns",
   "/admin/store/reports",
   // The Campaign section, in neither audit until the Verification tab came:
   // its nav strip is seven tabs now, which is what this run is for.

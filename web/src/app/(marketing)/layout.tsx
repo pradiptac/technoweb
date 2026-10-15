@@ -4,6 +4,14 @@ import { ChatLoader } from "@/components/chat/chat-loader";
 import { SitePopup } from "@/components/layout/site-popup";
 import { CookieConsent } from "@/components/layout/cookie-consent";
 import { CustomCode } from "@/components/layout/custom-code";
+import { ActionBar } from "@/components/layout/action-bar";
+import { actionBarFor } from "@/lib/action-bar";
+import { PwaLoader } from "@/components/pwa/pwa-loader";
+import { pwaFor } from "@/lib/pwa";
+import { lookAttrs, lookFor } from "@/lib/look";
+import { CardTilt } from "@/components/ui/card-tilt";
+import { brandName } from "@/lib/brand";
+import { APP_VERSION } from "@/lib/version";
 import { loadChrome } from "@/lib/chrome";
 import { getSiteSettings } from "@/lib/settings";
 import { settingEnabled } from "@/lib/site-settings";
@@ -66,6 +74,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
   // rather than a round trip. The fetch list and its notes are `loadChrome`.
   const [{ chrome, popups }, theme] = await Promise.all([loadChrome(), activeTheme()]);
   const { settings, motion } = chrome;
+  const pwa = pwaFor(settings, brandName());
   const Chrome = theme.templates.Chrome;
 
   return (
@@ -78,7 +87,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
     // rather than on <html> so every rule they key is scoped to this area:
     // the console stamps nothing and is untouched by construction.
     <ToastProvider>
-    <div className="public-site" data-theme={theme.manifest.id} {...motionAttrs(motion)}>
+    <div className="public-site" data-theme={theme.manifest.id} {...motionAttrs(motion)} {...lookAttrs(lookFor(settings))}>
       {/*
         The first-visit splash, before everything else in the tree so it is
         the first thing painted. Its markup is `display: none` on the server;
@@ -98,6 +107,15 @@ export default async function MarketingLayout({ children }: { children: React.Re
           <RouteProgress style={motion.loader as "bar" | "pulse"} />
         </Suspense>
       )}
+      {/*
+        The reading-progress line (Motion → Reading progress, 0.114.0): one
+        empty element, `display: none` unless the wrapper above carries
+        `data-motion-progress="bar"` and the browser has scroll-driven
+        animations — then a fixed hairline scaled along a `scroll(root)`
+        timeline. Always rendered, so the attribute alone decides; never
+        JavaScript, so nothing is written onto this markup after it arrives.
+      */}
+      <div data-scroll-progress aria-hidden="true" />
       {/* The strip, the header, `<main>` around the page, the footer — the
           theme's, from the same data whichever theme it is. */}
       <Chrome {...chrome} options={theme.options} themeId={theme.manifest.id}>{children}</Chrome>
@@ -147,6 +165,29 @@ export default async function MarketingLayout({ children }: { children: React.Re
       {settings.cookie_consent_enabled === "1"
         && (settings.google_analytics_id || settings.google_tag_manager_id || settings.meta_pixel_id)
         && <CookieConsent settings={settings} />}
+      {/*
+        The installable website (2026-10-05, docs/pwa.md): the service worker
+        and, when the setting allows, the install card. Public site only, for
+        the reason the assistant is — an install offer inside the console is
+        chrome in the way of work.
+      */}
+      {/* Cards leaning towards the pointer — shipped only when chosen (Motion → Cards). */}
+      {motion.cards === "tilt" && <CardTilt />}
+      <PwaLoader
+        enabled={pwa.enabled}
+        prompt={pwa.prompt}
+        register={process.env.NODE_ENV === "production" || process.env.PWA_IN_DEV === "1"}
+        version={APP_VERSION}
+        name={pwa.shortName}
+      />
+      {/*
+        The phone's action bar (0.122.0): Call, WhatsApp and one button of the
+        site's own. A direct child of this wrapper on purpose — the rule in
+        globals.css is `.public-site:has(> [data-action-bar])`, which pads the
+        page's foot and lifts the assistant, the compare tray and the install
+        card clear of it. Renders nothing while switched off or buttonless.
+      */}
+      <ActionBar buttons={actionBarFor(settings)} />
       {/* The administrator's own "before </body>" snippet — see the component for what it is and is not. */}
       {settings.body_code && <CustomCode html={settings.body_code} />}
     </div>

@@ -19,9 +19,14 @@ use App\Models\ContentType;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\CustomFieldGroup;
+use App\Models\DetailTemplate;
 use App\Models\DigitalCode;
+use App\Models\Download;
+use App\Models\DownloadCategory;
 use App\Models\Enquiry;
 use App\Models\Entry;
+use App\Models\Event;
+use App\Models\EventRegistration;
 use App\Models\Faq;
 use App\Models\Form;
 use App\Models\FormSubmission;
@@ -53,24 +58,34 @@ use App\Models\NewsletterSequence;
 use App\Models\NewsletterSequenceEnrolment;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterTemplate;
+use App\Models\NotFoundHit;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderReturn;
 use App\Models\Page;
 use App\Models\Payment;
 use App\Models\Popup;
+use App\Models\PreviewLink;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductReview;
 use App\Models\Redirect;
+use App\Models\SavedSection;
 use App\Models\SeoSuggestion;
 use App\Models\Service;
 use App\Models\ServiceCategory;
+use App\Models\ShippingZone;
+use App\Models\SiteImport;
 use App\Models\Slider;
 use App\Models\Solution;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
+use App\Models\StoreTag;
+use App\Models\SupportCentre;
 use App\Models\TeamMember;
+use App\Models\Tender;
+use App\Models\TenderCategory;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
@@ -80,7 +95,7 @@ use App\Models\Webhook;
 use App\Models\WebhookDelivery;
 use App\Models\WordPressImport;
 use App\Support\Chat\AiProvider;
-use App\Support\Chat\Providers\OpenAiProvider;
+use App\Support\Chat\Providers\OpenRouterProvider;
 use App\Support\InboundMail\ImapMailbox;
 use App\Support\InboundMail\InboundMail;
 use App\Support\InboundMail\Mailbox;
@@ -101,7 +116,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         /*
-         * The website assistant's model provider.
+         * The model provider every AI feature calls: OpenRouter (0.116.0),
+         * for the website assistant, the SEO assistant, alt text and the
+         * article and page drafts alike.
          *
          * One binding, so "swap the provider" is a line here rather than a
          * search for every place a class was named — the argument
@@ -109,7 +126,7 @@ class AppServiceProvider extends ServiceProvider
          * lets a test replace the model without faking HTTP to prove something
          * that is not about HTTP.
          */
-        $this->app->bind(AiProvider::class, OpenAiProvider::class);
+        $this->app->bind(AiProvider::class, OpenRouterProvider::class);
 
         /*
          * The calendar online meetings are organised on (docs/meetings.md):
@@ -226,6 +243,7 @@ class AppServiceProvider extends ServiceProvider
             'brand' => Brand::class,
             'canned_reply' => CannedReply::class,
             'certification' => Certification::class,
+            'support_centre' => SupportCentre::class,
             'client' => Client::class,
             'coupon' => Coupon::class,
             'gallery' => Gallery::class,
@@ -235,6 +253,9 @@ class AppServiceProvider extends ServiceProvider
             'team_member' => TeamMember::class,
             'slider' => Slider::class,
             'content_block' => ContentBlock::class,
+            'saved_section' => SavedSection::class,
+            // Bound in an admin route (0.161.0, detail-page templates).
+            'detail_template' => DetailTemplate::class,
             // Custom fields (docs/custom-content.md): the group is bound in
             // an admin route; a value's `fieldable` is one of the aliases above.
             'custom_field_group' => CustomFieldGroup::class,
@@ -250,6 +271,11 @@ class AppServiceProvider extends ServiceProvider
             'media' => Media::class,
             'media_folder' => MediaFolder::class,
             'redirect' => Redirect::class,
+            // A missing address (docs/seo.md "Missing pages"): bound in the
+            // ignore/restore routes.
+            'not_found_hit' => NotFoundHit::class,
+            // Bound in the revoke route (0.138.0, draft share links).
+            'preview_link' => PreviewLink::class,
             // Bound in an admin route (the accept/reject endpoint), so it needs
             // a key whatever it is polymorphic about — MorphMapCoverageTest
             // caught its absence, which is the check working.
@@ -291,6 +317,23 @@ class AppServiceProvider extends ServiceProvider
             'meeting' => Meeting::class,
             'meeting_type' => MeetingType::class,
             'meeting_time_off' => MeetingTimeOff::class,
+            // Events (docs/events.md): an event carries SEO and FAQs, both
+            // polymorphic, and a menu item may point at one; a registration
+            // is bound in an admin route and is the source of a lead.
+            'event' => Event::class,
+            'event_registration' => EventRegistration::class,
+            // Tenders (docs/tenders.md): a tender carries SEO, which is
+            // polymorphic, and a menu item may point at one; both it and its
+            // category are bound in admin routes, so the activity log can
+            // name what was deleted.
+            'tender' => Tender::class,
+            'tender_category' => TenderCategory::class,
+            // The downloads centre (docs/downloads.md): both are bound in
+            // admin routes, so the activity log can name what was deleted.
+            // A return (docs/store.md "Returns"): bound in admin routes.
+            'order_return' => OrderReturn::class,
+            'download' => Download::class,
+            'download_category' => DownloadCategory::class,
 
             /*
              * The store's own catalogue. `store_product` rather than
@@ -300,9 +343,14 @@ class AppServiceProvider extends ServiceProvider
              */
             'store_product' => StoreProduct::class,
             'store_category' => StoreCategory::class,
+            // Bound by the Tags screen's PATCH/DELETE (0.141.0).
+            'store_tag' => StoreTag::class,
             'store_product_variation' => StoreProductVariation::class,
             'order' => Order::class,
             'order_item' => OrderItem::class,
+            // Bound by the shipping screen's routes, so the activity log can
+            // name the zone a change was aimed at (0.142.0).
+            'shipping_zone' => ShippingZone::class,
             'payment' => Payment::class,
             'digital_code' => DigitalCode::class,
             // Bound by the review queue's PATCH and DELETE, so the activity
@@ -327,6 +375,7 @@ class AppServiceProvider extends ServiceProvider
             // A WordPress import is bound on its routes, so the activity log
             // names it as the subject of a commit or a cancel.
             'wordpress_import' => WordPressImport::class,
+            'site_import' => SiteImport::class,
 
             // Backups and restores are bound on their routes (delete, cancel),
             // so the activity log names them as the subject.

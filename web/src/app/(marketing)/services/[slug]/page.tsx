@@ -1,18 +1,18 @@
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
-import { ButtonLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
 import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
-import { PageHero } from "@/components/ui/page-hero";
+import { RecordSections, hasEntityLinks, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
-import { EnquiryForm } from "@/components/forms/enquiry-form";
-import { IconArrowRight } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Service } from "@/types/api";
+import { ServiceHero } from "@/components/detail-template/service-parts";
+import { ServiceTemplate } from "@/components/detail-template/service-template";
+import { EnquiryCard } from "@/components/forms/enquiry-card";
 
 async function load(slug: string): Promise<Service | null> {
   try {
@@ -67,35 +67,43 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
 
   if (!service) notFound();
 
+  // An active detail template lays the page out (0.161.0, docs/page-builder.md "Detail templates"); with none, the page below is unchanged.
+  if (service.detail_template) return <ServiceTemplate service={service} />;
+
   const faqs = service.faqs ?? [];
+  const crumbs = [
+    { name: "Services", path: "/services" },
+    { name: service.title, path: `/services/${service.slug}` },
+  ];
+
+  /*
+   * The body laid out as builder sections (0.129.0, docs/page-builder.md
+   * "Sections on other records"): full-width bands under the heading, where
+   * the written body stood. The details, the answers and the enquiry form
+   * keep their place under them — beside each other when there is anything
+   * to put beside the form, and the form on its own, centred, when not.
+   */
+  const laidOut = laidOutAsSections(service);
+  const hasDetails = (service.custom_fields?.length ?? 0) > 0 || (service.answer_blocks?.length ?? 0) > 0
+    || faqs.length > 0 || hasEntityLinks(service.entity);
+
+  const enquiry = <EnquiryCard source={`service:${service.slug}`} subject={service.title} name={service.title.toLowerCase()} />;
 
   return (
     <>
-      <PageHero
-        section="services"
-        kicker="Web service"
-        title={service.title}
-        lede={service.summary}
-        crumbs={[
-          { name: "Services", path: "/services" },
-          { name: service.title, path: `/services/${service.slug}` },
-        ]}
-      >
-        <div className="flex flex-wrap gap-3">
-          <ButtonLink href={`/contact?subject=${encodeURIComponent(service.title)}`}>
-            Enquire about {service.title.toLowerCase()} <IconArrowRight />
-          </ButtonLink>
-          {/* An engineer on site, with this service preselected (docs/visits.md). */}
-          <ButtonLink href={`/book-a-visit?service=${encodeURIComponent(service.slug)}`} variant="secondary">
-            Book a site visit
-          </ButtonLink>
-        </div>
-      </PageHero>
+      <ServiceHero service={service} crumbs={crumbs} />
 
+      {laidOut && <RecordSections sections={service.sections ?? []} crumbs={crumbs} />}
+
+      {laidOut && !hasDetails ? (
+        <Container data-aos="fade-up" className="section-y">
+          <div className="mx-auto w-full max-w-xl">{enquiry}</div>
+        </Container>
+      ) : (
       <Container data-aos="fade-up" className="section-y">
         <div className="grid gap-12 lg:grid-cols-[1fr_380px] lg:gap-16">
-          <div className="min-w-0">
-            {service.body && <ProseWithShortcodes html={service.body} />}
+          <div className={laidOut ? "min-w-0 *:first:mt-0" : "min-w-0"}>
+            {!laidOut && service.body && <ProseWithShortcodes html={service.body} />}
             {/* The answer blocks (FAQs merged into their questions), then what the record is connected to. */}
             {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
             <CustomFieldDetails fields={service.custom_fields} className="mt-12" />
@@ -104,16 +112,11 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           </div>
 
           <aside>
-            <div className="rounded-xl border border-line-strong bg-surface p-6 lg:sticky lg:top-24">
-              <h2 className="text-17">Ask about {service.title.toLowerCase()}</h2>
-              <p className="mt-1.5 mb-5 text-13-5 text-muted">
-                No sales sequence — an engineer reads it and replies.
-              </p>
-              <EnquiryForm source={`service:${service.slug}`} subject={service.title} compact />
-            </div>
+            {enquiry}
           </aside>
         </div>
       </Container>
+      )}
 
       <CtaBand />
 

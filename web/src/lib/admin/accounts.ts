@@ -115,10 +115,11 @@ export type StaffPayload = Partial<{
   is_active: boolean; roles: string[];
 }>;
 
-export async function getStaffList(params: { q?: string; role?: string; page?: number; per_page?: number } = {}) {
+export async function getStaffList(params: { q?: string; role?: string; centre?: string; page?: number; per_page?: number } = {}) {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   if (params.role) query.set("role", params.role);
+  if (params.centre) query.set("centre", params.centre);
   if (params.page) query.set("page", String(params.page));
   if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();

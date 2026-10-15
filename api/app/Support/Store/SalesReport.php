@@ -101,7 +101,8 @@ class SalesReport
     {
         $row = self::inRange($from, $to)
             ->selectRaw('count(*) as orders, sum(total_paise) as total, sum(taxable_paise) as taxable,
-                         sum(gst_paise) as gst, sum(discount_paise) as discount, sum(subtotal_paise) as subtotal')
+                         sum(gst_paise) as gst, sum(discount_paise) as discount, sum(subtotal_paise) as subtotal,
+                         sum(shipping_paise) as delivery')
             ->first();
 
         $orders = (int) ($row->orders ?? 0);
@@ -118,6 +119,9 @@ class SalesReport
             'units' => $units,
             'subtotal_paise' => (int) ($row->subtotal ?? 0),
             'discount_paise' => (int) ($row->discount ?? 0),
+            // Delivery charged (0.142.0), reported as its own figure: it is
+            // part of the total and not of the goods sold.
+            'delivery_paise' => (int) ($row->delivery ?? 0),
             'taxable_paise' => (int) ($row->taxable ?? 0),
             'gst_paise' => (int) ($row->gst ?? 0),
             'total_paise' => $total,

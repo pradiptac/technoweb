@@ -11,10 +11,11 @@ import {
 } from "./actions";
 import type { AdminRedirect } from "@/types/api";
 import { formatDate } from "@/lib/dates";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: RedirectFormState = {};
 
-export function RedirectForm({ record, saved }: { record?: AdminRedirect; saved?: boolean }) {
+export function RedirectForm({ record, saved, initialFrom }: { record?: AdminRedirect; saved?: boolean; initialFrom?: string }) {
   const editing = Boolean(record);
   const [state, formAction, pending] = useActionState(
     editing ? updateRedirectAction : createRedirectAction, initial,
@@ -40,7 +41,7 @@ export function RedirectForm({ record, saved }: { record?: AdminRedirect; saved?
         <div className="min-w-0">
           <Field label="Redirect from" htmlFor="from_path" error={err("from_path")}
             hint="A path on this site, starting with a slash. Saved without a trailing slash.">
-            <Input id="from_path" name="from_path" defaultValue={record?.from_path}
+            <Input id="from_path" name="from_path" defaultValue={record?.from_path ?? initialFrom}
               placeholder="/old-page" required className="font-mono text-14"
               aria-invalid={Boolean(err("from_path"))} />
           </Field>
@@ -66,15 +67,8 @@ export function RedirectForm({ record, saved }: { record?: AdminRedirect; saved?
             </Select>
           </Field>
 
-          <Field label="Active" htmlFor="is_active"
-            hint="Turn off to stop the redirect without losing the row." variant="float-static">
-            <Select
-              id="is_active" name="is_active" defaultValue={record?.is_active === false ? "0" : "1"}
-            >
-              <option value="1">Yes</option>
-              <option value="0">No</option>
-            </Select>
-          </Field>
+          <RecordSwitch className="mb-[18px]" name="is_active" defaultChecked={record?.is_active !== false} label="Active"
+            hint="Turn off to stop the redirect without losing the row." />
 
           {editing && (
             <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-12-5 leading-[1.5] text-muted">

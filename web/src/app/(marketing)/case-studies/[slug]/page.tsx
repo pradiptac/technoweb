@@ -1,12 +1,7 @@
-import Image from "next/image";
-import { focalStyle } from "@/lib/focal";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { stripColumns } from "@/lib/strip-columns";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
-import { PageHero } from "@/components/ui/page-hero";
+import { RecordSections, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { CustomFieldDetails } from "@/components/content/custom-field-details";
@@ -14,7 +9,8 @@ import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { CaseStudy } from "@/types/api";
-import { CountUp } from "@/components/ui/count-up";
+import { CaseStudyBack, CaseStudyCover, CaseStudyHero, CaseStudyResults } from "@/components/detail-template/case-study-parts";
+import { CaseStudyTemplate } from "@/components/detail-template/case-study-template";
 
 async function load(slug: string): Promise<CaseStudy | null> {
   try {
@@ -75,81 +71,45 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
   if (!study) notFound();
 
+  // An active detail template lays the page out (0.161.0, docs/page-builder.md "Detail templates"); with none, the page below is unchanged.
+  if (study.detail_template) return <CaseStudyTemplate study={study} />;
+
   const results = study.results ?? [];
+  const crumbs = [
+    { name: "Case studies", path: "/case-studies" },
+    { name: study.title, path: `/case-studies/${study.slug}` },
+  ];
+  /*
+   * The body laid out as builder sections (0.129.0, docs/page-builder.md
+   * "Sections on other records"). The results and the cover stay above them
+   * — they are the study's own, not its body — and what followed the body
+   * follows the sections. Full-width bands cannot sit inside the container
+   * the rest shares, so with sections the page is that container cut in two.
+   */
+  const laidOut = laidOutAsSections(study);
 
   return (
     <>
-      <PageHero
-        section="resources"
-        kicker={study.industry?.name ?? "Case study"}
-        title={study.title}
-        lede={study.summary}
-        crumbs={[
-          { name: "Case studies", path: "/case-studies" },
-          { name: study.title, path: `/case-studies/${study.slug}` },
-        ]}
-      >
-        {study.client_name && (
-          <p className="text-14 text-muted">
-            Client: <strong className="font-semibold text-ink">{study.client_name}</strong>
-          </p>
-        )}
-      </PageHero>
+      <CaseStudyHero study={study} crumbs={crumbs} />
 
-      <Container data-aos="fade-up" className="section-y">
-        {results.length > 0 && (
-          <dl className={cn("mb-12 grid gap-px overflow-hidden rounded-xl border border-line-strong bg-line", stripColumns(results.length))}>
-            {results.map((r) => (
-              <div key={r.label} className="bg-card p-6">
-                <CountUp as="dd" value={r.value} className="font-display text-[30px] font-bold leading-none tracking-[-.03em] text-brand-ink" />
-                <dt className="mt-2 text-13 text-muted">{r.label}</dt>
-              </div>
-            ))}
-          </dl>
-        )}
+      {(!laidOut || results.length > 0 || study.cover_image) && (
+      <Container data-aos="fade-up" className={laidOut ? "section-y pb-0" : "section-y"}>
+        <CaseStudyResults study={study} />
 
-        {study.cover_image && (
-          /*
-            An aspect ratio, because this is the one image on the site whose
-            box is not already fixed.
+        <CaseStudyCover study={study} />
 
-            Every other cover and thumbnail sits in a well with a set height —
-            h-40, h-44, h-56 — so a slow image cannot move anything. This one
-            is full-width and unconstrained, so the whole article body below it
-            jumps down the moment the image arrives. Nothing shifts today
-            because the placeholder art is a 2KB SVG served from localhost;
-            it will the day a real photograph lands, which is exactly the
-            defect that is invisible until it is expensive.
-
-            1200/630 is what the cover generator produces and what og:image
-            wants, so a real photograph should be cut to it anyway.
-          */
-          <div className="relative mb-12 aspect-[1200/630] w-full overflow-hidden rounded-xl border border-line">
-            <Image
-              src={study.cover_image}
-              alt={study.cover_image_alt ?? ""}
-              fill
-              sizes="(min-width: 1920px) 1728px, 90vw"
-              priority
-              className="object-cover"
-              style={focalStyle(study.cover_image_focus)}
-            />
-          </div>
-        )}
-
-        {study.body && <ProseWithShortcodes html={study.body} />}
-
-        {/* What the study is connected to — the industry, the solutions, the articles. A case study has no answer blocks of its own. */}
-        {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
-        <CustomFieldDetails fields={study.custom_fields} className="mt-12" />
-        <RelatedEntities entity={study.entity} className="mt-12" />
-
-        <p className="mt-12 border-t border-line pt-6">
-          <Link href="/case-studies" className="inline-block py-1 text-14 font-semibold text-brand-ink hover:underline">
-            ← All case studies
-          </Link>
-        </p>
+        {!laidOut && <CaseStudyRest study={study} />}
       </Container>
+      )}
+
+      {laidOut && (
+        <>
+          <RecordSections sections={study.sections ?? []} crumbs={crumbs} />
+          <Container data-aos="fade-up" className="section-y *:first:mt-0">
+            <CaseStudyRest study={study} laidOut />
+          </Container>
+        </>
+      )}
 
       <CtaBand
         title="Similar setup to yours?"
@@ -167,6 +127,25 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
       */}
       {study.schema && <JsonLd data={study.schema} />}
       {study.faq_schema && <JsonLd data={study.faq_schema} />}
+    </>
+  );
+}
+
+/**
+ * What follows the cover: the written body — unless the page is laid out as
+ * sections, which stand in its place — then the details, what the study is
+ * connected to, and the way back. A case study has no answer blocks of its own.
+ */
+function CaseStudyRest({ study, laidOut = false }: { study: CaseStudy; laidOut?: boolean }) {
+  return (
+    <>
+      {!laidOut && study.body && <ProseWithShortcodes html={study.body} />}
+
+      {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+      <CustomFieldDetails fields={study.custom_fields} className="mt-12" />
+      <RelatedEntities entity={study.entity} className="mt-12" />
+
+      <CaseStudyBack />
     </>
   );
 }

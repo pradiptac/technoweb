@@ -6,14 +6,19 @@ use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\Customer;
+use App\Models\Download;
 use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Lead;
 use App\Models\Order;
 use App\Models\Page;
 use App\Models\Product;
 use App\Models\StoreProduct;
+use App\Models\Tender;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Support\Events\EventText;
+use App\Support\Tenders\TenderText;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -140,6 +145,51 @@ class SearchController extends Controller
                         'label' => $p->title,
                         'sub' => '/'.$p->slug,
                         'admin_path' => "/admin/pages/{$p->id}",
+                    ]),
+            ];
+
+            // Events (docs/events.md), by title or place, the nearest date first.
+            $groups[] = [
+                'type' => 'event', 'label' => 'Events',
+                'items' => Event::where(fn ($w) => $w->where('title', 'like', $like)
+                    ->orWhere('venue_name', 'like', $like)
+                    ->orWhere('venue_city', 'like', $like))
+                    ->orderByDesc('starts_at')->limit(self::PER_GROUP)->get()
+                    ->map(fn (Event $e) => [
+                        'label' => $e->title,
+                        'sub' => implode(' · ', array_filter([EventText::dateLabel($e), self::label($e->getAttribute('status'))])),
+                        'admin_path' => $e->adminPath(),
+                    ]),
+            ];
+
+            // Tenders (docs/tenders.md), by reference or title — a tender
+            // is looked for by its number far more often than its words, so
+            // the model's own `search` scope is used and the punctuation of
+            // a reference does not have to be typed.
+            $groups[] = [
+                'type' => 'tender', 'label' => 'Tenders',
+                'items' => Tender::query()->search($term)
+                    ->orderByDesc('closes_at')->limit(self::PER_GROUP)->get()
+                    ->map(fn (Tender $t) => [
+                        'label' => $t->title,
+                        'sub' => implode(' · ', array_filter([
+                            $t->reference,
+                            TenderText::dateLabel($t->closes_at),
+                            self::label($t->getAttribute('status')),
+                        ])),
+                        'admin_path' => $t->adminPath(),
+                    ]),
+            ];
+
+            // The downloads centre (docs/downloads.md), by title or file name.
+            $groups[] = [
+                'type' => 'download', 'label' => 'Downloads',
+                'items' => Download::where(fn ($w) => $w->where('title', 'like', $like)->orWhere('file_name', 'like', $like))
+                    ->orderBy('title')->limit(self::PER_GROUP)->get()
+                    ->map(fn (Download $d) => [
+                        'label' => $d->title,
+                        'sub' => implode(' · ', array_filter([$d->version, self::label($d->getAttribute('status'))])),
+                        'admin_path' => $d->adminPath(),
                     ]),
             ];
 

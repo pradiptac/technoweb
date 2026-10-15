@@ -1,4 +1,5 @@
 import type { ThemeManifest } from "../contract.ts";
+import { oneRowHeader } from "../chrome-parts.ts";
 
 /**
  * Vantage: the IT-services agency's site, after technerd.altisinfonet.in.
@@ -23,4 +24,5 @@ export const vantageManifest: ThemeManifest = {
   // Every inner page opens on the dark photograph band the header sits over.
   ignores: ["hero_style"],
   defaults: { menu_style: "semi" },
+  chrome: { header: oneRowHeader(["utility", "search", "phone", "cta"]), footer: { parts: ["tagline", "address", "phone", "social", "columns", "signup", "legal", "credit", "scheme"] } },
 };

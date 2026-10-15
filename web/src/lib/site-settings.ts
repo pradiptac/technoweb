@@ -137,6 +137,21 @@ export function bannerFocusFor(settings: SiteSettings, section?: BannerSection):
 }
 
 /**
+ * The blurred preview of the banner `bannerFor` chose, or null (0.123.0).
+ * The same chain again: the preview is the *file's*, so it follows whichever
+ * picture won and never the other's.
+ */
+export function bannerBlurFor(settings: SiteSettings, section?: BannerSection): string | null {
+  if (!section) return null;
+  if (!settingEnabled(settings, "banner_enabled", true)) return null;
+
+  if (settings[`banner_${section}_url`]) return settings[`banner_${section}_blur`] || null;
+  if (settings.banner_default_url) return settings.banner_default_blur || null;
+
+  return null;
+}
+
+/**
  * A phone number as a `tel:` href.
  *
  * Strips everything a person types for legibility — spaces, brackets,

@@ -49,7 +49,24 @@ export type ProductVideo = {
   title?: string;
   /** An uploaded poster; without one the facade draws its own panel. */
   poster_url?: string;
+  /** The poster's alt text from the library; only the "shop the videos" read sends it. */
+  poster_alt?: string | null;
 };
+
+/**
+ * One tile of the "shop the videos" row (0.140.0, `GET /store/videos`): a
+ * video and the product under it, the product in the shop's list shape so the
+ * cart button reads it unchanged. `id` is `{product id}-{n}` — unique per tile,
+ * since a product's own videos are each a tile at the head of a product page's row.
+ */
+export type VideoShelfRow = {
+  id: string;
+  video: ProductVideo;
+  product: import("./api").StoreProduct;
+};
+
+/** The shape a tile's video well is drawn in. */
+export type VideoShape = "portrait" | "square" | "landscape";
 
 /** The same, as the console edits it. */
 export type AdminProductVideo = {

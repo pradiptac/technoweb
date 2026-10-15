@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\KnowledgeArticle;
 use App\Support\StructuredData;
@@ -14,7 +15,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin KnowledgeArticle */
 class KnowledgeArticleResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSections, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -28,6 +29,10 @@ class KnowledgeArticleResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
             'excerpt' => $this->excerpt,
             'body' => $this->when($detail, $this->body),
+            // The builder's sections in place of the written body (0.130.0): on
+            // this record's own page only, and only while it is laid out as
+            // sections. The body above is still sent.
+            'sections' => $this->publicSections($this->includeSchema),
             'tags' => $this->tags,
             'category' => $this->whenLoaded('category', fn () => [
                 'name' => $this->category->name,

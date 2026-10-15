@@ -1,27 +1,16 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
-import { PageHero } from "@/components/ui/page-hero";
-import { Badge } from "@/components/ui/badge";
-import { Prose, SpecTable } from "@/components/ui/prose";
-import { IconCheck } from "@/components/icons";
+import { RecordSections, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
 import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
-import { AddToBasket } from "@/components/store/add-to-basket";
-import { WishlistHeart } from "@/components/store/wishlist-heart";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
-import { StoreProductCard } from "@/components/store/product-card";
-import { ProductGallery } from "@/components/product/product-gallery";
-import { RecentlyViewed, RememberProduct } from "@/components/store/recently-viewed";
-import { ShareLinks } from "@/components/ui/share-links";
 import { ReviewsSection } from "@/components/store/reviews/reviews-section";
-import { reviewPage } from "@/lib/reviews";
 import { publicApi } from "@/lib/api";
-import { formatPaise, percentOff } from "@/lib/money";
-import { buildMetadata, JsonLd, SITE } from "@/lib/seo";
-import { getSiteSettings } from "@/lib/settings";
-import type { StoreCategory, StoreProduct } from "@/types/api";
+import { buildMetadata, JsonLd } from "@/lib/seo";
+import type { StoreProduct } from "@/types/api";
+import { StoreAlsoLike, StoreApplications, StoreBuyGrid, StoreDetails, StoreDownloads, StoreFeatures, StoreProductHero, StoreRecent, StoreSpecs, StoreWatch, loadStoreProductContext, storeProductCrumbs } from "@/components/detail-template/store-product-parts";
+import { StoreProductTemplate } from "@/components/detail-template/store-product-template";
 
 async function load(slug: string): Promise<StoreProduct | null> {
   try {
@@ -64,6 +53,9 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
 
   if (!product) notFound();
 
+  // An active detail template lays the page out (0.161.0, docs/page-builder.md "Detail templates"); with none, the page below is unchanged.
+  if (product.detail_template) return <StoreProductTemplate product={product} />;
+
   /*
     After the 404, not beside it. A product that does not exist has no page to
     put a filter bar on, and fetching the rest in parallel with the product
@@ -84,26 +76,22 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
     cannot make three different promises; they used to be a sentence in
     `content/site.ts` the API could not see.
   */
-  const [categories, shelf, newest, settings, firstReviews] = await Promise.all([
-    publicApi.storeCategories().then((r) => r.data).catch(() => [] as StoreCategory[]),
-    product.category
-      ? publicApi.storeProducts(`?category=${product.category.slug}&per_page=6`).then((r) => r.data).catch(() => [] as StoreProduct[])
-      : Promise.resolve([] as StoreProduct[]),
-    publicApi.storeProducts("?sort=newest&per_page=6").then((r) => r.data).catch(() => [] as StoreProduct[]),
-    getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>),
-    // The first page of reviews, cached under `store-reviews:<slug>`; a failure draws the section empty rather than failing the page.
-    reviewPage(product.slug).catch(() => null),
-  ]);
-  const seen = new Set<number>([product.id]);
-  const alsoLike = [...shelf, ...newest].filter((p) => !seen.has(p.id) && seen.add(p.id)).slice(0, 4);
+  const { categories, settings, firstReviews, watchRows, alsoLike } = await loadStoreProductContext(product, slug);
 
-  const discounted = product.compare_at_paise && product.compare_at_paise > product.price_paise;
+  const crumbs = storeProductCrumbs(product);
+  // Builder sections in place of the written description (0.130.0).
+  const laidOut = laidOutAsSections(product);
 
-  const shippingPaise = Math.max(0, parseInt(settings.store_shipping_paise ?? "0", 10) || 0);
-  const returnDays = Math.max(1, parseInt(settings.store_return_days ?? "7", 10) || 7);
-  const delivery = shippingPaise === 0
-    ? "Free delivery across India, tracked end to end."
-    : `Delivery ${formatPaise(shippingPaise)} across India, tracked end to end.`;
+  // The reviews and the suggestions, which close the page whichever way the description is drawn.
+  const tail = (
+    <>
+          <ReviewsSection slug={product.slug} productName={product.name} rating={product.rating ?? null} initial={firstReviews} />
+
+          <StoreAlsoLike alsoLike={alsoLike} />
+
+          <StoreRecent product={product} />
+    </>
+  );
 
   return (
     <>
@@ -117,18 +105,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
       {product.schema && <JsonLd data={product.schema} />}
       {/* The FAQPage over the FAQs and question blocks — the API's, absent under two entries, and the only one on the page. */}
       {product.faq_schema && <JsonLd data={product.faq_schema} />}
-      <PageHero
-        section="store"
-        kicker={product.brand?.name ?? "Store"}
-        title={product.name}
-        lede={product.short_description}
-        crumbs={[
-          { name: "Store", path: "/store" },
-          ...(product.category
-            ? [{ name: product.category.name, path: `/store/categories/${product.category.slug}` }]
-            : []),
-        ]}
-      />
+      <StoreProductHero product={product} crumbs={crumbs} />
 
       {/*
         `data-hero-gap="keep"` and `pt-3`, both for the reason the category page
@@ -175,156 +152,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
             the variations, the basket and the terms, and it was the half being
             squeezed.
           */}
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
-            <ProductGallery
-              images={product.images ?? []}
-              alts={product.image_alts}
-              focuses={product.image_focuses}
-              name={product.name}
-              priority
-              // The shop's additions: videos, every thumbnail, the magnifier.
-              videos={product.videos ?? []}
-              store
-            />
-
-            {/*
-              `lg:sticky` so the price and the basket stay in view while
-              somebody reads the specification below. The dock is the header
-              *plus* the stuck filter strip, both read from `globals.css`;
-              `self-start` is what lets a sticky child work inside a grid whose
-              items would otherwise stretch to the row height.
-
-              **`lg:row-span-2` is what makes any of that true**, and without it
-              the whole thing was decoration. A sticky *grid item* is contained
-              by its own **grid area**, not by the grid — and this panel's area
-              was row 1, which is exactly as tall as the panel itself. Measured:
-              `containerHeight: 552, panelHeight: 552, travel: 0`, with the
-              panel's top moving 1:1 with the scroll and never reaching its own
-              96px dock. `position: sticky` computed correctly the entire time,
-              which is what made it look like a class name that worked.
-
-              Spanning both rows gives the area the height of the column beside
-              it, so the panel now travels past the features, the specification
-              and the details — the three blocks the comment above always said
-              it stayed beside and never did. They moved into row 2 of the left
-              column for that to be possible; below `lg` the grid is one column
-              and the order is unchanged: picture, then price, then the reading.
-
-              The sticky element is the wrapper, not the card: the share row
-              sits under the card and outside it, and it should travel with
-              the price rather than be left behind on row 2.
-            */}
-            <div className="self-start lg:sticky lg:top-[calc(var(--h-site-header)+var(--h-store-bar))] lg:row-span-2">
-            <div className="grid gap-5 rounded-xl border border-line-strong bg-card p-6 lg:p-7">
-              <div className="flex flex-wrap items-center gap-2">
-                {/*
-                  Words, not a boolean. `in_stock` is true for a back-ordered
-                  product — correctly, it can be bought — and "In stock" on
-                  an empty shelf is the difference between a sale and a
-                  refund conversation. `availability` is the API's three-
-                  valued answer and `handling_days` the number a back-order
-                  sentence needs; an older API without them reads as before.
-                */}
-                {(product.availability ?? (product.in_stock ? "in_stock" : "out_of_stock")) === "backorder"
-                  ? <Badge tone="progress">Back-ordered — ships in about {Math.max(7, (product.handling_days ?? 2) + 5)} days</Badge>
-                  : product.in_stock
-                    ? <Badge tone="resolved">In stock</Badge>
-                    : <Badge tone="urgent">Out of stock</Badge>}
-                {discounted && product.compare_at_paise && (
-                  <span className="rounded-full bg-ok-soft px-2.5 py-1 text-12 font-semibold text-ok">
-                    Save {percentOff(product.price_paise, product.compare_at_paise)}%
-                  </span>
-                )}
-                {!product.returnable && (
-                  <span className="text-12-5 font-medium text-warn">Non-returnable</span>
-                )}
-                {/*
-                  A term of the sale, said before somebody pays. New is the
-                  ordinary case and is not called out; the other two are — an
-                  undisclosed refurbished unit is a complaint, and the feed
-                  declares the condition to Google in the same words.
-                */}
-                {product.condition && product.condition !== "new" && (
-                  <span className="text-12-5 font-medium text-warn capitalize">{product.condition}</span>
-                )}
-              </div>
-
-              <div>
-                <div className="flex flex-wrap items-baseline gap-3">
-                  <span className="font-display text-[34px] font-semibold leading-none tabular-nums">
-                    {formatPaise(product.price_paise)}
-                  </span>
-                  {discounted && (
-                    <span className="text-[16px] tabular-nums text-faint line-through">
-                      {formatPaise(product.compare_at_paise!)}
-                    </span>
-                  )}
-                </div>
-                {/*
-                  Said once, plainly, beside the number it is about. The brief
-                  asks for it and it is also the difference between a price
-                  somebody trusts and one they have to work out.
-                */}
-                <p className="mt-1.5 text-13 text-muted">Includes 18% GST. This is the price you pay.</p>
-              </div>
-
-              {product.short_description && (
-                <p className="text-14-5 leading-[1.6] text-ink-2">{product.short_description}</p>
-              )}
-
-              <AddToBasket product={product} />
-
-              {/*
-                Save it for later, under the basket rather than beside it: the
-                panel's one primary action keeps the row to itself. The product
-                as a whole, not the option chosen above — somebody saving a
-                switch for later has usually not decided between the 24 and the
-                48 ports yet. A client island, filled after mount like the
-                cards' hearts, so the page stays in the ISR cache.
-              */}
-              <WishlistHeart variant="page" productId={product.id} name={product.name} className="justify-self-start" />
-
-              {/*
-                The things a buyer checks before pressing the button, in the
-                panel that holds the button rather than in a strip further down
-                the page. The delivery and returns lines are settings — the
-                same two the feed and the schema read — and the other two are
-                terms of the shop, not facts about this row.
-              */}
-              <ul className="grid gap-2 border-t border-line pt-4 text-13 text-muted">
-                <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>{delivery}</li>
-                {product.returnable && (
-                  <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>{returnDays}-day returns — see our <Link href="/returns" className="underline hover:text-ink">returns policy</Link>.</li>
-                )}
-                <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>Sourced from an authorised distributor.</li>
-                <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>Backed by the engineers who install it.</li>
-                {/* The warranty as the seller states it — the same string the Offer's `WarrantyPromise` carries. */}
-                {product.warranty && (
-                  <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>Warranty: {product.warranty}</li>
-                )}
-              </ul>
-
-              {product.sku && (
-                <p className="font-mono text-12-5 text-faint">SKU {product.sku}</p>
-              )}
-            </div>
-
-            {/*
-              Pass this on — under the card, not in it. The card is the
-              purchase; sharing is what somebody does *instead* of buying
-              right now, to ask a colleague, and a row of network icons inside
-              the panel that ends in Add to basket muddles which button the
-              panel is for. The canonical URL, not the request's: a link
-              copied from the page should not carry whoever's `?utm_` brought
-              them here.
-            */}
-            <ShareLinks
-              url={`${SITE.url}/store/products/${product.slug}`}
-              title={product.name}
-              label="Share this product"
-              className="mt-4 px-1"
-            />
-            </div>
+          <StoreBuyGrid product={product} settings={settings}>
           {/*
             Row 2 of the left column: everything somebody reads after they have
             looked at the picture and the price.
@@ -343,33 +171,22 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
             the extra width it appeared to have.
           */}
           <div className="min-w-0">
-          {product.features && product.features.length > 0 && (
-            <div className="mt-14">
-              <h2 className="display-3 mb-4">What you get</h2>
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {product.features.map((f) => (
-                  <li key={f} className="flex gap-2 text-14">
-                    <span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {/*
+            "Watch" (0.140.0): the product's videos and, after them, other
+            products' — under the gallery on a desktop, after the buy panel on
+            a phone. Small tiles, no lede; nothing at all when there is
+            nothing to watch.
+          */}
+          <StoreWatch rows={watchRows} settings={settings} />
 
-          {product.specifications && Object.keys(product.specifications).length > 0 && (
-            <div className="mt-14">
-              <h2 className="display-3 mb-4">Specification</h2>
-              <SpecTable specs={product.specifications} />
-            </div>
-          )}
+          <StoreFeatures product={product} />
 
-          {product.description && (
-            <div className="mt-14">
-              <h2 className="display-3 mb-4">Details</h2>
-              <Prose html={product.description} />
-            </div>
-          )}
+          <StoreSpecs product={product} />
+
+          {!laidOut && <StoreDetails product={product} />}
+
+          {/* The downloads centre's files for this product (docs/downloads.md): its datasheet, drivers, firmware. */}
+          <StoreDownloads product={product} />
 
           {/*
             Where it is used, in the seller's words (`applications`, plain
@@ -378,44 +195,34 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
             connected to: the brand, the category, the services that install
             it. All after the reading and before "You may also like".
           */}
-          {product.applications && (
-            <div className="mt-14">
-              <h2 className="display-3 mb-4">Applications</h2>
-              <p className="whitespace-pre-line text-[16px] leading-[1.72] text-ink-2">{product.applications}</p>
-            </div>
-          )}
+          <StoreApplications product={product} />
           {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
           <CustomFieldDetails fields={product.custom_fields} className="mt-14" />
           <AnswerBlocks blocks={product.answer_blocks} faqs={product.faqs ?? []} className="mt-14" />
           <RelatedEntities entity={product.entity} className="mt-14" />
           </div>
-          </div>
+          </StoreBuyGrid>
 
-          <ReviewsSection slug={product.slug} productName={product.name} rating={product.rating ?? null} initial={firstReviews} />
-
-          {alsoLike.length > 0 && (
-            <section aria-labelledby="also-like" className="mt-16" data-aos="fade-up">
-              <h2
-                id="also-like"
-                className="mb-6 text-22 font-semibold after:mt-2.5 after:block after:h-[3px] after:w-10 after:rounded-full after:bg-brand-600"
-              >
-                You may also like
-              </h2>
-              <ul data-collection="products" data-cols="4" className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-                {alsoLike.map((p) => (
-                  <li key={p.id}>
-                    <StoreProductCard product={p} headingLevel={3} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* The browser's own list, after hydration; this product is remembered and kept off its own strip. */}
-          <RememberProduct product={{ slug: product.slug, name: product.name, image: product.images?.[0] ?? null, focus: product.image_focuses?.[0] ?? null, price_paise: product.price_paise }} />
-          <RecentlyViewed exclude={product.slug} className="mt-14" />
+          {!laidOut && tail}
         </Container>
       </section>
+
+      {/*
+        Builder sections in place of "Details" (0.130.0): full-width bands
+        under the buying block and what is read beside it, then the reviews
+        and the suggestions in a section of their own. The search strip stays
+        with the buying block — a sticky box is held by its own parent, and
+        over a band with a background of its own it would be a bar floating
+        on somebody else's ground.
+      */}
+      {laidOut && (
+        <>
+          <RecordSections sections={product.sections ?? []} crumbs={crumbs} />
+          <section className="section-y">
+            <Container className="[&>*:first-child]:mt-0">{tail}</Container>
+          </section>
+        </>
+      )}
 
     </>
   );

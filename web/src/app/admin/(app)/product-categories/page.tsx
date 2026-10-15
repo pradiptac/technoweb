@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkProductCategoriesAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
-import { iconMap, IconSwitch, type IconName } from "@/components/icons";
+import { IconByKey, IconSwitch } from "@/components/icons";
 import { getProductCategoryList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -17,9 +20,8 @@ export const metadata = buildMetadata({
 });
 
 function RowIcon({ name }: { name: string | null | undefined }) {
-  const Icon = name && name in iconMap ? iconMap[name as IconName] : IconSwitch;
   return (
-    <IconTile size="sm"><Icon /></IconTile>
+    <IconTile size="sm"><IconByKey name={name} Fallback={IconSwitch} /></IconTile>
   );
 }
 
@@ -33,6 +35,7 @@ export default async function AdminProductCategoriesPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q);
 
   let result: Paginated<AdminProductCategory> | null = null;
   try {
@@ -75,16 +78,19 @@ export default async function AdminProductCategoriesPage({
       </FilterBar>
 
       {categories.length === 0 ? (
-        <EmptyState icon={<IconSwitch />} title={params.q ? "No categories match that search" : "No categories yet"}>
+        <EmptyState icon={<IconSwitch />} title={filtered ? "No categories match that search" : "No categories yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/product-categories" newHref="/admin/product-categories/new" noun="category" />}>
           {params.q
             ? "Try a different term, or clear the search."
             : "How the catalogue is grouped. Each one gets its own /products/… listing page."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="product-categories" ids={categories.map((c) => c.id)} noun={{ one: "category", many: "categories" }} actions={["delete"]} action={bulkProductCategoriesAction} deleteNote="Sub-categories move up a level; products stay." />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[720px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="product-categories" ids={categories.map((c) => c.id)} noun="category" /></th>
                 <th scope="col" className="px-3 py-1.5">Category</th>
                 <th scope="col" className="px-3 py-1.5">Parent</th>
                 <th scope="col" className="px-3 py-1.5">Products</th>
@@ -94,6 +100,7 @@ export default async function AdminProductCategoriesPage({
             <tbody>
               {categories.map((c) => (
                 <tr key={c.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="product-categories" id={c.id} label={c.name} /></td>
                   <td data-label="Category" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <RowIcon name={c.icon} />
@@ -113,6 +120,7 @@ export default async function AdminProductCategoriesPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/product-categories" params={{ q: params.q, per_page: params.per_page }} />

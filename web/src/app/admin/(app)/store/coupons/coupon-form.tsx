@@ -11,6 +11,7 @@ import {
   createCouponAction, deleteCouponAction, updateCouponAction, type CouponFormState,
 } from "./actions";
 import type { AdminCoupon } from "@/lib/admin";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: CouponFormState = {};
 
@@ -98,13 +99,8 @@ export function CouponForm({ coupon }: { coupon?: AdminCoupon }) {
         </div>
 
         <aside className="grid content-start gap-0">
-          <Field label="Active" htmlFor="is_active" variant="float-static"
-            hint="Switch a code off rather than deleting it once it has been used.">
-            <Select id="is_active" name="is_active" defaultValue={coupon?.is_active === false ? "0" : "1"}>
-              <option value="1">Yes</option>
-              <option value="0">No</option>
-            </Select>
-          </Field>
+          <RecordSwitch className="mb-[18px]" name="is_active" defaultChecked={coupon?.is_active !== false} label="Active"
+            hint="Switch a code off rather than deleting it once it has been used." />
 
           <Field label="Starts" htmlFor="starts_at" error={err("starts_at")} hint="Optional.">
             <Input id="starts_at" name="starts_at" type="date"

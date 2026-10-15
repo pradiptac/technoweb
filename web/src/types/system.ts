@@ -10,9 +10,57 @@ export type SystemStatus = {
   database_schema: string;
   installed: { installed_at?: string; installed_version?: string; updated_at?: string; version?: string } | null;
   php: { version: string; checks: RequirementCheck[]; max_execution_time: number; memory_limit: string };
-  scheduler: { known: boolean; last_run_seconds?: number | null; running?: boolean };
+  scheduler: { known: boolean; last_run_seconds?: number | null; running?: boolean; setup?: SchedulerSetup };
   disk: { free: number | null; total: number | null };
   website: { reachable: boolean; version: string | null; api: boolean | null; url: string; error: string | null };
+  /** What is slowing the site down (`App\Support\System\SpeedChecks`); absent from an API that predates it. */
+  speed?: SpeedReport;
+};
+
+/** `info` is a fact with nothing to fix; `unknown` is "this host would not let us look". */
+export type SpeedState = "good" | "attention" | "unknown" | "info";
+export type SpeedImpact = "high" | "medium" | "low";
+export type SpeedGroup = "server" | "app" | "content";
+
+export type SpeedCheck = {
+  key: string;
+  group: SpeedGroup;
+  impact: SpeedImpact;
+  state: SpeedState;
+  label: string;
+  detail: string;
+  /** Where to change it, in plain words; empty when there is nothing to do. */
+  fix: string;
+  /** A generic line to copy (a php.ini line, an .env line, a command), never this server's own file. */
+  snippet: string | null;
+};
+
+export type SpeedReport = {
+  measured: { boot_ms: number | null; db_ms: number | null; website_ms: number | null };
+  summary: { good: number; attention: number; unknown: number };
+  checks: SpeedCheck[];
+};
+
+/**
+ * The scheduler's command for the server answering (0.128.0,
+ * `App\Support\System\SchedulerSetup`): where its command-line PHP is, whether
+ * running it worked (`null` — the host would not let the site try), and the
+ * line in each form somebody pastes: a control panel's command box, a
+ * crontab, a terminal left open, Windows' Task Scheduler.
+ */
+export type SchedulerSetup = {
+  os: string;
+  panel: "plesk" | "cpanel" | null;
+  php: string;
+  php_checked: boolean | null;
+  php_version: string | null;
+  artisan: string;
+  user: string | null;
+  command: string;
+  cron: string | null;
+  work: string;
+  windows_task: string | null;
+  dev: boolean;
 };
 
 export type ChangelogEntry = { version: string; date: string; text: string };

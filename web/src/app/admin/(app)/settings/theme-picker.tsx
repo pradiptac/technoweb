@@ -3,12 +3,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Field, Input, Select } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { IconTile } from "@/components/ui/icon-tile";
 import { FONT_CHOICES } from "@/lib/font-choices";
+import { customFontsFor } from "@/lib/custom-fonts";
+import { CustomFontsPanel } from "./custom-fonts-panel";
+import { GoogleFontsDialog } from "./google-fonts-dialog";
 import { differs, nearestStep } from "@/lib/palette";
 import { ColourField } from "./settings-fields";
+import { LogoPalette } from "./logo-palette";
+import { useSearchParams } from "next/navigation";
 import { DEFAULT_PRESET, PRESETS, generate, isHex, presetById, type Preset } from "@/lib/presets";
-import { expand, paletteFor, themeVars, topBarFor, type PaletteInputs, type Theme } from "@/lib/themes";
+import { expand, paletteFor, themeTokensCss, themeVars, topBarFor, type PaletteInputs, type Theme } from "@/lib/themes";
+import { DENSITIES, LOOK_PRESETS, RADII, SURFACES, TYPE_SCALES, type Density, type LookPreset, type Radius, type Surface, type TypeScale } from "@/lib/look";
 import type { SettingRow } from "@/lib/admin";
 
 /**
@@ -35,8 +42,13 @@ import type { SettingRow } from "@/lib/admin";
  * site will actually use differs from the one typed. "We adjusted your
  * yellow" shown, rather than a yellow that silently became brown.
  */
+type InstalledGoogleFont = { id: string; slug: string; family: string; category: string; faces: number; bytes: number };
+
 export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }) {
   const stored = Object.fromEntries(rows.map((r) => [r.key, r.value ?? ""]));
+  // The fonts the company uploaded itself, read from the same rows on every
+  // render — an upload re-renders this screen with the new ones.
+  const ownFonts = customFontsFor(stored);
   const initialId = stored.theme || DEFAULT_PRESET.id;
   const seed = presetById(initialId === "olive" ? DEFAULT_PRESET.id : initialId)?.inputs ?? DEFAULT_PRESET.inputs;
 
@@ -50,9 +62,76 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
     fontDisplay: stored.theme_font_display || seed.fontDisplay,
     fontBody: stored.theme_font_body || seed.fontBody,
   });
+  // Google fonts copied to this server (0.179.0), as the API lists them. Read
+  // once on mount; an install or a removal updates it here without a reload.
+  const [google, setGoogle] = useState<InstalledGoogleFont[]>([]);
+  const [browsing, setBrowsing] = useState<"fontDisplay" | "fontBody" | null>(null);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    fetch("/api/admin/google-fonts?mode=installed", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { data?: InstalledGoogleFont[] } | null) => { if (live && body?.data) setGoogle(body.data); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
+
+  // A saved Google font is a choice the select must have an option for before
+  // the list arrives, or the controlled value would show nothing.
+  const googleOptions = [...google];
+  for (const id of [inputs.fontDisplay, inputs.fontBody]) {
+    if (id.startsWith("g-") && !googleOptions.some((g) => g.id === id)) {
+      googleOptions.push({ id, slug: id.slice(2), family: id.slice(2).replace(/-/g, " "), category: "", faces: 0, bytes: 0 });
+    }
+  }
+
+  const pickedGoogle = (role: "fontDisplay" | "fontBody", font: { id: string; family: string; slug: string }) => {
+    setGoogle((list) => (list.some((g) => g.id === font.id) ? list : [...list, { id: font.id, slug: font.slug, family: font.family, category: "", faces: 0, bytes: 0 }]));
+    // The sample the dialog loaded doubles as this session's preview face, so
+    // the list and the live preview show the font before Save declares the
+    // real one (the root layout does that on the next load).
+    const css = `:root{--font-g-${font.slug}:"tw-prev-${font.slug}",ui-sans-serif,system-ui,sans-serif}`;
+    if (!document.getElementById(`gf-session-${font.slug}`)) {
+      const el = document.createElement("style");
+      el.id = `gf-session-${font.slug}`;
+      el.textContent = css;
+      document.head.appendChild(el);
+    }
+    set(role, font.id);
+  };
+
+  const removeGoogle = async (font: InstalledGoogleFont) => {
+    setRemoving(font.slug);
+    setGoogleError(null);
+    const res = await fetch(`/api/admin/google-fonts?slug=${font.slug}`, { method: "DELETE" }).catch(() => null);
+    setRemoving(null);
+
+    if (res?.ok) {
+      setGoogle((list) => list.filter((g) => g.slug !== font.slug));
+      return;
+    }
+
+    const body = (await res?.json().catch(() => null)) as { message?: string } | null;
+    setGoogleError(body?.message ?? "That could not be removed. Try again shortly.");
+  };
+
   // Blank is a value here: the theme's own dark band. Kept apart from
   // `inputs` because it is not one of the five the generator reads.
   const [topbar, setTopbar] = useState(isHex(stored.theme_topbar) ? stored.theme_topbar : "");
+  // Corners and spacing (2026-10-05, `lib/look.ts`); unknown values read as the defaults.
+  const [radius, setRadius] = useState<Radius>(RADII.includes(stored.theme_radius as Radius) ? stored.theme_radius as Radius : "soft");
+  const [density, setDensity] = useState<Density>(DENSITIES.includes(stored.theme_density as Density) ? stored.theme_density as Density : "comfortable");
+  const [surface, setSurface] = useState<Surface>(SURFACES.includes(stored.theme_surface as Surface) ? stored.theme_surface as Surface : "flat");
+  const [typeScale, setTypeScale] = useState<TypeScale>(TYPE_SCALES.includes(stored.theme_type_scale as TypeScale) ? stored.theme_type_scale as TypeScale : "standard");
+
+  /*
+   * `?palette=<media path>` is how the media library hands a picture over
+   * (0.173.0): the colours are not carried between screens, the screen that
+   * owns them reads them.
+   */
+  const fromLibrary = useSearchParams().get("palette") ?? undefined;
 
   const preset = presetById(chosen);
 
@@ -96,6 +175,44 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
 
   const set = (key: keyof PaletteInputs, value: string) => setInputs((i) => ({ ...i, [key]: value }));
 
+  /* A look: palette, fonts, corners and spacing in one press — a starting point to nudge. */
+  const chooseLook = (look: LookPreset) => {
+    const p = presetById(look.palette);
+    if (p) {
+      setChosen(p.id);
+      setInputs({ ...p.inputs, fontDisplay: look.fontDisplay, fontBody: look.fontBody });
+    }
+    setRadius(look.radius);
+    setDensity(look.density);
+    setSurface(look.surface);
+    setTypeScale(look.typeScale);
+  };
+  const lookMatches = (look: LookPreset) => chosen === look.palette && inputs.fontDisplay === look.fontDisplay
+    && inputs.fontBody === look.fontBody && radius === look.radius && density === look.density && surface === look.surface && typeScale === look.typeScale;
+
+  /*
+   * The live preview: the real site, framed, told what this form would save.
+   * `/theme-preview/current` renders the active theme with `PreviewBridge`,
+   * which swaps its token stylesheet and its two attributes for whatever is
+   * posted here — the same `themeTokensCss()` string the root layout renders,
+   * so the frame cannot show a palette the site would not.
+   */
+  const frame = useRef<HTMLIFrameElement>(null);
+  const [device, setDevice] = useState<"desktop" | "phone">("desktop");
+  const [view, setView] = useState<"" | "specimen">("");
+  const tokens = useMemo(() => themeTokensCss(theme), [theme]);
+  useEffect(() => {
+    const post = () => frame.current?.contentWindow?.postMessage(
+      { type: "tw:look", css: tokens, radius, density, surface, typeScale }, window.location.origin,
+    );
+    post();
+    const onReady = (e: MessageEvent) => {
+      if (e.origin === window.location.origin && e.source === frame.current?.contentWindow && e.data?.type === "tw:look-ready") post();
+    };
+    window.addEventListener("message", onReady);
+    return () => window.removeEventListener("message", onReady);
+  }, [tokens, radius, density, surface, typeScale]);
+
   return (
     <fieldset ref={ref} className="sm:col-span-2">
       <legend className="mb-1 text-13-5 font-semibold">Colour palette</legend>
@@ -105,6 +222,35 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
         Most of the site follows Primary; Secondary carries the eyebrows and the outlined
         buttons&apos; hover, Accent the highlights and the bands.
       </p>
+
+      {/* ------------------------------------------------------ looks */}
+      <p className="mb-2 text-11-5 font-semibold uppercase tracking-[.1em] text-muted">Start from a look</p>
+      <div className="mb-5 grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-2 lg:grid-cols-5">
+        {LOOK_PRESETS.map((look) => {
+          const p = presetById(look.palette);
+          const on = lookMatches(look);
+          return (
+            <button
+              key={look.id}
+              type="button"
+              aria-pressed={on}
+              onClick={() => chooseLook(look)}
+              className={cn(
+                "flex flex-col items-start gap-1.5 rounded-lg border p-3 text-left transition-colors duration-(--duration-fast)",
+                on ? "border-brand-500 bg-brand-50 ring-2 ring-brand-500/30" : "border-line-strong bg-card hover:border-faint",
+              )}
+            >
+              <span className="flex items-center gap-1" aria-hidden>
+                {p && [p.inputs.primary, p.inputs.secondary, p.inputs.accent].map((hex, i) => (
+                  <span key={i} className="block size-4 border border-black/10" style={{ background: hex, borderRadius: look.radius === "sharp" ? 2 : look.radius === "round" ? 999 : 5 }} />
+                ))}
+              </span>
+              <span className="text-13-5 font-semibold text-ink">{look.label}</span>
+              <span className="text-12 leading-snug text-muted">{look.blurb}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {/* ----------------------------------------------- the nine presets */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
@@ -140,6 +286,16 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
       </label>
 
       <div hidden={chosen !== "custom"} className="mt-3 rounded-lg border border-line bg-surface p-4">
+        <LogoPalette
+          initialPath={fromLibrary}
+          onPick={(reading) => {
+            setChosen("custom");
+            setInputs((i) => ({ ...i, primary: reading.primary, secondary: reading.secondary, accent: reading.accent }));
+            // Blank means "let the generator derive the bar", which is what
+            // the reading says for a one-colour logo.
+            setTopbar(reading.topbar);
+          }}
+        />
         <p className="mb-2 text-11-5 font-semibold uppercase tracking-[.1em] text-muted">Main colours</p>
         <div className="grid gap-x-4 sm:grid-cols-3">
           <ColourField id="theme_primary" label="Primary" hint="Buttons, links, the brand." value={inputs.primary} adjusted={nearestStep(brandRamp(theme), inputs.primary)} onChange={(v) => set("primary", v)} />
@@ -162,6 +318,12 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
             {FONT_CHOICES.filter((f) => f.display).map((f) => (
               <option key={f.id} value={f.id} style={{ fontFamily: `var(${f.variable})` }}>{f.label}</option>
             ))}
+            {ownFonts.map((f) => (
+              <option key={f.id} value={f.id} style={{ fontFamily: `var(${f.variable})` }}>{f.name} (your font)</option>
+            ))}
+            {googleOptions.map((g) => (
+              <option key={g.id} value={g.id} style={{ fontFamily: `var(--font-${g.id})` }}>{g.family} (Google)</option>
+            ))}
           </Select>
         </Field>
         <Field label="Body font" htmlFor="setting__theme_font_body" variant="float-static"
@@ -171,6 +333,101 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
             {FONT_CHOICES.filter((f) => f.body).map((f) => (
               <option key={f.id} value={f.id} style={{ fontFamily: `var(${f.variable})` }}>{f.label}</option>
             ))}
+            {ownFonts.map((f) => (
+              <option key={f.id} value={f.id} style={{ fontFamily: `var(${f.variable})` }}>{f.name} (your font)</option>
+            ))}
+            {googleOptions.map((g) => (
+              <option key={g.id} value={g.id} style={{ fontFamily: `var(--font-${g.id})` }}>{g.family} (Google)</option>
+            ))}
+          </Select>
+        </Field>
+      </div>
+
+      {/*
+        Google Fonts (0.179.0): copied to this site once, then served from it.
+        Buttons are `type="button"` and nothing here is named — this sits
+        inside the settings <form>, and a named control would be posted.
+      */}
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <Button type="button" variant="secondary" size="sm" onClick={() => setBrowsing("fontDisplay")}>
+          Browse Google Fonts for headlines…
+        </Button>
+        <Button type="button" variant="secondary" size="sm" onClick={() => setBrowsing("fontBody")}>
+          …for body text
+        </Button>
+      </div>
+
+      {google.length > 0 && (
+        <div className="mb-3 rounded-lg border border-line-strong bg-card p-3">
+          <p className="mb-2 text-13 font-semibold">Google fonts on this site</p>
+          <ul className="grid gap-1.5">
+            {google.map((g) => {
+              const inUse = inputs.fontDisplay === g.id || inputs.fontBody === g.id;
+
+              return (
+                <li key={g.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-13">
+                  <span className="min-w-0 flex-1 truncate">{g.family}</span>
+                  {g.bytes > 0 && <span className="text-12 text-muted">{Math.max(1, Math.round(g.bytes / 1024))} KB</span>}
+                  <Button
+                    type="button" variant="ghost" size="sm"
+                    pending={removing === g.slug}
+                    disabled={inUse || removing !== null}
+                    title={inUse ? "Chosen above — choose another font first" : undefined}
+                    onClick={() => void removeGoogle(g)}
+                  >
+                    Remove
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+          {googleError && <p role="status" className="mt-2 text-12-5 text-err">{googleError}</p>}
+        </div>
+      )}
+
+      <GoogleFontsDialog
+        open={browsing !== null}
+        onClose={() => setBrowsing(null)}
+        onPick={(font) => { if (browsing) pickedGoogle(browsing, font); }}
+      />
+
+      {/* A company's own typefaces: uploaded here, chosen in the two lists above. */}
+      <CustomFontsPanel fonts={ownFonts} />
+
+      {/* --------------------------- corners, spacing, cards, headings */}
+      <div className="mt-2 grid gap-x-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Field label="Corners" htmlFor="setting__theme_radius" variant="float-static"
+          hint="Cards, buttons, pictures and fields together, on the site and in the portal. Soft is how the site has always looked.">
+          <Select id="setting__theme_radius" name="setting__theme_radius" value={radius} onChange={(e) => setRadius(e.target.value as Radius)}>
+            <option value="soft">Soft</option>
+            <option value="sharp">Sharp — nearly square</option>
+            <option value="round">Round — generous curves</option>
+          </Select>
+        </Field>
+        <Field label="Spacing" htmlFor="setting__theme_density" variant="float-static"
+          hint="The room between the site's sections. Comfortable is how the site has always looked.">
+          <Select id="setting__theme_density" name="setting__theme_density" value={density} onChange={(e) => setDensity(e.target.value as Density)}>
+            <option value="comfortable">Comfortable</option>
+            <option value="compact">Compact — more on each screen</option>
+            <option value="airy">Airy — calm and premium</option>
+          </Select>
+        </Field>
+        <Field label="Cards" htmlFor="setting__theme_surface" variant="float-static"
+          hint="How every card sits on the page. Flat is how the site has always looked.">
+          <Select id="setting__theme_surface" name="setting__theme_surface" value={surface} onChange={(e) => setSurface(e.target.value as Surface)}>
+            <option value="flat">Flat</option>
+            <option value="elevated">Elevated — a soft shadow</option>
+            <option value="outline">Outline — a crisp border</option>
+            <option value="soft">Soft — no border, a wide shadow</option>
+            <option value="glow">Glow — a halo in the brand colour</option>
+          </Select>
+        </Field>
+        <Field label="Headings" htmlFor="setting__theme_type_scale" variant="float-static"
+          hint="How large every heading is set, in any theme. Standard is how the site has always looked.">
+          <Select id="setting__theme_type_scale" name="setting__theme_type_scale" value={typeScale} onChange={(e) => setTypeScale(e.target.value as TypeScale)}>
+            <option value="standard">Standard</option>
+            <option value="compact">Compact — quieter</option>
+            <option value="large">Large — bolder</option>
           </Select>
         </Field>
       </div>
@@ -220,6 +477,36 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
         <Specimen theme={theme} scheme="light" />
         <Specimen theme={theme} scheme="dark" />
       </div>
+
+      {/* ------------------------------------------------ live preview */}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-11-5 font-semibold uppercase tracking-[.1em] text-muted">Live preview — the real site, before you save</p>
+        <div className="flex flex-wrap gap-1.5">
+          {([["", "Homepage"], ["specimen", "Inner page"]] as const).map(([v, label]) => (
+            <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}
+              className={cn("min-h-8 rounded-md border px-2.5 text-12-5 font-semibold", view === v ? "border-brand-500 bg-brand-50 text-brand-ink" : "border-line-strong text-muted hover:text-ink")}>
+              {label}
+            </button>
+          ))}
+          {([["desktop", "Desktop"], ["phone", "Phone"]] as const).map(([d, label]) => (
+            <button key={d} type="button" aria-pressed={device === d} onClick={() => setDevice(d)}
+              className={cn("min-h-8 rounded-md border px-2.5 text-12-5 font-semibold", device === d ? "border-brand-500 bg-brand-50 text-brand-ink" : "border-line-strong text-muted hover:text-ink")}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-2 overflow-hidden rounded-lg border border-line-strong bg-surface-2 p-2">
+        <iframe
+          ref={frame}
+          key={view}
+          title="Live preview of the site in this look"
+          src={`/theme-preview/current${view ? `/${view}` : ""}`}
+          loading="lazy"
+          className={cn("mx-auto block h-[560px] rounded-md border border-line bg-page", device === "phone" ? "w-[390px] max-w-full" : "w-full")}
+        />
+      </div>
+
       <p className="mt-2 text-13 text-muted">
         Currently selected: <strong className="text-ink">{theme.name}</strong>
         {" · "}{theme.fonts.display.label} / {theme.fonts.body.label}. Saving applies it at once — nothing else needs republishing.

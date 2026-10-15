@@ -16,6 +16,9 @@ export type CaseStudyQueryParams = {
 export type CaseStudyPayload = Partial<{
   /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
   custom_fields: Record<string, unknown>;
+  /** Sections in place of the written body (0.129.0); absent leaves both alone. */
+  body_layout: import("@/types/page-sections").RecordBodyLayout;
+  blocks: import("@/types/page-sections").StoredSection[];
   title: string;
   slug: string | null;
   client_name: string | null;

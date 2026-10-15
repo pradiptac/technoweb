@@ -24,6 +24,7 @@ import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
 import { GradientHeading } from "../gradient-heading";
 import { brandName } from "@/lib/brand";
+import { heroLevel } from "@/lib/hero-heading";
 
 const PICTURES = ["/themes/keystone/racks.jpg", "/themes/keystone/hub.jpg"] as const;
 
@@ -54,7 +55,7 @@ export function Home({
     <section className="relative overflow-hidden">
       <Container className="relative flex flex-col items-center pt-14 pb-10 text-center lg:pt-20 lg:pb-14">
         <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3.5 py-1.5 text-12 font-semibold text-brand-ink">{kicker}</span>
-        <GradientHeading as="h1" className="display-1 mt-6 max-w-[24ch] text-balance [overflow-wrap:anywhere]" text={heading} />
+        <GradientHeading as={heroLevel()} className="display-1 mt-6 max-w-[24ch] text-balance [overflow-wrap:anywhere]" text={heading} />
         <p className="lede mt-5 max-w-[62ch] text-ink-2">{lede}</p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <ButtonLink href="/contact" size="lg">Get a quote <IconArrowRight /></ButtonLink>

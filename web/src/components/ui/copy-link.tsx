@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { IconCheck, IconLink } from "@/components/icons-ui";
+import { IconCheck, IconCopy, IconLink } from "@/components/icons-ui";
 
 /**
  * "Copy link", the one share target that is not a URL to somebody else's
@@ -18,7 +18,14 @@ import { IconCheck, IconLink } from "@/components/icons-ui";
  * some embedded browsers; a failed copy is reported as such rather than
  * ticking anyway, and the link is still on the page to select by hand.
  */
-export function CopyLink({ url, className }: { url: string; className?: string }) {
+export function CopyLink({ url, className, what }: {
+  url: string;
+  className?: string;
+  /** Something other than a link — the text copied is `url` all the same, under a copy glyph ("email address"). */
+  what?: string;
+}) {
+  const noun = what ?? "link";
+  const Noun = noun.charAt(0).toUpperCase() + noun.slice(1);
   const [state, setState] = useState<"idle" | "done" | "failed">("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -40,14 +47,14 @@ export function CopyLink({ url, className }: { url: string; className?: string }
       <button
         type="button"
         onClick={copy}
-        aria-label={state === "done" ? "Link copied" : "Copy link"}
-        title="Copy link"
+        aria-label={state === "done" ? `${Noun} copied` : `Copy ${noun}`}
+        title={`Copy ${noun}`}
         className={className}
       >
-        {state === "done" ? <IconCheck className="size-4" aria-hidden /> : <IconLink className="size-4" aria-hidden />}
+        {state === "done" ? <span data-copied="" className="inline-grid"><IconCheck className="size-4" aria-hidden /></span> : what ? <IconCopy className="size-4" aria-hidden /> : <IconLink className="size-4" aria-hidden />}
       </button>
       <span role="status" className="sr-only">
-        {state === "done" ? "Link copied to the clipboard." : state === "failed" ? "The link could not be copied." : ""}
+        {state === "done" ? `${Noun} copied to the clipboard.` : state === "failed" ? `The ${noun} could not be copied.` : ""}
       </span>
     </>
   );

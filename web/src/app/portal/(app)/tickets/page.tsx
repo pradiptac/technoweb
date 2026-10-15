@@ -34,7 +34,7 @@ export default async function TicketsPage({
     result = await getTickets({ status: params.status, page: Number(params.page) || 1 });
   } catch {
     return (
-      <ErrorState title="We could not load your tickets">
+      <ErrorState level={1} title="We could not load your tickets">
         The support system is not responding. Try again shortly.
       </ErrorState>
     );
@@ -45,7 +45,7 @@ export default async function TicketsPage({
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">My tickets</h2>
+        <h1 className="display-3">My tickets</h1>
         <div className="ml-auto"><NewTicketButton /></div>
       </div>
 
@@ -87,7 +87,7 @@ export default async function TicketsPage({
             <li key={t.id}>
               <Link
                 href={`/portal/tickets/${t.reference}`}
-                className="block rounded-lg border border-line-strong bg-card p-4.5 transition-colors duration-(--duration-base) hover:border-brand-300 hover:bg-brand-50"
+                className="block rounded-xl border border-line-strong bg-card p-4.5 shadow-1 transition-[translate,box-shadow,border-color] duration-(--duration-base) hover:border-brand-ink/30 hover:shadow-2 motion-safe:hover:-translate-y-px"
               >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <span className="font-mono text-xs text-muted">{t.reference}</span>
@@ -97,7 +97,7 @@ export default async function TicketsPage({
                     <StatusBadge status={t.status} />
                   </span>
                 </div>
-                <h3 className="mt-2 text-15-5">{t.subject}</h3>
+                <h2 className="mt-2 text-15-5">{t.subject}</h2>
                 <p className="mt-1.5 text-13 text-muted">
                   {t.category?.name ?? "Uncategorised"} · raised {formatDate(t.created_at)}
                   {t.assigned_to ? ` · ${t.assigned_to.name}` : " · not yet assigned"}

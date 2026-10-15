@@ -5,6 +5,9 @@ namespace App\Http\Requests;
 use App\Enums\EmploymentType;
 use App\Enums\PublishStatus;
 use App\Http\Requests\Concerns\SanitisesRichText;
+use App\Http\Requests\Concerns\ValidatesRecordSections;
+use App\Support\PageSections\RecordSections;
+use App\Support\PageSections\SectionRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,11 +21,11 @@ use Illuminate\Validation\Rule;
  */
 class StoreJobOpeningRequest extends FormRequest
 {
-    use SanitisesRichText;
+    use SanitisesRichText, ValidatesRecordSections;
 
     protected function richTextFields(): array
     {
-        return ['description'];
+        return ['description', ...SectionRules::RICH_TEXT];
     }
 
     public function authorize(): bool
@@ -65,13 +68,19 @@ class StoreJobOpeningRequest extends FormRequest
             'closes_at' => ['nullable', 'date'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],
 
+            // Builder sections in place of the written body (0.130.0, `RecordSections`).
+            ...$this->recordSectionRules(),
+
             'seo' => ['nullable', 'array'],
         ];
     }
 
     public function messages(): array
     {
-        return ['salary_max.gte' => 'The top of the range cannot be below the bottom of it.'];
+        return [
+            ...$this->recordSectionMessages(),
+            'salary_max.gte' => 'The top of the range cannot be below the bottom of it.',
+        ];
     }
 
     /**
@@ -83,7 +92,7 @@ class StoreJobOpeningRequest extends FormRequest
      */
     public function modelData(): array
     {
-        $data = collect($this->safe()->except(['seo', 'qualification_ids']))->all();
+        $data = RecordSections::store(collect($this->safe()->except(['seo', 'qualification_ids']))->all());
 
         // Publishing without a date would leave the row published and invisible,
         // because the public scope filters on the date. Same rule as every other

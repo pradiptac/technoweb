@@ -1,0 +1,180 @@
+/*
+ * Atelier — a studio's page: paper, a serif, and rules.
+ *
+ * Scoped under `[data-theme="atelier"]` like every theme's file. It is the
+ * whole of what makes the shared sections Atelier's; `home.tsx` writes out
+ * the hero and the ruled figures and nothing else.
+ *
+ * Two things this theme does that most do not, and why each is safe:
+ *
+ *   1. **It warms the page.** `--color-page` and `--color-card` are mixed
+ *      with a few per cent of the palette's own brand, so the paper is the
+ *      theme's colour rather than a fixed cream, and the dark scheme warms
+ *      the dark ground by the same arithmetic. No literal, so the rule that
+ *      an inverting token may never be paired with a fixed colour holds.
+ *   2. **It redefines the display face**, as Editorial does and for the
+ *      same reason: a theme declares its type the way it declares its
+ *      layout, and the contrast gate reads colours rather than faces.
+ */
+
+[data-theme="atelier"] {
+  --font-display: var(--font-fraunces, Georgia, "Times New Roman", serif);
+
+}
+
+/*
+ * Paper — painted, never redefined.
+ *
+ * The first cut set `--color-page: color-mix(…, var(--color-page))`, which
+ * is a **cycle**: a custom property may not reference itself, so it is
+ * invalid at computed-value time, and every `color: var(--color-page)` on
+ * the page then fell back to `inherit`. The visible symptom was the
+ * header's call — `bg-ink text-page` — rendering as a solid black box with
+ * black text inside it, which the contrast audit passed because the two
+ * colours it compared were the ones the token *should* have had.
+ *
+ * So the ground is a `background-color` on the wrapper and the token is
+ * left alone. The tint is the palette's own brand, so a generated theme's
+ * paper is its own colour and the dark scheme warms the dark ground by the
+ * same arithmetic — no literal anywhere.
+ */
+.public-site[data-theme="atelier"] {
+  background-color: color-mix(in srgb, var(--color-brand-600) 2.5%, var(--color-page));
+}
+
+/*
+ * A serif headline is set at its ordinary weight: the contrast in the face
+ * is the weight, and Fraunces at 700 is a different typeface.
+ */
+[data-theme="atelier"] h1,
+[data-theme="atelier"] h2,
+[data-theme="atelier"] h3,
+[data-theme="atelier"] .display-1,
+[data-theme="atelier"] .display-2,
+[data-theme="atelier"] .display-3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+
+/* ---------------------------------------------------------------- the rule */
+
+/*
+ * Rules, not cards. Square, a hairline, no fill and no lift — the whole
+ * visual vocabulary of the theme is the line, and a card is a line drawn
+ * all the way round.
+ */
+.public-site[data-theme="atelier"] [data-card],
+.public-site[data-theme="atelier"] [data-tile] {
+  border-radius: 0;
+  box-shadow: none;
+  border-color: var(--color-line-strong);
+}
+
+/*
+ * A tile is divided from the one above rather than boxed: no side or
+ * bottom border, so a column of them reads as a ruled list. The grid's own
+ * gap would show through a full border; this way the rules line up.
+ */
+.public-site[data-theme="atelier"] [data-collection] [data-tile] {
+  border-inline: 0;
+  border-bottom: 0;
+  border-top: 1px solid var(--color-line-strong);
+  background: none;
+  padding-top: 0.25rem;
+}
+
+.public-site[data-theme="atelier"] [data-collection] [data-tile-body] {
+  padding-inline: 0;
+  padding-block: 1.25rem 1.5rem;
+}
+
+.public-site[data-theme="atelier"] [data-collection] [data-tile-title] {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+}
+
+/* The icon is a mark beside the name, not a filled tile. */
+.public-site[data-theme="atelier"] [data-collection] [data-tile-icon] {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--tile-hue, var(--color-brand-ink));
+}
+
+/* A picture keeps its hairline, since it is the one thing with an edge. */
+.public-site[data-theme="atelier"] [data-collection] [data-tile-media] {
+  border-radius: 0;
+  border: 1px solid var(--color-line-strong);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .public-site[data-theme="atelier"] [data-collection] [data-tile]:hover [data-tile-title] {
+    color: var(--color-brand-ink);
+  }
+}
+
+/* --------------------------------------------------------------- the hero */
+
+/*
+ * The picture runs off the container's right edge from `lg`. The clip is on
+ * the hero's own section (the `border-b` element), so nothing contributes
+ * to `documentElement.scrollWidth` — a negative margin on an unclipped
+ * parent is horizontal overflow, which the audit fails at 320px.
+ */
+@media (min-width: 64rem) {
+  .public-site[data-theme="atelier"] .atelier-bleed {
+    margin-right: calc(var(--container-gutter, 1rem) * -1 - 2rem);
+  }
+}
+
+/* The ruled figures: a hairline between each, none before the first. */
+.public-site[data-theme="atelier"] .atelier-figures > * + * {
+  border-top: 1px solid var(--color-line);
+}
+
+@media (min-width: 40rem) {
+  .public-site[data-theme="atelier"] .atelier-figures > * + * {
+    border-top: 0;
+    border-left: 1px solid var(--color-line);
+    padding-left: 2rem;
+  }
+}
+
+/* -------------------------------------------------------------- the chrome */
+
+/* Square buttons and square fields, to the last control. */
+.public-site[data-theme="atelier"] .btn,
+.public-site[data-theme="atelier"] .field,
+.public-site[data-theme="atelier"] [data-card],
+.public-site[data-theme="atelier"] .cta-band > * {
+  border-radius: 0;
+}
+
+/*
+ * The nav's hover is a rule under the word rather than a fill — drawn with
+ * a `::after` whose `scale` transitions, never `transform`: Tailwind v4's
+ * scale utilities set the `scale` property, and `transition-transform` on
+ * one animates nothing.
+ */
+.public-site[data-theme="atelier"] .atelier-nav { position: relative; }
+
+.public-site[data-theme="atelier"] .atelier-nav::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0.75rem;
+  bottom: 0.25rem;
+  height: 1px;
+  background-color: currentColor;
+  scale: 0 1;
+  transform-origin: left;
+  transition: scale var(--duration-base) var(--ease-brand);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .public-site[data-theme="atelier"] .atelier-nav:hover::after { scale: 1 1; }
+}
+
+.public-site[data-theme="atelier"] .atelier-nav:focus-visible::after { scale: 1 1; }

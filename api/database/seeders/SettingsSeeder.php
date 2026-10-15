@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Setting;
+use App\Support\Events\EventSettings;
 use App\Support\Meetings\MeetingSettings;
 use App\Support\Visits\VisitSettings;
 use Illuminate\Database\Seeder;
@@ -32,12 +33,17 @@ class SettingsSeeder extends Seeder
             ['group' => 'references', 'key' => 'visit_reference_prefix', 'value' => 'TV', 'type' => 'string'],
             ['group' => 'references', 'key' => 'meeting_reference_prefix', 'value' => 'MT', 'type' => 'string'],
             ['group' => 'references', 'key' => 'order_number_prefix', 'value' => 'ORD', 'type' => 'string'],
+            ['group' => 'references', 'key' => 'return_reference_prefix', 'value' => 'RMA', 'type' => 'string'],
             // The homepage hero. These were hardcoded in the frontend, which
             // meant the invented figures on the must-not-ship list could only
             // be corrected by a developer. Group 'homepage' is public.
             ['group' => 'homepage', 'key' => 'hero_kicker', 'value' => 'Networking · Servers · Security · Surveillance', 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'hero_heading', 'value' => 'Technology infrastructure that keeps your business connected.', 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'hero_lede', 'value' => 'We design, deploy and support the networks, servers and security systems your operations run on — engineered properly the first time, then maintained by a support desk that actually answers.', 'type' => 'text'],
+            // The homepage hero's heading effect (0.171.0): `default` follows motion_headline;
+            // the words are rotating alternatives or the word to underline.
+            ['group' => 'homepage', 'key' => 'hero_kinetic', 'value' => 'default', 'type' => 'string'],
+            ['group' => 'homepage', 'key' => 'hero_kinetic_words', 'value' => null, 'type' => 'text'],
             // Four "value|label" pairs, one per line. A pair per line rather
             // than four settings each, because they are edited together and
             // an editor should be able to drop one without leaving a gap.
@@ -78,6 +84,9 @@ class SettingsSeeder extends Seeder
             ['group' => 'homepage', 'key' => 'stats_animation', 'value' => 'count', 'type' => 'string'],
             // The homepage's block sections (2026-09-24): a block's slug each,
             // blank for none. Placed and switched on the Themes screen.
+            // The homepage as a builder page (2026-10-06, 0.113.0): a published
+            // builder page's id, blank for the theme's own homepage.
+            ['group' => 'homepage', 'key' => 'homepage_page_id', 'value' => null, 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'home_stats_block', 'value' => null, 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'home_pricing_block', 'value' => null, 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'home_stack_block', 'value' => null, 'type' => 'string'],
@@ -333,6 +342,21 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'visits', 'key' => 'visit_default_minutes', 'value' => '90', 'type' => 'string'],
 
             /*
+             * Events (0.118.0, docs/events.md): where the desk's notice of a
+             * registration goes (blank is the sales inbox), how many hours
+             * before an event confirmed registrants are reminded — **0 sends
+             * no reminder** — and how many seats one registration may ask
+             * for on a new event.
+             *
+             * The group is private and nothing in it is published: the
+             * public site learns an event's own `max_seats` from the event,
+             * and has no use for the other two.
+             */
+            ['group' => 'events', 'key' => 'events_email', 'value' => null, 'type' => 'string'],
+            ['group' => 'events', 'key' => 'event_reminder_hours', 'value' => (string) EventSettings::DEFAULT_REMINDER_HOURS, 'type' => 'string'],
+            ['group' => 'events', 'key' => 'event_max_seats', 'value' => (string) EventSettings::DEFAULT_MAX_SEATS, 'type' => 'string'],
+
+            /*
              * Online meetings (2026-09-29, docs/meetings.md): the switch, the
              * default working hours (a host with hours of their own ignores
              * them), the slot step, notice, how far ahead, closed dates, the
@@ -375,6 +399,123 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'meetings_google', 'key' => 'meetings_google_oauth_connected_at', 'value' => null, 'type' => 'string'],
             ['group' => 'meetings_google', 'key' => 'meetings_google_calendar_id', 'value' => null, 'type' => 'string'],
             ['group' => 'meetings_google', 'key' => 'meetings_google_error', 'value' => null, 'type' => 'string'],
+
+            /*
+             * Zoho Books (0.134.0, docs/store.md "Zoho Books invoices"): an
+             * order's invoice made in the company's own books. Private —
+             * a client secret and a refresh token live here — and off until
+             * an administrator connects an account and chooses the
+             * organisation and the two taxes. The `_oauth_` rows are the
+             * shape every `OAuthConnection` slot has.
+             */
+            ['group' => 'zoho_books', 'key' => 'zoho_books_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_dc', 'value' => 'in', 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_oauth_client_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_oauth_client_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_oauth_refresh_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_oauth_account', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_oauth_connected_at', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_organization_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_home_state', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_tax_intra', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_tax_inter', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_invoice_when', 'value' => 'dispatched', 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_error', 'value' => null, 'type' => 'string'],
+            // Payments and credit notes (0.136.0): on unless switched off, one
+            // deposit account per way of paying, and which consent is held.
+            ['group' => 'zoho_books', 'key' => 'zoho_books_send_payments', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_account_gateway', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_account_cod', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_account_bank_transfer', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_account_upi', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_scope_version', 'value' => null, 'type' => 'string'],
+
+            /*
+             * Courier booking (0.143.0, docs/store.md "Shiprocket"). Private
+             * — an API user's password and a webhook token live here — and
+             * `manual` until an administrator chooses otherwise, which is the
+             * hand-typed tracking form the console has always had. The
+             * pickup location is one of Shiprocket's own nicknames, chosen
+             * from its list; the parcel is the default size in whole cm.
+             */
+            ['group' => 'shiprocket', 'key' => 'store_courier_provider', 'value' => 'manual', 'type' => 'string'],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_email', 'value' => null, 'type' => 'string'],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_password', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_pickup_location', 'value' => null, 'type' => 'string'],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_parcel_length', 'value' => '20', 'type' => 'string'],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_parcel_breadth', 'value' => '15', 'type' => 'string'],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_parcel_height', 'value' => '10', 'type' => 'string'],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_webhook_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_error', 'value' => null, 'type' => 'string'],
+
+            /*
+             * The GST invoice this shop makes itself (0.176.0,
+             * `docs/store.md` "The GST invoice").
+             *
+             * **Off by default**, like Zoho Books and for the stronger
+             * reason: a half-configured invoice is a tax document with the
+             * seller's GSTIN missing, and that is worse than no invoice at
+             * all. `Invoices::ready()` is the switch *and* everything an
+             * invoice cannot be issued without.
+             *
+             * Private. It holds the company's registered name, its GSTIN and
+             * the signatory — none of which the storefront renders, and the
+             * customer's copy reaches them through the authorised download
+             * rather than through `/settings`.
+             *
+             * What is **not** here, because it already exists and one fact
+             * belongs in one row: the logo is `logo_path`, the bank details
+             * are `bank_account_details` in `payments`, and the place of
+             * supply is the order's own billing state.
+             */
+            /*
+             * The shop's GST rate, store-wide.
+             *
+             * One of the real slabs and nothing else (`Money::RATES`): a free
+             * text box invites 17.5, which is not a rate anybody may charge.
+             * It applies to what is priced *now* — every order keeps the
+             * taxable value and the tax it was charged, and the invoice reads
+             * those, so changing this row cannot rewrite what was sold.
+             *
+             * Still one rate for the whole catalogue. A shop selling at two
+             * rates needs a rate per product, which is not built.
+             */
+            ['group' => 'invoicing', 'key' => 'store_gst_percent', 'value' => '18', 'type' => 'string'],
+
+            /*
+             * How prices are shown and how they are typed (0.178.0). Neither
+             * moves money: a stored price always includes GST, so switching
+             * either one never changes what a customer pays.
+             *
+             * `store_price_basis` is the website: `inclusive` shows prices
+             * with GST, `exclusive` shows them before GST and prints the tax
+             * as a row at the checkout. `store_price_entry` is the console:
+             * `exclusive` means a price is typed before GST and converted on
+             * save at that product's rate. Both default to `inclusive`, which
+             * is what every price already typed into this shop means.
+             *
+             * Coupon minimums, the free-delivery threshold and the cash-on-
+             * delivery ceiling are all judged on what is paid.
+             */
+            ['group' => 'invoicing', 'key' => 'store_price_basis', 'value' => 'inclusive', 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'store_price_entry', 'value' => 'inclusive', 'type' => 'string'],
+
+            ['group' => 'invoicing', 'key' => 'invoice_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'invoicing', 'key' => 'invoice_legal_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'invoice_gstin', 'value' => null, 'type' => 'string'],
+            // The seller's own state, and the single thing that decides
+            // whether a line is CGST+SGST or IGST.
+            ['group' => 'invoicing', 'key' => 'invoice_state', 'value' => null, 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'invoice_address', 'value' => null, 'type' => 'text'],
+            ['group' => 'invoicing', 'key' => 'invoice_email', 'value' => null, 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'invoice_phone', 'value' => null, 'type' => 'string'],
+            // Its own series, never the order number. `INV/2026-27/00001`.
+            ['group' => 'invoicing', 'key' => 'invoice_prefix', 'value' => 'INV', 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'invoice_hsn_default', 'value' => null, 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'invoice_terms', 'value' => null, 'type' => 'text'],
+            ['group' => 'invoicing', 'key' => 'invoice_declaration', 'value' => 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.', 'type' => 'text'],
+            ['group' => 'invoicing', 'key' => 'invoice_signatory', 'value' => null, 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'invoice_signature_path', 'value' => null, 'type' => 'string'],
 
             /*
              * Comments, site-wide.
@@ -435,6 +576,8 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'chatbot', 'key' => 'chatbot_animation', 'value' => 'burst', 'type' => 'string'],
             // The thread's ground behind the bubbles; blank is the palette's brand-50.
             ['group' => 'chatbot', 'key' => 'chatbot_background', 'value' => null, 'type' => 'string'],
+            // The panel's header bar (2026-10-12); blank is the theme's brand colour.
+            ['group' => 'chatbot', 'key' => 'chatbot_header', 'value' => null, 'type' => 'string'],
 
             /*
              * Ask who the visitor is before answering anything — name, email,
@@ -484,8 +627,14 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * Blank means the model in `config/services.php`, the arrangement
              * mail already uses: settings first, `.env` second, so a fresh
              * install works before anybody opens the console.
+             *
+             * In `integrations` since 0.116.0, beside the OpenRouter key and
+             * `seo_ai_model`: one key reaches many models and each answers
+             * only when its maker's key is in the OpenRouter account, so the
+             * key, the two choices and "Test this model" are one screen.
+             * `updateOrCreate` moves an existing row's group on the next run.
              */
-            ['group' => 'chatbot', 'key' => 'chatbot_model', 'value' => null, 'type' => 'string'],
+            ['group' => 'integrations', 'key' => 'chatbot_model', 'value' => null, 'type' => 'string'],
 
             // The three that bound the cost. A rate limit bounds one visitor;
             // only the daily ceiling bounds the bill.
@@ -570,6 +719,20 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'auth', 'key' => 'password_login_enabled', 'value' => '1', 'type' => 'boolean'],
 
             /*
+             * "Continue with Google" on the customer portal (0.133.0).
+             *
+             * A group of its own, and private: `auth` is public, and a client
+             * secret has no business beside rows a sign-in screen reads. The
+             * site learns one derived bit, `google_login_live` — the switch
+             * *and* both halves of the client — so a button is never drawn
+             * for a sign-in that cannot finish. Off by default: it needs an
+             * OAuth client that only the site's owner can create.
+             */
+            ['group' => 'google_login', 'key' => 'google_login_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'google_login', 'key' => 'google_login_client_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'google_login', 'key' => 'google_login_client_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+
+            /*
              * Which step a sign-in form opens on.
              *
              * Separate from the three switches above, because "may somebody use
@@ -616,6 +779,13 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * `admin_path` was caught by, and the fallback makes it unneeded.
              */
             ['group' => 'appearance', 'key' => 'theme', 'value' => 'technoware', 'type' => 'string'],
+            // Corners and spacing (2026-10-05): the values the site drew before
+            // the controls existed, so a fresh install and an old one match.
+            ['group' => 'appearance', 'key' => 'theme_radius', 'value' => 'soft', 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'theme_density', 'value' => 'comfortable', 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'theme_surface', 'value' => 'flat', 'type' => 'string'],
+            // Heading size (0.121.0): `standard` is the scale the site has always set.
+            ['group' => 'appearance', 'key' => 'theme_type_scale', 'value' => 'standard', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_primary', 'value' => '#6f8641', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_secondary', 'value' => '#5b7a5e', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_accent', 'value' => '#c9993c', 'type' => 'string'],
@@ -633,6 +803,19 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'appearance', 'key' => 'theme_topbar', 'value' => null, 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_font_display', 'value' => 'instrument', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_font_body', 'value' => 'inter', 'type' => 'string'],
+            // A company's own typefaces (0.125.0, `App\Support\CustomFonts`): two
+            // slots, each a name and one or two WOFF2 files on the public
+            // disk. Public, because the root layout declares the faces
+            // before anybody signs in. Written only by the font endpoints —
+            // the settings `PATCH` refuses these keys.
+            ['group' => 'appearance', 'key' => 'custom_font_1_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'custom_font_1_regular', 'value' => null, 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'custom_font_1_bold', 'value' => null, 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'custom_font_1_variable', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'appearance', 'key' => 'custom_font_2_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'custom_font_2_regular', 'value' => null, 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'custom_font_2_bold', 'value' => null, 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'custom_font_2_variable', 'value' => '0', 'type' => 'boolean'],
 
             /*
              * The sign-in screen: what sits beside the form. `login_backdrop`
@@ -672,6 +855,17 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'motion', 'key' => 'motion_loader', 'value' => 'none', 'type' => 'string'],
             ['group' => 'motion', 'key' => 'motion_splash', 'value' => '0', 'type' => 'boolean'],
             ['group' => 'motion', 'key' => 'motion_hero', 'value' => 'grid', 'type' => 'string'],
+            // What a card does under the pointer (2026-10-05): lift is the site as it was.
+            ['group' => 'motion', 'key' => 'motion_cards', 'value' => 'lift', 'type' => 'string'],
+            // A reading-progress bar along the top of public pages (0.114.0):
+            // `none` or `bar`, off unless somebody chooses it.
+            ['group' => 'motion', 'key' => 'motion_progress', 'value' => 'none', 'type' => 'string'],
+            // How a hero's heading arrives (0.171.0, docs/motion.md "Kinetic headings"):
+            // an id from motion-choices.ts's KINETIC_SITE, still unless chosen.
+            ['group' => 'motion', 'key' => 'motion_headline', 'value' => 'none', 'type' => 'string'],
+            // Small interactions (0.171.0): Lively by default — the client's deliberate
+            // exception to "the site as it moved before"; each effect is a few pixels.
+            ['group' => 'motion', 'key' => 'motion_micro', 'value' => 'lively', 'type' => 'string'],
 
             /*
              * The site theme: which folder under `web/src/themes/` builds the
@@ -764,6 +958,45 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'consent', 'key' => 'cookie_consent_accept_label', 'value' => 'Accept analytics', 'type' => 'string'],
             ['group' => 'consent', 'key' => 'cookie_consent_reject_label', 'value' => 'Decline', 'type' => 'string'],
             ['group' => 'consent', 'key' => 'cookie_consent_policy_url', 'value' => '/privacy', 'type' => 'string'],
+
+            // The installable website (2026-10-05, docs/pwa.md). Public: the
+            // manifest, the icons and the service worker are built from these
+            // before anybody signs in. Blank name and icon fall back to the
+            // company's name and an icon drawn from its initials.
+            ['group' => 'pwa', 'key' => 'pwa_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'pwa', 'key' => 'pwa_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'pwa', 'key' => 'pwa_short_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'pwa', 'key' => 'pwa_icon_path', 'value' => null, 'type' => 'string'],
+            ['group' => 'pwa', 'key' => 'pwa_install_prompt', 'value' => '1', 'type' => 'boolean'],
+
+            // The phone's action bar (0.122.0, docs/site-chrome.md): Call,
+            // WhatsApp and Enquire pinned to the foot of a phone screen. Public
+            // — the bar is drawn before anybody signs in — and off until
+            // somebody asks for it, so an untouched install is unchanged. The
+            // Call button rings the Contact tab's phone number; a blank
+            // WhatsApp number falls back to the assistant's.
+            ['group' => 'action_bar', 'key' => 'action_bar_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'action_bar', 'key' => 'action_bar_call', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'action_bar', 'key' => 'action_bar_whatsapp_number', 'value' => null, 'type' => 'string'],
+            ['group' => 'action_bar', 'key' => 'action_bar_enquire_label', 'value' => 'Enquire', 'type' => 'string'],
+            ['group' => 'action_bar', 'key' => 'action_bar_enquire_href', 'value' => '/contact', 'type' => 'string'],
+
+            // The media CDN (0.124.0, docs/cdn.md). Optional and off: a pull
+            // zone in front of this server's `/storage`, for the files a
+            // browser fetches itself — videos, documents, vector logos.
+            // Private: the website learns the address from `GET /redirects`,
+            // and only while the switch is on.
+            ['group' => 'media_cdn', 'key' => 'media_cdn_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'media_cdn', 'key' => 'media_cdn_url', 'value' => null, 'type' => 'string'],
+
+            // The coming-soon page (0.122.0): one switch that puts a holding
+            // page in front of the public site until launch. Public, because
+            // the page is drawn for visitors; the frontend's proxy learns the
+            // switch from `GET /redirects`, the one read it already makes.
+            ['group' => 'coming_soon', 'key' => 'coming_soon_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'coming_soon', 'key' => 'coming_soon_heading', 'value' => 'We are getting ready', 'type' => 'string'],
+            ['group' => 'coming_soon', 'key' => 'coming_soon_message', 'value' => '<p>Our new website is on its way. Please check back soon.</p>', 'type' => 'text'],
+            ['group' => 'coming_soon', 'key' => 'coming_soon_image_path', 'value' => null, 'type' => 'string'],
 
             // Outgoing mail. NOT in the public whitelist, and the password is
             // encrypted at rest and never returned to the browser. Leave the
@@ -875,6 +1108,16 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * is the promise already on the page rather than an invented figure.
              */
             ['group' => 'store', 'key' => 'store_shipping_paise', 'value' => '0', 'type' => 'string'],
+            /*
+             * Delivery charges (0.142.0, docs/store.md "Delivery charges and
+             * shipping zones"). `flat` charges `store_shipping_paise` on any
+             * order that ships; `zones` quotes it from the delivery state and
+             * the basket's weight. Both are written from /admin/store/shipping
+             * (the mode only once a default zone with a rate exists), not from
+             * the settings strip. 500g stands in for a product with no weight.
+             */
+            ['group' => 'store', 'key' => 'store_shipping_mode', 'value' => 'flat', 'type' => 'string'],
+            ['group' => 'store', 'key' => 'store_default_weight_grams', 'value' => '500', 'type' => 'string'],
             ['group' => 'store', 'key' => 'store_handling_days', 'value' => '2', 'type' => 'string'],
             // The named service and its transit window, for Merchant Center's
             // shipping block and the shipping page (2026-09-17: "Standard
@@ -892,6 +1135,14 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * emits `MerchantReturnNotPermitted` and ignores this.
              */
             ['group' => 'store', 'key' => 'store_return_days', 'value' => '7', 'type' => 'string'],
+            /*
+             * Returns (0.132.0, docs/store.md "Returns"). The switch that
+             * puts "Return items" on a delivered order's page — on, because
+             * the window above is already promised on every product page —
+             * and how to send goods back, quoted in the approval email.
+             */
+            ['group' => 'store', 'key' => 'store_returns_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'store', 'key' => 'store_return_instructions', 'value' => null, 'type' => 'text'],
 
             /*
              * Abandoned-basket reminders (2026-09-25): the switch, the two
@@ -988,6 +1239,41 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'store_tiles', 'key' => 'store_tile_2_cta_href', 'value' => '/store', 'type' => 'string'],
             ['group' => 'store_tiles', 'key' => 'store_tile_2_image_path', 'value' => null, 'type' => 'string'],
 
+            /*
+             * "Shop the videos" (0.140.0): the shelf of products that carry a
+             * video, on the shop front, the product page, optionally the
+             * homepage and a builder section. A group of its own, edited from
+             * Store → Product videos by a store manager through
+             * `PATCH /admin/store/videos` — the promo band's shape; the
+             * settings strip leaves the group out. Public: the website reads
+             * the switches and the look by key.
+             *
+             * Autoplay ships off — it contacts YouTube without a press. The
+             * shop front and the product page ship on: a shelf draws only when
+             * a product has a video, so an install with none is unchanged.
+             */
+            ['group' => 'store_videos', 'key' => 'store_videos_shop_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'store_videos', 'key' => 'store_videos_product_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'store_videos', 'key' => 'store_videos_product_others', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'store_videos', 'key' => 'store_videos_home_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'store_videos', 'key' => 'store_videos_heading', 'value' => 'Shop the videos', 'type' => 'string'],
+            ['group' => 'store_videos', 'key' => 'store_videos_lede', 'value' => null, 'type' => 'string'],
+            ['group' => 'store_videos', 'key' => 'store_videos_autoplay', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'store_videos', 'key' => 'store_videos_shape', 'value' => 'portrait', 'type' => 'string'],
+            ['group' => 'store_videos', 'key' => 'store_videos_limit', 'value' => '12', 'type' => 'string'],
+            ['group' => 'store_videos', 'key' => 'store_videos_order', 'value' => 'newest', 'type' => 'string'],
+            ['group' => 'store_videos', 'key' => 'store_videos_show_sku', 'value' => '1', 'type' => 'boolean'],
+
+            /*
+             * The shop's tag row (0.141.0): its own group because it is edited
+             * from Store → Tags by a store manager (`PATCH /admin/store/tags/settings`)
+             * and not from Settings — the promo band's shape. Public: the
+             * website draws the row only while `store_tags_enabled` is on.
+             */
+            ['group' => 'store_tags', 'key' => 'store_tags_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'store_tags', 'key' => 'store_tags_limit', 'value' => '12', 'type' => 'string'],
+            ['group' => 'store_tags', 'key' => 'store_tags_auto', 'value' => '1', 'type' => 'boolean'],
+
             ['group' => 'mail', 'key' => 'smtp_host', 'value' => null, 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_port', 'value' => '587', 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_username', 'value' => null, 'type' => 'string'],
@@ -1043,7 +1329,8 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * unchanged, because silently substituting a cheaper model bills
              * somebody for one thing while they believe they bought another.
              */
-            ['group' => 'seo', 'key' => 'seo_ai_model', 'value' => null, 'type' => 'string'],
+            // Drawn on Settings → API keys with the key and `chatbot_model` (0.116.0).
+            ['group' => 'integrations', 'key' => 'seo_ai_model', 'value' => null, 'type' => 'string'],
             ['group' => 'seo', 'key' => 'seo_ai_daily_cap', 'value' => '100', 'type' => 'string'],
 
             /*
@@ -1149,7 +1436,14 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'ticket_survey', 'key' => 'ticket_survey_enabled', 'value' => '1', 'type' => 'boolean'],
 
             // Third-party keys. Same treatment as the SMTP password.
-            ['group' => 'integrations', 'key' => 'openai_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            /*
+             * OpenRouter, which every AI feature calls (0.116.0). It replaced
+             * `openai_api_key`: an OpenAI key is refused at OpenRouter, so the
+             * old value is not carried over — the `MoveAiToOpenRouter`
+             * upgrade step deletes that row, and the client's own OpenAI and
+             * Google AI Studio keys are saved at OpenRouter instead.
+             */
+            ['group' => 'integrations', 'key' => 'openrouter_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
             ['group' => 'integrations', 'key' => 'hunter_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
             /*
              * Google Search Console, read by the SEO overview and the AI

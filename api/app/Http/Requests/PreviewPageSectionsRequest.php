@@ -19,7 +19,12 @@ class PreviewPageSectionsRequest extends FormRequest
 
     protected function richTextFields(): array
     {
-        return ['blocks.*.data.body'];
+        return SectionRules::RICH_TEXT;
+    }
+
+    protected function guardsCustomCode(): bool
+    {
+        return false;
     }
 
     public function authorize(): bool
@@ -38,6 +43,6 @@ class PreviewPageSectionsRequest extends FormRequest
 
     public function messages(): array
     {
-        return SectionRules::messages();
+        return SectionRules::messages('blocks', $this->input('blocks'));
     }
 }

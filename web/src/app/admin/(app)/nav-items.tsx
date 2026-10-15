@@ -7,7 +7,10 @@ import {
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconMegaphone, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
   IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug, IconChat, IconBackup, IconCloud, IconMeeting,
+  IconProjector, IconSearch, IconTruck, IconContract,
 } from "@/components/icons";
+// A chrome glyph, which lives in `icons-ui` and is not re-exported by the map.
+import { IconDownload, IconMapPin } from "@/components/icons-ui";
 
 /**
  * The console's sidebar, as data. Rendered by `admin-nav.tsx`, which is a
@@ -186,8 +189,12 @@ export const NAV: NavItem[] = [
       // the same reason the dashboard at "/admin" carries the flag.
       { role: "store_manager", href: "/admin/store", label: "Overview", icon: IconChart, exact: true },
       { role: "store_manager", href: "/admin/store/orders", label: "Orders", icon: IconTicket },
+      // What customers have asked to send back (docs/store.md "Returns").
+      { role: "store_manager", href: "/admin/store/returns", label: "Returns", icon: IconArrows },
       { role: "store_manager", href: "/admin/store/products", label: "Products", icon: IconBox },
       { role: "store_manager", href: "/admin/store/categories", label: "Categories", icon: IconGrid },
+      // The coloured tag row under the shop's search bar (0.141.0, docs/store.md "Tags").
+      { role: "store_manager", href: "/admin/store/tags", label: "Tags", icon: IconTag },
       { role: "store_manager", href: "/admin/store/coupons", label: "Discount codes", icon: IconTag },
       // Product reviews: the queue opens on what is waiting (docs/store.md, "Reviews").
       { role: "store_manager", href: "/admin/store/reviews", label: "Reviews", icon: IconChat },
@@ -195,6 +202,16 @@ export const NAV: NavItem[] = [
       // endpoint of their own, so the person running a promotion does not
       // need Settings — which they cannot open. The info bar's shape.
       { role: "store_manager", href: "/admin/store/promo", label: "Promo banners", icon: IconMegaphone },
+      // "Shop the videos" (0.140.0): where the row of product videos shows and
+      // whether it plays by itself — the promo band's shape, a row beside it.
+      { role: "store_manager", href: "/admin/store/videos", label: "Product videos", icon: IconCamera },
+      // How delivery is charged: a flat figure, or zones and weight slabs (docs/store.md "Delivery charges and shipping zones").
+      { role: "store_manager", href: "/admin/store/shipping", label: "Shipping", icon: IconTruck },
+      // The GST rate, whether prices include it, and the seller's half of a
+      // tax invoice (0.176.0, docs/store.md "The GST invoice"). A store
+      // manager's, the promo band's shape and reason: settings as a whole
+      // stay the administrator's, and the rate a shop charges does not.
+      { role: "store_manager", href: "/admin/store/invoicing", label: "Tax and invoicing", icon: IconContract },
       { role: "store_manager", href: "/admin/store/stock", label: "Stock", icon: IconBox },
       { role: "store_manager", href: "/admin/store/reports", label: "Reports", icon: IconSearchChart },
       { role: "admin", href: "/admin/store/settings", label: "Settings", icon: IconSliders },
@@ -272,12 +289,62 @@ export const NAV: NavItem[] = [
     ],
   },
   {
+    /*
+      Events (0.118.0, docs/events.md), beside Blog: something with a date
+      that people attend — a seminar, a webinar, a stand at a trade show —
+      written by the same person who writes the blog, so its row is a
+      `content_manager`'s. The settings (where registrations are emailed, the
+      reminder, the default seats) are an administrator's, the rule every
+      module's own settings follow. Never `exact` on Events: the edit form
+      resolves to it by the longest match.
+
+      An event's registrations (`/admin/events/{id}/registrations`) are worked
+      by the sales desk as well, and need no row — they are reached from the
+      event, the notification email and the lead. Their gate is
+      `SCREEN_GATES` below, since no row's path can name a screen that sits
+      under an id.
+    */
+    kind: "group", id: "events", label: "Events", icon: IconProjector,
+    links: [
+      { role: "content_manager", href: "/admin/events", label: "Events", icon: IconClock },
+      { role: "admin", href: "/admin/events/settings", label: "Settings", icon: IconSliders },
+    ],
+  },
+  {
+    /*
+      Tenders (0.174.0, docs/tenders.md), beside Events: a notice inviting
+      bids is a page with two dates, written by the same person who writes
+      the rest of the site, so its row is a `content_manager`'s.
+
+      Unlike Events there is no second role here and no settings screen:
+      nothing is submitted through the site, so there is nobody's queue to
+      share, and the one number the module has — how near counts as "closing
+      soon" — is a constant rather than a setting.
+
+      Never `exact` on Tenders: the edit form and the categories resolve to
+      it by the longest match.
+    */
+    kind: "group", id: "tenders", label: "Tenders", icon: IconBriefcase,
+    links: [
+      { role: "content_manager", href: "/admin/tenders", label: "Tenders", icon: IconNewspaper },
+      { role: "content_manager", href: "/admin/tenders/categories", label: "Categories", icon: IconTag },
+    ],
+  },
+  {
     kind: "group", id: "content", label: "Content", icon: IconBook,
     links: [
       { role: "content_manager", href: "/admin/knowledge-base", label: "Knowledge base", icon: IconEducation },
       { role: "content_manager", href: "/admin/case-studies", label: "Case studies", icon: IconCert },
       { role: "content_manager", href: "/admin/pages", label: "Pages", icon: IconLayers },
+      // Saved sections and page templates (docs/page-builder.md "The library").
+      { role: "content_manager", href: "/admin/pages/library", label: "Section library", icon: IconBox },
+      // How every page of one kind of record is laid out (docs/page-builder.md "Detail templates"). The shop's are a store manager's, so the row takes both roles and the API narrows by kind.
+      { role: "content_manager,store_manager", href: "/admin/detail-templates", label: "Detail templates", icon: IconGrid },
       { role: "content_manager", href: "/admin/faqs", label: "FAQs", icon: IconLifebuoy },
+      // The downloads centre (docs/downloads.md). Its categories are a screen
+      // under it, reached from its header — one row serves both, by the
+      // longest-match rule.
+      { role: "content_manager", href: "/admin/downloads", label: "Downloads", icon: IconDownload },
       { role: "content_manager", href: "/admin/media", label: "Media", icon: IconImage },
       { role: "admin", href: "/admin/media/settings", label: "Media settings", icon: IconSliders },
       // The company profile. `IconShield` rather than `IconCert`, which Case
@@ -406,6 +473,9 @@ export const NAV: NavItem[] = [
       */
       { role: "admin", href: "/admin/info-bar", label: "Info bar", icon: IconMegaphone },
       { role: "admin", href: "/admin/themes", label: "Themes", icon: IconLayers },
+      { role: "admin", href: "/admin/site/chrome", label: "Header & footer", icon: IconLayers },
+      // The support network (0.170.0, docs/support-network.md): admin, since a centre tags staff.
+      { role: "admin", href: "/admin/support-centres", label: "Support network", icon: IconMapPin },
       { role: "admin", href: "/admin/site/settings", label: "Settings", icon: IconSliders },
       { role: "content_manager", href: "/admin/forms", label: "Forms", icon: IconMail },
     ],
@@ -430,6 +500,7 @@ export const NAV: NavItem[] = [
       { role: "seo_manager", href: "/admin/landing-pages", label: "Landing pages", icon: IconLayers },
       { role: "seo_manager", href: "/admin/locations", label: "Places", icon: IconGlobe },
       { role: "seo_manager", href: "/admin/redirects", label: "Redirects", icon: IconArrows },
+      { role: "seo_manager", href: "/admin/not-found", label: "Missing pages", icon: IconSearch },
       { role: "admin", href: "/admin/seo/settings", label: "Settings", icon: IconSliders },
     ],
   },
@@ -481,6 +552,13 @@ export const NAV: NavItem[] = [
       */
       { role: "admin", href: "/admin/imports/wordpress", label: "WordPress import", icon: IconArrows },
       /*
+        Importing a website with no API (0.163.0, docs/site-import.md): a live
+        address or an uploaded ZIP. `role:admin` for the same reason, and the
+        console path is the API's, so `AdminNavRolesTest` maps it to
+        `admin/imports/site` directly.
+      */
+      { role: "admin", href: "/admin/imports/site", label: "Site import", icon: IconGlobe },
+      /*
         Backups and their settings (2026-09-27, docs/backups.md). `role:admin`:
         a backup is every customer and every ticket attachment in one file, and
         a restore replaces the lot. The paths are the API's, so
@@ -513,22 +591,6 @@ export const NAV: NavItem[] = [
       { role: "admin", href: "/admin/client-errors", label: "JavaScript errors", icon: IconAlert },
     ],
   },
-  /*
-    Your own account, at the top level rather than inside Site.
-
-    It is reached from your name in the header, which is hidden below `sm` — at
-    320px that link had truncated to a 20px ellipsis and was pushing Sign out
-    off the screen, so it is not a control there in any useful sense. Without
-    this entry the screen would be unreachable on a phone entirely, which is
-    where somebody is most likely to be changing their own password in a hurry.
-
-    It sat inside Site, which was harmless while everybody saw all of Site and
-    became strange the moment the sidebar started filtering: a campaign manager
-    reaches nothing else in that section, so they were shown a group called
-    "Site" containing only their own account. It is not site configuration; it
-    is the one row that belongs to no role because every role has one.
-  */
-  { kind: "link", href: "/admin/profile", label: "Your account", icon: IconUsers },
 ];
 
 
@@ -584,8 +646,34 @@ export function permits(roles: string[], role?: RoleGate): boolean {
  * has the last word on every one.
  */
 export function screenRole(pathname: string): RoleGate | undefined {
+  const gate = SCREEN_GATES.find((g) => g.match.test(pathname));
+  if (gate) return gate.role;
+
   return bestRow(NAV.flatMap((item) => (item.kind === "link" ? [item] : item.links)), pathname)?.role;
 }
+
+/**
+ * Screens whose role is not the role of the row they sit under.
+ *
+ * `bestRow` gates a path on the longest sidebar row above it, which is right
+ * for every record screen but one kind: a screen under a record's **id** that
+ * a second desk works. An event's registrations are `/admin/events/{id}/
+ * registrations`; the longest row above that is Events, a `content_manager`
+ * screen, and the API gives the registrations to
+ * `role:content_manager,sales_manager` — so by the row alone a sales manager
+ * following the link in a "new registration" email met a 404 for a list the
+ * API would have handed them. No row can fix it, because a row's path is a
+ * prefix and the id is in the middle.
+ *
+ * So the exception is stated here, once, as a path shape and the route's own
+ * `role:` spelling. Checked before the rows; anything not listed is gated by
+ * its row exactly as before. Keep each entry to one line with no `h`+`ref`
+ * key in it — `AdminNavRolesTest` reads rows out of this file by that key,
+ * and this is not a row.
+ */
+const SCREEN_GATES: { match: RegExp; role: RoleGate }[] = [
+  { match: /^\/admin\/events\/\d+\/registrations$/, role: "content_manager,sales_manager" },
+];
 
 export function navFor(roles: string[]): NavItem[] {
   /*
@@ -659,17 +747,65 @@ export type NavEntry =
  * The same rows as `{label, href, group}` for the command palette — the
  * screens this role may open, with no icons, so the palette's client bundle
  * carries none of the map either — plus, for each settings screen the role
- * may open, its tabs and its fields.
+ * may open, its tabs and its fields, and the named parts of a screen in
+ * `PALETTE_SECTIONS`.
  */
-export function palettePages(roles: string[]): { label: string; href: string; group?: string }[] {
+export function palettePages(roles: string[]): { label: string; href: string; group?: string; keywords?: string }[] {
   const screens = navFor(roles).flatMap((item) =>
     item.kind === "link"
       ? [{ label: item.label, href: item.href }]
       : item.links.map((l) => ({ label: l.label, href: l.href, group: item.label })),
   );
   const open = new Set(screens.map((s) => s.href));
-  return [...screens, ...settingsPages().filter((r) => open.has(r.href.split(/[?#]/)[0]))];
+  const reachable = (r: { href: string }) => open.has(r.href.split(/[?#]/)[0]);
+  // Your own account is in the account menu, not the sidebar (2026-10-12:
+  // the row and the menu item were the same link twice); every role has it.
+  const account = { label: "Your account", href: "/admin/profile" };
+  return [...screens, account, ...PALETTE_SECTIONS.filter(reachable), ...settingsPages().filter(reachable)];
 }
+
+/**
+ * Parts of a screen that people look for by a name the screen does not carry.
+ *
+ * Asked for on 2026-10-08: "I have searched for cron in Ctrl+K but not
+ * coming". The scheduler's command is a card on System status, and the
+ * palette matched only a screen's own label and its group — so the one thing
+ * an administrator is sent to find after installing had no row. Each entry
+ * opens its screen at the part's own id, and `keywords` are the other words
+ * somebody types for it; the palette matches them and never shows them. Kept
+ * by `palettePages` only for a role whose sidebar names the screen, the rule
+ * the settings rows follow.
+ */
+const PALETTE_SECTIONS: { label: string; href: string; group: string; keywords: string }[] = [
+  {
+    label: "Scheduler command (cron job)",
+    href: "/admin/system/status#scheduler",
+    group: "System · System status",
+    keywords: "cron crontab cronjob scheduler schedule:run schedule:work scheduled task task scheduler background jobs queue",
+  },
+  // Asked for as "video", "youtube" and "shorts" (0.140.0): the screen is
+  // called Product videos, and the words people type for it are these.
+  {
+    label: "Shop the videos (YouTube, Shorts)",
+    href: "/admin/store/videos",
+    group: "Store · Product videos",
+    keywords: "video videos youtube shorts reel clip autoplay watch shop the videos",
+  },
+  // Typed as "gst", "tax" and "invoice" far more often than as the screen's
+  // own name, which is what these keywords are for.
+  {
+    label: "GST rate and tax invoices",
+    href: "/admin/store/invoicing",
+    group: "Store \u00b7 Tax and invoicing",
+    keywords: "gst tax rate invoice invoicing hsn sac cgst sgst igst gstin inclusive exclusive bill",
+  },
+  {
+    label: "Speed suggestions",
+    href: "/admin/system/status#speed",
+    group: "System · System status",
+    keywords: "speed slow slower performance fast faster opcache cache caching optimise optimize lag loading",
+  },
+];
 
 /**
  * The settings screens, one row per tab and one per setting.

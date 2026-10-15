@@ -76,6 +76,10 @@ final class Importer
             if ($step->key() === 'media_library') {
                 $labels[Context::MEDIA_STEP] = 'Files and pictures';
             }
+
+            if ($step->key() === 'pages') {
+                $labels[Rendered\Parts::STEP] = Rendered\Parts::LABEL;
+            }
         }
 
         return $labels;
@@ -188,9 +192,8 @@ final class Importer
     {
         $cursor = ['step' => $step, 'offset' => $offset, 'report' => $ctx->report->toArray()];
 
-        if ($ctx->dryRun) {
-            $cursor['planned'] = $ctx->map->planned();
-        }
+        // The commit carries it too: `Parts` counts a form placed on many pages once per run.
+        $cursor['planned'] = $ctx->map->planned();
 
         $import->update(['progress' => array_merge($import->progress ?? [], [
             $slot => $cursor,

@@ -7,6 +7,8 @@ use App\Support\Backups\Manifest;
 use App\Support\QueueHealth;
 use App\Support\System\AppVersion;
 use App\Support\System\Requirements;
+use App\Support\System\SchedulerSetup;
+use App\Support\System\SpeedChecks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
 
@@ -24,6 +26,12 @@ class SystemController extends Controller
     public function status(): JsonResponse
     {
         $storage = storage_path();
+        // Before anything slow here: how long the request had taken to reach this line.
+        $bootMs = SpeedChecks::bootMs();
+        $started = microtime(true);
+        $website = self::website();
+        // A refused or timed-out call measures the timeout, not the website.
+        $websiteMs = $website['reachable'] ? (int) round((microtime(true) - $started) * 1000) : null;
 
         return response()->json(['data' => [
             'version' => AppVersion::read(),
@@ -36,12 +44,16 @@ class SystemController extends Controller
                 'max_execution_time' => (int) ini_get('max_execution_time'),
                 'memory_limit' => (string) ini_get('memory_limit'),
             ],
-            'scheduler' => QueueHealth::scheduler(),
+            // Whether it is running, and — whether or not it is — the exact
+            // command this server needs for it, worked out and tested here.
+            'scheduler' => QueueHealth::scheduler() + ['setup' => SchedulerSetup::report()],
             'disk' => [
                 'free' => @disk_free_space($storage) ?: null,
                 'total' => @disk_total_space($storage) ?: null,
             ],
-            'website' => self::website(),
+            'website' => $website,
+            // What is slowing the site down, and how to fix each thing (docs/distribution.md "Speed suggestions").
+            'speed' => SpeedChecks::run($bootMs, $websiteMs),
         ]]);
     }
 

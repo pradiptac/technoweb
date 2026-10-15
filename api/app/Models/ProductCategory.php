@@ -10,6 +10,7 @@ use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
 use App\Support\Mail\MailBrand;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -93,7 +94,7 @@ class ProductCategory extends Model implements Answerable, Faqable
             'description' => str(HtmlSanitiser::toText($this->description ?? ''))->limit(155)->value()
                 ?: "Browse {$this->name} supplied, deployed and supported by ".MailBrand::name().' engineers.',
             'canonical_url' => config('app.frontend_url').'/products/'.$this->slug,
-            'og_image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
+            'og_image' => $this->image_path ? MediaUrl::for($this->image_path) : null,
             'schema_type' => 'CollectionPage',
         ];
     }

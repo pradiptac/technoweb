@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkSolutionsAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
-import { iconMap, IconNetwork, type IconName } from "@/components/icons";
+import { IconByKey, IconNetwork } from "@/components/icons";
 import { getSolutions, type SolutionQueryParams } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -35,9 +37,8 @@ function FilterField({ label, htmlFor, children }: { label: string; htmlFor: str
 
 /** The stored icon is a name; only names in iconMap render on the site. */
 function RowIcon({ name }: { name: string | null }) {
-  const Icon = name && name in iconMap ? iconMap[name as IconName] : IconNetwork;
   return (
-    <IconTile size="sm"><Icon /></IconTile>
+    <IconTile size="sm"><IconByKey name={name} Fallback={IconNetwork} /></IconTile>
   );
 }
 
@@ -113,10 +114,13 @@ export default async function AdminSolutionsPage({
             : "Solutions are the practice areas the site leads with."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="solutions" ids={solutions.map((s) => s.id)} noun={{ one: "solution", many: "solutions" }} action={bulkSolutionsAction} />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[720px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="solutions" ids={solutions.map((s) => s.id)} noun="solution" /></th>
                 <th scope="col" className="px-3 py-1.5">Solution</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
                 <th scope="col" className="px-3 py-1.5">Benefits</th>
@@ -126,6 +130,7 @@ export default async function AdminSolutionsPage({
             <tbody>
               {solutions.map((s) => (
                 <tr key={s.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="solutions" id={s.id} label={s.title} /></td>
                   <td data-label="Solution" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <RowIcon name={s.icon} />
@@ -150,6 +155,7 @@ export default async function AdminSolutionsPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/solutions" params={paginationParams} />

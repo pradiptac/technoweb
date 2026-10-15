@@ -74,6 +74,69 @@ export function ChoiceField({
   );
 }
 
+/** The select's last option: a model id typed in, from openrouter.ai/models. */
+export const CUSTOM_MODEL = "__custom__";
+
+export const CUSTOM_MODEL_HINT =
+  "Paste the id exactly as openrouter.ai/models shows it, e.g. google/gemma-4-31b-it:free. Save, then press Test this model.";
+
+/**
+ * One of the two OpenRouter model pickers (`seo_ai_model`, `chatbot_model`):
+ * the API's described list, and a last option, "Another OpenRouter model…",
+ * which reveals a box for any id on openrouter.ai/models (0.165.0).
+ *
+ * The API flags a stored id from outside its list (`custom`); that row is not
+ * drawn as an option of its own here, it *is* the custom option, with the id
+ * in the box. The select is controlled and unnamed (`<Form>` puts it back
+ * after a refusal); the named hidden input carries the value that is posted —
+ * the listed id, or the typed one. The API refuses an id OpenRouter does not
+ * list, and says so on the row.
+ */
+export function ModelField({
+  id, label, value, options,
+}: {
+  id: string;
+  label: string;
+  value: string | null;
+  options: { value: string; label: string; description: string; custom?: boolean }[];
+}) {
+  const listed = options.filter((o) => !o.custom);
+  const stored = options.find((o) => o.custom)?.value ?? "";
+  const [chosen, setChosen] = useState(stored ? CUSTOM_MODEL : (value ?? listed[0]?.value ?? ""));
+  const [typed, setTyped] = useState(stored);
+  const custom = chosen === CUSTOM_MODEL;
+  const description = custom ? undefined : listed.find((o) => o.value === chosen)?.description;
+
+  // Re-assert the DOM value after a render: see ChoiceField.
+  const ref = useRef<HTMLSelectElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (el && el.value !== chosen) el.value = chosen;
+  });
+
+  return (
+    <div>
+      <Field label={label} htmlFor={`${id}-choice`} variant="float-static" hint={description}>
+        <Select ref={ref} id={`${id}-choice`} value={chosen} onChange={(e) => setChosen(e.currentTarget.value)}>
+          {listed.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+          <option value={CUSTOM_MODEL}>Another OpenRouter model…</option>
+        </Select>
+      </Field>
+      <input type="hidden" id={id} name={id} value={custom ? typed.trim() : chosen} />
+      {custom && (
+        <Field label="OpenRouter model id" htmlFor={`${id}-custom`} hint={CUSTOM_MODEL_HINT}>
+          <Input
+            id={`${id}-custom`} value={typed} onChange={(e) => setTyped(e.currentTarget.value)}
+            maxLength={100} spellCheck={false} autoCapitalize="none" autoCorrect="off" className="font-mono text-14"
+          />
+        </Field>
+      )}
+    </div>
+  );
+}
+
 /**
  * Whether a stored boolean setting is on, read the way the API reads it:
  * `Setting::get()` passes a `boolean` row through `FILTER_VALIDATE_BOOLEAN`,
@@ -90,21 +153,53 @@ export function settingOn(value: string | null | undefined): boolean {
  * for, drawn as a switch rather than a text box that wanted a 1 or a 0.
  *
  * The decision is the row's own `type`, which the seeder keeps current on
- * every run, so a new `*_enabled` row needs nothing here. A boolean that
- * does arrive with `options` (the backup switches, basket reminders) stays a
- * `ChoiceField`, because there the options' descriptions are the point.
+ * every run, so a new `*_enabled` row needs nothing here.
+ *
+ * A row the API offers exactly an Off and an On for (the backup switches,
+ * basket reminders, meetings) is a switch too since 0.135.0 — see
+ * `onOffNotes()` — and the line under its label is the description of the
+ * state it is in, changing as it is pressed: the explanations were the point
+ * of the dropdown those rows used to be, so they are kept.
+ *
+ * No box around it: the switch is the control, and a bordered panel per
+ * setting was most of the height of a screen of them.
  * `SettingSwitch` posts `1`/`0` through its hidden input, exactly what the
- * text box accepted, so the save path and the API are unchanged.
+ * text box and the dropdown posted, so the save path and the API are
+ * unchanged.
  */
-export function SettingSwitchField({ id, label, hint, defaultValue }: { id: string; label: string; hint?: string; defaultValue: string | null }) {
+export function SettingSwitchField({
+  id, label, hint, defaultValue, notes,
+}: {
+  id: string;
+  label: string;
+  hint?: string;
+  defaultValue: string | null;
+  /** What each state means, when the API said so. */
+  notes?: { on?: string; off?: string };
+}) {
   const [on, setOn] = useState(settingOn(defaultValue));
+  const note = (on ? notes?.on : notes?.off) || hint;
   return (
-    <div className="mb-5 rounded-lg border border-line-strong bg-surface px-4 py-3">
-      <SettingSwitch id={id} name={id} checked={on} onChange={setOn} align={hint ? "start" : "center"} note={hint}>
+    <div className="mb-4 min-w-0 self-start py-1">
+      <SettingSwitch id={id} name={id} checked={on} onChange={setOn} align={note ? "start" : "center"} note={note}>
         {label}
       </SettingSwitch>
     </div>
   );
+}
+
+/**
+ * The two descriptions of a row whose choices are exactly `0` and `1`, or
+ * null for any other list. Decided by the options themselves, never by a
+ * list of keys, so the next on/off setting the API describes needs nothing
+ * here — and a two-choice row with other values ("dispatched"/"paid") stays
+ * a dropdown.
+ */
+export function onOffNotes(options?: { value: string; description?: string }[] | null): { on?: string; off?: string } | null {
+  if (!options || options.length !== 2) return null;
+  const off = options.find((o) => o.value === "0");
+  const on = options.find((o) => o.value === "1");
+  return off && on ? { on: on.description, off: off.description } : null;
 }
 
 /**

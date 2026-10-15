@@ -35,7 +35,7 @@ export default function PortalError({
   if (stale) {
     return (
       <div>
-        <ErrorState title="This page is out of date">
+        <ErrorState level={1} title="This page is out of date">
           The site was updated while this tab was open, so that did not go
           through. <strong>Nothing was changed.</strong> Reload the page and try
           again.
@@ -49,7 +49,7 @@ export default function PortalError({
 
   return (
     <div>
-      <ErrorState title="Something went wrong">
+      <ErrorState level={1} title="Something went wrong">
         We could not load this page. This has been logged — try again, and if it keeps
         happening, call the support line and we will raise the ticket for you.
       </ErrorState>

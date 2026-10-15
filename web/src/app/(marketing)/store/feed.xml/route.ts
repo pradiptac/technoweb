@@ -58,6 +58,26 @@ async function everyItem(): Promise<StoreFeedItem[]> {
   return rows;
 }
 
+/**
+ * The `<g:shipping>` block — left out when the row carries no price for it.
+ *
+ * In zones mode (0.142.0) delivery is charged by destination and weight, and
+ * the API declares no figure: any single price here would be one the landing
+ * page does not charge. Shipping rules are then set in Merchant Center itself.
+ */
+function shipping(row: StoreFeedItem): string {
+  if (row.shipping_price === undefined) return "";
+
+  return `      <g:shipping>
+        <g:country>${xml(row.shipping_country ?? "")}</g:country>
+        <g:service>${xml(row.shipping_service ?? "")}</g:service>
+        <g:price>${xml(row.shipping_price)}</g:price>
+        <g:min_transit_time>${xml(String(row.min_transit_time ?? ""))}</g:min_transit_time>
+        <g:max_transit_time>${xml(String(row.max_transit_time ?? ""))}</g:max_transit_time>
+      </g:shipping>
+`;
+}
+
 function item(row: StoreFeedItem): string {
   /*
    * Order follows Google's own specification page, so a person diffing this
@@ -75,14 +95,7 @@ ${tag("id", row.id)}${tag("item_group_id", row.item_group_id)}${tag("title", row
       </g:product_detail>
 `,
     )
-    .join("")}      <g:shipping>
-        <g:country>${xml(row.shipping_country)}</g:country>
-        <g:service>${xml(row.shipping_service)}</g:service>
-        <g:price>${xml(row.shipping_price)}</g:price>
-        <g:min_transit_time>${xml(String(row.min_transit_time))}</g:min_transit_time>
-        <g:max_transit_time>${xml(String(row.max_transit_time))}</g:max_transit_time>
-      </g:shipping>
-${tag("shipping_weight", row.shipping_weight)}${tag("min_handling_time", row.min_handling_time)}${tag("max_handling_time", row.max_handling_time)}    </item>`;
+    .join("")}${shipping(row)}${tag("shipping_weight", row.shipping_weight)}${tag("min_handling_time", row.min_handling_time)}${tag("max_handling_time", row.max_handling_time)}    </item>`;
 }
 
 export async function GET() {

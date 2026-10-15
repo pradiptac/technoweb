@@ -4,6 +4,7 @@ import { SortTh } from "@/components/admin/sort-th";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { IconWrench } from "@/components/icons";
 import { getVisits } from "@/lib/admin";
@@ -132,7 +133,7 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
       </div>
 
       {visits.length === 0 ? (
-        <EmptyState icon={<IconWrench />} title={filtered ? "Nothing matches those filters" : "No visit requests yet"}>
+        <EmptyState icon={<IconWrench />} title={filtered ? "Nothing matches those filters" : "No visit requests yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/visits" noun="visit request" />}>
           {filtered
             ? "Try a different term, or clear the filters."
             : "Requests from the Book a site visit page appear here."}

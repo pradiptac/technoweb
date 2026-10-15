@@ -4,9 +4,12 @@ import { SortTh } from "@/components/admin/sort-th";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge, orderStatusTone } from "@/components/ui/badge";
 import { IconBox } from "@/components/icons";
+import { RowTick, TickAll } from "@/components/admin/row-selection";
+import { ManifestBar, ORDERS_SCOPE } from "./manifest-bar";
 import { getStoreOrders } from "@/lib/admin";
 import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
@@ -23,7 +26,8 @@ export const metadata = buildMetadata({ title: "Orders", path: "/admin/store/ord
 */
 
 type SearchParams = {
-  q?: string; status?: string; open?: string; unpaid?: string; page?: string; per_page?: string; sort?: string; dir?: string;
+  q?: string; status?: string; open?: string; unpaid?: string; zoho?: string; shipment?: string;
+  page?: string; per_page?: string; sort?: string; dir?: string;
 };
 
 export default async function StoreOrdersPage({
@@ -42,6 +46,8 @@ export default async function StoreOrdersPage({
       status: params.status,
       open: params.open === "1",
       unpaid: params.unpaid === "1",
+      zoho: params.zoho,
+      shipment: params.shipment,
       sort: params.sort,
       dir: params.dir,
       page: Number(params.page) || 1,
@@ -56,8 +62,12 @@ export default async function StoreOrdersPage({
   }
 
   const orders = result.data;
-  const filtered = Boolean(params.q || params.status || params.open || params.unpaid);
-  const listParams = { q: params.q, status: params.status, open: params.open, unpaid: params.unpaid, per_page: params.per_page, sort: params.sort, dir: params.dir };
+  // Ticks and the manifest bar only where Shiprocket is on (0.159.0): elsewhere they would be a column that does nothing.
+  const courierActive = result.meta.courier_active === true;
+  const zohoFailed = params.zoho === "failed";
+  const shipmentTrouble = params.shipment === "problem";
+  const filtered = Boolean(params.q || params.status || params.open || params.unpaid || zohoFailed || shipmentTrouble);
+  const listParams = { q: params.q, status: params.status, open: params.open, unpaid: params.unpaid, zoho: zohoFailed ? "failed" : undefined, shipment: shipmentTrouble ? "problem" : undefined, per_page: params.per_page, sort: params.sort, dir: params.dir };
   const sortable = { basePath: "/admin/store/orders", params: listParams, sort: params.sort, dir: params.dir };
 
   return (
@@ -97,13 +107,29 @@ export default async function StoreOrdersPage({
           </Select>
         </FilterField>
 
+        {/* Arrived from the dashboard's tile: kept across Apply, dropped by Clear. */}
+        {zohoFailed && <input type="hidden" name="zoho" value="failed" />}
+        {shipmentTrouble && <input type="hidden" name="shipment" value="problem" />}
+
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
           {filtered && <ButtonLink href="/admin/store/orders" variant="ghost" size="sm">Clear</ButtonLink>}
         </div>
       </FilterBar>
 
-      {result.meta.pending_payment > 0 && !params.unpaid && (
+      {zohoFailed && (
+        <p className="mb-3 text-13 text-muted">
+          Showing orders whose Zoho Books invoice was refused. Open one to read why and try again.
+        </p>
+      )}
+
+      {shipmentTrouble && (
+        <p className="mb-3 text-13 text-muted">
+          Showing orders whose parcel the courier is bringing back or cancelled. Open one to see what happened and decide what to do.
+        </p>
+      )}
+
+      {result.meta.pending_payment > 0 && !params.unpaid && !zohoFailed && !shipmentTrouble && (
         <p className="mb-3 text-13 text-muted">
           <Link href="/admin/store/orders?unpaid=1" className="font-semibold text-brand-ink underline">
             {result.meta.pending_payment} awaiting payment
@@ -112,8 +138,10 @@ export default async function StoreOrdersPage({
         </p>
       )}
 
+      {courierActive && orders.length > 0 && <ManifestBar orders={orders.map((o) => ({ id: o.id, number: o.order_number }))} />}
+
       {orders.length === 0 ? (
-        <EmptyState icon={<IconBox />} title={filtered ? "Nothing matches those filters" : "No orders yet"}>
+        <EmptyState icon={<IconBox />} title={filtered ? "Nothing matches those filters" : "No orders yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/store/orders" noun="order" />}>
           {filtered ? "Try a different term, or clear the filters." : "Orders placed in the shop appear here."}
         </EmptyState>
       ) : (
@@ -121,6 +149,9 @@ export default async function StoreOrdersPage({
           <table className="admin-table w-full min-w-[820px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                {courierActive && (
+                  <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope={ORDERS_SCOPE} ids={orders.map((o) => o.id)} noun="order" /></th>
+                )}
                 <th scope="col" className="px-3 py-1.5">Order</th>
                 <SortTh sortKey="customer" label="Customer" {...sortable} />
                 <SortTh sortKey="total" label="Total" {...sortable} />
@@ -131,6 +162,9 @@ export default async function StoreOrdersPage({
             <tbody>
               {orders.map((o) => (
                 <tr key={o.id} className="border-b border-line last:border-b-0 align-top">
+                  {courierActive && (
+                    <td data-label="Select" className="px-3 py-2"><RowTick scope={ORDERS_SCOPE} id={o.id} label={o.order_number} /></td>
+                  )}
                   <td data-label="Order" className="px-3 py-2">
                     <Link href={`/admin/store/orders/${o.order_number}`} className="font-mono text-12-5 font-medium hover:underline">
                       {o.order_number}

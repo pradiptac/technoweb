@@ -29,7 +29,7 @@ function payload(formData: FormData): PopupPayload {
     // the API decides whether a picture is left to carry the popup.
     body: str("body"),
     link_url: str("link_url") || null,
-    link_new_tab: formData.get("link_new_tab") === "on",
+    link_new_tab: formData.get("link_new_tab") === "1",
 
     sections: formData.getAll("sections").map(String).filter(Boolean),
     /*

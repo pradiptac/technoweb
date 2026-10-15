@@ -29,6 +29,11 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "The same for a site-visit request — a new install starts with the initials and a V, so ANV makes ANV-2026-00007. New requests only.",
     placeholder: "ANV",
   },
+  return_reference_prefix: {
+    label: "Return reference prefix",
+    hint: "The same for a return: RMA makes RMA-2026-00007. New returns only.",
+    placeholder: "RMA",
+  },
   order_number_prefix: {
     label: "Order number prefix",
     hint: "The same for a shop order: ORD makes ORD-2026-00118. New orders only.",
@@ -53,7 +58,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   */
   chatbot_enabled: {
     label: "Website assistant",
-    hint: "Off by default, because switched on it spends money on every message.",
+    hint: "Off by default, because switched on it spends money on every message. Its key and its model are under Settings → API keys.",
   },
   chatbot_name: {
     label: "Assistant name",
@@ -109,6 +114,10 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Assistant background",
     hint: "The colour behind the conversation, between the header and the message box. Blank uses the palest brand tint from Colour palette. The bubbles stay white cards on it; anything drawn straight on the colour takes a text colour worked out to stay readable.",
   },
+  chatbot_header: {
+    label: "Assistant header colour",
+    hint: "The bar across the top of the panel, behind the assistant's name. Blank uses the theme's own colour from Colour palette. The name, the line under it and the close button take a text colour worked out to stay readable on whatever you choose.",
+  },
   chatbot_animation: {
     label: "Animation",
     hint: "How the button bids for attention until somebody opens it. Every style stops once the panel has been opened, and none plays for a visitor who has asked for reduced motion.",
@@ -127,7 +136,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   chatbot_smart_intake: {
     label: "Read the answers with the model",
-    hint: "On by default. With an API key configured, the model reads each answer before the rules do: keyboard noise is refused where a shape check would let it through, a name is lifted out of the sentence around it, and a question asked instead of an answer is answered with the intake question put back. One small call per answer; never charged without a key, and never past the daily cap. The rules still have the last word.",
+    hint: "On by default. With an OpenRouter key configured, the model reads each answer before the rules do: keyboard noise is refused where a shape check would let it through, a name is lifted out of the sentence around it, and a question asked instead of an answer is answered with the intake question put back. One small call per answer; never charged without a key, and never past the daily cap. The rules still have the last word.",
   },
   chatbot_intake_questions: {
     label: "The questions it asks",
@@ -142,8 +151,8 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "Off by default. Sends the sales address the question and whoever asked it. The Unanswered screen already groups these; this is for catching somebody while they are still on the site, and switched on a busy afternoon is a lot of email.",
   },
   chatbot_model: {
-    label: "AI model",
-    hint: "Blank uses the model in the server's own configuration. A model this account cannot call fails on every message.",
+    label: "Model for the website assistant",
+    hint: "The model that answers visitors in the chat. Choose one whose maker's key is in your OpenRouter account, save, then press Test this model below.",
   },
   chatbot_max_message_chars: { label: "Longest message (characters)" },
   chatbot_max_messages: {
@@ -168,11 +177,11 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   */
   seo_ai_enabled: {
     label: "AI SEO assistant",
-    hint: "Off by default. It only ever runs when somebody presses a button on a record; it is never called while a page is being rendered.",
+    hint: "Off by default. It only ever runs when somebody presses a button on a record; it is never called while a page is being rendered. Its key and its model are under Settings → API keys.",
   },
   seo_ai_model: {
-    label: "AI model",
-    hint: "Leave blank to use whatever the chatbot uses. After changing it, ask for one suggestion on any record to confirm the model works — a model this account cannot call fails on every request.",
+    label: "Model for SEO, alt text and page drafts",
+    hint: "The model behind the SEO assistant's suggestions, alt text, article drafts and Draft with AI. Choose one whose maker's key is in your OpenRouter account, save, then press Test this model below.",
   },
   seo_ai_daily_cap: {
     label: "AI requests per day",
@@ -226,6 +235,26 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   visit_default_minutes: {
     label: "Default visit length (minutes)",
     hint: "What the confirm form suggests, and how long the calendar entry is when nobody says otherwise.",
+  },
+  /*
+    Events (0.118.0, docs/events.md). Three rows, none public: where a new
+    registration is announced, when the reminder goes, and how many seats one
+    registration may take unless the event says otherwise.
+  */
+  events_email: {
+    label: "Registrations go to",
+    hint: "Where each new event registration is announced. Blank sends them to the sales inbox.",
+    placeholder: "events@example.com",
+  },
+  event_reminder_hours: {
+    label: "Reminder (hours before the start)",
+    hint: "Everyone with a confirmed place is emailed once, this long before the event starts. 0 to 168; 0 sends no reminder.",
+    placeholder: "24",
+  },
+  event_max_seats: {
+    label: "Seats per registration",
+    hint: "The most one person may register for at once, 1 to 20 — what a new event starts with. Each event can set its own on its Registration tab.",
+    placeholder: "5",
   },
   /*
     Online meetings (2026-09-29, docs/meetings.md). The defaults every host
@@ -299,6 +328,59 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "Blank uses the connected account's own calendar. Or a calendar's ID from its settings in Google Calendar.",
     placeholder: "primary",
   },
+  /*
+    Zoho Books invoices (0.134.0, docs/store.md). The organisation and the
+    two taxes are Zoho's own lists, so the connection panel draws them.
+  */
+  zoho_books_enabled: {
+    label: "Create invoices in Zoho Books",
+    hint: "On, each order gets a GST invoice in your Zoho Books and its PDF is attached to the order for the customer. Off, invoices are uploaded by hand as before.",
+  },
+  zoho_books_dc: {
+    label: "Zoho data centre",
+    hint: "Where your Zoho account lives: the address you sign in at. An Indian account is zoho.in.",
+  },
+  zoho_books_oauth_client_id: {
+    label: "Client ID",
+    hint: "From a Server-based Application in the Zoho API Console (api-console.zoho.in), with the redirect address below registered.",
+  },
+  zoho_books_oauth_client_secret: { label: "Client secret" },
+  zoho_books_invoice_when: {
+    label: "Make the invoice",
+    hint: "An order with nothing to ship — a licence, a service — is invoiced when it is paid, whichever is chosen.",
+  },
+  zoho_books_send_payments: {
+    label: "Record payments and refunds in Zoho Books",
+    hint: "On, each payment on an order is recorded against its Zoho invoice and each refund becomes a credit note. Off, only the invoice is made and the rest is entered in Zoho by hand.",
+  },
+  /*
+    Shiprocket (0.143.0, docs/store.md). The pickup location is Shiprocket's
+    own list, so the connection panel draws it; the sign-in is an API user made
+    under Settings → API in Shiprocket, never the panel login.
+  */
+  store_courier_provider: {
+    label: "How parcels are booked",
+    hint: "By hand is the form you have always had: you type the courier and tracking number on each order. Shiprocket adds a Book button to the order page, prints the label and brings the courier's status back by itself.",
+  },
+  shiprocket_email: {
+    label: "API user email",
+    hint: "From Settings → API → Create an API user in Shiprocket. It has to be a different address from the one you sign in to Shiprocket with.",
+  },
+  shiprocket_password: {
+    label: "API user password",
+    hint: "The password Shiprocket showed once when it made the API user. Stored encrypted and never shown again.",
+  },
+  shiprocket_parcel_length: { label: "Usual parcel length (cm)", hint: "A whole number. Filled in on each booking; change it there when a parcel differs." },
+  shiprocket_parcel_breadth: { label: "Usual parcel breadth (cm)" },
+  shiprocket_parcel_height: { label: "Usual parcel height (cm)" },
+  shiprocket_webhook_token: {
+    label: "Webhook token",
+    hint: "Make one up — at least 16 letters and digits — and paste the same one into Shiprocket's webhook settings. Without it nothing Shiprocket sends is accepted.",
+  },
+  zoho_books_home_state: {
+    label: "Your state (place of business)",
+    hint: "The state your GSTIN is registered in. A sale delivered inside it carries CGST and SGST; one to any other state carries IGST.",
+  },
   lead_intent_words: {
     label: "More buying words",
     hint: "One word or phrase per line, added to the built-in list. Whole words only, so \"PO\" does not match \"port\"; plurals and -ing forms are matched for you.",
@@ -351,7 +433,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   store_shipping_paise: {
     label: "Delivery charge, in paise",
-    hint: "0 means free delivery. The same figure is shown on every product page, declared in the Google shopping feed and written into each product's Offer markup — three places, one number, so they cannot disagree.",
+    hint: "The flat charge, added to any order that ships something. 0 means free delivery. In flat mode the same figure is shown on every product page, declared in the Google shopping feed and written into each product's Offer markup. Zones, weight slabs and the choice between them are under Store → Shipping.",
     placeholder: "0",
   },
   store_handling_days: {
@@ -378,6 +460,15 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Return window, in days",
     hint: "Counted from delivery. Shown on every returnable product and declared to Google as the return policy; a product marked non-returnable ignores it.",
     placeholder: "7",
+  },
+  store_returns_enabled: {
+    label: "Let customers ask for a return online",
+    hint: "On, a delivered order's page offers “Return items” until the return window closes, and requests arrive under Store → Returns. Off, customers are told to contact you.",
+  },
+  store_return_instructions: {
+    label: "How to send goods back",
+    hint: "Plain text, added to the email a customer gets when a return is approved — the address to send to, or that you will arrange a collection.",
+    placeholder: "Send to: Returns Desk, …",
   },
   store_cart_reminders_enabled: {
     label: "Send basket reminders",
@@ -415,6 +506,84 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   meta_catalogue_enabled: {
     label: "Meta catalogue feed",
     hint: "On publishes /meta-catalogue.xml and /meta-catalogue.csv for Facebook, Instagram and WhatsApp Business (Commerce Manager); off answers both with not found. The same products and prices as the Google feed.",
+  },
+  store_videos_shop_enabled: { label: "On the shop front" },
+  store_videos_product_enabled: { label: "On each product page" },
+  store_videos_product_others: { label: "Fill a product's row with other products' videos" },
+  store_videos_home_enabled: { label: "On the homepage" },
+  store_videos_heading: { label: "Heading", placeholder: "Shop the videos" },
+  store_videos_lede: { label: "Line under the heading", hint: "Optional. Leave blank for none." },
+  store_videos_autoplay: { label: "Play silently when on screen" },
+  store_videos_shape: { label: "Shape of the video" },
+  store_videos_limit: { label: "How many videos" },
+  store_videos_order: { label: "Order" },
+  store_videos_show_sku: { label: "Show the product code" },
+  // The shop's tag row (0.141.0) — edited at /admin/store/tags, not in Settings.
+  store_tags_enabled: { label: "Show the tag row on the shop", hint: "The coloured pills under the search bar on the shop front and the category pages." },
+  store_tags_limit: { label: "Tags shown", hint: "How many tags the row offers, 4 to 30. Ordered by the list below, then by how many products carry them." },
+  store_tags_auto: { label: "Tag new products automatically", hint: "A product with no tags gets some on its first save, from its brand, category and key specifications. Once only: tags you remove never come back." },
+  // Tax and invoicing (0.176.0) — Store -> Tax and invoicing, not a
+  // settings tab. The group is in STANDALONE_GROUPS for that reason.
+  store_gst_percent: {
+    label: "GST rate",
+    hint: "The rate for everything in the shop. A product can name its own on its Pricing tab, which beats this one. It applies to what is sold from now on \u2014 every order keeps the tax it was charged.",
+  },
+  // 0.178.0: a stored price always includes GST, so neither of these two
+  // changes what a customer pays.
+  store_price_basis: {
+    label: "Prices on the website",
+    hint: "Shown with GST, or before GST with the GST added as a row at the checkout. The total is the same either way.",
+  },
+  store_price_entry: {
+    label: "Prices in the console",
+    hint: "Whether you type a product's price with GST in it, or before GST. Before GST, each product's rate is added when you save.",
+  },
+  invoice_enabled: { label: "Make a GST invoice for every paid order" },
+  invoice_legal_name: {
+    label: "Registered business name",
+    hint: "The name on your GST registration, which is often not the trading name. Blank uses the company name from Settings.",
+    placeholder: "Acme Networks Private Limited",
+  },
+  invoice_gstin: {
+    label: "Your GSTIN",
+    hint: "Fifteen characters \u2014 two state digits, your PAN, and three more. Checked for shape only; it is never sent anywhere.",
+    placeholder: "19AABCU9603R1ZM",
+  },
+  invoice_state: {
+    label: "State you are registered in",
+    hint: "This decides the tax on every sale: the same state as the customer is CGST and SGST, a different one is IGST.",
+  },
+  invoice_address: {
+    label: "Address on the invoice",
+    hint: "Your place of business, as it should be printed. Blank uses the address from Settings.",
+  },
+  invoice_email: { label: "Email on the invoice", hint: "Blank uses the one from Settings." },
+  invoice_phone: { label: "Phone on the invoice", hint: "Blank uses the one from Settings." },
+  invoice_prefix: {
+    label: "Invoice number prefix",
+    hint: "The start of every invoice number: INV gives INV/2026-27/00001. Its own series, counted per financial year, and nothing to do with order numbers.",
+    placeholder: "INV",
+  },
+  invoice_hsn_default: {
+    label: "Default HSN or SAC code",
+    hint: "Used on a line whose product has no code of its own. Four to eight digits. A tax invoice should carry one on every line.",
+    placeholder: "8517",
+  },
+  invoice_terms: {
+    label: "Terms",
+    hint: "Printed at the foot of every invoice \u2014 payment terms, a jurisdiction line, anything standing.",
+  },
+  invoice_declaration: {
+    label: "Declaration",
+    hint: "The customary line under the totals. Leave it as it is unless your accountant words it differently.",
+  },
+  invoice_signatory: {
+    label: "Authorised signatory",
+    hint: "The name printed under the signature. Blank prints \u201cAuthorised signatory\u201d.",
+  },
+  invoice_signature_path: {
+    label: "Signature image",
+    hint: "A scan of the signature, on a plain background. Optional \u2014 without one the space is left blank to sign by hand.",
   },
   store_promo_enabled: { label: "Show the promo banner" },
   store_promo_kicker: { label: "Kicker", hint: "The short line above the heading — a category, an offer, a season.", placeholder: "Business laptops, in stock" },
@@ -487,6 +656,21 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   login_backdrop: { label: "Behind the form" },
   login_intensity: { label: "Animation intensity" },
   login_speed: { label: "Animation speed" },
+  // The Motion tab is one picker (`motion-picker.tsx`), which draws its own
+  // legends; these labels name the fields in the command palette.
+  motion_reveal: { label: "Sections arriving" },
+  motion_buttons: { label: "Buttons" },
+  motion_cards: { label: "Cards" },
+  motion_headline: { label: "Hero heading" },
+  motion_micro: { label: "Small interactions" },
+  motion_page: { label: "Page transitions" },
+  motion_loader: { label: "While the next page loads" },
+  motion_progress: {
+    label: "Reading progress",
+    hint: "A thin line along the top of every public page that fills as the visitor scrolls down it. Still for visitors who ask for less motion.",
+  },
+  motion_splash: { label: "First-visit splash" },
+  motion_hero: { label: "Behind a heading" },
   newsletter_company: { label: "Sender name in the footer", hint: "Falls back to the company name above." },
   newsletter_from_name: { label: "From name", hint: "What a recipient sees in place of the address." },
   newsletter_from_email: { label: "From address", hint: "Must be on a domain whose SPF and DKIM records name your mail provider, or messages land in spam." },
@@ -565,6 +749,19 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Passwords still accepted",
     hint: "Turning this off with mail misconfigured locks everybody out, and getting back in then needs somebody with access to the server.",
   },
+  google_login_enabled: {
+    label: "Offer “Continue with Google”",
+    hint: "On the customer sign-in and registration screens. It appears once the client ID and secret below are saved.",
+  },
+  google_login_client_id: {
+    label: "Google client ID",
+    hint: "From your OAuth client in Google Cloud. It ends in .apps.googleusercontent.com.",
+    placeholder: "1234567890-abc….apps.googleusercontent.com",
+  },
+  google_login_client_secret: {
+    label: "Google client secret",
+    hint: "Stored encrypted and never shown again. Leave blank to keep the one saved.",
+  },
   social_linkedin: { label: "LinkedIn", placeholder: "https://www.linkedin.com/company/…" },
   social_x: { label: "X", placeholder: "https://x.com/…" },
   social_facebook: { label: "Facebook", placeholder: "https://www.facebook.com/…" },
@@ -572,6 +769,10 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   social_youtube: { label: "YouTube", placeholder: "https://www.youtube.com/@…" },
   social_whatsapp: { label: "WhatsApp", placeholder: "https://wa.me/919876543210" },
   social_reddit: { label: "Reddit", placeholder: "https://www.reddit.com/r/… or /user/…" },
+  homepage_page_id: {
+    label: "Homepage",
+    hint: "The theme’s own homepage, or a published builder page drawn at / in its place — with its own title, description and sections. To start one from what the theme draws today, press “New homepage from the theme” on Content → Pages.",
+  },
   home_stats_block: {
     label: "Stat bar section",
     hint: "A published stat bar to show on the homepage (Site → Stat bars). Where it sits, and whether it shows, is on the Themes screen.",
@@ -625,6 +826,58 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   cookie_consent_accept_label: { label: "Accept button" },
   cookie_consent_reject_label: { label: "Decline button" },
   cookie_consent_policy_url: { label: "Policy link", hint: "Where “Read more” goes. Leave blank to hide the link.", placeholder: "/privacy" },
+  pwa_enabled: {
+    label: "Installable website",
+    hint: "On, visitors can add the site to their phone's home screen or their desktop, and pages they have opened still load without a connection. Off, the site behaves as an ordinary website again on each visitor's next visit.",
+  },
+  pwa_name: { label: "App name", hint: "Shown on the install prompt and the splash screen. Blank uses the company name.", placeholder: "Technoware" },
+  pwa_short_name: { label: "Name under the icon", hint: "At most 12 characters — a phone cuts a longer name off. Blank uses the app name, shortened.", placeholder: "Technoware" },
+  pwa_icon_path: {
+    label: "App icon",
+    hint: "A square PNG, 512 × 512 or larger, with the mark well inside the edges — phones crop the corners into a circle or a rounded square. Blank draws one from the company's initials in the palette's colour.",
+  },
+  pwa_install_prompt: {
+    label: "Offer to install",
+    hint: "A small card inviting a visitor to install the site, shown from their second page, never over the cookie banner, and never again for a month once dismissed. Browsers' own install button works either way.",
+  },
+  media_cdn_enabled: {
+    label: "Serve files from the CDN",
+    hint: "On, videos, documents and vector logos are linked at the address below. Off, every file is served from this server again at once — the address is kept.",
+  },
+  media_cdn_url: {
+    label: "CDN address",
+    hint: "The address your CDN gave you for a pull zone whose origin is this server — https, and nothing after the name. Test it before switching it on.",
+    placeholder: "https://cdn.example.com",
+  },
+  action_bar_enabled: {
+    label: "Show the action bar",
+    hint: "On, a bar with up to three buttons stays at the bottom of the screen on phones. Nothing changes on a tablet or a computer.",
+  },
+  action_bar_call: {
+    label: "Call button",
+    hint: "Rings the phone number on System → Settings → Contact. Hidden while that number is blank.",
+  },
+  action_bar_whatsapp_number: {
+    label: "WhatsApp number",
+    hint: "With the country code, digits only. Blank uses the website assistant's WhatsApp number; with neither, the button is hidden.",
+    placeholder: "919876543210",
+  },
+  action_bar_enquire_label: { label: "Third button", hint: "At most 16 characters.", placeholder: "Enquire" },
+  action_bar_enquire_href: {
+    label: "Third button link",
+    hint: "A path on this site, or a full address. Blank hides the button.",
+    placeholder: "/contact",
+  },
+  coming_soon_enabled: {
+    label: "Show the coming-soon page",
+    hint: "On, every visitor sees the page below instead of the website. You still see the real site in any browser where you are signed in to this console. Allow up to a minute for the change to reach visitors.",
+  },
+  coming_soon_heading: { label: "Heading", placeholder: "We are getting ready" },
+  coming_soon_message: { label: "Message" },
+  coming_soon_image_path: {
+    label: "Picture",
+    hint: "Optional. Shown beside the message on a computer and above it on a phone.",
+  },
   smtp_host: { label: "SMTP host", placeholder: "smtp.example.com" },
   smtp_port: { label: "Port", placeholder: "587" },
   smtp_username: { label: "Username" },
@@ -632,9 +885,9 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   smtp_encryption: { label: "Encryption", hint: "tls, ssl, or none." },
   mail_from_address: { label: "From address", placeholder: "support@example.com" },
   mail_from_name: { label: "From name", placeholder: "Your company Support" },
-  openai_api_key: {
-    label: "OpenAI API key",
-    hint: "One key for every AI feature: the website assistant (its answers, and reading visitors' answers while it asks who they are), and the AI SEO assistant — on a record's form, in bulk from the SEO overview, alt text suggested in the media library, and article drafts made from the questions the assistant could not answer. Nothing is called until the website assistant (Assistant → Settings) or the AI SEO assistant (SEO → Settings) is switched on, and each keeps to its own daily ceiling.",
+  openrouter_api_key: {
+    label: "OpenRouter API key",
+    hint: "One key for every AI feature on the site — the website assistant, the SEO assistant, alt text and page drafts. Create it at openrouter.ai → Keys. To use your own OpenAI or Google AI Studio account, add those keys in OpenRouter (Settings → Integrations, \"bring your own key\"); OpenRouter then routes each model to its provider.",
   },
   gsc_service_account: {
     label: "Search Console service account (JSON key file)",
@@ -662,6 +915,8 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   hero_kicker: { label: "Hero badge", hint: "The small pill above the headline." },
   hero_heading: { label: "Hero headline", hint: "The last word is shown in the brand colour." },
   hero_lede: { label: "Hero paragraph" },
+  hero_kinetic: { label: "Hero headline effect", hint: "How the headline above arrives when the homepage opens. “As the Motion settings say” follows Site → Settings → Motion → Hero heading." },
+  hero_kinetic_words: { label: "Effect words", hint: "Rotating words: what the headline’s last word turns into, one per line, up to six. Highlight: the word to underline — blank underlines the last word." },
   hero_stats: {
     label: "Hero statistics",
     hint: "The figures under the homepage heading. Four fit the row. These are currently invented figures \u2014 replace them before launch.",
@@ -702,7 +957,8 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   /*
     Backups (2026-09-27, docs/backups.md): the schedule and what is in it on
     the first tab, then one tab per destination. The switches arrive with
-    options from the API, so they draw as choices rather than "1 or 0".
+    an Off and an On from the API, so each draws as a switch with the
+    sentence for its state underneath (0.135.0; a dropdown until then).
   */
   backup_enabled: { label: "Scheduled backups" },
   backup_time: { label: "Backup time", hint: "24-hour clock, this site’s time zone. Pick a quiet hour — the database is read while people use the site.", placeholder: "02:15" },
@@ -810,6 +1066,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Satisfaction survey",
     blurb: "A few seconds' rating asked of the customer when their ticket is closed. The wording of the email is under System → Settings → Email templates (Satisfaction survey — to the customer).",
   },
+  events: {
+    title: "Events",
+    blurb: "What every event shares: where a new registration is announced, when the reminder goes out, and how many seats one registration may take unless the event says otherwise. The wording of each email is under System → Email templates.",
+  },
   visits: {
     title: "Engineer visits",
     blurb: "The Book a site visit form: which days and parts of the day it offers, how much notice it needs and how far ahead it reaches, the dates you are closed, and where requests are sent. A request is a wish list — the desk confirms the actual time.",
@@ -825,6 +1085,22 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   analytics: {
     title: "Analytics",
     blurb: "Each loads only when its ID is filled in, and only on the public site — never inside this console or the customer portal. Consent gating is on by default; see the section below.",
+  },
+  pwa: {
+    title: "Installable app",
+    blurb: "The public site as an app a visitor can add to their home screen: its name, its icon, and whether it offers itself. Installed, it opens full screen without the browser's address bar, and pages already visited open without a connection.",
+  },
+  media_cdn: {
+    title: "CDN",
+    blurb: "Optional. A content delivery network keeps copies of your files close to each visitor. This setting covers the files a browser downloads directly — videos, documents and vector (SVG) logos — through a CDN that pulls from this server, such as Bunny, CloudFront or KeyCDN. Photographs are resized by the website itself, so they are sped up differently: by putting the whole website behind a CDN such as Cloudflare, which needs no setting here — the manual's chapter on using a CDN covers both. Nothing is uploaded anywhere; your files stay on this server.",
+  },
+  action_bar: {
+    title: "Phone action bar",
+    blurb: "Call, WhatsApp and one button of your own, pinned to the bottom of the screen on phones — the three things a visitor on a phone most often wants. Each button appears only when it has what it needs, and the bar is off until you switch it on.",
+  },
+  coming_soon: {
+    title: "Coming soon",
+    blurb: "A holding page in front of the whole public site, for the days before launch or while the site is being reworked. This console, the customer portal and links already emailed to customers (orders, visits, meetings) keep working. It is a curtain rather than a lock: it keeps visitors and search engines away, and is not a way to protect confidential pages. To check the wording first, open /coming-soon in this browser: while you are signed in here it shows the page whether or not the switch is on.",
   },
   consent: {
     title: "Cookie consent",
@@ -845,6 +1121,14 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   store_reminders: {
     title: "Basket reminders",
     blurb: "Up to two emails to somebody who left something in their basket, the second of which may carry a discount code. The wording is under System → Email templates. The dashboard counts a basket as recovered when it became an order after a reminder.",
+  },
+  zoho_books: {
+    title: "Zoho Books",
+    blurb: "Optional. Connect your Zoho Books and each order's GST invoice is made there by itself — when the order is dispatched, or when it is paid — and the PDF is attached to the order for the customer to download. Payments are recorded against it and refunds become credit notes. Save the client ID and secret, connect, then choose the organisation, your state, the two taxes and the account each way of paying goes into.",
+  },
+  shiprocket: {
+    title: "Shiprocket courier",
+    blurb: "Optional. Book parcels with Shiprocket from the order page: it makes the order there, assigns a courier, prints the label, asks for the pickup and tells this site when the parcel is picked up and delivered. Left on \"By hand\", nothing here is used and the order page is as it always was. Shiprocket has no test mode — everything pressed on an order acts on your real account.",
   },
   indexnow: {
     title: "IndexNow",
@@ -901,6 +1185,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Browser push",
     blurb: "The browser half of Firebase — Project settings → General → your web app, and Cloud Messaging → Web Push certificates for the key pair. Public by nature: a browser cannot subscribe without it. The bell appears on the shop and in the portal once these five and the push provider are all set.",
   },
+  google_login: {
+    title: "Sign in with Google",
+    blurb: "Lets customers sign in to the portal — and register — with their Google account instead of a code or a password. You need an OAuth client from Google Cloud (APIs & Services → Credentials → Create credentials → OAuth client ID → Web application). Off until you switch it on.",
+  },
   auth: {
     title: "Sign-in",
     blurb: "How people get in. A one-time code by email is the default for both the portal and this console; passwords remain available behind a link. Leave passwords on unless you are certain outgoing mail is reliable — with codes as the only way in, a broken mail configuration locks out every account, including yours.",
@@ -924,10 +1212,13 @@ export const FIELD_ORDER: Record<string, string[]> = {
   backups_ftp: ["backup_ftp_enabled", "backup_ftp_protocol", "backup_ftp_host", "backup_ftp_port", "backup_ftp_username",
                 "backup_ftp_password", "backup_ftp_private_key", "backup_ftp_folder", "backup_ftp_passive"],
   general: ["company_name", "tagline", "logo_path", "favicon_path", "console_notice_seconds"],
-  references: ["ticket_reference_prefix", "visit_reference_prefix", "meeting_reference_prefix", "order_number_prefix"],
+  references: ["ticket_reference_prefix", "visit_reference_prefix", "meeting_reference_prefix", "order_number_prefix", "return_reference_prefix"],
   login: ["login_backdrop", "login_intensity", "login_speed", "login_image_path", "login_message"],
+  // `motion_reveal` first: it is the row the form draws the whole picker on.
+  motion: ["motion_reveal", "motion_buttons", "motion_cards", "motion_headline", "motion_micro", "motion_page", "motion_loader", "motion_progress",
+           "motion_splash", "motion_hero"],
   seo: ["default_meta_description", "default_og_image", "landing_page_cap",
-        "seo_ai_enabled", "seo_ai_model", "seo_ai_daily_cap",
+        "seo_ai_enabled", "seo_ai_daily_cap",
         "seo_ai_business_type", "seo_ai_audience", "seo_ai_locations", "seo_ai_context"],
   banners: ["banner_enabled", "banner_default_path", "banner_solutions_path", "banner_products_path",
             "banner_services_path", "banner_industries_path", "banner_store_path", "banner_support_path",
@@ -939,20 +1230,21 @@ export const FIELD_ORDER: Record<string, string[]> = {
     it asks, decide where a conversation can be carried on, then the ceilings.
     Alphabetical put the daily cap second.
   */
-  chatbot: ["chatbot_enabled", "chatbot_name", "chatbot_show_name", "chatbot_colour", "chatbot_icon", "chatbot_font_size", "chatbot_background", "chatbot_animation",
+  chatbot: ["chatbot_enabled", "chatbot_name", "chatbot_show_name", "chatbot_colour", "chatbot_icon", "chatbot_font_size", "chatbot_header", "chatbot_background", "chatbot_animation",
             "chatbot_welcome", "chatbot_fallback",
             "chatbot_quick_actions", "chatbot_auto_open", "chatbot_auto_open_delay",
             "chatbot_intake_enabled", "chatbot_smart_intake", "chatbot_intake_questions",
             "chatbot_whatsapp_number", "chatbot_forward_unanswered",
-            "chatbot_model", "chatbot_max_message_chars", "chatbot_max_messages",
+            "chatbot_max_message_chars", "chatbot_max_messages",
             "chatbot_context_messages", "chatbot_daily_reply_cap"],
-  homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation", "home_stats_block", "home_stack_block", "home_pricing_block",
+  homepage: ["homepage_page_id", "hero_kicker", "hero_heading", "hero_lede", "hero_kinetic", "hero_kinetic_words", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation", "home_stats_block", "home_stack_block", "home_pricing_block",
              "why_kicker", "why_heading", "why_lede", "why_steps",
              "testimonial_enabled", "testimonial_quote", "testimonial_author", "testimonial_role",
              "amc_enabled", "amc_heading", "amc_inclusions", "amc_link_label", "amc_link_href"],
   mail: ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_encryption",
          "mail_from_address", "mail_from_name"],
-  integrations: ["openai_api_key", "hunter_api_key"],
+  // The key, then the two models it is used with (0.116.0): "Test this model" sits under them.
+  integrations: ["openrouter_api_key", "chatbot_model", "seo_ai_model", "hunter_api_key"],
   /*
     Read as the order somebody sets a newsletter up: the two switches, who it
     comes from, what the footer says, how it is delivered, then the Hunter
@@ -964,6 +1256,10 @@ export const FIELD_ORDER: Record<string, string[]> = {
                "newsletter_address", "newsletter_footer_text",
                "newsletter_batch_size", "newsletter_batch_delay", "hunter_monthly_cap",
                "newsletter_webhook_secret"],
+  pwa: ["pwa_enabled", "pwa_install_prompt", "pwa_name", "pwa_short_name", "pwa_icon_path"],
+  action_bar: ["action_bar_enabled", "action_bar_call", "action_bar_whatsapp_number",
+               "action_bar_enquire_label", "action_bar_enquire_href"],
+  coming_soon: ["coming_soon_enabled", "coming_soon_heading", "coming_soon_message", "coming_soon_image_path"],
   consent: ["cookie_consent_enabled", "cookie_consent_title", "cookie_consent_message",
             "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
   /*
@@ -976,10 +1272,15 @@ export const FIELD_ORDER: Record<string, string[]> = {
   blog: ["blog_video_url", "comments_enabled", "comments_closed_after_days"],
   indexnow: ["indexnow_enabled", "indexnow_key"],
   media: ["image_quality", "media_max_kb", "media_max_video_kb", "media_max_megapixels"],
+  media_cdn: ["media_cdn_enabled", "media_cdn_url"],
   store: ["store_enabled", "digital_auto_fulfil", "activation_procedure", "activation_pdf_path", "store_shipping_paise",
           "store_handling_days", "store_shipping_service", "store_transit_days_min", "store_transit_days_max", "store_return_days",
+          "store_returns_enabled", "store_return_instructions",
           "store_price_drop_min_percent", "store_review_requests_enabled", "store_review_request_days", "meta_catalogue_enabled"],
   store_reminders: ["store_cart_reminders_enabled", "store_cart_reminder_1_hours", "store_cart_reminder_2_days", "store_cart_reminder_coupon"],
+  zoho_books: ["zoho_books_enabled", "zoho_books_invoice_when", "zoho_books_send_payments", "zoho_books_oauth_client_id", "zoho_books_oauth_client_secret"],
+  shiprocket: ["store_courier_provider", "shiprocket_email", "shiprocket_password", "shiprocket_webhook_token",
+               "shiprocket_parcel_length", "shiprocket_parcel_breadth", "shiprocket_parcel_height"],
   leads: ["lead_intent_words"],
   meetings: ["meetings_enabled", "meeting_default_hours", "meeting_slot_step", "meeting_min_notice_hours", "meeting_max_days",
              "meeting_holidays", "meeting_reminders", "meeting_block_google_busy", "meetings_email",
@@ -988,10 +1289,12 @@ export const FIELD_ORDER: Record<string, string[]> = {
   meetings_google: ["meetings_google_oauth_client_id", "meetings_google_oauth_client_secret", "meetings_google_calendar_id"],
   visits: ["visits_enabled", "visit_windows", "visit_days", "visit_min_notice_days", "visit_max_days", "visit_holidays",
            "visits_email", "visit_default_minutes"],
+  events: ["events_email", "event_reminder_hours", "event_max_seats"],
   push: ["push_api_key", "push_project_id", "push_messaging_sender_id", "push_app_id", "push_vapid_key"],
   embeds: ["reviews_embed", "reviews_kicker", "reviews_heading", "reviews_lede", "body_code"],
   portal: ["portal_enabled", "registration_enabled", "customer_approval_required"],
   auth: ["default_login_method", "otp_login_enabled", "otp_admin_login_enabled", "password_login_enabled"],
+  google_login: ["google_login_enabled", "google_login_client_id", "google_login_client_secret"],
   analytics: ["google_analytics_id", "google_tag_manager_id", "google_site_verification", "meta_pixel_id", "meta_domain_verification"],
   security: ["activity_retention_days", "application_retention_days", "chat_retention_days", "client_error_retention_days",
              "comment_retention_days", "seo_ai_retention_days"],
@@ -1007,6 +1310,9 @@ export const FIELD_ORDER: Record<string, string[]> = {
  * "correct"; the Verification screen is where they are read.
  */
 export const HIDDEN = new Set([
+  // Delivery charges: the mode and the default weight are written from /admin/store/shipping,
+  // which refuses "zones" until a default zone with a slab exists (0.142.0).
+  "store_shipping_mode", "store_default_weight_grams",
   "newsletter_verify_error", "newsletter_verify_last_run", "gsc_error", "ga4_error", "inbound_mail_error", "inbound_mail_last_run",
   // The consent a mailbox scan spends, written by the import screen and forgotten by the job.
   // Written by a refused send or test and cleared by a success; the messaging panel shows them.
@@ -1017,6 +1323,20 @@ export const HIDDEN = new Set([
   "backup_gdrive_oauth_refresh_token", "backup_gdrive_oauth_account", "backup_gdrive_oauth_connected_at", "backup_ftp_sftp_fingerprint",
   // Meetings: the Google consent and its last refusal, shown by the connection panel.
   "meetings_google_oauth_refresh_token", "meetings_google_oauth_account", "meetings_google_oauth_connected_at", "meetings_google_error",
+  // Zoho Books: the consent and its last refusal — and the organisation and the two taxes, which the
+  // connection panel draws as selects of Zoho's own lists under these same names.
+  "zoho_books_oauth_refresh_token", "zoho_books_oauth_account", "zoho_books_oauth_connected_at", "zoho_books_error",
+  "zoho_books_organization_id", "zoho_books_tax_intra", "zoho_books_tax_inter",
+  // …and the state, which has no default: the generic select would start on its first option and save it.
+  // The data centre is drawn beside it.
+  "zoho_books_home_state", "zoho_books_dc",
+  // …and the deposit account for each way of paying (0.136.0), selects of Zoho's own accounts, and
+  // which consent the connection holds, which nobody types.
+  "zoho_books_account_gateway", "zoho_books_account_cod", "zoho_books_account_bank_transfer", "zoho_books_account_upi",
+  "zoho_books_scope_version",
+  // Shiprocket: the pickup location is a select of Shiprocket's own list, drawn by the panel under this name
+  // (a blank first option, so nothing is chosen for you), and the last refusal is shown by the panel.
+  "shiprocket_pickup_location", "shiprocket_error",
 ]);
 
 /**
@@ -1068,7 +1388,7 @@ export type SettingsScreen = {
   lede: string;
   saveLabel: string;
   /** Status reads beyond `getSettings()` that a panel on this screen needs. */
-  needs?: ("mail" | "inbound" | "messaging" | "backups" | "meetings")[];
+  needs?: ("mail" | "inbound" | "messaging" | "backups" | "meetings" | "zoho" | "shiprocket")[];
   /** The groups drawn, in order. A `label` puts a heading over those tabs. */
   sections: { label?: string; groups: string[] }[];
 };
@@ -1088,9 +1408,9 @@ export const SCREENS: SettingsScreen[] = [
         choice serve staff and customers alike, which is what keeps them
         here rather than under Customers.
       */
-      { label: "Sign-in", groups: ["login", "auth"] },
+      { label: "Sign-in", groups: ["login", "auth", "google_login"] },
       /*
-        `integrations` holds the OpenAI, Hunter, Search Console and GA4
+        `integrations` holds the OpenRouter, Hunter, Search Console and GA4
         credentials, spent by four modules between them — one credential for
         one provider, so it cannot be half-rotated — which is why it is not
         filed under SEO or the assistant.
@@ -1103,10 +1423,10 @@ export const SCREENS: SettingsScreen[] = [
     path: "/admin/site/settings",
     title: "Site settings",
     area: "Site",
-    lede: "How the public site looks and what it says on the front page: the homepage copy and figures, the palette, motion, the page banners, embedded code, and the analytics tags with the consent banner that gates them.",
+    lede: "How the public site looks and what it says on the front page: the homepage copy and figures, the palette, motion, the page banners, embedded code, the analytics tags with the consent banner that gates them, the installable app, the phone action bar and the coming-soon page.",
     saveLabel: "Save site settings",
     sections: [
-      { groups: ["homepage", "appearance", "motion", "banners", "embeds", "analytics", "consent"] },
+      { groups: ["homepage", "appearance", "motion", "banners", "embeds", "analytics", "consent", "pwa", "action_bar", "coming_soon"] },
     ],
   },
   {
@@ -1121,9 +1441,9 @@ export const SCREENS: SettingsScreen[] = [
     path: "/admin/media/settings",
     title: "Media settings",
     area: "Content",
-    lede: "How hard the library compresses the images it makes, and how large an upload may be — read against what this server's PHP will actually accept.",
+    lede: "How hard the library compresses the images it makes, how large an upload may be — read against what this server's PHP will actually accept — and, optionally, a CDN for the files visitors download.",
     saveLabel: "Save media settings",
-    sections: [{ groups: ["media"] }],
+    sections: [{ groups: ["media", "media_cdn"] }],
   },
   {
     path: "/admin/seo/settings",
@@ -1137,9 +1457,10 @@ export const SCREENS: SettingsScreen[] = [
     path: "/admin/store/settings",
     title: "Store settings",
     area: "Store",
-    lede: "Whether the shop is open, what delivery costs and how long it takes, how licences are handed over, the basket reminders, and how the shop takes money.",
+    lede: "Whether the shop is open, what delivery costs and how long it takes, how licences are handed over, the basket reminders, how the shop takes money, invoices made in Zoho Books and parcels booked with Shiprocket.",
     saveLabel: "Save store settings",
-    sections: [{ groups: ["store", "store_reminders", "payments"] }],
+    needs: ["zoho", "shiprocket"],
+    sections: [{ groups: ["store", "store_reminders", "payments", "zoho_books", "shiprocket"] }],
   },
   {
     path: "/admin/newsletter/settings",
@@ -1182,6 +1503,14 @@ export const SCREENS: SettingsScreen[] = [
     lede: "What the Book a site visit form offers — days, parts of the day, notice and closed dates — and where requests go.",
     saveLabel: "Save visit settings",
     sections: [{ groups: ["visits"] }],
+  },
+  {
+    path: "/admin/events/settings",
+    title: "Event settings",
+    area: "Events",
+    lede: "Where event registrations are announced, when the reminder goes out, and how many seats one registration may take by default.",
+    saveLabel: "Save event settings",
+    sections: [{ groups: ["events"] }],
   },
   {
     path: "/admin/tickets/settings",
@@ -1234,7 +1563,7 @@ export const SYSTEM_SCREEN = "/admin/settings";
  * than "whatever no screen names", because a group somebody forgot would
  * then be silently standalone with nowhere to be edited.
  */
-export const STANDALONE_GROUPS = new Set(["announcement", "themes", "store_promo", "store_tiles"]);
+export const STANDALONE_GROUPS = new Set(["announcement", "themes", "store_promo", "store_tiles", "store_videos", "store_tags", "invoicing"]);
 
 export function screenAt(path: string): SettingsScreen {
   const screen = SCREENS.find((s) => s.path === path);

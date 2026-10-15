@@ -9,11 +9,13 @@ use App\Enums\PublishStatus;
 use App\Jobs\SendWishlistPriceDrops;
 use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasCustomFields;
+use App\Models\Concerns\HasRevisions;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use App\Support\Store\SpecIndex;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 /**
  * Something the store sells.
@@ -36,16 +39,20 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 class StoreProduct extends Model implements Answerable, Faqable
 {
-    use HasAnswerBlocks, HasCustomFields, HasSeo, Sluggable;
+    use HasAnswerBlocks, HasCustomFields, HasRevisions, HasSeo, Sluggable;
 
     protected $fillable = [
-        'store_category_id', 'brand_id', 'name', 'slug', 'sku', 'gtin', 'mpn', 'type',
+        'store_category_id', 'brand_id', 'name', 'slug', 'sku', 'gtin', 'mpn',
+        // The invoice's two: the HS code for this product's lines, and its
+        // own GST rate. Both blank means the store-wide answer.
+        'hsn', 'gst_percent', 'type',
         'short_description', 'description', 'images', 'videos', 'specifications', 'features',
         'warranty', 'applications',
         'activation_procedure', 'activation_pdf_path',
         'price_paise', 'compare_at_paise', 'track_stock', 'stock', 'allow_oversell', 'returnable',
         'condition', 'google_product_category', 'weight_grams', 'feed_include',
         'status', 'is_featured', 'sort_order',
+        'body_layout', 'blocks',
     ];
 
     /**
@@ -70,6 +77,8 @@ class StoreProduct extends Model implements Answerable, Faqable
         'feed_include' => true,
         'condition' => 'new',
         'rating_count' => 0,
+        // The page draws the written description until sections are chosen.
+        'body_layout' => 'body',
     ];
 
     protected function casts(): array
@@ -83,6 +92,7 @@ class StoreProduct extends Model implements Answerable, Faqable
             // A list, so the plain array cast keeps its order (MySQL reorders
             // object keys, never list items). See `App\Support\Store\ProductVideos`.
             'videos' => 'array',
+            'blocks' => 'array',
             'type' => ProductType::class,
             'condition' => ProductCondition::class,
             'weight_grams' => 'integer',
@@ -98,6 +108,9 @@ class StoreProduct extends Model implements Answerable, Faqable
             // Written only by `ReviewSummary`; read by every card.
             'rating_average' => 'decimal:1',
             'rating_count' => 'integer',
+            // Stamped the first time tags are decided; see `Tags::autoTag()`.
+            'tags_set_at' => 'datetime',
+            'tags_auto' => 'boolean',
         ];
     }
 
@@ -173,6 +186,36 @@ class StoreProduct extends Model implements Answerable, Faqable
         return $query->where('status', PublishStatus::Published);
     }
 
+    /**
+     * Products that carry at least one video (0.140.0). The column is stored
+     * as null when a form clears the list (`ProductVideos::normalise()`), but
+     * an empty array is not impossible from older writes, so the test is the
+     * JSON's length and not a null check alone. The one definition the
+     * "shop the videos" shelf and the console's `?video=1` filter share.
+     *
+     * @param  Builder<StoreProduct>  $query
+     * @return Builder<StoreProduct>
+     */
+    public function scopeWithVideos(Builder $query): Builder
+    {
+        return $query->whereNotNull('videos')->whereRaw('JSON_LENGTH(videos) > 0');
+    }
+
+    /**
+     * Physical products whose weight nobody entered (0.142.0).
+     *
+     * They are weighed at the shop's default in a delivery quote, so a basket
+     * of them rides a guess. A product counts as weighed when it has a weight
+     * of its own or any of its options does; the shipping screen's count and
+     * the products list's `?no_weight=1` are this one scope.
+     */
+    public function scopeWithoutWeight(Builder $query): Builder
+    {
+        return $query->where('type', ProductType::Physical)
+            ->where(fn (Builder $q) => $q->whereNull('weight_grams')->orWhere('weight_grams', '<=', 0))
+            ->whereDoesntHave('variations', fn (Builder $v) => $v->where('weight_grams', '>', 0));
+    }
+
     /** @return BelongsTo<StoreCategory, $this> */
     public function category(): BelongsTo
     {
@@ -198,6 +241,19 @@ class StoreProduct extends Model implements Answerable, Faqable
     public function services(): BelongsToMany
     {
         return $this->belongsToMany(Service::class, 'store_product_service')->orderBy('sort_order');
+    }
+
+    /**
+     * The shop tags (0.141.0), in the Tags screen's order. Written only
+     * through `App\Support\Store\Tags`.
+     *
+     * @return BelongsToMany<StoreTag, $this>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(StoreTag::class, 'store_product_tag')
+            // Curated tags (a sort order above 0) first, the rest by when they were made.
+            ->orderByRaw('store_tags.sort_order = 0')->orderBy('store_tags.sort_order')->orderBy('store_tags.id');
     }
 
     /** @return HasMany<StoreProductVariation, $this> */
@@ -449,8 +505,33 @@ class StoreProduct extends Model implements Answerable, Faqable
             'description' => $this->short_description
                 ?: mb_substr(HtmlSanitiser::toText($this->description ?? ''), 0, 160),
             'canonical_url' => rtrim((string) config('app.frontend_url'), '/').'/store/products/'.$this->slug,
-            'og_image' => filled($this->images) ? asset('storage/'.$this->images[0]) : null,
+            'og_image' => filled($this->images) ? MediaUrl::for($this->images[0]) : null,
         ];
+    }
+
+    /**
+     * The files of the downloads centre attached to this product
+     * (0.131.0, docs/downloads.md).
+     *
+     * @return MorphToMany<Download, $this>
+     */
+    public function downloads(): MorphToMany
+    {
+        return $this->morphToMany(Download::class, 'downloadable');
+    }
+
+    /**
+     * The ones a visitor may be shown, in the order the centre lists them
+     * within a shelf. What the product page loads.
+     *
+     * @return MorphToMany<Download, $this>
+     */
+    public function publishedDownloads(): MorphToMany
+    {
+        return $this->downloads()->published()
+            ->orderBy('downloads.sort_order')
+            ->orderByDesc('downloads.released_on')
+            ->orderBy('downloads.title');
     }
 
     /**

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { CreditLine } from "@/components/layout/credit-line";
@@ -103,7 +104,7 @@ export function AuthLayout({
               fill
               sizes="(min-width: 1024px) 52vw, 0px"
               className="object-cover"
-              style={focalStyle(settings.login_image_focus)}
+              style={focalStyle(settings.login_image_focus)} {...blurProps(settings.login_image_blur)}
               priority
             />
             {/* Keeps the caption legible whatever the photograph is. */}

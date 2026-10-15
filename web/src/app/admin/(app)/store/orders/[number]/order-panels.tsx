@@ -1,19 +1,20 @@
 "use client";
 
-import { useActionState, useCallback } from "react";
+import { useActionState, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileDrop } from "@/components/ui/file-drop";
 import { useUploadForm } from "@/lib/hooks/use-upload-form";
 import { Form } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonAnchor } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import {
-  addNoteAction, fulfilOrderAction, moveOrderAction, recordPaymentAction, recordRefundAction, saveInvoiceAction,
-  saveShippingAction,
-  type OrderActionState,
+  addNoteAction, createZohoInvoiceAction, fulfilOrderAction, moveOrderAction, recordPaymentAction, recordRefundAction, saveInvoiceAction,
+  saveShippingAction, sendZohoPaymentAction, shipmentAction, shipmentRatesAction,
+  type OrderActionState, generateInvoiceAction,
 } from "../actions";
+import { CourierRates } from "@/components/admin/courier-rates";
 import { paiseToRupeeInput } from "@/lib/money";
-import type { AdminOrder } from "@/types/api";
+import type { AdminOrder, AdminPayment } from "@/types/api";
 import { formatDate } from "@/lib/dates";
 
 const initial: OrderActionState = {};
@@ -93,8 +94,10 @@ export function ShippingPanel({ order }: { order: AdminOrder }) {
 
       <h2 className="mb-1 text-15 font-semibold">Delivery</h2>
       <p className="measure mb-3 text-13 text-muted">
-        Entered by hand — there is no courier integration. The customer sees the courier, the
-        number and the link on their own order page.
+        {order.shipment?.active
+          ? "Booking above fills these in; type over them if the parcel went another way. "
+          : "Entered by hand. "}
+        The customer sees the courier, the number and the link on their own order page.
       </p>
 
       {state.error && <Alert tone="err" title="Not saved">{state.error}</Alert>}
@@ -127,6 +130,168 @@ export function ShippingPanel({ order }: { order: AdminOrder }) {
   );
 }
 
+/** 1750 → "1.75": grams as the kilograms a person weighs in, by integer division. */
+function gramsToKilograms(grams: number): string {
+  const whole = Math.floor(grams / 1000);
+  const rest = String(grams % 1000).padStart(3, "0").replace(/0+$/, "");
+
+  return rest === "" ? String(whole) : `${whole}.${rest}`;
+}
+
+/**
+ * The parcel with the courier platform (docs/store.md "Shiprocket").
+ *
+ * Drawn only when the API sends `shipment` — Shiprocket is chosen in Store
+ * settings, or something was once booked — so an install on hand-typed
+ * tracking sees the Delivery panel and nothing else. Every control is the
+ * API's own word: a button is drawn only when the API will take the press
+ * (`can_*`), and a refusal is Shiprocket's reason, not ours.
+ *
+ * **Every button here acts on the real Shiprocket account**, and one `pending`
+ * state governs them all, so the pressed one spins and its neighbours are
+ * disabled for the length of the call: a second press while the first is in
+ * flight is exactly what the booking claim exists to survive, and not
+ * offering it is kinder than surviving it.
+ */
+export function CourierPanel({ order }: { order: AdminOrder }) {
+  const [state, formAction, pending] = useActionState(shipmentAction, initial);
+  const [pressed, setPressed] = useState<string | null>(null);
+  const shipment = order.shipment;
+
+  if (!shipment || !order.needs_shipping) return null;
+
+  const live = shipment.booking === "created";
+  const trouble = shipment.problem !== null;
+  const press = (action: string) => ({
+    type: "submit" as const,
+    name: "action",
+    value: action,
+    formNoValidate: action !== "book",
+    disabled: pending,
+    pending: pending && pressed === action,
+    onClick: () => setPressed(action),
+  });
+
+  return (
+    <Form
+      action={formAction}
+      state={state}
+      className={trouble || shipment.booking === "failed"
+        ? "min-w-0 rounded-lg border border-err/40 bg-err-soft p-5"
+        : "min-w-0 rounded-lg border border-line-strong bg-card p-5"}
+      data-courier={shipment.booking ?? "none"}
+    >
+      <input type="hidden" name="order_number" value={order.order_number} />
+
+      <h2 className="mb-1 text-15 font-semibold">Courier booking</h2>
+
+      <p className="measure mb-3 text-13 text-muted">
+        {!live && "Book this parcel with Shiprocket and it fills in the courier, the tracking number and the link below by itself. The customer is told when the courier picks it up."}
+        {live && (
+          <>
+            Booked with Shiprocket
+            {shipment.shiprocket_order_id && <> as order <span className="font-mono">{shipment.shiprocket_order_id}</span></>}.
+            {shipment.has_courier
+              ? <> {order.courier} · AWB <span className="font-mono">{order.tracking_number}</span>.</>
+              : " No courier is assigned yet."}
+          </>
+        )}
+      </p>
+
+      {live && shipment.status && (
+        <p className="mb-3 text-13-5">
+          <span className="text-muted">Status: </span>
+          <strong>{shipment.status}</strong>
+          {shipment.status_at && <span className="text-muted"> · {formatDate(shipment.status_at, "dateTime")}</span>}
+        </p>
+      )}
+
+      {trouble && (
+        <Alert tone="warn" title={shipment.problem === "cancelled" ? "The courier cancelled this shipment" : "The parcel is coming back"} dismissible={false}>
+          {shipment.problem === "cancelled"
+            ? "Book it again, or decide what happens to this order."
+            : "The courier is returning it to you. Decide what happens to this order — nothing has been changed for you."}
+        </Alert>
+      )}
+
+      {shipment.error && !state.error && (
+        /* Shiprocket's words can carry an identifier with nowhere to break: `anywhere`, not `break-words`. */
+        <p className="mb-3 rounded border border-err/25 bg-card px-3 py-2 text-13 text-ink [overflow-wrap:anywhere]">
+          {shipment.error}
+        </p>
+      )}
+
+      {state.error && <Alert tone="err" title="Not done">{state.error}</Alert>}
+      {state.ok && !state.error && <Alert tone="ok" title={state.ok} />}
+
+      {!live && !shipment.can_book && shipment.book_refusal && (
+        <p className="mb-3 text-13 text-muted">{shipment.book_refusal}</p>
+      )}
+
+      {shipment.can_book && shipment.defaults && (
+        <div className="mb-3 grid grid-cols-2 gap-x-4 sm:grid-cols-4">
+          <Field label="Weight (kg)" htmlFor="courier_weight_kg" className="mb-0">
+            <Input id="courier_weight_kg" name="weight_kg" inputMode="decimal" defaultValue={gramsToKilograms(shipment.defaults.weight_grams)} />
+          </Field>
+          <Field label="Length (cm)" htmlFor="courier_length" className="mb-0">
+            <Input id="courier_length" name="length" inputMode="numeric" defaultValue={String(shipment.defaults.length)} />
+          </Field>
+          <Field label="Breadth (cm)" htmlFor="courier_breadth" className="mb-0">
+            <Input id="courier_breadth" name="breadth" inputMode="numeric" defaultValue={String(shipment.defaults.breadth)} />
+          </Field>
+          <Field label="Height (cm)" htmlFor="courier_height" className="mb-0">
+            <Input id="courier_height" name="height" inputMode="numeric" defaultValue={String(shipment.defaults.height)} />
+          </Field>
+        </div>
+      )}
+
+      {/* A quote before booking, or after a booking that lacks a courier; the choice rides with the press below. */}
+      {shipment.can_rates && (
+        <CourierRates
+          load={(weightKg) => shipmentRatesAction(order.order_number, weightKg)}
+          weightFieldId={shipment.can_book && shipment.defaults ? "courier_weight_kg" : undefined}
+        />
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        {shipment.can_book && (
+          <Button size="sm" {...press("book")}>
+            {pending && pressed === "book" ? "Booking…" : shipment.booking === "failed" ? "Try booking again" : "Book with Shiprocket"}
+          </Button>
+        )}
+        {shipment.can_assign && (
+          <Button size="sm" {...press("assign")}>{pending && pressed === "assign" ? "Asking…" : "Assign a courier"}</Button>
+        )}
+        {shipment.can_label && !shipment.label_url && (
+          <Button size="sm" variant="secondary" {...press("label")}>{pending && pressed === "label" ? "Making…" : "Make the label"}</Button>
+        )}
+        {shipment.label_url && (
+          <ButtonAnchor href={shipment.label_url} target="_blank" rel="noopener noreferrer" variant="secondary" size="sm">Open the label</ButtonAnchor>
+        )}
+        {shipment.can_pickup && (
+          <Button size="sm" variant="secondary" {...press("pickup")}>{pending && pressed === "pickup" ? "Asking…" : "Request pickup"}</Button>
+        )}
+        {shipment.can_manifest && !shipment.manifest_url && (
+          <Button size="sm" variant="secondary" {...press("manifest")}>{pending && pressed === "manifest" ? "Making…" : "Make the manifest"}</Button>
+        )}
+        {shipment.manifest_url && (
+          <ButtonAnchor href={shipment.manifest_url} target="_blank" rel="noopener noreferrer" variant="secondary" size="sm">Open the manifest</ButtonAnchor>
+        )}
+        {shipment.can_track && (
+          <Button size="sm" variant="ghost" {...press("track")}>{pending && pressed === "track" ? "Asking…" : "Where is it now?"}</Button>
+        )}
+        {shipment.can_cancel && (
+          <Button size="sm" variant="ghost" {...press("cancel")}>{pending && pressed === "cancel" ? "Cancelling…" : "Cancel shipment"}</Button>
+        )}
+      </div>
+
+      {shipment.pickup_requested_at && (
+        <p className="mt-3 text-12-5 text-muted">Pickup requested {formatDate(shipment.pickup_requested_at, "dateTime")}.</p>
+      )}
+    </Form>
+  );
+}
+
 export function InvoicePanel({ order }: { order: AdminOrder }) {
   const router = useRouter();
   // Number and date alone go through the Server Action; with a PDF attached
@@ -155,11 +320,17 @@ export function InvoicePanel({ order }: { order: AdminOrder }) {
 
       <h2 className="mb-1 text-15 font-semibold">GST invoice</h2>
       <p className="measure mb-3 text-13 text-muted">
-        Prepared outside this system and attached here — nothing is generated automatically.
+        {order.zoho
+          ? "Made in Zoho Books by itself (see above), or prepared outside this system and attached here. An invoice attached here by hand is left alone by Zoho Books."
+          : order.invoice_source === "generated"
+            ? "Made by this shop when the order was paid. Uploading one here replaces it, and nothing generated will overwrite yours."
+            : "Made by this shop when an order is paid, or prepared outside it and attached here. An invoice attached by hand always wins."}
         {order.gst_required
           ? ` This customer asked for one: ${order.company_name ?? "—"} (${order.gstin ?? "—"}).`
           : " This customer did not ask for one."}
       </p>
+
+      <InvoiceActions order={order} />
 
       {state.error && <Alert tone="err" title="Not saved">{state.error}</Alert>}
       {state.ok && !state.error && <Alert tone="ok" title={state.ok} />}
@@ -174,7 +345,7 @@ export function InvoicePanel({ order }: { order: AdminOrder }) {
         </Field>
       </div>
 
-      <Field label="Invoice PDF" htmlFor="invoice"
+      <Field label="Invoice PDF" htmlFor="invoice" variant="above"
         hint={order.has_invoice
           ? "One is attached. Uploading another replaces it — two invoices for one order is a question nobody can answer later."
           : "PDF only, up to 10MB. Stored privately and streamed, never on a public URL."}>
@@ -190,6 +361,191 @@ export function InvoicePanel({ order }: { order: AdminOrder }) {
       <Button type="submit" size="sm" pending={pending}>
         {pending ? "Saving…" : "Save invoice"}
       </Button>
+    </Form>
+  );
+}
+
+/**
+ * Making the shop's own invoice, and reading it (0.176.0).
+ *
+ * Two controls and a sentence, above the uploader because they are the
+ * ordinary path and the upload is the exception. **The refusal is the API's
+ * own words** — `order.invoice.refusal` — so the sentence under a disabled
+ * button is the sentence the endpoint would answer with, and the two cannot
+ * come to disagree about why an order cannot be invoiced.
+ *
+ * The print view is a plain `<a>` and not a `Link`: it is a route handler
+ * that renders a whole document, and a prefetch would render one on every
+ * hover.
+ */
+function InvoiceActions({ order }: { order: AdminOrder }) {
+  const [state, formAction, pending] = useActionState(generateInvoiceAction, {});
+  const invoice = order.invoice;
+
+  // Absent while Zoho Books owns the invoices, where the panel above says so.
+  if (!invoice) return null;
+
+  return (
+    <div className="mb-4 rounded-lg border border-line bg-surface px-4 py-3">
+      {state.error && <Alert tone="err" title="Not made">{state.error}</Alert>}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <form action={formAction}>
+          <input type="hidden" name="order_number" value={order.order_number} />
+          <Button type="submit" size="sm" variant="secondary" pending={pending} disabled={!invoice.can_generate}>
+            {pending ? "Making…" : order.invoice_source === "generated" ? "Make it again" : "Make the invoice"}
+          </Button>
+        </form>
+
+        <a
+          href={`/api/admin/store/orders/${encodeURIComponent(order.order_number)}/invoice/print`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-13 font-semibold text-brand-ink underline"
+        >
+          Print preview
+        </a>
+      </div>
+
+      {invoice.refusal && (
+        <p className="measure mt-2 text-12-5 text-muted">{invoice.refusal}</p>
+      )}
+      {!invoice.refusal && order.invoice_source === "generated" && (
+        <p className="measure mt-2 text-12-5 text-muted">
+          Making it again keeps the number — once issued it is in somebody&rsquo;s books — and re-renders the document
+          under it, which is what you want after correcting the registered address.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The order's invoice in Zoho Books (docs/store.md "Zoho Books invoices").
+ *
+ * Drawn only when the API sends `zoho` — Zoho is set up, or something was
+ * once asked of it for this order — so a shop that never connected it sees
+ * the upload panel and nothing else. What it says is the API's: the status,
+ * Zoho's own words for a refusal, when the next attempt is due, and
+ * `can_create`, which is whether the button will be taken.
+ */
+export function ZohoInvoicePanel({ order }: { order: AdminOrder }) {
+  const [state, formAction, pending] = useActionState(createZohoInvoiceAction, initial);
+  const zoho = order.zoho;
+
+  if (!zoho) return null;
+
+  const failed = zoho.status === "failed";
+
+  return (
+    <Form
+      action={formAction}
+      state={state}
+      className={failed
+        ? "min-w-0 rounded-lg border border-err/40 bg-err-soft p-5"
+        : "min-w-0 rounded-lg border border-line-strong bg-card p-5"}
+    >
+      <input type="hidden" name="order_number" value={order.order_number} />
+
+      <h2 className={`mb-1 text-15 font-semibold ${failed ? "text-err" : ""}`}>Zoho Books invoice</h2>
+
+      <p className={`measure mb-3 text-13 ${failed ? "text-err" : "text-muted"}`}>
+        {zoho.status === "created" && (
+          <>
+            Invoice <strong className="font-mono">{order.invoice_number ?? "—"}</strong> was made in Zoho Books
+            {zoho.synced_at && ` on ${formatDate(zoho.synced_at, "dateTime")}`} and its PDF is attached to this order.{" "}
+            {order.payments?.some((p) => p.zoho)
+              ? "Payments and refunds on this order are recorded against it there too — each says where it stands under Payments."
+              : "Record the payment against it in Zoho Books — that is not being done from here."}
+          </>
+        )}
+        {zoho.status === "pending" && "Queued. The invoice is made within a few minutes."}
+        {zoho.status === "creating" && "Being made in Zoho Books now."}
+        {zoho.status === "skipped" && "Not made: this order already had an uploaded invoice, and two invoices for one order is a question nobody can answer later."}
+        {failed && (
+          <>
+            Zoho Books refused this invoice{zoho.attempts > 1 ? ` (${zoho.attempts} attempts)` : ""}.{" "}
+            {zoho.next_attempt_at
+              ? `It will be tried again by itself around ${formatDate(zoho.next_attempt_at, "dateTime")}.`
+              : "It will not be tried again by itself."}
+          </>
+        )}
+        {zoho.status === null && (order.has_invoice
+          ? "Nothing has been asked of Zoho Books for this order: it already has an uploaded invoice."
+          : "Not made yet. It is made by itself when the order reaches the stage chosen in Store settings; or make it now.")}
+      </p>
+
+      {failed && zoho.error && !state.error && (
+        /*
+          Zoho's words can carry an identifier with nowhere to break. `anywhere`
+          rather than `break-words`: only the first lowers the min-content
+          width, and this form is a grid item, so the second still widened the
+          whole column — 652px in a 360px screen, measured by the probe.
+        */
+        <p className="mb-3 rounded border border-err/25 bg-card px-3 py-2 text-13 text-ink [overflow-wrap:anywhere]">
+          {zoho.error}
+        </p>
+      )}
+
+      {state.error && <Alert tone="err" title="Not made">{state.error}</Alert>}
+      {state.ok && !state.error && <Alert tone="ok" title={state.ok} />}
+
+      {/* No button over an uploaded invoice: the API would skip it again, and a button that does nothing teaches people to ignore it. */}
+      {zoho.can_create && !((zoho.status === null || zoho.status === "skipped") && order.has_invoice) && (
+        <Button type="submit" size="sm" pending={pending}>
+          {pending ? "Asking Zoho Books…" : failed ? "Try again now" : "Create the Zoho invoice now"}
+        </Button>
+      )}
+    </Form>
+  );
+}
+
+/**
+ * Under one payment or refund in the order's Payments list: where it stands
+ * in Zoho Books (0.136.0, docs/store.md "Zoho Books: payments and credit
+ * notes"). A payment that arrived is a customer payment on the order's
+ * invoice there; a refund is a credit note.
+ *
+ * Renders nothing when the API sends no `zoho` for the row — a failed card
+ * attempt, or an install where payments are not sent. The button is drawn
+ * only when the API says a press would be taken, and a refusal is Zoho's own
+ * words, wrapped (`anywhere`, the invoice panel's reason) because they can
+ * carry an identifier with nowhere to break.
+ */
+export function ZohoPaymentLine({ orderNumber, payment }: { orderNumber: string; payment: AdminPayment }) {
+  const [state, formAction, pending] = useActionState(sendZohoPaymentAction, initial);
+  const zoho = payment.zoho;
+
+  if (!zoho) return null;
+
+  const note = zoho.kind === "credit_note";
+  const failed = zoho.status === "failed";
+
+  return (
+    <Form action={formAction} state={state} className="mt-1.5 min-w-0 text-12" data-zoho-payment={zoho.status ?? "none"}>
+      <input type="hidden" name="order_number" value={orderNumber} />
+      <input type="hidden" name="payment_id" value={payment.id} />
+
+      <p className={failed ? "text-err [overflow-wrap:anywhere]" : "text-muted [overflow-wrap:anywhere]"}>
+        <span className="font-semibold">Zoho Books:</span>{" "}
+        {zoho.status === "sent" && (note
+          ? <>credit note <span className="font-mono">{zoho.number ?? "made"}</span>{zoho.synced_at && `, ${formatDate(zoho.synced_at, "dateTime")}`}.</>
+          : <>recorded against the invoice{zoho.synced_at && `, ${formatDate(zoho.synced_at, "dateTime")}`}.</>)}
+        {(zoho.status === "pending" || zoho.status === "sending") && (note ? "the credit note is being made." : "being recorded.")}
+        {zoho.status === "skipped" && "not recorded — the invoice was already paid there."}
+        {zoho.status === null && (note ? "no credit note made yet." : "not recorded yet.")}
+        {failed && !state.error && <>{note ? "the credit note was refused" : "refused"}{zoho.attempts > 1 ? ` (${zoho.attempts} attempts)` : ""}. {zoho.error}</>}
+        {failed && state.error && (note ? "the credit note was refused." : "refused.")}
+      </p>
+
+      {state.error && <p className="mt-1 text-err [overflow-wrap:anywhere]">{state.error}</p>}
+      {state.ok && !state.error && <p className="mt-1 text-ok">{state.ok}</p>}
+
+      {zoho.can_send && (
+        <Button type="submit" size="sm" variant="secondary" pending={pending} className="mt-1.5">
+          {pending ? "Asking Zoho Books…" : failed ? "Try again now" : note ? "Make the credit note now" : "Send to Zoho Books now"}
+        </Button>
+      )}
     </Form>
   );
 }

@@ -1,6 +1,7 @@
 import { homeBlockSections } from "@/components/blocks/home-block-sections";
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import Link from "next/link";
 import {
   CaseStudies, Credentials, Industries, Partners, ProductCategories, Resources, SupportBand, TrustedBy, Services,
@@ -22,6 +23,7 @@ import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
 import { brandName } from "@/lib/brand";
+import { HeroTitle } from "@/lib/hero-heading";
 
 const OFFICE = "/themes/vantage/office.jpg";
 const NOC = "/themes/vantage/noc.jpg";
@@ -70,7 +72,7 @@ export function Home({
             has to have exactly one `h1` whatever the editor put on the
             slides.
           */}
-          <h1 className="sr-only">{heading}</h1>
+          <HeroTitle className="sr-only">{heading}</HeroTitle>
           <Slider
             slider={heroSlider!}
             aspect="h-svh min-h-[360px]"
@@ -89,7 +91,7 @@ export function Home({
                 <i aria-hidden className="size-2 rounded-full bg-accent-400" />
                 {kicker}
               </p>
-              <h1 className="display-1 mt-4 text-balance [overflow-wrap:anywhere]">{heading}</h1>
+              <HeroTitle className="display-1 mt-4 text-balance [overflow-wrap:anywhere]">{heading}</HeroTitle>
             </div>
             <div className="min-w-0 lg:pb-2">
               <p className="max-w-[46ch] text-15 leading-relaxed text-[rgba(255,255,255,.85)]">{lede}</p>
@@ -123,6 +125,7 @@ export function Home({
                     sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                     className="object-cover transition-[scale] duration-(--duration-slow) ease-brand motion-safe:group-hover:scale-[1.04]"
                     style={s.hero_image ? focalStyle(s.hero_image_focus) : undefined}
+                    {...(s.hero_image ? blurProps(s.hero_image_blur) : {})}
                   />
                 </span>
                 <span className="flex items-start gap-3 p-5">

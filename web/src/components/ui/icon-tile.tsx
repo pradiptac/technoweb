@@ -1,4 +1,4 @@
-import { IdentityIcon, iconMap } from "@/components/icons";
+import { IdentityIcon, isIdentityIcon } from "@/components/icons";
 import type { IconName } from "@/components/icons";
 import { hueFor } from "@/lib/hues";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ import type { CSSProperties, ReactNode } from "react";
  * inside it.
  */
 export function hueForIcon(name?: string | null, fallback: IconName = "network"): string {
-  const key = !name ? undefined : name in iconMap ? (name as IconName) : fallback;
+  const key = !name ? undefined : isIdentityIcon(name) ? name : fallback;
   return key ? hueFor(key) : "var(--color-brand-ink)";
 }
 

@@ -310,7 +310,8 @@ export function SeoPanel({
           <CoverField
             name="seo_og_image_path"
             label="Share image"
-            description="Shown when this page is posted on social media or in a chat. Landscape, around 1200 x 630 px. Left blank, the site falls back to its default card."
+            description="Shown when this page is posted on social media or in a chat. Left blank, the site falls back to its default card."
+            spec="share"
             defaultPath={seo?.og_image_path ?? null}
             defaultUrl={seo?.og_image ?? null}
             accept=".png,.jpg,.jpeg,.webp"
