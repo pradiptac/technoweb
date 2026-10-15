@@ -44,8 +44,8 @@ against and which two thirds of it were answered first.
 The releases between 0.99.0 and 0.176.0 are recorded in `VERSION.md` and
 `FEATURES.md` rather than here; the phase checklists below predate them.
 
-**Branch:** work lands on `phase-3-admin-cms`. `main` is still at the end of
-Phase 2, so Phase 3 is not merged yet.
+**Branch:** work lands on `altis-cms` (named `phase-3-admin-cms` until
+2026-10-15) and is merged to `main` for each release.
 
 ## Phase 1 — Foundation
 

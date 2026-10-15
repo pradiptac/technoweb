@@ -17,7 +17,7 @@ What the parts mean, for an application rather than a library:
 | **patch** | a fix or an internal change nobody has to be told about |
 
 Entries are newest first. Dates are the day the work landed on
-`phase-3-admin-cms`.
+`altis-cms` (`phase-3-admin-cms` until 2026-10-15).
 
 ---
 

@@ -25,7 +25,7 @@ customer to do any of that.
 
 ## The steps
 
-1. **Finish the work** on `phase-3-admin-cms` and pass the Definition of Done
+1. **Finish the work** on `altis-cms` and pass the Definition of Done
    in `CLAUDE.md`: `npm run audit`, `npm run audit:mobile`, `php artisan test`,
    `composer analyse`, `npx tsc --noEmit`, `npm run lint`.
 2. **Bump the version** in `web/src/lib/version.ts`, and add the
