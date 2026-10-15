@@ -49,8 +49,11 @@ final class GoogleFonts
         $entry = GoogleFontCatalogue::find($slug) ?? self::refuse('Choose a font from the list.');
         $faces = self::fetchFaces($entry['family'], self::weightsFor($entry['weights']));
 
-        if (count($faces) > self::MAX_FACES) {
-            self::refuse('That font comes in '.count($faces).' pieces and is too big to copy here. Choose a lighter one.');
+        // A variable family names one file in every weight's block: counted, fetched and stored once.
+        $urls = array_values(array_unique(array_column($faces, 'url')));
+
+        if (count($urls) > self::MAX_FACES) {
+            self::refuse('That font comes in '.count($urls).' pieces and is too big to copy here. Choose a lighter one.');
         }
 
         // Up to sixty downloads: lengthen a web request's limit, and never set
@@ -65,11 +68,14 @@ final class GoogleFonts
         $bytes = 0;
 
         try {
-            foreach ($faces as $i => $face) {
-                $body = self::download($face['url']);
-                Storage::disk('public')->put("{$dir}/{$i}.woff2", $body);
-                $stored[] = ['weight' => $face['weight'], 'range' => $face['range'], 'path' => "{$dir}/{$i}.woff2"];
+            $paths = [];
+            foreach ($urls as $i => $url) {
+                $body = self::download($url);
+                Storage::disk('public')->put($paths[$url] = "{$dir}/{$i}.woff2", $body);
                 $bytes += strlen($body);
+            }
+            foreach ($faces as $face) {
+                $stored[] = ['weight' => $face['weight'], 'range' => $face['range'], 'path' => $paths[$face['url']]];
             }
         } catch (\Throwable $e) {
             Storage::disk('public')->deleteDirectory($dir);

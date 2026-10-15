@@ -157,3 +157,10 @@ characters, which cannot leave the attribute it is written into. A malformed
 shortcode stays literal text. `scripts/shortcodes.check.mjs` pins both halves.
 Only Google icons are offered: a site icon is a component with no file to
 point at.
+
+**The button is offered only where the body renders through `Prose`.**
+`RichTextEditor icons={false}` on the email templates, the info bar and the
+activation procedure, which are rendered as raw HTML or sent as mail, where
+the shortcode would arrive literally. And `HtmlSanitiser::toText()` drops it,
+so a derived meta description, search excerpt or `llms-full.txt` line never
+carries `[icon name=…]`.

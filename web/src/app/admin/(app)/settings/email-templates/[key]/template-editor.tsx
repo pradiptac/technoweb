@@ -158,7 +158,7 @@ export function TemplateEditor({
             <p className="measure mb-2 text-12-5 text-muted">
               Just the message. The logo, colours, footer and address are added around it.
             </p>
-            <RichTextEditor id="body_html" value={html} onChange={setHtml} />
+            <RichTextEditor id="body_html" value={html} onChange={setHtml} icons={false} />
             {/* The editor holds its HTML in state so the preview can see it;
                 this is what keeps the `<Form>` posting a value. */}
             <input type="hidden" name="body_html" value={html} />

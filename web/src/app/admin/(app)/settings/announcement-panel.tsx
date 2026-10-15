@@ -157,6 +157,7 @@ export function AnnouncementPanel({ rows }: { rows: SettingGroups[string] }) {
         label="Message"
         defaultValue={stored.announcement_message ?? ""}
         onChange={setHtml}
+        icons={false}
         hint="One line. Bold, italic, underline and links survive; headings, pictures, tables and colours are removed on save."
       />
 

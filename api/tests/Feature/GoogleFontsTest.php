@@ -127,6 +127,47 @@ class GoogleFontsTest extends TestCase
         Http::assertSent(fn ($r) => str_contains($r->url(), 'fonts.googleapis.com') && preg_match('/wght@\d+&/', urldecode($r->url())));
     }
 
+    public function test_a_variable_family_downloads_each_file_once(): void
+    {
+        // A variable font (Inter, Roboto) names the same file in its 400, 600
+        // and 700 blocks; one copy serves all three, and visitors fetch it once.
+        Http::fake([
+            'fonts.googleapis.com/*' => Http::response(preg_replace('#/f\d+\.woff2#', '/var.woff2', $this->css([400, 600, 700])), 200),
+            'fonts.gstatic.com/*' => Http::response(self::WOFF2, 200),
+        ]);
+
+        $this->actingAs($this->admin(), 'sanctum')
+            ->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'poppins'])
+            ->assertCreated();
+
+        Http::assertSentCount(2);
+        $font = GoogleFont::firstOrFail();
+        $this->assertSame([400, 600, 700], array_column($font->faces, 'weight'));
+        $this->assertCount(1, array_unique(array_column($font->faces, 'path')));
+        $this->assertSame(strlen(self::WOFF2), $font->bytes);
+    }
+
+    public function test_pieces_are_counted_by_file_not_by_weight(): void
+    {
+        // Sixty-three blocks, but twenty-one files shared by three weights.
+        $css = '';
+        foreach ([400, 600, 700] as $w) {
+            foreach (range(0, 20) as $i) {
+                $css .= "@font-face { font-weight: {$w}; src: url(https://fonts.gstatic.com/s/poppins/v1/s{$i}.woff2) format('woff2'); unicode-range: U+00{$i}; }\n";
+            }
+        }
+        Http::fake([
+            'fonts.googleapis.com/*' => Http::response($css, 200),
+            'fonts.gstatic.com/*' => Http::response(self::WOFF2, 200),
+        ]);
+
+        $this->actingAs($this->admin(), 'sanctum')
+            ->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'poppins'])
+            ->assertCreated();
+
+        $this->assertCount(63, GoogleFont::firstOrFail()->faces);
+    }
+
     public function test_a_family_in_too_many_pieces_is_refused_before_any_download(): void
     {
         // Large families (Japanese, Chinese) come as hundreds of unicode-range

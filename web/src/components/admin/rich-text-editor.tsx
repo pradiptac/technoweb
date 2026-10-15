@@ -127,11 +127,13 @@ function altFromFilename(name: string): string {
 }
 
 export function RichTextEditor({
-  value, onChange, id,
+  value, onChange, id, icons = true,
 }: {
   value: string;
   onChange: (html: string) => void;
   id?: string;
+  /** The Icon button. Off for a body that never renders through `Prose` (an email, the info bar), where the shortcode would arrive as literal text. */
+  icons?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const [browsing, setBrowsing] = useState(false);
@@ -165,6 +167,7 @@ export function RichTextEditor({
     is what lets a rejected save leave what was typed on screen.
   */
   const initial = useRef(value);
+  const withIcons = useRef(icons);
 
   /*
     Summernote's own selection, saved before the picker opens.
@@ -298,7 +301,7 @@ export function RichTextEditor({
         ["para", ["ul", "ol", "paragraph"]],
         ["height", ["height"]],
         ["table", ["table"]],
-        ["insert", ["link", "picture", "library", "icon", "layouts", "video", "hr"]],
+        ["insert", ["link", "picture", "library", ...(withIcons.current ? ["icon"] : []), "layouts", "video", "hr"]],
         ["view", ["fullscreen", "codeview", "help"]],
       ],
 

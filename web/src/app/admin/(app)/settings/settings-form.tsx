@@ -377,6 +377,7 @@ function GroupPanel({
                   name={id}
                   label={meta.label}
                   defaultValue={row.value ?? ""}
+                  icons={row.key !== "activation_procedure"}
                 />
               </div>
             );

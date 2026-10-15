@@ -333,7 +333,10 @@ change, nothing breaks while Google is unreachable.
   nearest to 400 alone) with a Chrome user agent — Google sends WOFF2 only to
   one, and `SafeHttp::get()` would put its own agent first, so the request is
   built from `SafeHttp::request()`. Every file URL must be on
-  `fonts.gstatic.com`, start `wOF2` and be under 2 MB. **A family over 60
+  `fonts.gstatic.com`, start `wOF2` and be under 2 MB. **A variable family
+  names one file in every weight's block** (Inter: the same URL for 400, 600
+  and 700), so files are fetched, stored and counted **once per URL** and the
+  faces share a path — the browser then fetches it once too. **A family over 60
   pieces is refused before anything downloads** (`MAX_FACES`): each piece is a
   download inside one request, and a timed-out request leaves files with no
   row. A failure deletes what was written; two installs at once resolve to the

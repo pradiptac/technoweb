@@ -28,7 +28,7 @@ const RichTextEditor = dynamic(
 );
 
 export function EditorField({
-  name, label = "Body", defaultValue = "", error, hint, onChange,
+  name, label = "Body", defaultValue = "", error, hint, onChange, icons,
 }: {
   name: string;
   /** Solutions call this field "Overview"; most entities call it "Body". */
@@ -39,6 +39,8 @@ export function EditorField({
   hint?: ReactNode;
   /** Told of every change, for a caller drawing a live preview beside the editor. */
   onChange?: (html: string) => void;
+  /** Passed to the editor: false where the body is not rendered through `Prose`. */
+  icons?: boolean;
 }) {
   const [html, setHtml] = useState(defaultValue);
   const [preview, setPreview] = useState(false);
@@ -99,7 +101,7 @@ export function EditorField({
             : <p className="text-14 text-muted">Nothing to preview yet.</p>}
         </div>
       ) : (
-        <RichTextEditor key={epoch} value={epoch ? html : defaultValue} onChange={(v) => { setHtml(v); onChange?.(v); }} />
+        <RichTextEditor key={epoch} value={epoch ? html : defaultValue} onChange={(v) => { setHtml(v); onChange?.(v); }} icons={icons} />
       )}
 
       {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}

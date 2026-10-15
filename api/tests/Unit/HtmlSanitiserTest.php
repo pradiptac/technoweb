@@ -137,6 +137,14 @@ class HtmlSanitiserTest extends TestCase
         $this->assertSame('A & B C', HtmlSanitiser::toText('<p>A &amp; B&nbsp;C</p>'));
     }
 
+    public function test_an_inline_icon_is_dropped_from_the_text(): void
+    {
+        // Drawn by the website; in a meta description it would be literal.
+        $this->assertSame('Call us today', HtmlSanitiser::toText('<p>Call us [icon name="ms:call"] today</p>'));
+        $this->assertSame('Call us today', HtmlSanitiser::toText('<p>Call us [icon name=&quot;ms:call&quot;] today</p>'));
+        $this->assertSame('[icon] stays', HtmlSanitiser::toText('<p>[icon] stays</p>'));
+    }
+
     public function test_it_separates_list_items_and_line_breaks(): void
     {
         $this->assertSame('alpha beta', HtmlSanitiser::toText('<ul><li>alpha</li><li>beta</li></ul>'));
