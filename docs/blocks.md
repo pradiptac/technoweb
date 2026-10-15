@@ -108,6 +108,23 @@ section. Server components throughout, with client islands only for the
 countdown (client-only first render, the `DueClock` rule), the CTA forms,
 the pricing tabs and billing switch, the orbit's selection and the globe.
 
+- **Banded tiers** (`banded`, 0.180.0) are plans under coloured bars — the
+  plan's badge (or "Plan") and its number. The bar colour is the theme's own
+  by position (`[data-band]` in `blocks.css`: brand, secondary, accent, then
+  the info fill), each under the ink graded for it, so no colour is typed and
+  every palette passes. Under the yearly period a plan with both prices shows
+  the deal `yearlyDeal()` (`lib/pricing-deal.ts`) works out from them — the
+  monthly price struck through, the yearly per month, what is billed, what is
+  saved, the share off — and nothing when a year saves nothing; under the
+  monthly period, the monthly price. `scripts/pricing-deal.check.mjs` pins the
+  arithmetic. Themes restyle it by attribute (`data-pricing-layout`,
+  `data-band-bar`, `data-band-label`); Terminal's block sets it in mono.
+- **Three pricing fields any layout draws**: `promo` (≤ 40, a chip beside the
+  billing switch, or above the plans without one), `guarantees` (≤ 6 lines of
+  ≤ 60, the trust strip under the plans) and a plan's `cta.copy`, a copy
+  button beside the button — drawn by the banded layout, and only when the
+  button is a `mailto:` link (it copies the address; `CopyLink what=…`).
+  `scripts/probes/pricing-banded.mjs`.
 - **Rings** use `components/ui/ring.tsx` (lifted from the SEO score ring),
   the figure in HTML over the SVG — never SVG text.
 - **The comparison table's scroller is `relative`**: its cells' sr-only

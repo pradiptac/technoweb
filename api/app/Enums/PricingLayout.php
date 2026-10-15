@@ -15,6 +15,7 @@ enum PricingLayout: string
     case ThreeTier = 'three_tier';
     case Comparison = 'comparison';
     case SingleFocus = 'single_focus';
+    case Banded = 'banded';
 
     public function label(): string
     {
@@ -22,6 +23,7 @@ enum PricingLayout: string
             self::ThreeTier => 'Three-tier with highlight',
             self::Comparison => 'Comparison table',
             self::SingleFocus => 'Single plan focus',
+            self::Banded => 'Banded tiers',
         };
     }
 
@@ -31,6 +33,7 @@ enum PricingLayout: string
             self::ThreeTier => 'Plans side by side, each with a price, a line, a list of features and a button; the plan you mark is raised and highlighted.',
             self::Comparison => 'Plans as columns and features as rows, each cell a tick, a cross or a short text, grouped under headings if you like.',
             self::SingleFocus => 'One plan, large, with its features and a button — the first plan in each set.',
+            self::Banded => 'Plans under coloured bars with their number; a yearly price shows the monthly one struck through, what is billed and what is saved, all worked out from the two prices.',
         };
     }
 }

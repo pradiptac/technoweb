@@ -7,7 +7,13 @@ conventions and `API.md` for the endpoint reference; this file is just
 
 **In progress:** nothing — the last slice is committed and verified.
 
-**Latest (0.179.0, 2026-10-15):** Google Fonts and Google icons, both copied
+**Latest (0.180.0, 2026-10-15):** a fourth pricing layout, Banded tiers —
+plans under coloured bars from the theme's palette, with the yearly deal
+(struck monthly price, per month, billed, saved, % off) worked out from the
+two prices — plus a promotion chip, a trust strip and a copy button for an
+email plan, on any pricing table. `docs/blocks.md`.
+
+Before it (0.179.0, 2026-10-15): Google Fonts and Google icons, both copied
 to this site so a visitor never contacts Google: any Google font (Noto left
 out, families over 60 pieces refused) for headings and body, Material Symbols
 Rounded in every icon picker and inside page text. `docs/theming.md`,

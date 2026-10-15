@@ -134,6 +134,10 @@ export const IconDownload = (p: P) => (
 export const IconMapPin = (p: P) => (
   <svg {...base} {...p}><path d="M12 21.5s-6.8-6.1-6.8-11.2a6.8 6.8 0 0 1 13.6 0c0 5.1-6.8 11.2-6.8 11.2z" /><circle cx="12" cy="10.2" r="2.5" /></svg>
 );
+/** Two sheets, one over the other — copy to the clipboard (the pricing table's email, 0.180.0). */
+export const IconCopy = (p: P) => (
+  <svg {...base} {...p}><rect x="8.5" y="8.5" width="12" height="12" rx="2" /><path d="M15.5 8.5V5.5a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3" /></svg>
+);
 export const IconLink = (p: P) => (
   <svg {...base} {...p}><path d="M10 14a4.4 4.4 0 0 0 6.2.3l2.6-2.6a4.4 4.4 0 0 0-6.2-6.2l-1.5 1.5" /><path d="M14 10a4.4 4.4 0 0 0-6.2-.3l-2.6 2.6a4.4 4.4 0 0 0 6.2 6.2l1.5-1.5" /></svg>
 );

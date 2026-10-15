@@ -2785,6 +2785,7 @@ CTA banners, stat bars, pricing tables and technology stacks (2026-09-24): one e
 - A scroller holding sr-only children is `relative` (the comparison table, 188px at 360); a stack disc takes no percentage padding (it resolves against the parent's width — the logo box measured 0px in the wide detail card).
 - Console at `/admin/blocks/{type}` — the kind in the path, because `?type=` matched no sidebar row and `screenRole()` 404s a screen no row matches. Previews and showcases are `data-reveal-static`: the observer skips them, re-checked at intersection time because an async component streams as its own chunk outside the region first.
 - `home_stats_block`/`home_pricing_block`/`home_stack_block` are pickers of published blocks of that kind (API options, anything else refused); `homeBlockSections()` returns only chosen blocks, so none chosen draws no empty band; `HOME_SECTIONS` places them.
+- Banded tiers (0.180.0, `banded`): bars coloured by position from the theme's own fills (`[data-band]`, never a typed colour); the yearly deal — struck monthly price, per-month figure, billed, saved, share off — is worked out from the two prices by `yearlyDeal()` (`lib/pricing-deal.ts`), nothing when a year saves nothing. `promo`, `guarantees` and a plan's `cta.copy` (a copy button, `mailto:` only) are pricing fields; `scripts/probes/pricing-banded.mjs`.
 
 ### Custom fields and content types — `docs/custom-content.md`
 

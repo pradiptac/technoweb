@@ -124,6 +124,36 @@ class ContentBlockTest extends TestCase
         ]])->assertCreated();
     }
 
+    public function test_the_banded_pricing_layout_keeps_its_promo_trust_strip_and_copy_switch(): void
+    {
+        $content = [
+            'promo' => '20% off · ends soon',
+            'guarantees' => ['Cancel anytime', 'Secure checkout'],
+            'billing' => ['enabled' => true],
+            'sets' => [['label' => 'Plans', 'plans' => [
+                ['name' => 'Basic', 'price_monthly_paise' => 1000, 'price_yearly_paise' => 9600],
+                ['name' => 'Enterprise', 'price_label' => 'Custom', 'cta' => ['label' => 'Contact us', 'href' => 'mailto:sales@example.test', 'copy' => true]],
+            ]]],
+        ];
+
+        $this->create(['type' => 'pricing', 'layout' => 'banded', 'name' => 'Plans', 'content' => $content])->assertCreated();
+
+        $read = $this->getJson('/api/v1/blocks/plans')->assertOk();
+        $read->assertJsonPath('data.layout', 'banded')
+            ->assertJsonPath('data.content.promo', '20% off · ends soon')
+            ->assertJsonPath('data.content.guarantees', ['Cancel anytime', 'Secure checkout'])
+            ->assertJsonPath('data.content.sets.0.plans.1.cta.copy', true);
+
+        $this->create(['type' => 'pricing', 'layout' => 'banded', 'name' => 'Long', 'content' => [
+            'promo' => str_repeat('x', 41),
+            'guarantees' => array_fill(0, 7, 'Cancel anytime'),
+        ] + $content])->assertStatus(422)->assertJsonValidationErrors(['content.promo', 'content.guarantees']);
+
+        $this->create(['type' => 'pricing', 'layout' => 'banded', 'name' => 'Wide', 'content' => [
+            'guarantees' => [str_repeat('y', 61)],
+        ] + $content])->assertStatus(422)->assertJsonValidationErrors('content.guarantees.0');
+    }
+
     public function test_one_published_cta_is_the_default_and_the_public_read_is_null_without_one(): void
     {
         $this->getJson('/api/v1/blocks/default/cta')->assertOk()->assertJsonPath('data', null);

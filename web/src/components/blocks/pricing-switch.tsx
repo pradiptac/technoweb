@@ -21,10 +21,12 @@ export type Period = "monthly" | "yearly";
  * every panel stays mounted behind `hidden` so nothing inside one is lost.
  */
 export function PricingSwitch({
-  labels, billing, panels,
+  labels, billing, promo, panels,
 }: {
   labels: string[];
   billing: { monthly: string; yearly: string; note?: string | null } | null;
+  /** The block's promotion chip, beside the billing toggle (rendered by the server). */
+  promo?: ReactNode;
   panels: ReactNode[];
 }) {
   const base = useId();
@@ -48,7 +50,7 @@ export function PricingSwitch({
 
   return (
     <div className="blk-pricing" data-billing={period}>
-      {(withTabs || billing) && (
+      {(withTabs || billing || promo) && (
         <div className="mb-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
           {withTabs && (
             <div role="tablist" aria-label="Plans" className="flex max-w-full flex-wrap justify-center gap-1 rounded-full border border-line-strong bg-surface-2 p-1">
@@ -99,9 +101,11 @@ export function PricingSwitch({
                   );
                 })}
               </div>
+              {promo}
               {billing.note && <span className="text-13 font-semibold text-accent-ink">{billing.note}</span>}
             </div>
           )}
+          {!billing && promo}
         </div>
       )}
 

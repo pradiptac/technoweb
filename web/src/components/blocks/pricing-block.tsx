@@ -3,7 +3,9 @@ import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { IconCheck } from "@/components/icons-ui";
+import { CopyLink } from "@/components/ui/copy-link";
 import { formatPaise } from "@/lib/money";
+import { yearlyDeal } from "@/lib/pricing-deal";
 import { cn } from "@/lib/utils";
 import type { ContentBlock, PricingContent, PricingPlan, PricingSet } from "@/types/blocks";
 import { PricingSwitch, type Period } from "./pricing-switch";
@@ -11,7 +13,7 @@ import { PricingSwitch, type Period } from "./pricing-switch";
 type PricingBlockData = Extract<ContentBlock, { type: "pricing" }>;
 
 /**
- * A pricing table (content block `type: "pricing"`), in three layouts.
+ * A pricing table (content block `type: "pricing"`), in four layouts.
  *
  * Display only: every button is a link and nothing is bought here — the
  * store is the one part of the site that sells (the scope limit in
@@ -39,13 +41,29 @@ export function PricingBlock({ block, embedded = false }: { block: PricingBlockD
       }
     : null;
 
+  const promo = c.promo?.trim() ? <PromoChip text={c.promo.trim()} /> : null;
+  const guarantees = (c.guarantees ?? []).map((g) => g.trim()).filter(Boolean);
+
   const body = (
     <>
       <BlockHeader content={c} />
       {sets.length > 1 || billing ? (
-        <PricingSwitch labels={sets.map((s) => s.label)} billing={billing} panels={panels} />
+        <PricingSwitch labels={sets.map((s) => s.label)} billing={billing} promo={promo} panels={panels} />
       ) : (
-        <div className="blk-pricing" data-billing="monthly">{panels[0]}</div>
+        <div className="blk-pricing" data-billing="monthly">
+          {promo && <div className="mb-8 flex justify-center">{promo}</div>}
+          {panels[0]}
+        </div>
+      )}
+      {guarantees.length > 0 && (
+        <ul data-pricing-guarantees="" className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3 text-12 font-semibold uppercase tracking-[.12em] text-muted">
+          {guarantees.map((g, i) => (
+            <li key={`${g}-${i}`} className="flex items-center gap-2">
+              <IconCheck className="size-4 shrink-0 text-brand-ink" aria-hidden="true" />
+              {g}
+            </li>
+          ))}
+        </ul>
       )}
     </>
   );
@@ -75,6 +93,7 @@ function BlockHeader({ content }: { content: PricingContent }) {
 function Layout({ layout, set, toggle }: { layout: string; set: PricingSet; toggle: boolean }) {
   if (layout === "comparison") return <Comparison set={set} toggle={toggle} />;
   if (layout === "single_focus") return <SingleFocus plan={set.plans[0]} toggle={toggle} />;
+  if (layout === "banded") return <Banded plans={set.plans} toggle={toggle} />;
   return <ThreeTier plans={set.plans} toggle={toggle} />;
 }
 
@@ -149,6 +168,11 @@ function PlanCta({ plan, primary, className }: { plan: PricingPlan; primary: boo
       {plan.cta?.label || "Get started"}
     </ButtonLink>
   );
+}
+
+/** The promotion beside the billing toggle ("20% off · ends soon"): a fill under its own ink, as every theme grades it. */
+function PromoChip({ text }: { text: string }) {
+  return <span className="inline-flex items-center bg-brand-600 px-2.5 py-1 text-12 font-semibold uppercase tracking-[.12em] text-brand-on">{text}</span>;
 }
 
 function Badge({ children, strong }: { children: ReactNode; strong?: boolean }) {
@@ -363,5 +387,132 @@ function SingleFocus({ plan, toggle }: { plan: PricingPlan; toggle: boolean }) {
         </div>
       </div>
     </Card>
+  );
+}
+
+/* ----------------------------------------------------------------- banded */
+
+/**
+ * `banded`: plans side by side under a coloured bar — the plan's badge (or
+ * "Plan") and its number. The colour is the theme's own, by position:
+ * brand, secondary, accent, then the info fill (`[data-band]` in
+ * `blocks.css`), each with the ink graded for it, so no colour is typed and
+ * every palette passes. Under the yearly period a plan with both prices shows
+ * the deal `yearlyDeal()` works out; under the monthly one, the monthly price.
+ * Themes restyle it by attribute (`data-pricing-layout="banded"`).
+ */
+function Banded({ plans, toggle }: { plans: PricingPlan[]; toggle: boolean }) {
+  return (
+    <div data-pricing-layout="banded" className={cn("grid items-stretch gap-px overflow-hidden rounded-lg border border-line-strong bg-line-strong", bandColumns(plans.length))}>
+      {plans.map((plan, i) => (
+        <article key={`${plan.name}-${i}`} data-band={i % 4} data-highlighted={plan.highlighted ? "" : undefined} className="relative flex min-w-0 flex-col bg-card">
+          <div data-band-bar="" className="flex items-center justify-between gap-3 bg-(color:--band) px-5 py-3 text-12 font-semibold uppercase tracking-[.16em] text-(color:--band-on)">
+            <span className="min-w-0 truncate">{plan.badge || "Plan"}</span>
+            <span aria-hidden="true" className="tabular-nums">{String(i + 1).padStart(2, "0")}</span>
+          </div>
+          <div className="flex flex-1 flex-col p-6">
+            <BandedHead plan={plan} toggle={toggle} />
+            {plan.description && <p className="mt-2 text-15 text-muted">{plan.description}</p>}
+            <div className="mt-6"><BandedPrice plan={plan} toggle={toggle} /></div>
+            <BandedCta plan={plan} />
+            {(plan.features ?? []).length > 0 && (
+              <div className="mt-8">
+                <p data-band-label="" className="text-12 font-semibold uppercase tracking-[.16em] text-muted">What you get</p>
+                <ul className="mt-4 space-y-3">
+                  {(plan.features ?? []).map((f, fi) => (
+                    <li key={`${f}-${fi}`} className="flex gap-3 text-15 text-ink">
+                      <span data-band-tick="" className="mt-0.5 inline-grid size-5 shrink-0 place-items-center border border-(color:--band-ink) text-(color:--band-ink)">
+                        <IconCheck className="size-3.5" aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function bandColumns(n: number): string {
+  if (n <= 1) return "mx-auto max-w-md";
+  if (n === 2) return "mx-auto max-w-4xl md:grid-cols-2";
+  if (n === 3) return "md:grid-cols-3";
+  return "md:grid-cols-2 xl:grid-cols-4";
+}
+
+/** The plan's name, and the share off as a chip under the yearly period. */
+function BandedHead({ plan, toggle }: { plan: PricingPlan; toggle: boolean }) {
+  const deal = !plan.price_label && toggle ? yearlyDeal(plan.price_monthly_paise, plan.price_yearly_paise) : null;
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+      <h3 className="font-display text-24 font-bold leading-tight text-ink">{plan.name}</h3>
+      {deal && (
+        <span data-period="yearly" data-band-label="" className="bg-(color:--band) px-2.5 py-1 text-12 font-semibold uppercase tracking-[.12em] text-(color:--band-on)">
+          {deal.percent}% off
+        </span>
+      )}
+    </div>
+  );
+}
+
+function BandedPrice({ plan, toggle }: { plan: PricingPlan; toggle: boolean }) {
+  const big = "font-display text-[clamp(40px,2.4vw+24px,56px)] font-bold leading-none tracking-[-.03em] text-ink tabular-nums";
+  if (plan.price_label) return <span className={big}>{plan.price_label}</span>;
+
+  const deal = toggle ? yearlyDeal(plan.price_monthly_paise, plan.price_yearly_paise) : null;
+  const face = (shown: Shown) => (shown ? (
+    <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <span className={big}>{shown.amount}</span>
+      {shown.suffix && <span className="text-15 text-muted">{shown.suffix}</span>}
+    </span>
+  ) : <span className={big}>On request</span>);
+
+  if (!toggle) return face(pick(plan, "monthly"));
+  return (
+    <>
+      <span data-period="monthly">{face(pick(plan, "monthly"))}</span>
+      <span data-period="yearly">
+        {deal ? (
+          <>
+            <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <s className="text-17 font-semibold text-err tabular-nums"><span className="sr-only">Was </span>{formatPaise(deal.was)}</s>
+              <span className={big}>{formatPaise(deal.perMonth)}</span>
+              <span className="text-15 text-muted">/mo</span>
+            </span>
+            <span data-band-label="" className="mt-3 block text-12 font-semibold uppercase tracking-[.14em] text-muted">
+              {formatPaise(deal.billed)} billed yearly · <span className="whitespace-nowrap text-(color:--band-ink)">save {formatPaise(deal.save)}</span>
+            </span>
+          </>
+        ) : face(pick(plan, "yearly"))}
+      </span>
+    </>
+  );
+}
+
+/** The plan's button in its band colour, and a copy button beside it for an email link the editor switched one on for. */
+function BandedCta({ plan }: { plan: PricingPlan }) {
+  const href = plan.cta?.href;
+  if (!href) return null;
+  const email = plan.cta?.copy && href.startsWith("mailto:") ? decodeURIComponent(href.slice(7).split("?")[0]) : null;
+  return (
+    <div className="mt-7 flex items-stretch gap-px">
+      <ButtonLink
+        href={href}
+        className="min-w-0 flex-1 whitespace-normal rounded-none bg-(color:--band) text-center uppercase tracking-[.16em] text-(color:--band-on) hover:bg-(color:--band) hover:brightness-110"
+      >
+        {plan.cta?.label || "Get started"}
+      </ButtonLink>
+      {email && (
+        <CopyLink
+          url={email}
+          what="email address"
+          className="inline-grid w-12 shrink-0 place-items-center bg-(color:--band) text-(color:--band-on) hover:brightness-110"
+        />
+      )}
+    </div>
   );
 }

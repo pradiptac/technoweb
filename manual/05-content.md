@@ -722,7 +722,7 @@ them) on the homepage.
 |---|---|
 | **CTA banners** | Full-width band, Split with image, Two paths, Button with reassurance, Inline newsletter, Gated download, Countdown, Webinar strip, Hiring, App download with QR |
 | **Stat bars** | Four-figure row, Metric cards with sparklines, Ring gauge trio, Count-up on view, Anomaly pulse strip, Feature cards, Figures as chips |
-| **Pricing** | Three-tier with highlight, Comparison table, Single plan focus |
+| **Pricing** | Three-tier with highlight, Comparison table, Single plan focus, Banded tiers |
 | **Technology stack** | Orbit, Grouped cards, Technology cloud, Globe, Marquee rows, Layers |
 
 Each layout's form asks only for what that layout shows. On a saved block,
@@ -738,6 +738,16 @@ block of that kind side by side, drafts included.
   after the form is sent.
 - **Inline newsletter banners** add people to the newsletter list, and are
   hidden while newsletter signup is switched off.
+- **Banded tiers** put each plan under a coloured bar showing its badge and
+  number. Give a plan a monthly *and* a yearly price and switch on the
+  monthly / yearly switch: under **Yearly** the table works out the rest by
+  itself — the monthly price struck through, the price per month, "billed
+  yearly", what is saved and the percentage off. The colours come from your
+  theme's palette.
+- **Every pricing table** can carry a **Promotion chip** beside the switch
+  ("20% off · ends soon") and a **Trust strip** under the plans — up to six
+  short lines such as "Cancel anytime". On a banded table, a plan whose button
+  is an email link (`mailto:sales@…`) can show a **copy button** beside it.
 - **On the homepage.** An administrator picks one published stat bar, pricing
   table and technology stack under **Site → Settings → Homepage**; where they
   sit and whether they show is set on **Site → Themes** (chapter 15).

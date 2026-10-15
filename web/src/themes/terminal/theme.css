@@ -338,3 +338,16 @@
   [data-theme="terminal"] [data-team] [data-team-detail] > :first-child { margin-top: 0; }
   [data-theme="terminal"] [data-team] [data-team-contact] { grid-column: 3; grid-row: 1 / span 3; padding-top: 0; margin-top: 0; }
 }
+
+/* The banded pricing table (0.180.0): one square window of columns, the bars,
+   labels and figures in mono, the trust strip as a row of `✓` facts. */
+[data-theme="terminal"] [data-pricing-layout="banded"] { border-radius: 0; }
+[data-theme="terminal"] [data-pricing-layout="banded"] [data-band-bar],
+[data-theme="terminal"] [data-pricing-layout="banded"] [data-band-label],
+[data-theme="terminal"] [data-pricing-guarantees] {
+  font-family: var(--font-mono);
+  letter-spacing: .14em;
+}
+[data-theme="terminal"] [data-pricing-layout="banded"] h3 { letter-spacing: -0.02em; }
+[data-theme="terminal"] [data-pricing-layout="banded"] a,
+[data-theme="terminal"] [data-pricing-layout="banded"] button { border-radius: 0; font-family: var(--font-mono); }

@@ -87,7 +87,8 @@ export type PricingPlan = {
   price_label?: string | null;
   period?: string | null;
   features?: string[] | null;
-  cta?: BlockLink | null;
+  /** `copy`: a copy button beside an email (`mailto:`) button — the banded layout's. */
+  cta?: (BlockLink & { copy?: boolean | null }) | null;
   highlighted?: boolean | null;
 };
 
@@ -103,6 +104,10 @@ export type PricingContent = {
   heading?: string | null;
   lede?: string | null;
   billing?: { enabled?: boolean | null; monthly_label?: string | null; yearly_label?: string | null; yearly_note?: string | null } | null;
+  /** A chip beside the billing toggle, ≤ 40 characters ("20% off · ends soon"). */
+  promo?: string | null;
+  /** The trust strip under the plans: up to six short lines, ≤ 60 characters each. */
+  guarantees?: string[] | null;
   sets: PricingSet[];
 };
 

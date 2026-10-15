@@ -26,6 +26,8 @@ export function PricingEditor({ layout }: { layout: string }) {
           <Text path={["billing", "yearly_note"]} label="Yearly note" placeholder="Two months free" />
         </Row>
       )}
+      <Text path={["promo"]} label="Promotion chip (optional)" placeholder="20% off · ends soon" hint="A short highlighted note beside the switch, 40 characters at most." />
+      <GuaranteesField />
 
       <Repeater
         path={["sets"]}
@@ -75,7 +77,10 @@ function SetFields({ path, layout, billing }: { path: Path; layout: string; bill
               <Text path={[...pp, "cta", "label"]} label="Button label" placeholder="Enquire" />
               <Text path={[...pp, "cta", "href"]} label="Button link" placeholder="/contact?subject=AMC" />
             </Row>
-            {layout === "three_tier" && <Toggle path={[...pp, "highlighted"]} label="Highlight this plan" />}
+            {layout === "banded" && (
+              <Toggle path={[...pp, "cta", "copy"]} label="Copy button beside the email" hint="Shown when the button link is an email address (mailto:)." />
+            )}
+            {(layout === "three_tier" || layout === "banded") && <Toggle path={[...pp, "highlighted"]} label="Highlight this plan" />}
           </>
         )}
       />
@@ -103,6 +108,30 @@ function SetFields({ path, layout, billing }: { path: Path; layout: string; bill
         />
       )}
     </>
+  );
+}
+
+/** The trust strip under the plans, one line each — up to six short guarantees. */
+function GuaranteesField() {
+  const { content, set, err } = useBlock();
+  const value = getIn(content, ["guarantees"]);
+  const text = Array.isArray(value) ? value.join("\n") : "";
+  return (
+    <div className="mb-[18px]">
+      <label htmlFor="pricing-guarantees" className="mb-[7px] block text-13-5 font-semibold">Trust strip (optional) — one per line</label>
+      <textarea
+        id="pricing-guarantees"
+        key={text}
+        rows={3}
+        defaultValue={text}
+        placeholder={"Cancel anytime\nSecure checkout"}
+        aria-describedby="pricing-guarantees-hint"
+        className="field w-full rounded border border-line-strong bg-card px-3 py-2.5 text-13-5"
+        onBlur={(e) => set(["guarantees"], e.target.value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean))}
+      />
+      <p id="pricing-guarantees-hint" className="mt-1 text-12-5 text-muted">Shown with ticks under the plans: up to six, 60 characters each.</p>
+      {err(["guarantees"]) && <p className="mt-1 text-12-5 text-err">{err(["guarantees"])}</p>}
+    </div>
   );
 }
 

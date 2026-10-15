@@ -1018,6 +1018,14 @@ key is not wrapped, so the block's content travels as `content` and every
 read keeps its `{data: …}` envelope. Its shape is per type and layout
 (`App\Support\Blocks\BlockRules`); 422s are keyed `content.items.0.value`.
 
+**Pricing** layouts are `three_tier`, `comparison`, `single_focus` and
+`banded` (0.180.0). Every pricing layout takes `promo` (string ≤ 40),
+`guarantees` (≤ 6 strings of ≤ 60) and `sets.*.plans.*.cta.copy` (boolean —
+the banded layout draws a copy button beside a `mailto:` button). All three
+are passed through on the public read unchanged; the banded layout's yearly
+figures are worked out by the website from `price_monthly_paise` and
+`price_yearly_paise`, never stored.
+
 **The admin read** carries `content` as stored (paths, brand ids), `media`
 (a URL for every stored `*_path`), `preview` (the public shape), `status`,
 `is_default` and `shortcode`. **The public read** resolves paths to URLs with

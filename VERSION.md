@@ -21,6 +21,22 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.180.0 — 2026-10-15
+
+**Banded pricing tables** — a fourth pricing layout, after a design the
+client supplied.
+
+- **Banded tiers**: each plan under a coloured bar with its badge and number,
+  in the theme's own colours (brand, secondary, accent, then a fourth), so
+  every palette passes contrast in both schemes. Terminal draws it in mono
+  with square edges.
+- **The yearly deal is worked out, not typed**: with a monthly and a yearly
+  price, Yearly shows the monthly price struck through, the price per month,
+  "billed yearly · save …" and the percentage off.
+- **On every pricing table**: a promotion chip beside the switch, a trust
+  strip of up to six lines under the plans, and — banded — a copy button
+  beside an email button.
+
 ## 0.179.0 — 2026-10-15
 
 **Google Fonts and Google icons** — copied to this site, so a visitor's
