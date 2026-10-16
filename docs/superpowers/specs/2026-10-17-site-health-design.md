@@ -141,10 +141,11 @@ Index: `(subject_type, subject_id)`, `(severity, ignored_at)`.
 | `result` | `pending` / `ok` / `failed` / `unknown` |
 | `fails` | tinyint, failures in a row |
 | `checked_at`, `next_check_at` | |
-| `last_linked_at` | the last time any record was seen linking to it |
 
-A link is **dead** at `fails >= 2`. Rows with `last_linked_at` older than 30
-days are pruned.
+A link is **dead** at `fails >= 2`. Which records link to which URL is
+`health_link_refs` (`health_link_id`, `subject_type`, `subject_id`, unique),
+replaced on every recheck of a record; a link with no refs is pruned by the
+sweep.
 
 ### `health_snapshots`
 
@@ -156,12 +157,11 @@ Pruned after 400 days.
 
 ### On save
 
-Each kind's model gets a `saved` and a `deleted` hook through one trait,
-`App\Models\Concerns\HasHealthChecks`: on save it dispatches
+`AppServiceProvider` registers a `saved` and a `deleted` listener on every
+class `Kinds` lists (one loop, no trait on thirteen models): on save it dispatches
 `CheckRecordHealth(alias, id)` **after commit**; on delete it deletes the
 record's findings. External links the job meets are upserted into
-`health_links` with `last_linked_at = now` and, when new, `next_check_at =
-now`, so a newly added dead link is tried within fifteen minutes.
+`health_links` (with `next_check_at = now` when new) and into its refs, so a newly added dead link is tried within fifteen minutes.
 
 Guarded like `Notifier`: a failure to dispatch is logged at `warning` and
 never fails the save.
@@ -225,7 +225,6 @@ own is a 404.
 | `POST` | `/admin/health/{finding}/restore` | |
 | `POST` | `/admin/health/recheck` | `{type, id}`: runs the record's checks now (external links read from the cache, not fetched) and answers its findings. Throttled 30/min |
 | `POST` | `/admin/health/bulk` | `{ids (≤ 100), action: ignore\|restore}` → 200 `{updated, refused}` |
-| `GET`/`PATCH` | `/admin/health/settings` | `role:admin`. The `health` keys only; any other key a 422 by name |
 
 **The score** is the share of checked published records with no unignored
 error or warning finding, 0–100, rounded; null when nothing was checked.
@@ -233,7 +232,8 @@ Drafts are checked and listed but not scored. A notice never lowers it.
 
 ## Console
 
-`/admin/health`, "Site health", in the System section. One sidebar row whose
+`/admin/health`, "Site health", in the Content section beside Detail templates
+(System is administrators-only by design). One sidebar row whose
 role is `content_manager,store_manager,seo_manager` (`RoleGate`), so every
 owning role reaches it; `AdminNavRolesTest` compares it as written. The page
 starts with `await requireScreen()`.
@@ -252,7 +252,9 @@ starts with `await requireScreen()`.
    "never" with a link to System → Status when the scheduler has not run.
 
 Settings at `/admin/health/settings` (administrators): the external switch and
-the thresholds, through `SettingsForm`'s rows like the other module screens.
+the thresholds — a `SCREENS` entry in `settings-copy.ts` (area Content) saved
+through the ordinary `PATCH /admin/settings`, with `HealthSettings::refusalFor()`
+joining the per-key checks there.
 
 A `health` dashboard panel (`WIDGETS`, administrators only, **hidden by
 default**): the score and the three worst findings.
