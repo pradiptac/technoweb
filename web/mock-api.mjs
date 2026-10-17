@@ -2264,7 +2264,7 @@ const tenderMeta = () => ({
   closing_soon_days: TENDER_CLOSING_SOON_DAYS,
   timezone: 'IST',
 });
-
+
 const paginate = (rows) => ({
   data: rows,
   links:{ first:null, last:null, prev:null, next:null },
@@ -4976,6 +4976,47 @@ createServer(async (req, res) => {
       }
     }
 
+    /* Site health (0.181.0): the list in the real envelope, ignore/restore, recheck and bulk. */
+    {
+      const finding = (id, severity, check, group, sentence, type, type_label, sid, title, field, field_label, path) => ({
+        id, check, group, severity, sentence, field, field_label, detail: {},
+        subject: { type, type_label, id: sid, title }, admin_path: path, first_seen_at: '2026-10-10T09:00:00+05:30', ignored_at: null,
+      });
+      const HEALTH = [
+        finding(1, 'error', 'link_internal_dead', 'links', 'Links to /solutions/old-firewall, which does not exist.', 'blog_post', 'Blog posts', 1, 'Choosing a firewall', 'body', 'Body', '/admin/blog/1?tab=content'),
+        finding(2, 'warning', 'stale', 'stale', 'Not edited for 20 months.', 'page', 'Pages', 2, 'About us', 'record', 'The record', '/admin/pages/2'),
+        finding(3, 'error', 'image_no_alt', 'accessibility', 'The picture media/hero.jpg has no description for screen readers.', 'solution', 'Solutions', 3, 'Networking', 'hero_image_path', 'Cover picture', '/admin/solutions/3'),
+      ];
+      const opts = (m) => Object.entries(m).map(([value, label]) => ({ value, label }));
+      if (p === '/admin/health' && req.method === 'GET') {
+        const ignored = url.searchParams.get('ignored') === '1';
+        const group = url.searchParams.get('group');
+        const rows = HEALTH.filter((r) => Boolean(r.ignored_at) === ignored && (!group || r.group === group));
+        const page = paginate(rows);
+        const count = (g, s) => HEALTH.filter((r) => !r.ignored_at && r.group === g && r.severity === s).length;
+        const summary = Object.fromEntries(['links', 'stale', 'accessibility'].map((g) => [g, { error: count(g, 'error'), warning: count(g, 'warning'), notice: count(g, 'notice') }]));
+        return json(res, 200, { ...page, meta: { ...page.meta, summary,
+          score: { value: 82, series: [{ date: '2026-10-15', score: 80 }, { date: '2026-10-16', score: 82 }], change: 3 },
+          last_sweep_at: '2026-10-17T02:51:00+05:30', links_due: 4,
+          groups: opts({ links: 'Links', stale: 'Out of date', accessibility: 'Accessibility' }),
+          severities: opts({ error: 'Error', warning: 'Warning', notice: 'Notice' }),
+          kinds: opts({ page: 'Pages', blog_post: 'Blog posts', solution: 'Solutions' }) } });
+      }
+      const hm = p.match(/^\/admin\/health\/(\d+)\/(ignore|restore)$/);
+      if (hm && req.method === 'POST') {
+        const row = HEALTH.find((r) => r.id === Number(hm[1]));
+        if (!row) return json(res, 404, { message: 'Not found.' });
+        row.ignored_at = hm[2] === 'ignore' ? '2026-10-17T10:00:00+05:30' : null;
+        return json(res, 200, { data: row });
+      }
+      if (p === '/admin/health/recheck' && req.method === 'POST') return json(res, 200, { data: [] });
+      if (p === '/admin/health/bulk' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        HEALTH.filter((r) => body.ids.includes(r.id)).forEach((r) => { r.ignored_at = body.action === 'ignore' ? '2026-10-17T10:00:00+05:30' : null; });
+        return json(res, 200, { updated: body.ids, refused: [] });
+      }
+    }
+
     /* Draft share links (0.138.0): read, create (replacing) and revoke, in the real envelope.
        `path` is a path, never a URL; the token appears nowhere else. */
     {
@@ -5535,6 +5576,12 @@ createServer(async (req, res) => {
         events: [
           s('events_email', null, { group: 'events' }), s('event_reminder_hours', '24', { group: 'events' }),
           s('event_max_seats', '5', { group: 'events' }),
+        ],
+        /* Site health → Settings (0.181.0): the link switch and a months figure per kind. */
+        health: [
+          s('health_external_links', '1', { group: 'health', type: 'boolean' }),
+          ...['page', 'solution', 'service', 'product', 'store_product', 'knowledge_article', 'landing_page', 'event', 'blog_post', 'case_study', 'tender', 'job_opening', 'entry']
+            .map((k) => s(`health_stale_${k}`, '18', { group: 'health' })),
         ],
         auth: [s('otp_login_enabled', '1'), s('otp_admin_login_enabled', '1'), s('password_login_enabled', '1')],
         mail: [
