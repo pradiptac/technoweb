@@ -3,6 +3,7 @@
 namespace App\Support\Search;
 
 use App\Models\SearchPassage;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -33,7 +34,8 @@ final class Indexer
         $passages = Passages::split(Indexable::title($model), Document::sections($model));
         $model->unsetRelations();
 
-        DB::transaction(function () use ($alias, $id, $passages) {
+        $changed = DB::transaction(function () use ($alias, $id, $passages) {
+            $changed = false;
             $existing = SearchPassage::query()->where('subject_type', $alias)->where('subject_id', $id)->get()->keyBy('position');
 
             foreach ($passages as $position => $passage) {
@@ -48,12 +50,16 @@ final class Indexer
                     ['subject_type' => $alias, 'subject_id' => $id, 'position' => $position],
                     ['heading' => $passage['heading'], 'text' => $passage['text'], 'hash' => $hash, 'model' => null, 'vector' => null, 'embedded_at' => null],
                 );
+                $changed = true;
             }
 
-            SearchPassage::query()->where('subject_type', $alias)->where('subject_id', $id)->where('position', '>=', count($passages))->delete();
+            return SearchPassage::query()->where('subject_type', $alias)->where('subject_id', $id)->where('position', '>=', count($passages))->delete() > 0 || $changed;
         });
 
-        self::embedWaiting($alias, $id);
+        // A passage deleted, or changed and not embedded, still sits in the file with its old vector.
+        if (self::embedWaiting($alias, $id) === 0 && $changed) {
+            SearchFile::markStale();
+        }
     }
 
     public static function forget(string $alias, int $id): void
@@ -63,15 +69,15 @@ final class Indexer
         }
     }
 
-    /** Embeds waiting passages (of one record, or any), in batches. @return int how many were embedded */
+    /** Embeds waiting passages (of one record, or any), in batches — a passage of another model waits too. @return int how many were embedded */
     public static function embedWaiting(?string $alias = null, ?int $id = null, int $limit = Embeddings::BATCH): int
     {
         if (! SemanticSettings::enabled()) {
             return 0;
         }
 
-        $rows = SearchPassage::query()
-            ->whereNull('embedded_at')
+        $model = SemanticSettings::model();
+        $rows = self::waiting($model)
             ->when($alias !== null, fn ($q) => $q->where('subject_type', $alias)->where('subject_id', $id))
             ->orderBy('id')
             ->limit($limit)
@@ -87,13 +93,23 @@ final class Indexer
             return 0;
         }
 
-        $model = SemanticSettings::model();
         foreach ($rows->values() as $i => $row) {
             $row->forceFill(['model' => $model, 'vector' => Vectors::pack($vectors[$i]), 'embedded_at' => now()])->save();
         }
         SearchFile::markStale();
 
         return $rows->count();
+    }
+
+    /**
+     * Not yet embedded under `$model`. A row stamped with another model —
+     * a slice that was running when the model changed — waits like any other.
+     *
+     * @return Builder<SearchPassage>
+     */
+    public static function waiting(string $model): Builder
+    {
+        return SearchPassage::query()->where(fn ($q) => $q->whereNull('embedded_at')->orWhere('model', '<>', $model));
     }
 
     public static function markAllWaiting(): void

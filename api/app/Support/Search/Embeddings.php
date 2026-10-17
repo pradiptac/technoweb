@@ -4,6 +4,7 @@ namespace App\Support\Search;
 
 use App\Support\Chat\ChatSettings;
 use App\Support\Chat\Providers\OpenRouterProvider;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -66,6 +67,7 @@ final class Embeddings
 
         usort($rows, fn ($a, $b) => ($a['index'] ?? 0) <=> ($b['index'] ?? 0));
         SemanticSettings::clearError();
+        Cache::forget(Semantic::BACKOFF_KEY);
 
         return array_map(fn (array $row) => Vectors::normalise(array_map('floatval', (array) ($row['embedding'] ?? []))), $rows);
     }

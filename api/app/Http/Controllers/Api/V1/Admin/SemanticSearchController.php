@@ -8,6 +8,7 @@ use App\Models\SearchPassage;
 use App\Models\Setting;
 use App\Support\Chat\ChatSettings;
 use App\Support\Search\Embeddings;
+use App\Support\Search\Indexer;
 use App\Support\Search\Semantic;
 use App\Support\Search\SemanticSettings;
 use Illuminate\Http\JsonResponse;
@@ -26,7 +27,7 @@ class SemanticSearchController extends Controller
             'passages' => [
                 'total' => SearchPassage::count(),
                 'embedded' => SearchPassage::query()->where('model', $model)->whereNotNull('embedded_at')->count(),
-                'waiting' => SearchPassage::query()->whereNull('embedded_at')->count(),
+                'waiting' => Indexer::waiting($model)->count(),
             ],
             'today' => ['phrases' => (int) Cache::get(Semantic::TODAY_KEY_PREFIX.now()->toDateString(), 0), 'cap' => SemanticSettings::dailyCap()],
             'error' => Setting::get('semantic_search_error') ?: null,

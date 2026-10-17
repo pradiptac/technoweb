@@ -25,6 +25,7 @@ use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\FakesEmbeddings;
 use Tests\TestCase;
 
@@ -35,7 +36,7 @@ class SemanticIndexTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        SearchFile::flushMemo();
+        Storage::fake('local');
         $this->seed(SettingsSeeder::class);
         $this->enableSemanticSearch();
         $this->fakeEmbeddings(); // no test may reach the real OpenRouter
@@ -331,6 +332,38 @@ class SemanticIndexTest extends TestCase
         }
 
         $this->assertSame(2, SearchPassage::whereNotNull('embedded_at')->count());
+    }
+
+    public function test_a_model_change_while_a_run_is_mid_way_strands_no_passage(): void
+    {
+        $this->article();
+        $this->article(['slug' => 'fw', 'title' => 'Firewall rules', 'body' => '<p>A firewall blocks attacks.</p>']);
+
+        // The model changes; a slice still running under the old one stamps a row with it.
+        Indexer::markAllWaiting();
+        SearchPassage::query()->orderBy('id')->limit(1)->update(['model' => 'openai/text-embedding-3-small', 'embedded_at' => now()]);
+        Setting::query()->where('key', 'semantic_search_model')->update(['value' => 'qwen/qwen3-embedding-0.6b']);
+        Setting::flushCache();
+
+        $this->artisan('technoware:index-search')->assertSuccessful();
+
+        $this->assertSame(0, Indexer::waiting(SemanticSettings::model())->count());
+        $this->assertSame(SearchPassage::count(), SearchPassage::where('model', 'qwen/qwen3-embedding-0.6b')->whereNotNull('embedded_at')->count());
+        $this->assertCount(SearchPassage::count(), iterator_to_array(SearchFile::records(SearchFile::load()), false));
+    }
+
+    public function test_an_edit_that_only_deletes_a_passage_rebuilds_the_file(): void
+    {
+        $long = '<p>'.str_repeat('Two words here. ', 200).'</p>';
+        $article = $this->article(['body' => '<p>One.</p><h2>Two</h2>'.$long]);
+        $inFile = fn () => count(iterator_to_array(SearchFile::records(SearchFile::load()), false));
+        $this->assertGreaterThan(1, $inFile());
+        $before = count(Http::recorded());
+
+        $article->update(['body' => '<p>One.</p>']);
+
+        $this->assertSame(0, count(Http::recorded()) - $before); // nothing to embed: the first passage is unchanged
+        $this->assertSame(SearchPassage::count(), $inFile());
     }
 
     public function test_an_update_queues_the_first_index_only_when_switched_on(): void

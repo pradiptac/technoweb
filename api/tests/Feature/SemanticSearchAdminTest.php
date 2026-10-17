@@ -14,6 +14,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\FakesEmbeddings;
 use Tests\TestCase;
 
@@ -21,6 +22,12 @@ class SemanticSearchAdminTest extends TestCase
 {
     use FakesEmbeddings;
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake('local'); // a rebuild writes the search file
+    }
 
     public function test_the_settings_are_seeded_off_with_their_defaults(): void
     {
@@ -100,11 +107,13 @@ class SemanticSearchAdminTest extends TestCase
     public function test_the_status_counts_passages_and_todays_phrases(): void
     {
         $this->seed(SettingsSeeder::class);
-        SearchPassage::create(['subject_type' => 'page', 'subject_id' => 1, 'position' => 0, 'text' => 'a', 'hash' => sha1('a'), 'model' => 'm', 'vector' => 'x', 'embedded_at' => now()]);
+        SearchPassage::create(['subject_type' => 'page', 'subject_id' => 1, 'position' => 0, 'text' => 'a', 'hash' => sha1('a'), 'model' => SemanticSettings::model(), 'vector' => 'x', 'embedded_at' => now()]);
         SearchPassage::create(['subject_type' => 'page', 'subject_id' => 1, 'position' => 1, 'text' => 'b', 'hash' => sha1('b')]);
+        // Embedded under another model: it waits, or it would never be re-embedded.
+        SearchPassage::create(['subject_type' => 'page', 'subject_id' => 1, 'position' => 2, 'text' => 'c', 'hash' => sha1('c'), 'model' => 'other/model', 'vector' => 'x', 'embedded_at' => now()]);
 
         $this->asStaff(RoleEnum::Admin)->getJson('/api/v1/admin/search/semantic')->assertOk()
-            ->assertJsonPath('data.passages.total', 2)->assertJsonPath('data.passages.waiting', 1)
+            ->assertJsonPath('data.passages.total', 3)->assertJsonPath('data.passages.embedded', 1)->assertJsonPath('data.passages.waiting', 2)
             ->assertJsonPath('data.today.cap', 2000)->assertJsonPath('data.enabled', false);
     }
 

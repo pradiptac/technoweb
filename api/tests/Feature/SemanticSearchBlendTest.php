@@ -6,7 +6,6 @@ use App\Models\KnowledgeArticle;
 use App\Models\Setting;
 use App\Models\StoreProduct;
 use App\Support\Chat\Retriever;
-use App\Support\Search\SearchFile;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -22,7 +21,6 @@ class SemanticSearchBlendTest extends TestCase
     {
         parent::setUp();
         Storage::fake('local');
-        SearchFile::flushMemo();
         $this->seed(SettingsSeeder::class);
         $this->enableSemanticSearch();
         $this->fakeEmbeddings();
@@ -173,6 +171,7 @@ class SemanticSearchBlendTest extends TestCase
         $this->assertSame([], Retriever::for('dropping'));
 
         $this->fakeEmbeddings();
+        $this->travel(61)->seconds(); // past the minute's back-off after a failure
         $before = count(Http::recorded());
         $urls = array_column(Retriever::for('dropping'), 'url');
 

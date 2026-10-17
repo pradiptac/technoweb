@@ -13,7 +13,9 @@ use App\Support\Search\SemanticSettings;
 use App\Support\Search\Vectors;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\FakesEmbeddings;
 use Tests\TestCase;
@@ -26,7 +28,6 @@ class SemanticMatchTest extends TestCase
     {
         parent::setUp();
         Storage::fake('local'); // the packed file must not leak between tests
-        SearchFile::flushMemo(); // and neither may its per-process memo
         $this->seed(SettingsSeeder::class);
         $this->enableSemanticSearch();
         $this->fakeEmbeddings();
@@ -151,9 +152,8 @@ class SemanticMatchTest extends TestCase
         SearchPassage::create(['subject_type' => 'page', 'subject_id' => 10, 'position' => 0, 'heading' => null, 'text' => 't', 'hash' => 'h9', 'model' => $model, 'vector' => null, 'embedded_at' => null]); // not embedded: left out
 
         SearchFile::rebuild();
-        $rows = SearchFile::load();
-        $this->assertIsString($rows[0][3]); // held packed, unpacked only while scoring
-        $rows = array_map(fn ($r) => [$r[0], $r[1], $r[2], Vectors::unpack($r[3])], $rows);
+        $bytes = SearchFile::load();
+        $rows = array_map(fn ($r) => [$r[0], $r[1], $r[2], Vectors::unpack(substr($bytes, $r[3], $r[4] * 4))], iterator_to_array(SearchFile::records($bytes), false));
 
         $this->assertCount(2, $rows);
         $this->assertSame(['knowledge_article', 7], [$rows[0][1], $rows[0][2]]);
@@ -170,14 +170,12 @@ class SemanticMatchTest extends TestCase
     {
         $this->articles();
         SearchFile::rebuild();
-        $full = SearchFile::load();
-        $this->assertCount(2, $full);
+        $this->assertCount(2, iterator_to_array(SearchFile::records(SearchFile::load()), false));
 
         $disk = Storage::disk('local');
         $disk->put(SearchFile::path(), substr((string) $disk->get(SearchFile::path()), 0, -5));
-        SearchFile::flushMemo();
 
-        $this->assertCount(1, SearchFile::load());
+        $this->assertCount(1, iterator_to_array(SearchFile::records(SearchFile::load()), false));
         $this->assertNotSame([], Semantic::match('network keeps dropping', ['knowledge_article']));
     }
 
@@ -195,5 +193,104 @@ class SemanticMatchTest extends TestCase
 
         $this->assertNotSame([], Semantic::match('network keeps dropping', ['knowledge_article']));
         $this->assertSame(1, SearchQueryVector::count());
+    }
+
+    public function test_a_search_never_builds_the_file(): void
+    {
+        $this->articles();
+        Storage::disk('local')->delete(SearchFile::path());
+
+        $this->assertSame([], Semantic::match('network keeps dropping', ['knowledge_article']));
+        Storage::disk('local')->assertMissing(SearchFile::path());
+    }
+
+    public function test_a_rebuild_deletes_another_models_file(): void
+    {
+        $disk = Storage::disk('local');
+        $disk->put('search/passages-0123456789ab.bin', 'old');
+
+        SearchFile::rebuild();
+
+        $disk->assertMissing('search/passages-0123456789ab.bin');
+        $disk->assertExists(SearchFile::path());
+    }
+
+    public function test_a_file_too_big_for_memory_is_skipped_with_one_warning(): void
+    {
+        $this->articles();
+        $size = 2 * 1024 * 1024;
+        Storage::disk('local')->put(SearchFile::path(), str_repeat("\0", $size));
+        Log::spy();
+        $was = (string) ini_get('memory_limit');
+
+        try {
+            ini_set('memory_limit', (string) (memory_get_usage() + 20 * 1024 * 1024)); // 2 MB × 3 + 16 MB headroom does not fit
+            $this->assertFalse(SearchFile::fits($size));
+            $this->assertSame('', SearchFile::load());
+            $this->assertSame([], Semantic::match('network keeps dropping', ['knowledge_article']));
+        } finally {
+            ini_set('memory_limit', $was);
+        }
+
+        Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => str_contains($message, 'too large'))->once();
+
+        ini_set('memory_limit', '-1');
+        try {
+            $this->assertTrue(SearchFile::fits(PHP_INT_MAX >> 3));
+        } finally {
+            ini_set('memory_limit', $was);
+        }
+    }
+
+    public function test_after_a_failure_meaning_waits_a_minute(): void
+    {
+        $this->articles();
+        $this->fakeEmbeddings(status: 401);
+        $before = count(Http::recorded());
+
+        $this->assertSame([], Semantic::match('network keeps dropping', ['knowledge_article']));
+        $this->assertSame([], Semantic::match('wireless signal problem', ['knowledge_article']));
+        $this->assertSame(1, count(Http::recorded()) - $before);
+
+        $this->fakeEmbeddings();
+        $this->travel(61)->seconds();
+        $this->assertNotSame([], Semantic::match('network keeps dropping', ['knowledge_article']));
+    }
+
+    public function test_the_same_error_is_not_written_twice(): void
+    {
+        SemanticSettings::recordError('Refused');
+        DB::enableQueryLog();
+
+        SemanticSettings::recordError('Refused');
+
+        $this->assertSame([], array_filter(DB::getQueryLog(), fn (array $q) => str_starts_with(strtolower($q['query']), 'update')));
+        $this->assertSame('Refused', Setting::get('semantic_search_error'));
+    }
+
+    public function test_switched_off_passages_ask_the_database_nothing(): void
+    {
+        $this->articles();
+        Setting::query()->where('key', 'semantic_search_enabled')->update(['value' => '0']);
+        Setting::flushCache();
+        SemanticSettings::enabled(); // the settings are read once per request anyway
+        DB::enableQueryLog();
+
+        $this->assertSame([], Semantic::passages('network keeps dropping', ['knowledge_article'], 8));
+
+        $this->assertSame([], DB::getQueryLog());
+    }
+
+    public function test_only_the_best_are_kept_one_per_record(): void
+    {
+        foreach (range(1, 9) as $i) {
+            KnowledgeArticle::create(['title' => "Guide {$i}", 'slug' => "g{$i}", 'excerpt' => 'x', 'body' => '<p>Wireless signal'.str_repeat(' and disconnects', $i).'.</p>', 'status' => 'published']);
+        }
+
+        $hits = Semantic::match('network keeps dropping', ['knowledge_article'], 2);
+
+        $this->assertCount(2, $hits);
+        $this->assertGreaterThanOrEqual($hits[1]['score'], $hits[0]['score']);
+        $this->assertNotSame($hits[0]['subject_id'], $hits[1]['subject_id']);
     }
 }

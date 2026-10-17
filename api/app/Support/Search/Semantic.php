@@ -22,23 +22,16 @@ final class Semantic
 
     public const TODAY_KEY_PREFIX = 'search:phrases:';
 
+    /** Set for a minute after the embeddings call fails, so an outage costs one wait, not one per search. */
+    public const BACKOFF_KEY = 'search:embed-backoff';
+
     /**
      * @param  list<string>  $aliases
      * @return list<array{subject_type: string, subject_id: int, score: float, passage_id: int}>
      */
     public static function match(string $phrase, array $aliases, int $limit = 50): array
     {
-        $best = [];
-        foreach (self::scored($phrase, $aliases) as $hit) {
-            $key = $hit['subject_type'].':'.$hit['subject_id'];
-            if (! isset($best[$key]) || $hit['score'] > $best[$key]['score']) {
-                $best[$key] = $hit;
-            }
-        }
-
-        usort($best, fn ($a, $b) => $b['score'] <=> $a['score']);
-
-        return array_slice($best, 0, $limit);
+        return self::scored($phrase, $aliases, $limit, true);
     }
 
     /**
@@ -49,9 +42,10 @@ final class Semantic
      */
     public static function passages(string $phrase, array $aliases, int $limit): array
     {
-        $hits = self::scored($phrase, $aliases);
-        usort($hits, fn ($a, $b) => $b['score'] <=> $a['score']);
-        $hits = array_slice($hits, 0, $limit);
+        $hits = self::scored($phrase, $aliases, $limit, false);
+        if ($hits === []) {
+            return [];
+        }
 
         $rows = SearchPassage::query()->whereKey(array_column($hits, 'passage_id'))->get(['id', 'heading', 'text'])->keyBy('id');
 
@@ -78,25 +72,29 @@ final class Semantic
     }
 
     /**
+     * The best `$limit` hits, best first — one per record when `$perRecord`.
+     * Scored in place over the file's bytes, one vector unpacked at a time,
+     * keeping only the best few.
+     *
      * @param  list<string>  $aliases
      * @return list<array{subject_type: string, subject_id: int, score: float, passage_id: int}>
      */
-    private static function scored(string $phrase, array $aliases): array
+    private static function scored(string $phrase, array $aliases, int $limit, bool $perRecord): array
     {
         $normal = self::normalise($phrase);
 
-        if (! SemanticSettings::enabled() || mb_strlen(str_replace(['-', ' '], '', $normal)) < self::MIN_LENGTH || self::looksLikePartNumber($phrase) || $aliases === []) {
+        if (! SemanticSettings::enabled() || mb_strlen(str_replace(['-', ' '], '', $normal)) < self::MIN_LENGTH || self::looksLikePartNumber($phrase) || $aliases === [] || $limit < 1) {
             return [];
         }
 
         try {
-            $passages = SearchFile::load();
+            $bytes = SearchFile::load();
         } catch (\Throwable $e) {
             report($e);
 
             return [];
         }
-        if ($passages === []) {
+        if ($bytes === '') {
             return [];
         }
 
@@ -105,20 +103,49 @@ final class Semantic
             return [];
         }
 
-        $floor = SemanticSettings::floor();
+        $query = array_combine(range(1, count($query)), $query); // unpack() counts from 1
+        $dims = count($query);
+        $threshold = SemanticSettings::floor();
         $wanted = array_flip($aliases);
         $hits = [];
-        foreach ($passages as [$id, $alias, $subject, $packed]) {
-            if (! isset($wanted[$alias])) {
+
+        foreach (SearchFile::records($bytes) as [$id, $alias, $subject, $offset, $length]) {
+            if (! isset($wanted[$alias]) || $length !== $dims) {
+                continue; // a vector of another length is another model's: it scores nothing
+            }
+            $vector = unpack('g'.$length, $bytes, $offset);
+            $score = 0.0;
+            for ($i = 1; $i <= $length; $i++) {
+                $score += $vector[$i] * $query[$i];
+            }
+            if ($score < $threshold) {
                 continue;
             }
-            $score = Vectors::dot($query, Vectors::unpack($packed));
-            if ($score >= $floor) {
-                $hits[] = ['subject_type' => $alias, 'subject_id' => $subject, 'score' => $score, 'passage_id' => $id];
+
+            $key = $perRecord ? $alias.':'.$subject : $id;
+            if (! isset($hits[$key]) || $score > $hits[$key]['score']) {
+                $hits[$key] = ['subject_type' => $alias, 'subject_id' => $subject, 'score' => $score, 'passage_id' => $id];
+            }
+
+            // Pruned to the best `$limit` now and then; the bar only rises, so nothing pruned could come back into it.
+            if (count($hits) >= $limit * 4) {
+                $hits = self::best($hits, $limit);
+                $threshold = max($threshold, end($hits)['score']);
             }
         }
 
-        return $hits;
+        return array_values(self::best($hits, $limit));
+    }
+
+    /**
+     * @param  array<array-key, array{subject_type: string, subject_id: int, score: float, passage_id: int}>  $hits
+     * @return array<array-key, array{subject_type: string, subject_id: int, score: float, passage_id: int}>
+     */
+    private static function best(array $hits, int $limit): array
+    {
+        uasort($hits, fn ($a, $b) => $b['score'] <=> $a['score']);
+
+        return array_slice($hits, 0, $limit, true);
     }
 
     /** @return list<float>|null */
@@ -136,6 +163,10 @@ final class Semantic
             return Vectors::unpack((string) $cached->vector);
         }
 
+        if (Cache::has(self::BACKOFF_KEY)) {
+            return null;
+        }
+
         $todayKey = self::TODAY_KEY_PREFIX.now()->toDateString();
         Cache::add($todayKey, 0, now()->endOfDay());
         if ((int) Cache::get($todayKey) >= SemanticSettings::dailyCap()) {
@@ -144,6 +175,8 @@ final class Semantic
 
         $vectors = Embeddings::embed([$normal], self::TIMEOUT);
         if ($vectors === null || ! isset($vectors[0])) {
+            Cache::put(self::BACKOFF_KEY, 1, 60);
+
             return null;
         }
 

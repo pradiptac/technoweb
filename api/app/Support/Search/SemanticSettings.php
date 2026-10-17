@@ -68,7 +68,13 @@ final class SemanticSettings
 
     public static function recordError(string $message): void
     {
-        Setting::query()->where('key', 'semantic_search_error')->update(['value' => mb_substr($message, 0, 500)]);
+        $message = mb_substr($message, 0, 500);
+        // Written only when it changes: every write flushes the settings cache, and an outage repeats one message.
+        if (Setting::get('semantic_search_error') === $message) {
+            return;
+        }
+
+        Setting::query()->where('key', 'semantic_search_error')->update(['value' => $message]);
         Setting::flushCache();
     }
 
