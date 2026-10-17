@@ -181,6 +181,9 @@ Scores differ by model, and the default dimensions (512 for `openai/*`, via the
 - Unpublishing removes a record's passages at once, but the packed file is
   rebuilt at most once a minute, so a stale id may sit in it for that long; every
   consumer intersects with the published query, so it is never shown.
+- `total` counts meaning-only ids from the file before they are checked against
+  the published query, so for up to a minute after an unpublish it can count one
+  record that is not drawn (nothing is shown or leaked).
 - Scoring cost is linear in passages, and `rename()` of the rebuilt file can fail
   on Windows over an open file (caught; the stale flag is already cleared, so the
   next rebuild is the next stale mark).
