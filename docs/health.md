@@ -122,8 +122,9 @@ developer's laptop, and asking it would report a draft page as dead because
 production does not have it. `unknown` produces no finding: not knowing is not
 an error.
 
-**An internal link is dead on the first failure; an external URL needs two.**
-Our own site failing to answer is decisive. Another website timing out is
+**An internal link is dead on the first 404 or 410; an external URL needs two
+failures.** Our own site saying "not here" is decisive; our own site timing out
+or erroring is `unknown`, never dead. Another website timing out is
 weather. `HealthLink::isDead()` is that rule in one place: `failed` and
 (`internal` or `fails >= 2`). A first external failure is rechecked the next
 day, then weekly.
@@ -250,8 +251,11 @@ deletes snapshots older than 400 days and unreferenced links older than a day,
 and stamps `health:last_sweep_at` (first, so the day's snapshot has a score),
 which the page shows as "last checked".
 
-**Before the first sweep nothing is scored.** `Score::now()` is null until
-`health:last_sweep_at` exists, and the page says the site has not been checked
+**Before the first sweep nothing is scored.** `Score::now()` is null until a
+sweep has finished — `Score::lastSweepAt()`: the cache key
+`health:last_sweep_at`, or the newest snapshot when the cache has been emptied
+(every update runs `optimize:clear`; the cache alone blanked the score after
+each update) — and the page says the site has not been checked
 yet rather than that it passed. An update runs the `FirstHealthSweep` upgrade
 step, which dispatches `SweepHealth` once so the list fills within minutes; a
 fresh install's wizard marks every step done and waits for the 02:50 sweep

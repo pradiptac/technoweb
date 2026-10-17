@@ -16,10 +16,21 @@ final class Score
 {
     public const LAST_SWEEP_KEY = 'health:last_sweep_at';
 
+    /**
+     * When the last sweep finished, or null before the first. The cache key is
+     * the quick answer; the newest snapshot is the lasting one, because every
+     * update runs `optimize:clear`, which empties the cache.
+     */
+    public static function lastSweepAt(): ?string
+    {
+        return Cache::get(self::LAST_SWEEP_KEY)
+            ?? HealthSnapshot::query()->latest('updated_at')->first()?->updated_at?->toIso8601String();
+    }
+
     public static function now(): ?int
     {
         // Before the first sweep nothing has been checked, and "100" would claim it had.
-        if (Cache::get(self::LAST_SWEEP_KEY) === null) {
+        if (self::lastSweepAt() === null) {
             return null;
         }
 
