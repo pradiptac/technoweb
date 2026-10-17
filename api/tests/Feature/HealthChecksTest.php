@@ -119,6 +119,7 @@ class HealthChecksTest extends TestCase
         $this->assertSame(['kind' => 'internal', 'value' => '/about'], LinkTarget::classify('/about?utm=x#team'));
         $this->assertSame(['kind' => 'external', 'value' => 'https://vendor.example/a'], LinkTarget::classify('https://vendor.example/a'));
         $this->assertSame(['kind' => 'anchor', 'value' => 'team'], LinkTarget::classify('#team'));
+        $this->assertSame(['kind' => 'external', 'value' => 'https://vendor.example/x'], LinkTarget::classify('//vendor.example/x'));
         foreach (['mailto:a@b.in', 'tel:+91', '#', '', 'javascript:x'] as $skip) {
             $this->assertNull(LinkTarget::classify($skip));
         }
@@ -135,11 +136,15 @@ class HealthChecksTest extends TestCase
     {
         Redirect::create(['from_path' => '/old-page', 'to_path' => '/about', 'status_code' => 301, 'is_active' => true, 'created_automatically' => false]);
         Storage::fake('public')->put('files/a.pdf', 'x');
+        Storage::disk('public')->put('files/my file.pdf', 'x');
 
         $this->assertSame(['state' => 'ok'], LinkTarget::judge('/blog'));
         $this->assertSame(['state' => 'redirect', 'to' => '/about'], LinkTarget::judge('/old-page'));
         $this->assertSame(['state' => 'ok'], LinkTarget::judge('/storage/files/a.pdf'));
         $this->assertSame(['state' => 'dead'], LinkTarget::judge('/storage/files/missing.pdf'));
+        $this->assertSame(['state' => 'ok'], LinkTarget::judge('/storage/files/my%20file.pdf'));
+        $this->assertSame(['state' => 'dead'], LinkTarget::judge('/storage/files'));
+        $this->assertSame(['state' => 'dead'], LinkTarget::judge('/storage/../.env'));
         $this->assertSame(['state' => 'ask'], LinkTarget::judge('/some/frontend/route'));
     }
 }

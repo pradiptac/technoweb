@@ -32,6 +32,10 @@ final class LinkTarget
             return ['kind' => 'anchor', 'value' => substr($href, 1)];
         }
 
+        if (str_starts_with($href, '//')) {
+            $href = 'https:'.$href;
+        }
+
         if (preg_match('#^https?://#i', $href)) {
             $host = strtolower((string) parse_url($href, PHP_URL_HOST));
 
@@ -70,7 +74,14 @@ final class LinkTarget
         }
 
         if (str_starts_with($path, '/storage/')) {
-            return ['state' => Storage::disk('public')->exists(substr($path, strlen('/storage/'))) ? 'ok' : 'dead'];
+            $file = rawurldecode(substr($path, strlen('/storage/')));
+
+            // An editor-typed `..` would make the disk throw and abort the record's whole check.
+            try {
+                return ['state' => ! str_contains($file, '..') && Storage::disk('public')->fileExists($file) ? 'ok' : 'dead'];
+            } catch (\Throwable) {
+                return ['state' => 'dead'];
+            }
         }
 
         return ['state' => 'ask'];
