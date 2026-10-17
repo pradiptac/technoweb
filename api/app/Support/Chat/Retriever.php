@@ -123,10 +123,7 @@ class Retriever
             self::events($terms),
             self::tenders($terms),
             self::entries($terms),
-            self::meaning($question),
         ]);
-
-        $meaning = array_pop($editorial);
 
         $groups = array_merge(
             [array_shift($editorial)],   // brands
@@ -137,8 +134,12 @@ class Retriever
         $words = array_slice(array_merge(...$groups), 0, self::MAX_RECORDS);
         $seen = array_column($words, 'url');
 
-        // Meaning adds at most four beyond the word cap, never a page the words already carry.
-        return array_merge($words, array_values(array_filter($meaning, fn (array $m) => ! in_array($m['url'], $seen, true))));
+        // Meaning is asked of the whole question, outside the cache keyed on terms: two phrasings
+        // share terms and not meaning, and a failed embedding must never be remembered.
+        // It adds at most four beyond the word cap, never a page the words already carry.
+        $meaning = array_filter(self::meaning($question), fn (array $m) => ! in_array($m['url'], $seen, true));
+
+        return array_merge($words, array_values($meaning));
     }
 
     /**
@@ -168,7 +169,7 @@ class Retriever
                     'type' => $hit['subject_type'],
                     'label' => Indexable::label($hit['subject_type']),
                     'title' => Indexable::title($record),
-                    'excerpt' => Str::limit($hit['text'], 600),
+                    'excerpt' => Str::limit($hit['text'], 597),
                     'url' => $url,
                     'meta' => [],
                 ];

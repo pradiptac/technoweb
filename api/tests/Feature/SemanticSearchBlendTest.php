@@ -9,6 +9,7 @@ use App\Support\Chat\Retriever;
 use App\Support\Search\SearchFile;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\FakesEmbeddings;
 use Tests\TestCase;
@@ -103,5 +104,79 @@ class SemanticSearchBlendTest extends TestCase
         Setting::flushCache();
 
         $this->assertSame([], Retriever::for('my network keeps dropping'));
+    }
+
+    private function article(string $slug, string $title, string $body): void
+    {
+        KnowledgeArticle::create(['title' => $title, 'slug' => $slug, 'excerpt' => 'x', 'body' => $body, 'status' => 'published']);
+    }
+
+    public function test_a_passage_excerpt_is_at_most_600_characters_with_its_ellipsis(): void
+    {
+        $this->article('long', 'Channel planning', '<p>Wireless signal disconnects. '.str_repeat('Overlapping channels cause wireless disconnects. ', 40).'</p>');
+
+        $sources = Retriever::for('my network keeps dropping');
+
+        $this->assertNotEmpty($sources);
+        foreach ($sources as $source) {
+            $this->assertLessThanOrEqual(600, mb_strlen($source['excerpt']));
+        }
+    }
+
+    public function test_a_page_the_words_already_carry_is_not_added_twice(): void
+    {
+        $this->article('channels', 'Dropping network guide', '<p>Wireless signal disconnects.</p>');
+
+        $urls = array_column(Retriever::for('my network keeps dropping'), 'url');
+
+        $this->assertSame(1, count(array_keys($urls, '/knowledge-base/channels', true)));
+    }
+
+    public function test_meaning_adds_at_most_four_passages(): void
+    {
+        foreach (range(1, 6) as $i) {
+            $this->article("guide-{$i}", "Guide {$i}", '<p>Wireless signal disconnects.</p>');
+        }
+
+        $this->assertCount(4, Retriever::for('my network keeps dropping'));
+    }
+
+    public function test_a_failing_semantic_search_leaves_the_word_sources(): void
+    {
+        $this->article('switch-guide', 'Switch buying guide', '<p>Ports and PoE.</p>');
+        $this->fakeEmbeddings(fn () => throw new \RuntimeException('embedding down'));
+
+        $urls = array_column(Retriever::for('switch buying'), 'url');
+
+        $this->assertContains('/knowledge-base/switch-guide', $urls);
+    }
+
+    public function test_two_phrasings_with_the_same_terms_each_get_their_own_meaning(): void
+    {
+        $this->article('wifi', 'Guide one', '<p>Wireless signal and disconnects.</p>');
+        $this->article('storage', 'Guide two', '<p>Backup disk and raid.</p>');
+        $this->fakeEmbeddings(fn (string $text) => str_contains($text, 'best') ? $this->vectorFor('backup disk') : $this->vectorFor($text));
+
+        $plain = array_column(Retriever::for('dropping'), 'url');
+        $other = array_column(Retriever::for('best dropping'), 'url');
+
+        $this->assertContains('/knowledge-base/wifi', $plain);
+        $this->assertContains('/knowledge-base/storage', $other);
+        $this->assertNotContains('/knowledge-base/wifi', $other);
+    }
+
+    public function test_a_failed_embedding_is_not_remembered(): void
+    {
+        $this->article('wifi', 'Guide one', '<p>Wireless signal and disconnects.</p>');
+        // Terms that match no word source, so only meaning could answer.
+        $this->fakeEmbeddings(null, 500);
+        $this->assertSame([], Retriever::for('dropping'));
+
+        $this->fakeEmbeddings();
+        $before = count(Http::recorded());
+        $urls = array_column(Retriever::for('dropping'), 'url');
+
+        $this->assertContains('/knowledge-base/wifi', $urls);
+        $this->assertGreaterThan($before, count(Http::recorded()));
     }
 }
