@@ -16,7 +16,9 @@ hired.
 
 **`App\Support\Health\Kinds` is the one list of what is checked.** It is
 `Revisions`' fourteen kinds less `saved_section` (a library section is not a
-page, so a dead link inside one is found on the page that places it) plus
+page; a section linked from the library is **not read in this release**, so a
+dead link inside one is not reported — only sections written on the page itself
+are) plus
 `certification`, which is checked for expiry only — it has no body, no links
 and no sections. Roles, labels, console paths and morph aliases come from
 `Revisions`, `SeoController::ENTITIES` and the models' own `adminPath()`, so a
@@ -60,9 +62,11 @@ Fourteen, each with a group and a fixed severity (`Findings::CHECKS`).
 `fieldLabel()` the place ("Section 3", "Cover picture"). The console never
 composes a message from the check key, so a wording fix is one file.
 
-**A heading jump is counted from level 1.** The page supplies its own `h1`, so
-a body that opens with an `h3` has skipped a level, and one that opens with
-`h2` has not. Only the first jump per field is reported: the second is usually
+**A heading jump is counted from level 1 in a body, level 2 in a section.** The
+page supplies its own `h1`, so a body that opens with an `h3` has skipped a
+level, and one that opens with `h2` has not. A section's own heading is the
+`h2` above its text, so a field under `blocks.*` starts from 2 and an `h3`
+opening it is fine. Only the first jump per field is reported: the second is usually
 the same mistake repeated.
 
 **A picture's description is the library's, by path.** Alt text is a property
@@ -70,7 +74,9 @@ of the file (`MediaMeta::alt`), so a picture with no description is reported
 once per place it is used, and fixing it in the media library clears every one
 at the next check. An `<img>` typed into a body is checked on its own `alt`
 attribute — a missing one is reported, an empty one (`alt=""`, a decorative
-picture) is a decision.
+picture) is a decision. A body is sanitised on save, and HTMLPurifier fills a
+missing `alt` with the file's name (`alt="abc123.png"`), so an `alt` equal to
+the source's file name (with or without its extension) is treated as missing.
 
 **Hidden sections and custom code are not read.** A hidden section is not on
 the page, so a dead link in it hurts nobody until it is shown; a custom-code
@@ -106,12 +112,15 @@ file under `/storage/` checked on the public disk. Only what none of those
 answers is `ask`, and only an `ask` costs a request. Most links are settled
 without leaving the database.
 
-**`ask` goes to `WEB_INTERNAL_URL` and nowhere else — never `FRONTEND_URL`.**
-`FRONTEND_URL` is the production domain on every machine, so asking it would
-report a draft page on a developer's laptop as dead because production does
-not have it, and on production would send the server out over the internet to
-reach itself. With no `WEB_INTERNAL_URL` an `ask` stays `unknown` and produces
-no finding: not knowing is not an error.
+**`ask` goes to `WEB_INTERNAL_URL`; without one, to `FRONTEND_URL` off a dev
+machine.** The installer never sets `WEB_INTERNAL_URL`, so on a customer
+install (`APP_ENV` not `local`) an `ask` is probed at `FRONTEND_URL`, publicly
+(`allow_private` false, still never following a redirect) — otherwise internal
+dead-link detection would be inert exactly where it matters. Under
+`APP_ENV=local` it stays `unknown`: `FRONTEND_URL` is the production domain on a
+developer's laptop, and asking it would report a draft page as dead because
+production does not have it. `unknown` produces no finding: not knowing is not
+an error.
 
 **An internal link is dead on the first failure; an external URL needs two.**
 Our own site failing to answer is decisive. Another website timing out is
@@ -119,11 +128,12 @@ weather. `HealthLink::isDead()` is that rule in one place: `failed` and
 (`internal` or `fails >= 2`). A first external failure is rechecked the next
 day, then weekly.
 
-**"Failure" for an internal link is any `failed` result, not only a 404** — a
-5xx, a timeout and a refused connection count too. So **a wrong or down
-`WEB_INTERNAL_URL` marks every internal link that the cheap checks cannot settle
-as dead**, on one sweep. Check it (System → Status shows the website's own
-health) before reading a sudden wall of dead internal links as editors' errors.
+**An internal link is `failed` only on a 404 or 410.** Any other status (a 5xx,
+a 401/403/429), a timeout or no answer is `unknown`: the website being down or
+slow is not a dead page, so a wrong or down `WEB_INTERNAL_URL` fills nothing
+with false alarms (the spec's own rule). A 404 from a wrong address still marks
+every link it is asked about dead, so check System → Status before reading a
+sudden wall of dead internal links as editors' errors.
 
 **401, 403 and 429 are `unknown`, never a failure.** Those are a server
 telling a robot to go away — a login wall, a bot filter, a rate limit — and
@@ -237,11 +247,21 @@ and for the same reason: the scheduler drains the queue with
 `--max-time=50`, so one long job cannot exist. A record that throws is logged
 and skipped; the slice goes on. The last slice writes the day's snapshot,
 deletes snapshots older than 400 days and unreferenced links older than a day,
-and stamps `health:last_sweep_at`, which the page shows as "last checked".
+and stamps `health:last_sweep_at` (first, so the day's snapshot has a score),
+which the page shows as "last checked".
+
+**Before the first sweep nothing is scored.** `Score::now()` is null until
+`health:last_sweep_at` exists, and the page says the site has not been checked
+yet rather than that it passed. An update runs the `FirstHealthSweep` upgrade
+step, which dispatches `SweepHealth` once so the list fills within minutes; a
+fresh install's wizard marks every step done and waits for the 02:50 sweep
+(it has nothing to find yet).
 
 **The score is the share of published, checked records with no unignored error
 or warning.** `Score::now()` = `round(100 × (published − bad) / published)`,
-where `bad` is the distinct records with at least one such finding.
+where `bad` is the distinct records with at least one such finding, clamped to
+0–100 and **held at 99 while any bad record exists** (one in a thousand rounds
+up to 100, which would show a perfect score beside a problem).
 
 - **Drafts are unscored.** An unfinished draft with a placeholder link is a
   work in progress, not a fault. Its findings are stored (`subject_published`
@@ -267,10 +287,9 @@ record and a button.
   thousand records; past that, a per-kind index. It also treats a record as live
   by status alone — an inactive store category or hidden tag counts as present, so
   the cost is a missed dead link, never a false alarm.
-- **`Score::now()` and `Score::snapshot()` load every record of every kind** to
-  count the published ones. Fine now; past roughly 20,000 records, a status count
-  per kind. The index calls `Score::now()` on every administrator read — cache it
-  if the list becomes slow.
+- **`Score::now()` is a status count per kind** (`where status = 'published'`;
+  every kind has the column), plus one distinct count of findings, on every
+  administrator read. Cache it if the list becomes slow.
 - **No job de-duplication.** Two quick saves of one record queue two checks.
   `replace()` is idempotent, so the second finds nothing to change; the cost is a
   duplicate crawl of the links already cached, which is cheap.

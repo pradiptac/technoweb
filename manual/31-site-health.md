@@ -115,7 +115,8 @@ Drafts are checked too, so you can clean them up before they go live.
 The score is the share of your published records that have **nothing to fix** —
 no error and no warning. A site with 200 published pages and 10 with problems
 scores 95%. Notices do not lower it, ignored problems do not lower it, and
-drafts are not counted. It is blank until there is something published.
+drafts are not counted. It is blank until the first nightly check has run and
+there is something published, and it never reads 100% while a problem is left.
 
 The small chart beside it is the last three months, and the note under it says
 how many points it has moved in 30 days. Treat it as a direction, not a grade:
@@ -130,7 +131,7 @@ the dashboard. It is off until you turn it on.
 
 - **Check links to other websites** — turn this off if you do not want your site
   to visit other people's websites at all. Links to your own pages are always
-  checked.
+  checked, by asking your own website.
 - **How long before a record is out of date** — a number of months for each kind
   of record. **0 means never.** The numbers shown are sensible starting points:
   eighteen months for pages, solutions, services and products, twelve for
@@ -138,11 +139,12 @@ the dashboard. It is off until you turn it on.
 
 **If a great many links to your own pages suddenly show as broken**, suspect the
 setup rather than your editors. Your own pages are checked by asking the website
-itself, using the internal address set up when the site was installed
-(`WEB_INTERNAL_URL`). If that address is wrong, or the website is down, every
-link the software cannot settle on its own is reported as broken. Check
-**System → Status** to see whether the website is answering, and ask whoever set
-up the server if it is not.
+itself, at its public address unless the installer set an internal one
+(`WEB_INTERNAL_URL`). A page counts as broken only when the website answers
+"not found" (or "gone") for it; an error, a slow answer or no answer at all is
+left as "not known" and checked again later, so a website that is briefly down
+does not fill the list. If the address is wrong and answers "not found" for
+everything, check **System → Status** and ask whoever set up the server.
 
 If nothing ever appears in the list on a new site, check that the **scheduler**
 is running (**System → Status**) — the checks that happen at night and the

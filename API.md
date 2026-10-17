@@ -5853,7 +5853,7 @@ number of probed links waiting for a check.
 checked records of every kind, where `bad` is the records with at least one
 unignored `error` or `warning` finding. Drafts are unscored (their findings are
 listed, never counted), a notice never lowers it, and `value` is **null, never
-zero**, when nothing is published. `series` is `[{date, score}]` for the last 90
+zero**, when nothing is published or before the first sweep has finished (`last_sweep_at` null), and is held at 99 while any published record has a problem. `series` is `[{date, score}]` for the last 90
 days of nightly snapshots (`score` null on a day with nothing published) and
 `change` is `value` less the newest snapshot at least 30 days old, null while
 there is none.
