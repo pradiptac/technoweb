@@ -19,6 +19,8 @@ use App\Models\StoreProduct;
 use App\Models\Tender;
 use App\Support\Events\EventText;
 use App\Support\HtmlSanitiser;
+use App\Support\Search\Indexable;
+use App\Support\Search\Semantic;
 use App\Support\Tenders\TenderText;
 use App\Support\Tenders\TenderWindow;
 use Illuminate\Http\JsonResponse;
@@ -41,6 +43,9 @@ use Illuminate\Support\Collection;
  */
 class SearchController extends Controller
 {
+    /** Meaning matches by morph alias, set once per request in __invoke. @var array<string, list<int>> */
+    private array $meaning = [];
+
     /** Below this a term matches most of the catalogue and helps nobody. */
     private const MIN_TERM = 2;
 
@@ -73,46 +78,54 @@ class SearchController extends Controller
             ]);
         }
 
+        try {
+            $this->meaning = collect(Semantic::match($term, Indexable::aliases(), 60))
+                ->groupBy('subject_type')->map(fn ($g) => $g->pluck('subject_id')->all())->all();
+        } catch (\Throwable $e) {
+            report($e); // the site search never breaks because of meaning
+            $this->meaning = [];
+        }
+
         $like = '%'.addcslashes($term, '%_\\').'%';
 
         $groups = collect([
             $this->products($term, $like),
             $this->storeProducts($term, $like),
-            $this->group('solution', 'Solutions', '/solutions', Solution::query()->published()
+            $this->group('solution', 'solution', 'Solutions', '/solutions', Solution::query()->published()
                 ->where(fn ($q) => $q->where('title', 'like', $like)
                     ->orWhere('summary', 'like', $like)
                     ->orWhere('problem_statement', 'like', $like)
                     ->orWhere('overview', 'like', $like)),
                 'title', 'summary'),
-            $this->group('service', 'Services', '/services', Service::query()->published()
+            $this->group('service', 'service', 'Services', '/services', Service::query()->published()
                 ->where(fn ($q) => $q->where('title', 'like', $like)
                     ->orWhere('summary', 'like', $like)
                     ->orWhere('body', 'like', $like)),
                 'title', 'summary'),
-            $this->group('industry', 'Industries', '/industries', Industry::query()
+            $this->group('industry', 'industry', 'Industries', '/industries', Industry::query()
                 ->where(fn ($q) => $q->where('name', 'like', $like)
                     ->orWhere('summary', 'like', $like)
                     ->orWhere('body', 'like', $like)),
                 'name', 'summary'),
-            $this->group('category', 'Product categories', '/products', ProductCategory::query()
+            $this->group('product_category', 'category', 'Product categories', '/products', ProductCategory::query()
                 ->where(fn ($q) => $q->where('name', 'like', $like)
                     ->orWhere('description', 'like', $like)),
                 'name', 'description'),
             // The knowledge base brings its own scope, which also matches tags
             // and a punctuation-stripped title so "wifi" finds "Wi-Fi".
-            $this->group('article', 'Knowledge base', '/knowledge-base',
+            $this->group('knowledge_article', 'article', 'Knowledge base', '/knowledge-base',
                 KnowledgeArticle::query()->published()->search($term), 'title', 'excerpt'),
-            $this->group('post', 'Blog', '/blog', BlogPost::query()->published()
+            $this->group('blog_post', 'post', 'Blog', '/blog', BlogPost::query()->published()
                 ->where(fn ($q) => $q->where('title', 'like', $like)
                     ->orWhere('excerpt', 'like', $like)
                     ->orWhere('body', 'like', $like)),
                 'title', 'excerpt'),
-            $this->group('case_study', 'Case studies', '/case-studies', CaseStudy::query()->published()
+            $this->group('case_study', 'case_study', 'Case studies', '/case-studies', CaseStudy::query()->published()
                 ->where(fn ($q) => $q->where('title', 'like', $like)
                     ->orWhere('summary', 'like', $like)
                     ->orWhere('body', 'like', $like)),
                 'title', 'summary'),
-            $this->group('page', 'Pages', '', Page::query()->published()
+            $this->group('page', 'page', 'Pages', '', Page::query()->published()
                 ->where(fn ($q) => $q->where('title', 'like', $like)
                     ->orWhere('body', 'like', $like)),
                 'title', 'body'),
@@ -151,13 +164,13 @@ class SearchController extends Controller
             ])
             ->orderByDesc('is_featured');
 
-        return $this->build('product', 'Products', '/products', $query, function ($p) {
+        return $this->build('product', 'product', 'Products', '/products', $query, function ($p) {
             return [
                 'title' => trim(($p->brand?->name ? $p->brand->name.' ' : '').$p->name),
                 'excerpt' => $p->sku ? $p->sku.' — '.$this->trim($p->short_description) : $this->trim($p->short_description),
                 'path' => '/products/'.$p->slug,
             ];
-        });
+        }, ['brand']);
     }
 
     /**
@@ -188,13 +201,13 @@ class SearchController extends Controller
                 mb_strtolower($term), $like,
             ]);
 
-        return $this->build('store_product', 'In the shop', '/store/products', $query, function ($p) {
+        return $this->build('store_product', 'store_product', 'In the shop', '/store/products', $query, function ($p) {
             return [
                 'title' => trim(($p->brand?->name ? $p->brand->name.' ' : '').$p->name),
                 'excerpt' => $p->sku ? $p->sku.' — '.$this->trim($p->short_description) : $this->trim($p->short_description),
                 'path' => '/store/products/'.$p->slug,
             ];
-        });
+        }, ['brand']);
     }
 
     /**
@@ -213,7 +226,7 @@ class SearchController extends Controller
             ->orderByRaw('CASE WHEN starts_at >= ? THEN starts_at END ASC', [$today])
             ->orderByDesc('starts_at');
 
-        return $this->build('event', 'Events', '/events', $query, fn (Event $e) => [
+        return $this->build('event', 'event', 'Events', '/events', $query, fn (Event $e) => [
             'title' => (string) $e->title,
             'excerpt' => $this->trim($e->summary ?: $e->body),
             'path' => $e->publicPath(),
@@ -242,12 +255,12 @@ class SearchController extends Controller
             ->orderByRaw('CASE WHEN tenders.closes_at > ? THEN tenders.closes_at END ASC', [$now])
             ->orderByRaw('CASE WHEN tenders.closes_at <= ? THEN tenders.closes_at END DESC', [$now]);
 
-        return $this->build('tender', 'Tenders', '/tenders', $query, fn (Tender $t) => [
+        return $this->build('tender', 'tender', 'Tenders', '/tenders', $query, fn (Tender $t) => [
             'title' => (string) $t->title,
             'excerpt' => $this->trim($t->summary ?: $t->description),
             'path' => $t->publicPath(),
             'kicker' => TenderWindow::for($t)->label().' · '.TenderText::dateLabel($t->closes_at),
-        ]);
+        ], ['category']);
     }
 
     /**
@@ -259,12 +272,12 @@ class SearchController extends Controller
     {
         $query = Download::query()->published()->with('category')->search($term)->shelved();
 
-        return $this->build('download', 'Downloads', '/downloads', $query, fn (Download $d) => [
+        return $this->build('download', 'download', 'Downloads', '/downloads', $query, fn (Download $d) => [
             'title' => (string) $d->title,
             'excerpt' => $this->trim($d->summary),
             'path' => '/downloads?q='.rawurlencode((string) $d->title),
             'kicker' => $d->category?->name,
-        ]);
+        ], ['category']);
     }
 
     /**
@@ -281,32 +294,31 @@ class SearchController extends Controller
                 ->orWhere('body', 'like', $like))
             ->orderByDesc('published_at');
 
-        return $this->build('entry', 'More from the site', '', $query, fn (Entry $e) => [
+        return $this->build('entry', 'entry', 'More from the site', '', $query, fn (Entry $e) => [
             'title' => (string) $e->title,
             'excerpt' => $this->trim($e->summary ?: $e->body),
             'path' => $e->publicPath(),
             'kicker' => $e->contentType?->name,
-        ]);
+        ], ['contentType']);
     }
 
     /** @param  \Illuminate\Database\Eloquent\Builder<*>  $query */
-    private function group(string $type, string $label, string $prefix, $query, string $titleColumn, string $bodyColumn): ?array
+    private function group(string $alias, string $type, string $label, string $prefix, $query, string $titleColumn, string $bodyColumn): ?array
     {
-        return $this->build($type, $label, $prefix, $query, fn ($r) => [
+        return $this->build($alias, $type, $label, $prefix, $query, fn ($r) => [
             'title' => (string) $r->{$titleColumn},
             'excerpt' => $this->trim($r->{$bodyColumn}),
             'path' => ($prefix === '' ? '' : $prefix).'/'.$r->slug,
         ]);
     }
 
-    /** @param  \Illuminate\Database\Eloquent\Builder<*>  $query */
-    private function build(string $type, string $label, string $prefix, $query, callable $shape): ?array
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<*>  $query
+     * @param  list<string>  $with  relations the shape closure reads
+     */
+    private function build(string $alias, string $type, string $label, string $prefix, $query, callable $shape, array $with = []): ?array
     {
-        $rows = $query->limit(self::PER_GROUP)->get();
-
-        if ($rows->isEmpty()) {
-            return null;
-        }
+        $rows = (clone $query)->limit(self::PER_GROUP)->get();
 
         /*
          * "Showing 5 of 23" is a different message from "5 results", and the
@@ -317,12 +329,31 @@ class SearchController extends Controller
          * twenty queries for ten groups on every search, and most groups match
          * nothing.
          */
-        $total = $rows->count() < self::PER_GROUP ? $rows->count() : (clone $query)->count();
+        $wordTotal = $rows->count() < self::PER_GROUP ? $rows->count() : (clone $query)->count();
+
+        // Records meaning found that the word query does not also match (on any page).
+        $meaningOnly = [];
+        $ids = $this->meaning[$alias] ?? [];
+        if ($ids !== [] && ($base = Indexable::query($alias)) !== null) {
+            $alsoWords = (clone $query)->whereKey($ids)->pluck($base->getModel()->getKeyName())->all();
+            $meaningOnly = array_values(array_diff($ids, $alsoWords)); // still in score order
+
+            if ($rows->count() < self::PER_GROUP && $meaningOnly !== []) {
+                $take = array_slice($meaningOnly, 0, self::PER_GROUP - $rows->count());
+                $extra = $base->with($with)->whereKey($take)->get()
+                    ->sortBy(fn ($m) => array_search($m->getKey(), $take, true))->values();
+                $rows = $rows->concat($extra);
+            }
+        }
+
+        if ($rows->isEmpty()) {
+            return null;
+        }
 
         return [
             'type' => $type,
             'label' => $label,
-            'total' => $total,
+            'total' => $wordTotal + count($meaningOnly),
             'results' => Collection::make($rows)->map($shape)->values()->all(),
         ];
     }
