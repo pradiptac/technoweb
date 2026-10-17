@@ -168,6 +168,7 @@ Contents:
   - The support network — `docs/support-network.md`
   - Help, tours, Simple view and empty states — `docs/help-and-tours.md`
   - Ask ALTIS, the console copilot — `docs/copilot.md`
+  - Site health — `docs/health.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -3135,6 +3136,19 @@ A question typed in the console, answered out of this install's own figures (0.1
 - **Every question is an existing scope** (`Questions`, twenty of them): `Ticket::open()`, `Lead::overdue()`, `OrderReturn::waiting()`, `StoreProduct::outOfStock()`, `QueueHealth::read()` — the same expression the screen it links to uses, so the two cannot drift. `href` is null and the sentence is written out when the figure is zero: "Open the list" on an empty list is not an answer to "is anything waiting".
 - **Staff-wide routes, narrowed by the controller** (`/admin/copilot/questions`, `/admin/copilot/ask`, throttled) — the `/admin/search` rule: `Questions::for($roles)` runs before the words are matched and before the model is shown anything, so a support engineer never learns a revenue question exists.
 - The drawer is `Modal size="side"` beside the help one, `IconSparkle` from `sm`, the account menu below it, `tw:copilot` from anywhere; **every word in it is the API's** and nothing a model wrote is rendered. Its route handler is `no-store` both ways and its `POST` checks `Origin` although it writes nothing — it can reach a model, and a cross-site page spending somebody's cap is what the check costs one line to prevent.
+
+### Site health — `docs/health.md`
+
+Broken links, stale records and accessibility mistakes in what editors wrote, as a worklist; a score and trend for administrators (0.181.0).
+
+- `App\Support\Health\Kinds` is the one list: `Revisions`' kinds less `saved_section`, plus `certification` (expiry only); every route narrows by `Kinds::allows()`, a finding on a kind the caller does not own is a 404, `meta.score` and `meta.links_due` are an administrator's alone, and `bulk` is scoped to the caller's kinds so a foreign id is in neither list (`refused` is always empty).
+- Findings are stored and replaced whole per record (`Findings::replace`): a returning one keeps `first_seen_at` and its ignore; the fingerprint includes the detail, so a changed dead URL is a new, un-ignored finding — **minus the volatile keys `months` and `status`** (`Findings::VOLATILE`), or every ignored staleness came back monthly; there is no "fixed" flag.
+- An internal link is judged cheapest first — a published record's path, a `SiteSection`, an active redirect (a notice), `/storage/` on disk — else asked of the website at `WEB_INTERNAL_URL` **only**, never `FRONTEND_URL` (the production domain on every machine); an internal 404 is dead at once and an internal link never follows a redirect (any 3xx from the website is ok).
+- An external link is dead at `fails >= 2`; 401/403/429 are `unknown` and never count. Probed through `SafeHttp` only (`Range: bytes=0-0`; an aborted large download is judged by its real status, never as ok), one request per host per second, by `technoware:check-links` every 15 minutes. `health_link_refs` says who links where, so a link crossing into dead rechecks exactly those records. `HEALTH_ALLOW_PRIVATE` is read through `config('app.health_allow_private')`, local only.
+- `AppServiceProvider` registers one save/delete listener per kind (no trait); a recheck that cannot be queued never fails the save, and the published-path set is forgotten only when an address could have moved, at most every 10s. `technoware:health-sweep` (02:50) is sliced at 40s like the mailbox scan and writes the day's snapshot.
+- The score is published records with no unignored error or warning; drafts are unscored, a notice never lowers it, and it is null (never zero) with nothing published. `Findings::tabFor(field, alias)` sends a Fix link to `builder` on a page and `sections` on every other record.
+- Hidden sections and custom-code HTML are not read. The checker never writes to a record. The settings screen is `/admin/health/settings` (Content), and the dashboard panel is `defaultHidden`.
+
 ## Conventions
 
 - Never hard-code a hex. If a colour is not in `globals.css`, it does not ship.
