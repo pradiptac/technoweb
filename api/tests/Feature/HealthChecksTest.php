@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\Role as RoleEnum;
+use App\Jobs\CheckRecordHealth;
 use App\Models\BlogPost;
 use App\Models\Certification;
 use App\Models\HealthFinding;
@@ -276,5 +277,24 @@ class HealthChecksTest extends TestCase
 
             $this->assertNotSame('', Findings::sentence($finding), $check);
         }
+    }
+
+    public function test_a_save_rechecks_and_a_delete_forgets(): void
+    {
+        $post = $this->blogPost(['body' => '<p><a href="/blog">click here</a></p>']);
+        $this->assertSame(['link_text_vague'], HealthFinding::pluck('check')->all());
+
+        $post->update(['body' => '<p><a href="/blog">The blog</a></p>']);
+        $this->assertSame(0, HealthFinding::count());
+
+        $post->update(['body' => '<p><a href="/blog">here</a></p>']);
+        $post->delete();
+        $this->assertSame(0, HealthFinding::count());
+    }
+
+    public function test_a_recheck_of_a_deleted_record_does_nothing(): void
+    {
+        (new CheckRecordHealth('blog_post', 999999))->handle();
+        $this->assertSame(0, HealthFinding::count());
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Jobs\CheckRecordHealth;
 use App\Models\AnswerBlock;
 use App\Models\Backup;
 use App\Models\BackupRestore;
@@ -96,6 +97,9 @@ use App\Models\WebhookDelivery;
 use App\Models\WordPressImport;
 use App\Support\Chat\AiProvider;
 use App\Support\Chat\Providers\OpenRouterProvider;
+use App\Support\Health\Findings;
+use App\Support\Health\Kinds;
+use App\Support\Health\LinkTarget;
 use App\Support\InboundMail\ImapMailbox;
 use App\Support\InboundMail\InboundMail;
 use App\Support\InboundMail\Mailbox;
@@ -107,6 +111,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Mail\Markdown;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -382,5 +387,33 @@ class AppServiceProvider extends ServiceProvider
             'backup' => Backup::class,
             'backup_restore' => BackupRestore::class,
         ]);
+
+        /*
+         * The site health centre (docs/health.md): every checked kind is
+         * rechecked after it is saved and forgotten when it is deleted. One
+         * loop rather than a trait on thirteen models. Guarded like
+         * `Notifier`: a recheck that cannot be queued never fails the save.
+         */
+        foreach (Kinds::aliases() as $alias) {
+            $class = Kinds::classFor($alias);
+
+            $class::saved(function ($model) use ($alias) {
+                try {
+                    LinkTarget::forget();
+                    CheckRecordHealth::dispatch($alias, (int) $model->getKey())->afterCommit();
+                } catch (\Throwable $e) {
+                    Log::warning('Site health: could not queue a recheck', ['type' => $alias, 'id' => $model->getKey(), 'error' => $e->getMessage()]);
+                }
+            });
+
+            $class::deleted(function ($model) use ($alias) {
+                try {
+                    LinkTarget::forget();
+                    Findings::forget($alias, (int) $model->getKey());
+                } catch (\Throwable $e) {
+                    Log::warning('Site health: could not forget a record', ['type' => $alias, 'id' => $model->getKey(), 'error' => $e->getMessage()]);
+                }
+            });
+        }
     }
 }

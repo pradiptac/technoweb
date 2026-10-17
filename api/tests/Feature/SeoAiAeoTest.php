@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
 use App\Enums\SeoAiAction;
+use App\Jobs\RunSeoSuggestion;
 use App\Models\Brand;
 use App\Models\Role;
 use App\Models\SeoSuggestion;
@@ -493,7 +494,7 @@ class SeoAiAeoTest extends TestCase
             ->assertStatus(422)
             ->assertJsonPath('errors.action.0', fn ($m) => str_contains((string) $m, 'one block at a time'));
 
-        Queue::assertNothingPushed();
+        Queue::assertNotPushed(RunSeoSuggestion::class);
     }
 
     public function test_a_bulk_run_accepts_the_new_actions(): void
