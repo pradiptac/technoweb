@@ -55,7 +55,10 @@ final class Embeddings
         $error = $response->json('error.message');
         $rows = $response->json('data');
 
-        if (! $response->successful() || is_string($error) || ! is_array($rows) || count($rows) !== count($inputs)) {
+        $wellFormed = is_array($rows) && count($rows) === count($inputs)
+            && array_reduce($rows, fn (bool $ok, mixed $row) => $ok && is_array($row) && is_array($row['embedding'] ?? null) && $row['embedding'] !== [], true);
+
+        if (! $response->successful() || is_string($error) || ! $wellFormed) {
             SemanticSettings::recordError(is_string($error) ? $error : 'OpenRouter answered '.$response->status().' with no embeddings.');
 
             return null;

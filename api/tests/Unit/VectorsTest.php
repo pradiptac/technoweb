@@ -20,5 +20,6 @@ class VectorsTest extends TestCase
     {
         $this->assertSame([0.0, 0.0], Vectors::normalise([0.0, 0.0]));
         $this->assertSame(0.0, Vectors::dot([1.0, 0.0], [1.0]));
+        $this->assertSame([], Vectors::unpack(''));
     }
 }

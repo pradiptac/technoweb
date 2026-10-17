@@ -7,6 +7,7 @@ use App\Support\Search\Embeddings;
 use App\Support\Search\SemanticSettings;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\Concerns\FakesEmbeddings;
@@ -42,7 +43,24 @@ class SemanticIndexTest extends TestCase
             && $r->hasHeader('Authorization', 'Bearer sk-or-v1-test')
             && $r['model'] === 'openai/text-embedding-3-small'
             && $r['dimensions'] === SemanticSettings::DIMENSIONS
-            && $r['input'] === ['wifi keeps dropping', 'a firewall']);
+            && $r['input'] === ['wifi keeps dropping', 'a firewall']
+            && $r['provider'] === ['only' => ['openai'], 'allow_fallbacks' => false]
+            && $r->hasHeader('X-Title')
+            && $r->hasHeader('HTTP-Referer'));
+    }
+
+    public function test_a_malformed_answer_is_a_failure_not_an_exception(): void
+    {
+        foreach ([['oops'], [['index' => 0, 'embedding' => []]], [['index' => 0]]] as $data) {
+            Setting::query()->where('key', 'semantic_search_error')->update(['value' => null]);
+            Setting::flushCache();
+            // A fresh factory: the trait's stub is first in line for this URL on the shared one.
+            Http::swap($factory = new Factory);
+            $factory->fake(['openrouter.ai/api/v1/embeddings' => Http::response(['data' => $data])]);
+
+            $this->assertNull(Embeddings::embed(['x']));
+            $this->assertNotEmpty(Setting::get('semantic_search_error'));
+        }
     }
 
     public function test_a_refusal_returns_null_and_records_the_error_and_a_success_clears_it(): void

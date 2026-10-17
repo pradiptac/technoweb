@@ -49,6 +49,8 @@ trait FakesEmbeddings
         $row->setPlainValue('sk-or-v1-test');
         $row->save();
         Setting::flushCache();
+        // Switching it on always stubs the endpoint, so no test can reach the real OpenRouter.
+        $this->fakeEmbeddings();
     }
 
     /** @return list<float> */
