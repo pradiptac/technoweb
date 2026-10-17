@@ -19,6 +19,7 @@ use App\Support\Health\Kinds;
 use App\Support\Health\LinkTarget;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -296,5 +297,19 @@ class HealthChecksTest extends TestCase
     {
         (new CheckRecordHealth('blog_post', 999999))->handle();
         $this->assertSame(0, HealthFinding::count());
+    }
+
+    public function test_only_a_moved_address_forgets_the_path_set(): void
+    {
+        $post = $this->blogPost()->fresh(); // a created instance stays "recently created"
+        Cache::forget('health:paths-forget-debounce');
+        LinkTarget::judge('/blog/a-post'); // builds and caches the set
+        $this->assertTrue(Cache::has('health:published-paths'));
+
+        $post->update(['excerpt' => 'Not an address change.']);
+        $this->assertTrue(Cache::has('health:published-paths'));
+
+        $post->update(['status' => 'draft']);
+        $this->assertFalse(Cache::has('health:published-paths'));
     }
 }

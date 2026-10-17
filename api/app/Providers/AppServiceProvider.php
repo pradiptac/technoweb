@@ -399,7 +399,10 @@ class AppServiceProvider extends ServiceProvider
 
             $class::saved(function ($model) use ($alias) {
                 try {
-                    LinkTarget::forget();
+                    // Only a new record or a moved address changes the path set, and at most once in ten seconds, or an import is O(n^2).
+                    if (($model->wasRecentlyCreated || $model->wasChanged(['slug', 'status', 'published_at'])) && Cache::add('health:paths-forget-debounce', 1, 10)) {
+                        LinkTarget::forget();
+                    }
                     CheckRecordHealth::dispatch($alias, (int) $model->getKey())->afterCommit();
                 } catch (\Throwable $e) {
                     Log::warning('Site health: could not queue a recheck', ['type' => $alias, 'id' => $model->getKey(), 'error' => $e->getMessage()]);
@@ -408,7 +411,9 @@ class AppServiceProvider extends ServiceProvider
 
             $class::deleted(function ($model) use ($alias) {
                 try {
-                    LinkTarget::forget();
+                    if (Cache::add('health:paths-forget-debounce', 1, 10)) {
+                        LinkTarget::forget();
+                    }
                     Findings::forget($alias, (int) $model->getKey());
                 } catch (\Throwable $e) {
                     Log::warning('Site health: could not forget a record', ['type' => $alias, 'id' => $model->getKey(), 'error' => $e->getMessage()]);
