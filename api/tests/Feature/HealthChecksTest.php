@@ -17,6 +17,7 @@ use App\Support\Health\Content;
 use App\Support\Health\Findings;
 use App\Support\Health\Kinds;
 use App\Support\Health\LinkTarget;
+use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -193,6 +194,31 @@ class HealthChecksTest extends TestCase
 
         $cert = Certification::create(['name' => 'ISO', 'issuer' => 'BSI', 'status' => 'published', 'valid_until' => now()->subDay()]);
         $this->assertSame(['certification_expired'], $this->checks($cert));
+    }
+
+    public function test_a_sanitised_body_image_is_judged_by_its_real_alt(): void
+    {
+        // HTMLPurifier fills a missing alt with the file's name; that says nothing, and the check must see through it.
+        $clean = HtmlSanitiser::clean('<p><img src="/storage/media/abc123.png"><img src="/storage/media/wired-switch.png" alt="A wired switch"><img src="/storage/media/ornament.png" alt=""></p>');
+        $this->assertStringContainsString('alt="abc123.png"', $clean);
+
+        $post = $this->blogPost(['body' => $clean]);
+
+        $this->assertSame(['image_no_alt'], $this->checks($post));
+        $this->assertSame([['field' => 'body', 'alt' => null], ['field' => 'body', 'alt' => 'A wired switch'], ['field' => 'body', 'alt' => '']], Content::of($post)->bodyImages);
+    }
+
+    public function test_a_section_body_may_open_on_a_third_level_heading(): void
+    {
+        $block = fn (string $html) => [['id' => '11111111-1111-4111-8111-111111111111', 'type' => 'rich_text', 'hidden' => false, 'data' => ['body' => $html]]];
+
+        $ok = $this->blogPost(['slug' => 'ok', 'body_layout' => 'sections', 'blocks' => $block('<h3>Under the section heading</h3><p>x</p>')]);
+        $jump = $this->blogPost(['slug' => 'jump', 'body_layout' => 'sections', 'blocks' => $block('<h3>A</h3><h5>B</h5>')]);
+        $plain = $this->blogPost(['slug' => 'plain', 'body' => '<h3>No h2 first</h3>']);
+
+        $this->assertSame([], $this->checks($ok));
+        $this->assertSame(['heading_jump'], $this->checks($jump));
+        $this->assertSame(['heading_jump'], $this->checks($plain));
     }
 
     public function test_each_accessibility_check(): void

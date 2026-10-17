@@ -144,8 +144,13 @@ final class Content
 
         foreach ($xpath->query('//img') ?: [] as $img) {
             /** @var DOMElement $img */
-            $alt = trim($img->getAttribute('alt'));
-            $this->bodyImages[] = ['field' => $field, 'alt' => $alt === '' ? null : $alt];
+            // alt="" is deliberately decorative. HTMLPurifier fills a missing alt with the file's name, which says nothing either.
+            $alt = $img->hasAttribute('alt') ? trim($img->getAttribute('alt')) : null;
+            $file = basename((string) parse_url($img->getAttribute('src'), PHP_URL_PATH));
+            if ($alt !== null && $alt !== '' && ($alt === $file || $alt === pathinfo($file, PATHINFO_FILENAME))) {
+                $alt = null;
+            }
+            $this->bodyImages[] = ['field' => $field, 'alt' => $alt];
         }
 
         foreach ($xpath->query('//*[@id]') ?: [] as $el) {

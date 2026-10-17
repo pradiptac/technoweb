@@ -130,7 +130,8 @@ final class Checker
         }
 
         foreach ($content->headings as $h) {
-            $previous = 1;
+            // A section's own heading is the h2 above its body; the record's title is the h1 above a plain body.
+            $previous = str_starts_with($h['field'], 'blocks.') ? 2 : 1;
             foreach ($h['levels'] as $level) {
                 if ($level > $previous + 1) {
                     $add('heading_jump', $h['field'], ['from' => $previous, 'to' => $level]);
