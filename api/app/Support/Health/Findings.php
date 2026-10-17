@@ -33,6 +33,9 @@ final class Findings
         'video_no_title' => ['accessibility', 'warning'],
     ];
 
+    /** Detail keys that drift while the problem stays the same; stored, never part of a finding's identity. */
+    public const VOLATILE = ['months', 'status'];
+
     public const GROUPS = ['links' => 'Links', 'stale' => 'Out of date', 'accessibility' => 'Accessibility'];
 
     public const SEVERITIES = ['error' => 'Error', 'warning' => 'Warning', 'notice' => 'Notice'];
@@ -51,7 +54,8 @@ final class Findings
             foreach ($findings as $f) {
                 $detail = $f['detail'];
                 ksort($detail);
-                $fingerprint = sha1(implode('|', [$alias, $id, $f['check'], $f['field'], json_encode($detail)]));
+                $identity = array_diff_key($detail, array_flip(self::VOLATILE));
+                $fingerprint = sha1(implode('|', [$alias, $id, $f['check'], $f['field'], json_encode($identity)]));
                 $keep[] = $fingerprint;
 
                 $row = HealthFinding::firstOrNew(['fingerprint' => $fingerprint]);
@@ -79,7 +83,7 @@ final class Findings
     /** The one sentence a row says. Every word is the API's. */
     public static function sentence(HealthFinding $f): string
     {
-        $d = $f->detail ?? [];
+        $d = ($f->detail ?? []) + ['url' => '', 'to' => '', 'anchor' => '', 'months' => 0, 'from' => '', 'text' => ''];
 
         return match ($f->check) {
             'link_internal_dead' => "Links to {$d['url']}, which does not exist.",

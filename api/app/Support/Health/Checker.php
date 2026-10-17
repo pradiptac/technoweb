@@ -48,8 +48,8 @@ final class Checker
         $months = HealthSettings::staleMonths($alias);
         $updated = $model->getAttribute('updated_at');
 
-        $upcomingOnly = $alias === 'event' && method_exists($model, 'isPast') && $model->isPast();
-        if ($months > 0 && $updated !== null && ! $upcomingOnly && $updated->lt(now()->subMonths($months))) {
+        $past = $alias === 'event' && method_exists($model, 'isPast') && $model->isPast();
+        if ($months > 0 && $updated !== null && ! $past && $updated->lt(now()->subMonths($months))) {
             $add('stale', 'record', ['months' => (int) $updated->diffInMonths(now())]);
         }
 

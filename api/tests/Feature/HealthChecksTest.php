@@ -231,4 +231,50 @@ class HealthChecksTest extends TestCase
 
         $this->assertNull(HealthFinding::sole()->ignored_at);
     }
+
+    public function test_an_ignored_stale_finding_stays_ignored_as_the_record_ages(): void
+    {
+        $page = Page::create(['title' => 'Old page', 'slug' => 'old-page', 'body' => '<p>x</p>', 'status' => 'published']);
+        Page::whereKey($page->id)->toBase()->update(['updated_at' => now()->subMonths(19)]);
+        Findings::replace($page->fresh(), Checker::run($page->fresh()));
+        $row = HealthFinding::sole();
+        $row->update(['ignored_at' => now(), 'first_seen_at' => now()->subWeek()]);
+
+        Page::whereKey($page->id)->toBase()->update(['updated_at' => now()->subMonths(20)]);
+        Findings::replace($page->fresh(), Checker::run($page->fresh()));
+
+        $again = HealthFinding::sole();
+        $this->assertSame($row->id, $again->id);
+        $this->assertNotNull($again->ignored_at);
+        $this->assertTrue($again->first_seen_at->lt(now()->subDays(6)));
+        $this->assertSame(20, $again->detail['months']);
+    }
+
+    public function test_an_ignored_external_dead_finding_stays_ignored_when_its_status_changes(): void
+    {
+        $post = $this->blogPost(['body' => '<p><a href="https://vendor.example/sheet.pdf">Datasheet</a></p>']);
+        Checker::run($post);
+        $link = HealthLink::where('url_hash', HealthLink::hashOf('https://vendor.example/sheet.pdf'))->sole();
+        $link->update(['result' => 'failed', 'fails' => 2, 'status' => 404]);
+        Findings::replace($post, Checker::run($post));
+        $row = HealthFinding::sole();
+        $row->update(['ignored_at' => now()]);
+
+        $link->update(['status' => 500]);
+        Findings::replace($post, Checker::run($post));
+
+        $again = HealthFinding::sole();
+        $this->assertSame($row->id, $again->id);
+        $this->assertNotNull($again->ignored_at);
+        $this->assertSame(500, $again->detail['status']);
+    }
+
+    public function test_every_check_has_a_sentence_even_with_an_empty_detail(): void
+    {
+        foreach (array_keys(Findings::CHECKS) as $check) {
+            $finding = (new HealthFinding)->forceFill(['check' => $check, 'detail' => []]);
+
+            $this->assertNotSame('', Findings::sentence($finding), $check);
+        }
+    }
 }
