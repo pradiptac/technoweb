@@ -347,6 +347,8 @@ export const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/downloads", label: "Downloads", icon: IconDownload },
       { role: "content_manager", href: "/admin/media", label: "Media", icon: IconImage },
       { role: "admin", href: "/admin/media/settings", label: "Media settings", icon: IconSliders },
+      // Site health's own settings (0.181.0, docs/health.md). The screen itself is `/admin/health`.
+      { role: "admin", href: "/admin/health/settings", label: "Site health settings", icon: IconSliders },
       // The company profile. `IconShield` rather than `IconCert`, which Case
       // studies already wears in this group — two rows, one mark, reads as a
       // duplicate entry.

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Setting;
 use App\Support\Events\EventSettings;
+use App\Support\Health\HealthSettings;
 use App\Support\Meetings\MeetingSettings;
 use App\Support\Visits\VisitSettings;
 use Illuminate\Database\Seeder;
@@ -355,6 +356,18 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'events', 'key' => 'events_email', 'value' => null, 'type' => 'string'],
             ['group' => 'events', 'key' => 'event_reminder_hours', 'value' => (string) EventSettings::DEFAULT_REMINDER_HOURS, 'type' => 'string'],
             ['group' => 'events', 'key' => 'event_max_seats', 'value' => (string) EventSettings::DEFAULT_MAX_SEATS, 'type' => 'string'],
+
+            /*
+             * The site health centre (0.181.0, docs/health.md): whether outside
+             * links are checked, and how many months a published record may go
+             * unedited before it is listed as stale (0 never). Private.
+             */
+            ['group' => 'health', 'key' => 'health_external_links', 'value' => '1', 'type' => 'boolean'],
+            ...array_map(
+                fn (string $alias, int $months) => ['group' => 'health', 'key' => 'health_stale_'.$alias, 'value' => (string) $months, 'type' => 'string'],
+                array_keys(HealthSettings::STALE_DEFAULTS),
+                HealthSettings::STALE_DEFAULTS,
+            ),
 
             /*
              * Online meetings (2026-09-29, docs/meetings.md): the switch, the
