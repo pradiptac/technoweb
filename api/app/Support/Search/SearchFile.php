@@ -30,6 +30,9 @@ final class SearchFile
 
     private const MEMORY_WARNED_KEY = 'search:file-memory-warned';
 
+    /** Mutable for the guard test only (ini_set cannot lower the limit below what a long run holds); null reads memory_limit. */
+    public static ?string $memoryLimit = null;
+
     public static function markStale(): void
     {
         RebuildSearchFile::dispatch()->afterCommit();
@@ -64,7 +67,7 @@ final class SearchFile
     /** Whether reading `$size` bytes (×3, plus headroom) fits in what memory_limit leaves; -1 is no limit. */
     public static function fits(int $size): bool
     {
-        $limit = @ini_parse_quantity((string) ini_get('memory_limit'));
+        $limit = @ini_parse_quantity(self::$memoryLimit ?? (string) ini_get('memory_limit'));
 
         return $limit < 0 || $size * 3 + self::HEADROOM <= $limit - memory_get_usage();
     }

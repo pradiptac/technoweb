@@ -221,25 +221,23 @@ class SemanticMatchTest extends TestCase
         $size = 2 * 1024 * 1024;
         Storage::disk('local')->put(SearchFile::path(), str_repeat("\0", $size));
         Log::spy();
-        $was = (string) ini_get('memory_limit');
 
         try {
-            ini_set('memory_limit', (string) (memory_get_usage() + 20 * 1024 * 1024)); // 2 MB × 3 + 16 MB headroom does not fit
+            SearchFile::$memoryLimit = (string) (memory_get_usage() + 20 * 1024 * 1024); // 2 MB × 3 + 16 MB headroom does not fit
             $this->assertFalse(SearchFile::fits($size));
             $this->assertSame('', SearchFile::load());
             $this->assertSame([], Semantic::match('network keeps dropping', ['knowledge_article']));
+
+            SearchFile::$memoryLimit = (string) (memory_get_usage() + 64 * 1024 * 1024);
+            $this->assertTrue(SearchFile::fits($size));
+
+            SearchFile::$memoryLimit = '-1';
+            $this->assertTrue(SearchFile::fits(PHP_INT_MAX >> 3));
         } finally {
-            ini_set('memory_limit', $was);
+            SearchFile::$memoryLimit = null;
         }
 
         Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => str_contains($message, 'too large'))->once();
-
-        ini_set('memory_limit', '-1');
-        try {
-            $this->assertTrue(SearchFile::fits(PHP_INT_MAX >> 3));
-        } finally {
-            ini_set('memory_limit', $was);
-        }
     }
 
     public function test_after_a_failure_meaning_waits_a_minute(): void
