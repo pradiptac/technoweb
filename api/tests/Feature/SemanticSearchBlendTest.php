@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Download;
 use App\Models\KnowledgeArticle;
+use App\Models\SearchQueryVector;
 use App\Models\Setting;
 use App\Models\StoreProduct;
 use App\Support\Chat\Retriever;
@@ -161,6 +163,45 @@ class SemanticSearchBlendTest extends TestCase
         $this->assertContains('/knowledge-base/wifi', $plain);
         $this->assertContains('/knowledge-base/storage', $other);
         $this->assertNotContains('/knowledge-base/wifi', $other);
+    }
+
+    public function test_an_unpublished_meaning_record_never_appears_and_is_never_counted(): void
+    {
+        $article = KnowledgeArticle::create(['title' => 'Channel planning', 'slug' => 'channels', 'excerpt' => 'x', 'body' => '<p>Wireless signal and disconnects.</p>', 'status' => 'published']);
+        // Unpublished without its events: the file still carries it, as it would for the minute before a rebuild.
+        KnowledgeArticle::withoutEvents(fn () => $article->update(['status' => 'draft']));
+
+        $json = $this->getJson('/api/v1/search?q='.urlencode('network keeps dropping'))->assertOk()->json();
+
+        $this->assertNull($this->group($json, 'article'));
+        $this->assertSame(0, $json['data']['total']);
+    }
+
+    public function test_a_throwing_meaning_search_still_answers_with_the_words(): void
+    {
+        $this->article('wsg', 'Wireless signal guide', '<p>Wireless signal disconnects.</p>');
+        $this->getJson('/api/v1/search?q='.urlencode('wireless signal'))->assertOk(); // the phrase's vector is now cached
+        SearchQueryVector::retrieved(fn () => throw new \RuntimeException('the vector cache is broken'));
+
+        $json = $this->getJson('/api/v1/search?q='.urlencode('wireless signal'))->assertOk()->json();
+
+        $this->assertSame('Wireless signal guide', $this->group($json, 'article')['results'][0]['title']);
+    }
+
+    public function test_an_unrelated_question_gets_no_meaning(): void
+    {
+        $this->article('channels', 'Channel planning', '<p>Wireless signal and disconnects.</p>');
+
+        $this->assertSame([], Retriever::for('printer toner refill'));
+    }
+
+    public function test_a_download_found_by_meaning_reaches_the_assistant_with_its_address(): void
+    {
+        Download::create(['title' => 'Wireless driver', 'summary' => 'Fixes wireless signal disconnects.', 'source' => 'library', 'file_path' => 'downloads/driver.zip', 'file_name' => 'driver.zip', 'status' => 'published']);
+
+        $urls = array_column(Retriever::for('my network keeps dropping'), 'url');
+
+        $this->assertContains('/downloads?q=Wireless%20driver', $urls);
     }
 
     public function test_a_failed_embedding_is_not_remembered(): void

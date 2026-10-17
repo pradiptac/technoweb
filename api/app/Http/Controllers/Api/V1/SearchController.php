@@ -275,7 +275,7 @@ class SearchController extends Controller
         return $this->build('download', 'download', 'Downloads', '/downloads', $query, fn (Download $d) => [
             'title' => (string) $d->title,
             'excerpt' => $this->trim($d->summary),
-            'path' => '/downloads?q='.rawurlencode((string) $d->title),
+            'path' => $d->publicPath(),
             'kicker' => $d->category?->name,
         ], ['category']);
     }
@@ -336,7 +336,10 @@ class SearchController extends Controller
         $ids = $this->meaning[$alias] ?? [];
         if ($ids !== [] && ($base = Indexable::query($alias)) !== null) {
             $alsoWords = (clone $query)->whereKey($ids)->pluck($base->getModel()->getKeyName())->all();
-            $meaningOnly = array_values(array_diff($ids, $alsoWords)); // still in score order
+            $candidates = array_values(array_diff($ids, $alsoWords)); // still in score order
+            // Only what is published now: the file can be a minute behind an unpublish.
+            $published = $candidates === [] ? [] : (clone $base)->whereKey($candidates)->pluck($base->getModel()->getKeyName())->all();
+            $meaningOnly = array_values(array_intersect($candidates, $published));
 
             if ($rows->count() < self::PER_GROUP && $meaningOnly !== []) {
                 $take = array_slice($meaningOnly, 0, self::PER_GROUP - $rows->count());
