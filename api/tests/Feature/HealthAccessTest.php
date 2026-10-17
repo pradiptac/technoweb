@@ -10,7 +10,9 @@ use App\Models\Role;
 use App\Models\StoreProduct;
 use App\Models\User;
 use App\Support\Health\Findings;
+use App\Support\Health\Score;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class HealthAccessTest extends TestCase
@@ -47,6 +49,7 @@ class HealthAccessTest extends TestCase
     public function test_only_an_administrator_gets_the_score(): void
     {
         $this->seedFindings();
+        Cache::forever(Score::LAST_SWEEP_KEY, now()->toIso8601String());
 
         $this->asStaff(RoleEnum::ContentManager)->getJson('/api/v1/admin/health')->assertOk()->assertJsonMissingPath('meta.score');
         $this->asStaff(RoleEnum::Admin)->getJson('/api/v1/admin/health')->assertOk()->assertJsonPath('meta.score.value', 0);

@@ -10,9 +10,12 @@ use App\Models\Page;
 use App\Models\Redirect;
 use App\Support\Health\HealthSettings;
 use App\Support\Health\Score;
+use App\Support\Upgrade\Steps\FirstHealthSweep;
+use App\Support\Upgrade\UpgradeSteps;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class HealthSweepTest extends TestCase
@@ -43,8 +46,47 @@ class HealthSweepTest extends TestCase
         return Page::create(['title' => ucfirst($slug), 'slug' => $slug, 'body' => $body, 'status' => $status]);
     }
 
+    public function test_there_is_no_score_before_the_first_sweep(): void
+    {
+        $this->page('good', '<p>Fine.</p>');
+
+        $this->assertNull(Score::now());
+
+        Cache::forever(Score::LAST_SWEEP_KEY, now()->toIso8601String());
+        $this->assertSame(100, Score::now());
+    }
+
+    private function finding(int $id, string $subjectType = 'page'): void
+    {
+        HealthFinding::create([
+            'subject_type' => $subjectType, 'subject_id' => $id, 'subject_published' => true,
+            'check' => 'stale', 'severity' => 'warning', 'field' => 'record',
+            'detail' => [], 'fingerprint' => sha1((string) $id), 'first_seen_at' => now(), 'last_seen_at' => now(),
+        ]);
+    }
+
+    public function test_the_score_is_never_100_beside_a_problem_and_never_below_0(): void
+    {
+        Cache::forever(Score::LAST_SWEEP_KEY, now()->toIso8601String());
+        Page::withoutEvents(function () {
+            foreach (range(1, 250) as $i) {
+                Page::create(['title' => "P{$i}", 'slug' => "p-{$i}", 'body' => '<p>x</p>', 'status' => 'published']);
+            }
+        });
+
+        $this->finding(Page::first()->id);
+        // 249 of 250 rounds to 100; the floor says 99.
+        $this->assertSame(99, Score::now());
+
+        foreach (range(1000, 1300) as $i) {
+            $this->finding($i);
+        }
+        $this->assertSame(0, Score::now());
+    }
+
     public function test_the_score_counts_published_records_and_ignores_notices(): void
     {
+        Cache::forever(Score::LAST_SWEEP_KEY, now()->toIso8601String());
         $this->assertNull(Score::now());
 
         $this->page('good', '<p>Fine.</p>');
@@ -76,6 +118,18 @@ class HealthSweepTest extends TestCase
         $this->assertSame(2, HealthFinding::count());
         $this->assertSame(1, HealthSnapshot::count());
         $this->assertNotNull(Cache::get(Score::LAST_SWEEP_KEY));
+        $this->assertNotNull(HealthSnapshot::sole()->score);
+    }
+
+    public function test_an_update_starts_the_first_sweep(): void
+    {
+        Queue::fake();
+
+        $this->assertContains(FirstHealthSweep::class, UpgradeSteps::STEPS);
+        UpgradeSteps::run(app(FirstHealthSweep::class));
+
+        Queue::assertPushed(SweepHealth::class);
+        $this->assertDatabaseHas('system_upgrade_steps', ['step' => '2026-10-17-first-health-sweep']);
     }
 
     public function test_links_nothing_points_at_are_pruned_by_the_sweep(): void

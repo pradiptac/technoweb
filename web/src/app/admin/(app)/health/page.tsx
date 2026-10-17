@@ -49,6 +49,8 @@ export default async function SiteHealthPage({ searchParams }: { searchParams: P
   const filters = { group: params.group, severity: params.severity, type: params.type, show: params.show, per_page: params.per_page };
   const filtered = Boolean(params.group || params.severity || params.type || ignored);
   const ids = result.data.map((r) => r.id);
+  // Before the first sweep an empty list means nothing has been looked at, not that everything passed.
+  const unchecked = !meta.last_sweep_at && !filtered;
   const change = meta.score?.change ?? null;
 
   return (
@@ -108,9 +110,11 @@ export default async function SiteHealthPage({ searchParams }: { searchParams: P
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState title={filtered ? "Nothing matches" : "Nothing to fix"}
+        <EmptyState title={filtered ? "Nothing matches" : unchecked ? "Not checked yet" : "Nothing to fix"}
           action={<EmptyListAction filtered={filtered} clearHref="/admin/health" noun="problem" />}>
-          {ignored ? "Problems you ignore are listed here, in case you change your mind." : "Every record you look after passed every check."}
+          {ignored ? "Problems you ignore are listed here, in case you change your mind."
+            : unchecked ? "The site has not been checked yet. The first check runs overnight, and problems are listed here as it finds them."
+            : "Every record you look after passed every check."}
         </EmptyState>
       ) : (
         <>

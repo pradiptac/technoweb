@@ -4,6 +4,7 @@ namespace App\Support\Health;
 
 use App\Models\HealthFinding;
 use App\Models\HealthSnapshot;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -17,11 +18,15 @@ final class Score
 
     public static function now(): ?int
     {
+        // Before the first sweep nothing has been checked, and "100" would claim it had.
+        if (Cache::get(self::LAST_SWEEP_KEY) === null) {
+            return null;
+        }
+
         $total = 0;
         foreach (Kinds::aliases() as $alias) {
-            $class = Kinds::classFor($alias);
-            // shortcut: loads every record of every kind; a status count per kind past ~20,000 records.
-            $total += $class::query()->get()->filter(fn ($m) => Kinds::isPublished($m))->count();
+            // Every kind has a status column; Kinds::isPublished is the same rule per record.
+            $total += Kinds::classFor($alias)::query()->where('status', 'published')->count();
         }
 
         if ($total === 0) {
@@ -35,7 +40,10 @@ final class Score
             ->distinct()
             ->count(DB::raw("concat(subject_type, ':', subject_id)"));
 
-        return (int) round(100 * ($total - $bad) / $total);
+        $score = max(0, (int) round(100 * ($total - $bad) / $total));
+
+        // 100% is never shown beside a problem: one bad record in a thousand rounds up to it.
+        return $bad > 0 ? min($score, 99) : $score;
     }
 
     /**

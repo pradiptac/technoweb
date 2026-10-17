@@ -4983,7 +4983,7 @@ createServer(async (req, res) => {
         subject: { type, type_label, id: sid, title }, admin_path: path, first_seen_at: '2026-10-10T09:00:00+05:30', ignored_at: null,
       });
       const HEALTH = [
-        finding(1, 'error', 'link_internal_dead', 'links', 'Links to /solutions/old-firewall, which does not exist.', 'blog_post', 'Blog posts', 1, 'Choosing a firewall', 'body', 'Body', '/admin/blog/1?tab=content'),
+        finding(1, 'error', 'link_internal_dead', 'links', 'Links to /solutions/old-firewall, which does not exist.', 'blog_post', 'Blog posts', 1, 'Choosing a firewall', 'body', 'Body', '/admin/blog/1'),
         finding(2, 'warning', 'stale', 'stale', 'Not edited for 20 months.', 'page', 'Pages', 2, 'About us', 'record', 'The record', '/admin/pages/2'),
         finding(3, 'error', 'image_no_alt', 'accessibility', 'The picture media/hero.jpg has no description for screen readers.', 'solution', 'Solutions', 3, 'Networking', 'hero_image_path', 'Cover picture', '/admin/solutions/3'),
       ];
@@ -5580,8 +5580,9 @@ createServer(async (req, res) => {
         /* Site health → Settings (0.181.0): the link switch and a months figure per kind. */
         health: [
           s('health_external_links', '1', { group: 'health', type: 'boolean' }),
-          ...['page', 'solution', 'service', 'product', 'store_product', 'knowledge_article', 'landing_page', 'event', 'blog_post', 'case_study', 'tender', 'job_opening', 'entry']
-            .map((k) => s(`health_stale_${k}`, '18', { group: 'health' })),
+          /* HealthSettings::STALE_DEFAULTS */
+          ...Object.entries({ page: 18, solution: 18, service: 18, product: 18, store_product: 18, knowledge_article: 12, landing_page: 12, event: 12, blog_post: 0, case_study: 0, tender: 0, job_opening: 0, entry: 0 })
+            .map(([k, months]) => s(`health_stale_${k}`, String(months), { group: 'health' })),
         ],
         auth: [s('otp_login_enabled', '1'), s('otp_admin_login_enabled', '1'), s('password_login_enabled', '1')],
         mail: [

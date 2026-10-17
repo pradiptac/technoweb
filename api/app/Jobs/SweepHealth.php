@@ -57,9 +57,10 @@ class SweepHealth implements ShouldQueue
             }
         }
 
+        // The key first: the snapshot's score is null until a sweep has finished.
+        Cache::forever(Score::LAST_SWEEP_KEY, now()->toIso8601String());
         Score::snapshot();
         HealthSnapshot::query()->where('date', '<', now()->subDays(400)->toDateString())->delete();
         HealthLink::query()->whereDoesntHave('refs')->where('created_at', '<', now()->subDay())->delete();
-        Cache::forever(Score::LAST_SWEEP_KEY, now()->toIso8601String());
     }
 }
