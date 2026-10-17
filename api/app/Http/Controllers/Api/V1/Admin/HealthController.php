@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
 /**
@@ -52,7 +51,7 @@ class HealthController extends Controller
 
         $meta = [
             'summary' => Score::counts($aliases),
-            'last_sweep_at' => Cache::get(Score::LAST_SWEEP_KEY),
+            'last_sweep_at' => Score::lastSweepAt(),
             'groups' => $this->options(Findings::GROUPS),
             'severities' => $this->options(Findings::SEVERITIES),
             'kinds' => array_map(fn ($a) => ['value' => $a, 'label' => Kinds::label($a)], $aliases),

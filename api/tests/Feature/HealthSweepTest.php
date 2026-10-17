@@ -141,4 +141,17 @@ class HealthSweepTest extends TestCase
 
         $this->assertSame(0, HealthLink::count());
     }
+
+    public function test_the_score_survives_the_cache_being_cleared_by_an_update(): void
+    {
+        Page::withoutEvents(fn () => Page::create(['title' => 'P', 'slug' => 'p', 'body' => '<p>x</p>', 'status' => 'published']));
+        HealthSnapshot::create(['date' => now()->toDateString(), 'score' => 100, 'records_checked' => 1, 'counts' => []]);
+        Cache::forget(Score::LAST_SWEEP_KEY); // what optimize:clear does on every update
+
+        $this->assertNotNull(Score::lastSweepAt());
+        $this->assertSame(100, Score::now());
+
+        HealthSnapshot::query()->delete();
+        $this->assertNull(Score::now());
+    }
 }
