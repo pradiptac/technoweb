@@ -75,8 +75,8 @@ await widths("default");
 await trigger.click();
 const listed = await dialog.locator("ol > li").evaluateAll((items) => items.map((li) => li.querySelector("label span span")?.textContent ?? ""));
 console.log(`    offered: ${listed.join(" | ")}`);
-// Eight since Console 2.0 added the Activity panel (0.166.0).
-ok(listed.length === 8, `the dialog lists every panel this role has (${listed.length})`);
+// Eight since Console 2.0 added the Activity panel (0.166.0); nine for an administrator since Site health (0.181.0).
+ok(listed.length === 9, `the dialog lists every panel this role has (${listed.length})`);
 await dialog.getByLabel(/^When tickets arrive/).uncheck();
 for (let i = 0; i < 6; i++) await dialog.getByRole("button", { name: "Move “High priority” up" }).click();
 await dialog.getByRole("button", { name: "Cancel" }).click();

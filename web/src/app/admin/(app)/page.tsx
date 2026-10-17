@@ -161,6 +161,10 @@ async function DashboardBody({ volume }: { volume?: string }) {
           text: <>{t.reference} · {t.subject}</>,
         }))),
   ).catch(() => null);
+  // Site health panel: administrators only, and not asked for while it is put away. Its own catch, so a failure blanks only this panel.
+  const healthList = Promise.all([getCurrentStaff(), readView()])
+    .then(([me, v]) => (me?.roles.some((r) => r.slug === "admin") && !v.hidden.includes("health") ? getHealthList({ per_page: 3 }) : null))
+    .catch(() => null);
   const dashboard = await loadDashboard(volume);
   if (!dashboard) {
     return (
@@ -331,6 +335,7 @@ async function DashboardBody({ volume }: { volume?: string }) {
   const checklist = await onboarding;
   const view = await readView();
   const recent = await activity;
+  const health = await healthList;
 
   /*
    * The hero's one line and its buttons (Console 2.0), from figures this
@@ -338,10 +343,6 @@ async function DashboardBody({ volume }: { volume?: string }) {
    * mentioned, the rule every tile here follows.
    */
   const staff = await getCurrentStaff();
-  // Its own try: a health API failure blanks this panel and nothing else. Not asked for while hidden.
-  const health = staff?.roles.some((r) => r.slug === "admin") && !view.hidden.includes("health")
-    ? await getHealthList({ per_page: 3 }).catch(() => null)
-    : null;
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
   const due = dashboard.counts.overdue_tickets;
   const summary = [
