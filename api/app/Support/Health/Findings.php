@@ -118,9 +118,9 @@ final class Findings
         };
     }
 
-    /** The edit form's tab to open: `sections` for anything in the builder, else the form's first. */
-    public static function tabFor(string $field): ?string
+    /** The edit form's tab to open: the builder's — `builder` on a page, `sections` on every other record — else the form's first. */
+    public static function tabFor(string $field, string $alias): ?string
     {
-        return str_starts_with($field, 'blocks.') ? 'sections' : null;
+        return str_starts_with($field, 'blocks.') ? ($alias === 'page' ? 'builder' : 'sections') : null;
     }
 }
