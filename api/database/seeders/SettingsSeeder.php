@@ -6,6 +6,7 @@ use App\Models\Setting;
 use App\Support\Events\EventSettings;
 use App\Support\Health\HealthSettings;
 use App\Support\Meetings\MeetingSettings;
+use App\Support\Search\SemanticSettings;
 use App\Support\Visits\VisitSettings;
 use Illuminate\Database\Seeder;
 
@@ -368,6 +369,19 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
                 array_keys(HealthSettings::STALE_DEFAULTS),
                 HealthSettings::STALE_DEFAULTS,
             ),
+
+            /*
+             * Semantic search (0.182.0, docs/semantic-search.md): off by
+             * default; the embedding model (an OpenRouter id), how many new
+             * search phrases a day may be embedded, the similarity floor
+             * (not drawn on the form), and the last refusal in OpenRouter's
+             * words. Private.
+             */
+            ['group' => 'semantic_search', 'key' => 'semantic_search_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'semantic_search', 'key' => 'semantic_search_model', 'value' => SemanticSettings::DEFAULT_MODEL, 'type' => 'string'],
+            ['group' => 'semantic_search', 'key' => 'semantic_search_daily_cap', 'value' => (string) SemanticSettings::DEFAULT_CAP, 'type' => 'string'],
+            ['group' => 'semantic_search', 'key' => 'semantic_search_floor', 'value' => (string) SemanticSettings::DEFAULT_FLOOR, 'type' => 'string'],
+            ['group' => 'semantic_search', 'key' => 'semantic_search_error', 'value' => null, 'type' => 'string'],
 
             /*
              * Online meetings (2026-09-29, docs/meetings.md): the switch, the
