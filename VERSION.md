@@ -27,7 +27,7 @@ Entries are newest first. Dates are the day the work landed on
 
 - Somebody searching "network keeps dropping" finds the Wi-Fi troubleshooting article and the managed-switches page, although neither uses those words. A part number or an exact title still comes first.
 - The assistant answers more questions from the website, so fewer land on the unanswered list.
-- Off until switched on, under Settings → API keys, with the OpenRouter key already there. Each new search phrase costs one small request; the same phrase is free for 30 days, and a daily cap keeps the cost bounded. If the service is slow or switched off, search works exactly as before.
+- Off until switched on, under Settings → Infrastructure → Search by meaning, with the OpenRouter key already saved on the API keys tab. Each new search phrase costs one small request; the same phrase is free for 30 days, and a daily cap keeps the cost bounded. If the service is slow or switched off, search works exactly as before.
 
 ## 0.181.0 — 2026-10-17
 

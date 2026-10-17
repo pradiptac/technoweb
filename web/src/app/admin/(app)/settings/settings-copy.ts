@@ -263,7 +263,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   semantic_search_model: {
     label: "Model for search by meaning",
-    hint: "An OpenRouter embedding model, for example openai/text-embedding-3-small. Changing it re-indexes every page overnight.",
+    hint: "An OpenRouter embedding model, for example openai/text-embedding-3-small. Changing it starts re-indexing every page at once, in the background.",
   },
   semantic_search_daily_cap: {
     label: "New search phrases a day",

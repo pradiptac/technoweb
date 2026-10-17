@@ -32,9 +32,9 @@ for the day reaches it, search uses words alone until tomorrow. The ceiling is
 
 ## Switching it on
 
-1. Open **Settings** and the **Infrastructure** section, and make sure the
-   OpenRouter key is saved (chapter 18).
-2. Tick **Search by meaning**. Leave **Model for search by meaning** as it is
+1. Make sure the OpenRouter key is saved on the **API keys** tab (chapter 18),
+   then open **Settings → Infrastructure** and the **Search by meaning** tab.
+2. Turn on the **Search by meaning** switch. Leave **Model for search by meaning** as it is
    unless your supplier tells you otherwise — `openai/text-embedding-3-small` is
    small, fast and inexpensive.
 3. Set **New search phrases a day** if the default does not suit.

@@ -5910,7 +5910,9 @@ cleared by a good one. None is on the public `/settings` map.
 **What a save does.** Switching it on queues the first index; changing the model
 marks every passage waiting and queues the index (vectors of two models are not
 comparable). Saving a record of an indexed kind queues that record's passages
-after commit; unpublishing or deleting it removes them at once.
+after commit; deleting it removes them at once, unpublishing it when that
+queued job runs. Editing or deleting an FAQ or an answer block queues its
+owner's passages the same way.
 `technoware:index-search` runs nightly at 03:10 and catches what a save missed.
 
 ## Admin — staff (`role:admin`)

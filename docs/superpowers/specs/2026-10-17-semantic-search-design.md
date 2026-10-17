@@ -100,6 +100,7 @@ subject_id, vector)`, is packed into one file on the private disk:
 - Rebuilt after an indexing job changes anything, debounced to once a minute.
 - A search reads that file, memoised per process. It never scans the table.
 - `shortcut:` cosine over every passage in PHP is fine to about 20,000 passages (tens of milliseconds); past that it needs a vector index. The docs say so.
+- **Corrected 2026-10-18, after the final review.** The figure above was wrong by an order of magnitude. Measured in place (one vector unpacked at a time, 512 dimensions): 4,000 passages score in 0.26 s, 5,000 in 0.31–0.38 s, 20,000 in 1.1–1.2 s and 40 MB. The documented ceiling is about 4,000 passages for under 300 ms. And the file is no longer rebuilt by a search or memoised per process: only queued work builds it, a request reads what exists, and a memory guard skips meaning when the file would not fit (`docs/semantic-search.md`).
 
 ## Indexing
 

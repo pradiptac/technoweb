@@ -27,7 +27,8 @@ status and are always public.
 document (`Document::sections()`), so a draft owner's questions are never
 searchable: `Indexer::index()` asks `Indexable::isIndexed()` *before* it reads
 the record, because `Document` reads `faqs()` with no status check of its own.
-A record that is not published has its passages removed at once.
+A record that is not published has its passages removed when its queued
+`IndexRecordPassages` runs (a delete removes them at once).
 
 A document is the summary, the written body split at its h2/h3 — or the visible
 builder sections, never both, since the page draws one — the published answer
@@ -50,19 +51,31 @@ only what changed; a record's passages are matched by position, and any past the
 new count are deleted. A new or changed passage is stored with `embedded_at`
 null and embedded in the same pass when the call works, otherwise it waits.
 
+**A passage embedded under another model waits too** (`Indexer::waiting()`: no
+`embedded_at`, or a `model` that is not the current one). A slice that was
+running when the model changed stamps its rows with the old model; counted as
+embedded they would be skipped for good, missing from the new model's file while
+the panel said nothing waited. The status count and `embedWaiting()` use the same
+rule; the file takes only the current model's rows.
+
 ## When the index moves
 
 - **A save.** `AppServiceProvider` registers a `saved` listener per kind that
   queues `IndexRecordPassages` after commit; `deleted` forgets the passages. Both
   are guarded — indexing never fails a save, and switched off nothing is queued.
-- **What a save misses**, and the nightly run catches: an FAQ or answer block
-  saved alone (it is not a kind, so its owner's `saved` does not fire), a
-  `saveQuietly()` write, imports, and anything that reached the table without an
-  event.
+- **An FAQ or an answer block** edited or deleted on its own screen: `Faq` and
+  `AnswerBlock` carry `saved` and `deleted` listeners that queue the owner's
+  `IndexRecordPassages` when the owner is an indexed kind, guarded and after
+  commit the same way. Otherwise the assistant could quote a removed answer until
+  the nightly run.
+- **What a save misses**, and the nightly run catches: a `saveQuietly()` write, a
+  relation's mass `delete()` (an entity form replacing its FAQs — its own save
+  queues the index anyway), imports, and anything that reached the table without
+  an event.
 - **`technoware:index-search`** (03:10) starts `IndexSearch`, sliced like the
   Site health sweep: a slice works for 40 seconds and dispatches the next with
   its cursor, then embeds whatever still waits, prunes query vectors older than 30
-  days and marks the search file stale.
+  days and queues a rebuild of the search file.
 - **Switching it on** queues the first index. **Changing the model** marks every
   passage waiting (`Indexer::markAllWaiting()`) and queues the index: vectors of
   two models cannot be compared, and the search file's name carries a hash of the
@@ -77,18 +90,52 @@ null and embedded in the same pass when the call works, otherwise it waits.
 
 A search reads **one packed file** on the private disk (`SearchFile`,
 `search/passages-<hash of the model>.bin`) and never scans the table: per record
-the passage id, the subject id, the alias and the vector as float32s. It is
-rebuilt when marked stale, at most once a minute (a lock), and when missing;
-written to a temporary file and renamed, with a guarded decode, so a search that
-races a rebuild or meets a partial file answers `[]` rather than throwing.
-Vectors stay packed in the per-process memo and are unpacked one at a time while
-scoring.
+the passage id, the subject id, the alias and the vector as float32s.
 
-**Cosine is computed in PHP over every passage — fine to about 20,000
-passages.** A catalogue in the hundreds of pages is a few thousand passages and a
-few milliseconds. Tens of thousands cost a few hundred milliseconds a search and
-want a vector index (pgvector, Meilisearch, a vector extension), which is a
-different deployment.
+**Only queued work builds it** (Ruling 8 of the build). `SearchFile::markStale()`
+queues `RebuildSearchFile` after commit — `ShouldBeUniqueUntilProcessing`, so one
+waits at a time and a change made while one is building queues the next (a lost
+lock lapses after ten minutes). It is called by every embedding batch, by
+`forget()`, by `markAllWaiting()`, at the end of the nightly run and the
+re-index, and by an index that changed something it could not embed — an edit
+that only deleted a passage, or a changed passage whose call failed, which would
+otherwise leave the old vector in the file. **A visitor's request never builds
+it**: `load()` reads whatever file exists, stale or not, and a missing file is
+`[]`, words only. A rebuild streams to a temporary file, renames it over the old
+one, and deletes the files of every other model.
+
+**A search scores in place.** `SearchFile::records()` walks the bytes and yields
+each vector's offset; `Semantic` unpacks one vector at a time
+(`unpack('g<n>', $bytes, $offset)`) and keeps only the best `$limit`, pruning as
+it goes — the whole index is never decoded into rows, and a partial last record
+is dropped. So a search holds the file's bytes and little else.
+
+**The memory guard.** Before reading, `SearchFile::fits()` asks that the file's
+size × 3 plus 16 MB fit in `memory_limit` less `memory_get_usage()` (a limit of
+-1 is no limit). If it does not, `load()` answers `''`, search by meaning is
+skipped and words answer, and a `warning` is logged at most once an hour — the
+request never ends in "Allowed memory size exhausted", which no `try/catch` can
+stop.
+
+**Cosine is computed in PHP over every passage, and the ceiling is about 4,000
+passages.** Measured on 2026-10-18 on the development machine (PHP 8.3 CLI, no
+JIT) with a throwaway script mirroring the scoring loop, 512 dimensions:
+
+| Passages | File | Memory while scoring | Time |
+|---|---|---|---|
+| 4,000 | 7.9 MB | +8 MB | 0.26 s |
+| 5,000 | 9.9 MB | +10 MB | 0.31–0.38 s |
+| 10,000 | 19.8 MB | +20 MB | 0.60–0.64 s |
+| 20,000 | 39.6 MB | +40 MB | 1.09–1.19 s |
+| 5,000 at 1,536 dimensions (a non-`openai/` model) | 29.4 MB | +30 MB | 0.86–0.94 s |
+
+Memory is now the file's size (it was about 2.5 times that while the index was
+decoded into rows: +99 MB at 20,000). **Time is the limit**: under 300 ms a
+search needs about 4,000 passages of 512 dimensions — a catalogue of one or two
+thousand pages. Past that every search pays a second or more, and 20,000
+passages (40 MB) is skipped outright by the guard under a `memory_limit` of
+128M. A bigger site wants a vector index (pgvector, Meilisearch, a vector
+extension), which is a different deployment.
 
 ## What `Semantic::match()` refuses
 
@@ -102,7 +149,16 @@ It is the one entry point and answers `[]` — words only — when:
   neighbours, which is the opposite of what was asked;
 - **the day's cap is reached**: `semantic_search_daily_cap` new phrases a day
   (default 2,000);
-- OpenRouter takes **over 1.5 seconds**, or refuses.
+- OpenRouter takes **over 1.5 seconds**, or refuses — and then, for **60
+  seconds** (`Semantic::BACKOFF_KEY`), every phrase not already cached skips the
+  call, so an outage costs one wait rather than one per search. Any successful
+  embeddings call lifts it. `semantic_search_error` is written only when its text
+  changes, so a repeated refusal does not flush the settings cache on every
+  search;
+- the search file is missing, or too large for the request's memory (above).
+
+Switched off, `Semantic::passages()` runs no query at all, so a chat question
+costs nothing extra.
 
 Its callers (`SearchController`, `Retriever`) wrap it in `try/catch` too: they are
 the last line of "search never breaks", and a database error reading the query
@@ -113,8 +169,9 @@ cache sits outside `scored()`'s own guard.
 **Every word hit stays where it was.** Meaning-only records — those the word
 query did not also match — follow the word hits within a group's five, in score
 order, and `total` counts them. So an exact title or SKU is still first, and a
-group of five words hits has no room for meaning. Records are intersected with
-the published query before they are drawn. **No passage text, score or vector
+group of five words hits has no room for meaning. Meaning-only ids are
+intersected with the published query **before** they are counted or drawn, so a
+record unpublished since the file was built is neither. **No passage text, score or vector
 reaches a visitor**: the response shape is unchanged.
 
 ## The assistant
@@ -122,7 +179,9 @@ reaches a visitor**: the response shape is unchanged.
 `Retriever` adds up to **four passages** that answer the question by meaning,
 inside the existing `---WEBSITE COPY---` fence — retrieved copy is still copy and
 never an instruction. Each is checked with `Indexable::isIndexed()` again, its
-excerpt is cut to 600 characters, and a page is never offered twice. More
+excerpt is cut to 600 characters, and a page is never offered twice. A
+download's address is the centre searched for it (`/downloads?q=<title>`,
+`Download::publicPath()`), the link the site search gives it. More
 questions are answered from the website, so fewer land on the unanswered list.
 
 **The meaning lookup runs after the 5-minute retrieval cache and never inside
@@ -167,7 +226,7 @@ Scores differ by model, and the default dimensions (512 for `openai/*`, via the
 
 ## What it misses
 
-- A saved FAQ or answer block alone, and `saveQuietly()` writes: the nightly run.
+- `saveQuietly()` writes and a relation's mass `delete()`: the nightly run.
 - **A queued-but-not-started index run holds no in-flight flag** — the flag is
   taken when a slice starts running, so two queued runs (the nightly and a
   settings save) can overlap. They are idempotent (hash-diffed), so the cost is
@@ -176,17 +235,14 @@ Scores differ by model, and the default dimensions (512 for `openai/*`, via the
   minutes: the flag is taken by the press and only a running slice releases it, so
   a job nothing drains holds it until it expires.
 - A gap of over 3.5 minutes between two slices lets the flag lapse mid-chain.
-- A new or edited page is found by meaning once its job has run and the search
-  file has been rebuilt (at most a minute later); until then it is words-only.
-- Unpublishing removes a record's passages at once, but the packed file is
-  rebuilt at most once a minute, so a stale id may sit in it for that long; every
-  consumer intersects with the published query, so it is never shown.
-- `total` counts meaning-only ids from the file before they are checked against
-  the published query, so for up to a minute after an unpublish it can count one
-  record that is not drawn (nothing is shown or leaked).
-- Scoring cost is linear in passages, and `rename()` of the rebuilt file can fail
-  on Windows over an open file (caught; the stale flag is already cleared, so the
-  next rebuild is the next stale mark).
+- A new or edited page is found by meaning once its job and the queued rebuild
+  have run; until then it is words-only. With no queue worker the file is never
+  rebuilt and searches keep the last one (or none).
+- A stale id can sit in the file until the rebuild runs; every consumer checks
+  it against the published query before showing or counting it.
+- Scoring cost is linear in passages (the ceiling above), and `rename()` of the
+  rebuilt file can fail on Windows over an open file; the next change queues the
+  next rebuild.
 
 ## What it costs
 
@@ -212,10 +268,12 @@ prompts for training; an embedding model should be a paid one.
 
 ## The console
 
-Settings → Infrastructure, beside the OpenRouter key: the switch, the model, the
+Settings → Infrastructure, on the "Search by meaning" tab (the key is on the API
+keys tab): the switch, the model, the
 daily cap and `SemanticSearchPanel`. `GET /admin/search/semantic` reads the
 status (passages total / embedded / waiting, today's phrases against the cap, the
 last refusal in OpenRouter's words, the last full index, whether one is running),
 `POST …/test` sends one short request and reports the dimensions, `POST
 …/reindex` queues the index. All `role:admin`. Both buttons use what is saved.
-`semantic_search_error` is written by a refused call and cleared by a good one.
+`semantic_search_error` is written by a refused call (only when its text
+changes) and cleared by a good one.

@@ -45,9 +45,10 @@ try {
     if (hits < 1) fail("'network keeps dropping' found nothing");
 
     // 2. An exact part number is still first in its group.
-    const products = (await get("/admin/store/products?per_page=100")).data ?? [];
-    const product = process.env.SKU ? { sku: process.env.SKU, name: process.env.SKU_NAME ?? process.env.SKU } : products.find((p) => p.sku);
-    if (!product) fail("the shop has no product with a SKU to search for");
+    // A published one: a draft's SKU is not on the public search, so it would fail for the wrong reason.
+    const products = (await get("/admin/store/products?status=published&per_page=100")).data ?? [];
+    const product = process.env.SKU ? { sku: process.env.SKU, name: process.env.SKU_NAME ?? process.env.SKU } : products.find((p) => p.sku && p.status === "published");
+    if (!product) fail("the shop has no published product with a SKU to search for");
     else {
       await page.goto(`${BASE}/search?q=${encodeURIComponent(product.sku)}`, { waitUntil: "load", timeout: T });
       const first = page.locator("main section").filter({ has: page.locator("h2", { hasText: /in the shop/i }) }).first().locator("ul li a").first();
