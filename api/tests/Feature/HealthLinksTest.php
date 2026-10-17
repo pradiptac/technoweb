@@ -11,8 +11,12 @@ use App\Models\User;
 use App\Support\Health\LinkProber;
 use App\Support\Net\PublicHost;
 use App\Support\Net\UnsafeUrl;
+use GuzzleHttp\Exception\ResponseTransferException;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class HealthLinksTest extends TestCase
@@ -121,19 +125,49 @@ class HealthLinksTest extends TestCase
         $this->assertSame(['ok', 0], [$link->result, $link->fails]);
     }
 
-    public function test_a_size_cap_abort_is_alive_even_when_wrapped(): void
+    private function cappedAbort(?int $status): \Throwable
     {
-        Http::fake(function ($request) {
+        $cap = new UnsafeUrl('The file is larger than the limit.');
+
+        return $status === null
+            ? new \RuntimeException('wrapped', 0, $cap)
+            : new ResponseTransferException('wrapped', new Request('GET', 'https://vendor.example/'), new Response($status), $cap);
+    }
+
+    /** @return array<string, array{0: int|null, 1: string}> */
+    public static function cappedAborts(): array
+    {
+        return ['200 is alive' => [200, 'ok'], '404 is dead' => [404, 'failed'], '403 is unknown' => [403, 'unknown'], 'no response is unknown' => [null, 'unknown']];
+    }
+
+    #[DataProvider('cappedAborts')]
+    public function test_a_size_cap_abort_is_judged_by_its_status(?int $status, string $expected): void
+    {
+        Http::fake(function ($request) use ($status) {
             if ($request->method() === 'HEAD') {
                 return Http::response('', 405);
             }
-            throw new \RuntimeException('wrapped', 0, new UnsafeUrl('The file is larger than the limit.'));
+            throw $this->cappedAbort($status);
         });
         $link = $this->link();
 
         LinkProber::probe($link);
 
-        $this->assertSame(['ok', 0], [$link->result, $link->fails]);
+        $this->assertSame($expected, $link->result);
+    }
+
+    public function test_an_internal_refused_head_is_followed_by_one_get(): void
+    {
+        config(['app.web_internal_url' => 'http://127.0.0.1:3000']);
+        Http::fake(function ($request) {
+            return $request->method() === 'HEAD' ? Http::response('', 405) : Http::response('', 404);
+        });
+        $link = $this->internalLink();
+
+        LinkProber::probe($link);
+
+        $this->assertSame(['failed', 404], [$link->result, $link->status]);
+        Http::assertSentCount(2);
     }
 
     private function internalLink(): HealthLink

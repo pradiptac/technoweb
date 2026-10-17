@@ -7,6 +7,7 @@ use App\Models\HealthLink;
 use App\Models\Setting;
 use App\Support\Net\SafeHttp;
 use App\Support\Net\UnsafeUrl;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -64,20 +65,43 @@ final class LinkProber
         $headers = ['User-Agent' => self::agent(), 'Range' => 'bytes=0-0'];
         $options = ['timeout' => 10, 'allow_private' => $allowPrivate, 'allow_http' => true, 'max_bytes' => 65536, 'headers' => $headers];
 
+        $seen = null;
+
         try {
             $request = fn () => SafeHttp::request($url, $allowPrivate, true)->timeout(10)->withHeaders($headers);
             $response = $request()->head($url);
 
             if (in_array($response->status(), [405, 501], true) || ($response->redirect() && ! $link->internal)) {
                 // An internal path never follows a redirect: the private allowance must not travel to wherever the site sends it.
-                $response = $link->internal ? $request()->withOptions(['stream' => true])->get($url) : SafeHttp::get($url, $options);
+                // Keeping cURL (which carries the pin) and stopping at the headers: the status is all that is wanted.
+                $response = $link->internal
+                    ? $request()->withOptions(['on_headers' => function ($r) use (&$seen) {
+                        $seen = $r->getStatusCode();
+                        throw new \RuntimeException('headers seen');
+                    }])->get($url)
+                    : SafeHttp::get($url, $options);
             }
         } catch (Throwable $e) {
-            // The server is sending the file, only more of it than we asked to read: the link is alive.
+            if ($seen !== null) {
+                return self::judge($seen);
+            }
+
+            // Laravel turns a failed transfer that carried an error status into a RequestException; that status is the answer.
+            if ($e instanceof RequestException) {
+                return self::judge($e->response->status());
+            }
+
+            // The size cap fired after the headers arrived: judge the status the server gave, as for any answer.
+            $capped = false;
+            $status = null;
             for ($previous = $e; $previous; $previous = $previous->getPrevious()) {
-                if ($previous instanceof UnsafeUrl && $previous->getMessage() === 'The file is larger than the limit.') {
-                    return ['ok', null];
+                $capped = $capped || ($previous instanceof UnsafeUrl && $previous->getMessage() === 'The file is larger than the limit.');
+                if ($status === null && method_exists($previous, 'getResponse') && is_object($previous->getResponse())) {
+                    $status = $previous->getResponse()->getStatusCode();
                 }
+            }
+            if ($capped) {
+                return $status === null ? ['unknown', null] : self::judge($status);
             }
             if (! $e instanceof UnsafeUrl) {
                 Log::info('Site health: no answer', ['url' => $url, 'error' => $e->getMessage()]);
@@ -86,8 +110,12 @@ final class LinkProber
             return ['failed', null];
         }
 
-        $status = $response->status();
+        return self::judge($response->status());
+    }
 
+    /** @return array{0: string, 1: int} */
+    private static function judge(int $status): array
+    {
         return match (true) {
             $status < 400 => ['ok', $status],
             in_array($status, [401, 403, 429], true) => ['unknown', $status],
