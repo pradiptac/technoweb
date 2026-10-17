@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\KnowledgeArticle;
 use App\Models\Setting;
 use App\Models\StoreProduct;
+use App\Support\Chat\Retriever;
 use App\Support\Search\SearchFile;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -81,5 +82,26 @@ class SemanticSearchBlendTest extends TestCase
         $body = $this->getJson('/api/v1/search?q='.urlencode('network keeps dropping'))->assertOk()->getContent();
 
         $this->assertStringNotContainsString('unique-passage-sentence', $body);
+    }
+
+    public function test_the_assistant_retrieves_a_meaning_only_passage(): void
+    {
+        KnowledgeArticle::create(['title' => 'Channel planning', 'slug' => 'channels', 'excerpt' => 'Plan your channels.',
+            'body' => '<p>Intro.</p><h2>Why it drops</h2><p>Wireless signal disconnects when channels overlap.</p>', 'status' => 'published']);
+
+        $sources = Retriever::for('my network keeps dropping');
+
+        $passage = collect($sources)->firstWhere('url', '/knowledge-base/channels');
+        $this->assertNotNull($passage);
+        $this->assertStringContainsString('channels overlap', $passage['excerpt']);
+    }
+
+    public function test_switched_off_the_assistant_retrieves_as_before(): void
+    {
+        KnowledgeArticle::create(['title' => 'Channel planning', 'slug' => 'channels', 'excerpt' => 'x', 'body' => '<p>Wireless signal disconnects.</p>', 'status' => 'published']);
+        Setting::query()->where('key', 'semantic_search_enabled')->update(['value' => '0']);
+        Setting::flushCache();
+
+        $this->assertSame([], Retriever::for('my network keeps dropping'));
     }
 }
