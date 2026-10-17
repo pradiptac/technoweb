@@ -15,6 +15,7 @@ use App\Support\Search\Document;
 use App\Support\Search\Embeddings;
 use App\Support\Search\Indexable;
 use App\Support\Search\Indexer;
+use App\Support\Search\SearchFile;
 use App\Support\Search\SemanticSettings;
 use App\Support\Search\Vectors;
 use App\Support\Upgrade\Steps\FirstSearchIndex;
@@ -34,6 +35,7 @@ class SemanticIndexTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        SearchFile::flushMemo();
         $this->seed(SettingsSeeder::class);
         $this->enableSemanticSearch();
         $this->fakeEmbeddings(); // no test may reach the real OpenRouter

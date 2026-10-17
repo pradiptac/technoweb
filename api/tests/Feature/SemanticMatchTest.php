@@ -26,7 +26,7 @@ class SemanticMatchTest extends TestCase
     {
         parent::setUp();
         Storage::fake('local'); // the packed file must not leak between tests
-        SearchFile::markStale(); // and neither may its per-process memo
+        SearchFile::flushMemo(); // and neither may its per-process memo
         $this->seed(SettingsSeeder::class);
         $this->enableSemanticSearch();
         $this->fakeEmbeddings();
@@ -152,6 +152,8 @@ class SemanticMatchTest extends TestCase
 
         SearchFile::rebuild();
         $rows = SearchFile::load();
+        $this->assertIsString($rows[0][3]); // held packed, unpacked only while scoring
+        $rows = array_map(fn ($r) => [$r[0], $r[1], $r[2], Vectors::unpack($r[3])], $rows);
 
         $this->assertCount(2, $rows);
         $this->assertSame(['knowledge_article', 7], [$rows[0][1], $rows[0][2]]);
@@ -162,5 +164,36 @@ class SemanticMatchTest extends TestCase
             }
         }
         Storage::disk('local')->assertExists(SearchFile::path());
+    }
+
+    public function test_a_truncated_file_loads_only_its_complete_records(): void
+    {
+        $this->articles();
+        SearchFile::rebuild();
+        $full = SearchFile::load();
+        $this->assertCount(2, $full);
+
+        $disk = Storage::disk('local');
+        $disk->put(SearchFile::path(), substr((string) $disk->get(SearchFile::path()), 0, -5));
+        SearchFile::flushMemo();
+
+        $this->assertCount(1, SearchFile::load());
+        $this->assertNotSame([], Semantic::match('network keeps dropping', ['knowledge_article']));
+    }
+
+    public function test_a_concurrent_insert_of_the_same_phrase_does_not_throw(): void
+    {
+        $this->articles();
+        $hash = sha1(Semantic::normalise('network keeps dropping').'|'.SemanticSettings::model());
+
+        // The other request's insert lands while this one is waiting for the embedding.
+        $this->fakeEmbeddings(function (string $text) use ($hash) {
+            SearchQueryVector::query()->insert(['hash' => $hash, 'model' => SemanticSettings::model(), 'vector' => Vectors::pack($this->vectorFor($text)), 'last_used_at' => now()]);
+
+            return $this->vectorFor($text);
+        });
+
+        $this->assertNotSame([], Semantic::match('network keeps dropping', ['knowledge_article']));
+        $this->assertSame(1, SearchQueryVector::count());
     }
 }

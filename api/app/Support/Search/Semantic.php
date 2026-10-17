@@ -89,7 +89,13 @@ final class Semantic
             return [];
         }
 
-        $passages = SearchFile::load();
+        try {
+            $passages = SearchFile::load();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [];
+        }
         if ($passages === []) {
             return [];
         }
@@ -102,11 +108,11 @@ final class Semantic
         $floor = SemanticSettings::floor();
         $wanted = array_flip($aliases);
         $hits = [];
-        foreach ($passages as [$id, $alias, $subject, $vector]) {
+        foreach ($passages as [$id, $alias, $subject, $packed]) {
             if (! isset($wanted[$alias])) {
                 continue;
             }
-            $score = Vectors::dot($query, $vector);
+            $score = Vectors::dot($query, Vectors::unpack($packed));
             if ($score >= $floor) {
                 $hits[] = ['subject_type' => $alias, 'subject_id' => $subject, 'score' => $score, 'passage_id' => $id];
             }
@@ -123,7 +129,9 @@ final class Semantic
 
         $cached = SearchQueryVector::query()->find($hash);
         if ($cached !== null) {
-            $cached->forceFill(['last_used_at' => now()])->save();
+            if ($cached->last_used_at->lt(now()->subHour())) {
+                SearchQueryVector::query()->whereKey($hash)->update(['last_used_at' => now()]);
+            }
 
             return Vectors::unpack((string) $cached->vector);
         }
@@ -140,7 +148,8 @@ final class Semantic
         }
 
         Cache::increment($todayKey);
-        SearchQueryVector::query()->updateOrCreate(['hash' => $hash], ['model' => $model, 'vector' => Vectors::pack($vectors[0]), 'last_used_at' => now()]);
+        // Two first searches of one phrase can race; the loser's insert is ignored, never thrown.
+        SearchQueryVector::query()->insertOrIgnore([['hash' => $hash, 'model' => $model, 'vector' => Vectors::pack($vectors[0]), 'last_used_at' => now()]]);
 
         return $vectors[0];
     }

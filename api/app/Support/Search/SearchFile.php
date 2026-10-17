@@ -14,7 +14,10 @@ use Illuminate\Support\Facades\Storage;
  * Rebuilt when marked stale (an index changed something) at most once a
  * minute, and when missing.
  *
- * shortcut: cosine over every passage in PHP is fine to about 20,000 passages (tens of milliseconds); past that it needs a vector index.
+ * Vectors stay packed in the memo (2 KB each) and are unpacked one at a time
+ * while scoring.
+ *
+ * shortcut: cosine over every passage in PHP is comfortable to a few thousand passages; tens of thousands costs a few hundred ms per search and needs a vector index.
  */
 final class SearchFile
 {
@@ -22,7 +25,7 @@ final class SearchFile
 
     private const REBUILD_LOCK = 'search:file-rebuilding:';
 
-    /** @var array<string, list<array{0: int, 1: string, 2: int, 3: list<float>}>> */
+    /** @var array<string, list<array{0: int, 1: string, 2: int, 3: string}>> */
     private static array $memo = [];
 
     public static function markStale(): void
@@ -31,12 +34,18 @@ final class SearchFile
         self::$memo = [];
     }
 
+    /** For tests: forget the per-process copy. */
+    public static function flushMemo(): void
+    {
+        self::$memo = [];
+    }
+
     public static function path(): string
     {
         return 'search/passages-'.substr(sha1(SemanticSettings::model()), 0, 12).'.bin';
     }
 
-    /** @return list<array{0: int, 1: string, 2: int, 3: list<float>}> */
+    /** @return list<array{0: int, 1: string, 2: int, 3: string}> */
     public static function load(): array
     {
         $path = self::path();
@@ -60,6 +69,9 @@ final class SearchFile
         $model = SemanticSettings::model();
         $out = '';
 
+        // Cleared before reading, so a change landing mid-build marks it stale again.
+        Cache::forget(self::STALE_KEY);
+
         SearchPassage::query()->where('model', $model)->whereNotNull('embedded_at')->orderBy('id')
             ->select(['id', 'subject_type', 'subject_id', 'vector'])
             ->lazyById(500)
@@ -68,12 +80,15 @@ final class SearchFile
                 $out .= pack('VVC', $p->id, $p->subject_id, strlen($p->subject_type)).$p->subject_type.pack('v', intdiv(strlen($vector), 4)).$vector;
             });
 
-        Storage::disk('local')->put(self::path(), $out);
-        Cache::forget(self::STALE_KEY);
+        // Written beside and renamed over, so a reader never sees half a file.
+        $disk = Storage::disk('local');
+        $tmp = self::path().'.'.bin2hex(random_bytes(4)).'.tmp';
+        $disk->put($tmp, $out);
+        rename($disk->path($tmp), $disk->path(self::path()));
         self::$memo = [];
     }
 
-    /** @return list<array{0: int, 1: string, 2: int, 3: list<float>}> */
+    /** @return list<array{0: int, 1: string, 2: int, 3: string}> a partial last record is dropped */
     private static function decode(string $bytes): array
     {
         $rows = [];
@@ -82,13 +97,19 @@ final class SearchFile
 
         while ($offset + 9 <= $length) {
             ['id' => $id, 'subject' => $subject, 'alias' => $aliasLength] = unpack('Vid/Vsubject/Calias', $bytes, $offset);
-            $offset += 9;
-            $alias = substr($bytes, $offset, $aliasLength);
-            $offset += $aliasLength;
-            $count = unpack('v', $bytes, $offset)[1];
-            $offset += 2;
-            $rows[] = [$id, $alias, $subject, Vectors::unpack(substr($bytes, $offset, $count * 4))];
-            $offset += $count * 4;
+            $next = $offset + 9;
+            if ($next + $aliasLength + 2 > $length) {
+                break;
+            }
+            $alias = substr($bytes, $next, $aliasLength);
+            $next += $aliasLength;
+            $size = unpack('v', $bytes, $next)[1] * 4;
+            $next += 2;
+            if ($next + $size > $length) {
+                break;
+            }
+            $rows[] = [$id, $alias, $subject, substr($bytes, $next, $size)];
+            $offset = $next + $size;
         }
 
         return $rows;
