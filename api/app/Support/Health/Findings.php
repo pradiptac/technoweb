@@ -87,7 +87,7 @@ final class Findings
 
         return match ($f->check) {
             'link_internal_dead' => "Links to {$d['url']}, which does not exist.",
-            'link_external_dead' => "Links to {$d['url']}, which did not answer twice a week apart".(isset($d['status']) ? " ({$d['status']})." : '.'),
+            'link_external_dead' => "Links to {$d['url']}, which did not answer twice in a row".(isset($d['status']) ? " ({$d['status']})." : '.'),
             'link_redirected' => "Links to {$d['url']}, which now redirects to {$d['to']}. Link to {$d['to']} directly.",
             'link_anchor_missing' => "Links to #{$d['anchor']}, which is not on this page.",
             'stale' => "Not edited for {$d['months']} months.",

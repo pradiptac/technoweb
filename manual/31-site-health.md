@@ -38,7 +38,7 @@ Every link in a page, a post, a section or a button is looked at.
 | What it says | What it means | What to do |
 |---|---|---|
 | *Links to /old-page, which does not exist.* | The link points to a page on your own site that is gone, or was never there. | **Fix**, then choose the right page, or remove the link. |
-| *Links to https://…, which did not answer twice.* | A link to another website that did not answer on two tries, one day apart. | Open the link yourself. If the other site has moved, change the link; if it has gone, remove it. |
+| *Links to https://…, which did not answer twice in a row (404).* | A link to another website that did not answer on two tries in a row — the second try comes a day after the first. | Open the link yourself. If the other site has moved, change the link; if it has gone, remove it. |
 | *Links to /old, which now redirects to /new.* | The link still works, because you set up a redirect, but it takes a detour. | Link to the new address directly. This is a **Notice**: nothing is broken. |
 | *Links to #prices, which is not on this page.* | A link to a spot on the same page that does not exist. | Check that the section it should jump to has that anchor name, or fix the link. |
 
@@ -135,6 +135,14 @@ the dashboard. It is off until you turn it on.
   of record. **0 means never.** The numbers shown are sensible starting points:
   eighteen months for pages, solutions, services and products, twelve for
   knowledge articles, landing pages and upcoming events.
+
+**If a great many links to your own pages suddenly show as broken**, suspect the
+setup rather than your editors. Your own pages are checked by asking the website
+itself, using the internal address set up when the site was installed
+(`WEB_INTERNAL_URL`). If that address is wrong, or the website is down, every
+link the software cannot settle on its own is reported as broken. Check
+**System → Status** to see whether the website is answering, and ask whoever set
+up the server if it is not.
 
 If nothing ever appears in the list on a new site, check that the **scheduler**
 is running (**System → Status**) — the checks that happen at night and the

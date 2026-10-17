@@ -113,10 +113,17 @@ not have it, and on production would send the server out over the internet to
 reach itself. With no `WEB_INTERNAL_URL` an `ask` stays `unknown` and produces
 no finding: not knowing is not an error.
 
-**An internal 404 is dead on the first failure; an external URL needs two.**
-Our own site answering 404 is decisive. Another website timing out is weather.
-`HealthLink::isDead()` is that rule in one place: `failed` and (`internal` or
-`fails >= 2`). A first external failure is rechecked the next day, then weekly.
+**An internal link is dead on the first failure; an external URL needs two.**
+Our own site failing to answer is decisive. Another website timing out is
+weather. `HealthLink::isDead()` is that rule in one place: `failed` and
+(`internal` or `fails >= 2`). A first external failure is rechecked the next
+day, then weekly.
+
+**"Failure" for an internal link is any `failed` result, not only a 404** — a
+5xx, a timeout and a refused connection count too. So **a wrong or down
+`WEB_INTERNAL_URL` marks every internal link that the cheap checks cannot settle
+as dead**, on one sweep. Check it (System → Status shows the website's own
+health) before reading a sudden wall of dead internal links as editors' errors.
 
 **401, 403 and 429 are `unknown`, never a failure.** Those are a server
 telling a robot to go away — a login wall, a bot filter, a rate limit — and

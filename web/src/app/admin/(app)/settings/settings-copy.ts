@@ -259,7 +259,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   /* The site health centre (0.181.0, docs/health.md). */
   health_external_links: {
     label: "Check links to other websites",
-    hint: "Once a week, politely. A link is listed as broken only after it fails twice, a week apart. Sites that block checkers are never listed.",
+    hint: "Once a week, politely. A link is listed as broken only after it fails twice in a row (checked again a day after the first failure). Sites that block checkers are never listed.",
   },
   health_stale_page: { label: "Pages go out of date after (months)", hint: "0 means never." },
   health_stale_solution: { label: "Solutions (months)", hint: "0 means never." },

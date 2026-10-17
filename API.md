@@ -5871,7 +5871,7 @@ them at `/admin/health/settings`): `health_external_links` (`0`/`1`, on — link
 to other websites are checked) and `health_stale_<kind>` for `page`, `solution`,
 `service`, `product`, `store_product`, `knowledge_article`, `landing_page`,
 `event`, `blog_post`, `case_study`, `tender`, `job_opening` and `entry` — a
-whole number of months, **0 to 60, 0 meaning never; anything else is a 422** on
+whole number of months, **0 to 60, 0 meaning never; a non-numeric value, or one over 60, is a 422** on
 the row ("A whole number of months, 0 to 60."). A missing or invalid stored value
 falls back to that kind's default (18 months for pages, solutions, services,
 products and shop products; 12 for knowledge articles, landing pages and
