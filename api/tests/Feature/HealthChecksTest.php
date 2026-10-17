@@ -4,12 +4,19 @@ namespace Tests\Feature;
 
 use App\Enums\Role as RoleEnum;
 use App\Models\BlogPost;
+use App\Models\Certification;
+use App\Models\HealthFinding;
+use App\Models\HealthLink;
+use App\Models\Page;
 use App\Models\Redirect;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Health\Checker;
 use App\Support\Health\Content;
+use App\Support\Health\Findings;
 use App\Support\Health\Kinds;
 use App\Support\Health\LinkTarget;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -146,5 +153,82 @@ class HealthChecksTest extends TestCase
         $this->assertSame(['state' => 'dead'], LinkTarget::judge('/storage/files'));
         $this->assertSame(['state' => 'dead'], LinkTarget::judge('/storage/../.env'));
         $this->assertSame(['state' => 'ask'], LinkTarget::judge('/some/frontend/route'));
+    }
+
+    private function checks(Model $m): array
+    {
+        return array_column(Checker::run($m), 'check');
+    }
+
+    public function test_each_link_check(): void
+    {
+        $post = $this->blogPost(['body' => '<p><a href="/nowhere/at-all">Somewhere</a> <a href="#missing">Jump</a> <a href="/old">Old</a></p>']);
+        Redirect::create(['from_path' => '/old', 'to_path' => '/about', 'status_code' => 301, 'is_active' => true, 'created_automatically' => false]);
+        HealthLink::updateOrCreate(['url_hash' => HealthLink::hashOf('/nowhere/at-all')], ['url' => '/nowhere/at-all', 'host' => 'internal', 'internal' => true, 'result' => 'failed', 'fails' => 1]);
+
+        $this->assertEqualsCanonicalizing(['link_internal_dead', 'link_anchor_missing', 'link_redirected'], $this->checks($post));
+    }
+
+    public function test_an_external_link_is_dead_only_after_two_failures(): void
+    {
+        $post = $this->blogPost(['body' => '<p><a href="https://vendor.example/sheet.pdf">Datasheet</a></p>']);
+        $this->assertSame([], $this->checks($post));
+        $link = HealthLink::where('url_hash', HealthLink::hashOf('https://vendor.example/sheet.pdf'))->sole();
+        $this->assertSame('pending', $link->result);
+
+        $link->update(['result' => 'failed', 'fails' => 1]);
+        $this->assertSame([], $this->checks($post));
+
+        $link->update(['fails' => 2, 'status' => 404]);
+        $this->assertSame(['link_external_dead'], $this->checks($post));
+    }
+
+    public function test_stale_and_the_dated_checks(): void
+    {
+        $page = Page::create(['title' => 'Old page', 'slug' => 'old-page', 'body' => '<p>x</p>', 'status' => 'published']);
+        Page::whereKey($page->id)->toBase()->update(['updated_at' => now()->subMonths(19)]);
+        $this->assertSame(['stale'], $this->checks($page->fresh()));
+
+        $cert = Certification::create(['name' => 'ISO', 'issuer' => 'BSI', 'status' => 'published', 'valid_until' => now()->subDay()]);
+        $this->assertSame(['certification_expired'], $this->checks($cert));
+    }
+
+    public function test_each_accessibility_check(): void
+    {
+        $post = $this->blogPost(['cover_image_path' => 'media/no-alt.png', 'body' => '<h2>A</h2><h4>B</h4><p><a href="/blog">click here</a><a href="/blog"></a></p><img src="/storage/x.png"><table><tr><td>1</td></tr></table>']);
+
+        $this->assertEqualsCanonicalizing(
+            ['image_no_alt', 'image_no_alt', 'heading_jump', 'link_text_vague', 'link_empty', 'table_no_header'],
+            $this->checks($post),
+        );
+    }
+
+    public function test_findings_are_replaced_keeping_first_seen_and_ignore(): void
+    {
+        $post = $this->blogPost(['body' => '<p><a href="/blog">click here</a></p>']);
+        Findings::replace($post, Checker::run($post));
+        $row = HealthFinding::sole();
+        $row->update(['ignored_at' => now(), 'first_seen_at' => now()->subWeek()]);
+
+        Findings::replace($post, Checker::run($post));
+        $again = HealthFinding::sole();
+        $this->assertNotNull($again->ignored_at);
+        $this->assertTrue($again->first_seen_at->lt(now()->subDays(6)));
+
+        $post->update(['body' => '<p><a href="/blog">The blog</a></p>']);
+        Findings::replace($post, Checker::run($post));
+        $this->assertSame(0, HealthFinding::count());
+    }
+
+    public function test_a_changed_detail_is_a_new_finding(): void
+    {
+        $post = $this->blogPost(['body' => '<p><a href="/blog">click here</a></p>']);
+        Findings::replace($post, Checker::run($post));
+        HealthFinding::query()->update(['ignored_at' => now()]);
+
+        $post->update(['body' => '<p><a href="/blog">read more</a></p>']);
+        Findings::replace($post, Checker::run($post));
+
+        $this->assertNull(HealthFinding::sole()->ignored_at);
     }
 }
