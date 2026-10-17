@@ -2264,7 +2264,7 @@ const tenderMeta = () => ({
   closing_soon_days: TENDER_CLOSING_SOON_DAYS,
   timezone: 'IST',
 });
-
+
 const paginate = (rows) => ({
   data: rows,
   links:{ first:null, last:null, prev:null, next:null },
