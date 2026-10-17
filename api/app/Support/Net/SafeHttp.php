@@ -93,7 +93,7 @@ final class SafeHttp
         for ($hop = 0; ; $hop++) {
             $pending = self::request($url, $allowPrivate, $allowHttp)
                 ->timeout($options['timeout'] ?? 20)
-                ->withHeaders(['User-Agent' => 'Technoware-Importer/1.0'] + ($options['headers'] ?? []));
+                ->withHeaders(($options['headers'] ?? []) + ['User-Agent' => 'Technoware-Importer/1.0']);
 
             // Credentials go to the host they were typed for and nowhere else.
             $sameHost = strtolower((string) parse_url($url, PHP_URL_HOST)) === $originHost;

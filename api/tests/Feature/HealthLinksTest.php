@@ -7,14 +7,17 @@ use App\Models\BlogPost;
 use App\Models\HealthFinding;
 use App\Models\HealthLink;
 use App\Models\Role;
+use App\Models\Setting;
 use App\Models\User;
 use App\Support\Health\LinkProber;
 use App\Support\Net\PublicHost;
 use App\Support\Net\UnsafeUrl;
+use Database\Seeders\SettingsSeeder;
 use GuzzleHttp\Exception\ResponseTransferException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -176,15 +179,74 @@ class HealthLinksTest extends TestCase
             ['url' => '/blog/x', 'host' => '', 'internal' => true, 'next_check_at' => now()]);
     }
 
-    public function test_an_internal_link_without_a_web_address_is_unknown_and_sends_nothing(): void
+    public function test_an_internal_link_without_a_web_address_on_a_dev_machine_is_unknown_and_sends_nothing(): void
     {
-        config(['app.web_internal_url' => null]);
+        config(['app.web_internal_url' => null, 'app.env' => 'local']);
         $link = $this->internalLink();
 
         LinkProber::probe($link);
 
         $this->assertSame('unknown', $link->result);
         Http::assertNothingSent();
+    }
+
+    public function test_an_internal_link_without_a_web_address_is_asked_of_the_public_site_off_a_dev_machine(): void
+    {
+        config(['app.web_internal_url' => null, 'app.env' => 'production', 'app.frontend_url' => 'https://www.example.test']);
+        Http::fake(['www.example.test/*' => Http::response('', 200)]);
+        $link = $this->internalLink();
+
+        LinkProber::probe($link);
+
+        $this->assertSame('ok', $link->result);
+        Http::assertSent(fn ($request) => $request->url() === 'https://www.example.test/blog/x');
+    }
+
+    public function test_an_internal_500_is_unknown_and_a_404_is_dead(): void
+    {
+        config(['app.web_internal_url' => 'http://127.0.0.1:3000']);
+        $answer = 500;
+        Http::fake(function () use (&$answer) {
+            return Http::response('', $answer);
+        });
+        $link = $this->internalLink();
+
+        LinkProber::probe($link);
+
+        $this->assertSame(['unknown', 500, 0], [$link->result, $link->status, $link->fails]);
+        $this->assertFalse($link->isDead());
+
+        $answer = 404;
+        LinkProber::probe($link);
+
+        $this->assertSame(['failed', 404], [$link->result, $link->status]);
+        $this->assertTrue($link->isDead());
+    }
+
+    public function test_an_internal_link_that_gives_no_answer_is_unknown(): void
+    {
+        config(['app.web_internal_url' => 'http://127.0.0.1:3000']);
+        Http::fake(['127.0.0.1:3000/*' => fn () => throw new ConnectionException('timed out')]);
+        $link = $this->internalLink();
+
+        LinkProber::probe($link);
+
+        $this->assertSame('unknown', $link->result);
+    }
+
+    public function test_the_checker_sends_the_companys_own_agent_on_every_path(): void
+    {
+        $this->seed(SettingsSeeder::class);
+        Setting::put('company_name', 'Acme Networks');
+        Setting::flushCache();
+        Http::fake(function ($request) {
+            return $request->method() === 'HEAD' ? Http::response('', 405) : Http::response('', 200);
+        });
+
+        LinkProber::probe($this->link());
+
+        Http::assertSent(fn ($request) => str_starts_with($request->header('User-Agent')[0] ?? '', 'Acme Networks link checker')
+            && $request->method() === 'GET');
     }
 
     public function test_an_internal_link_is_asked_of_the_configured_web_address(): void

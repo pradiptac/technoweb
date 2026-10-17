@@ -16,8 +16,9 @@ use Throwable;
  * Asks one URL whether it is still there (docs/health.md "Link checker").
  * Through `SafeHttp` only — public hosts, pinned, redirects checked hop by
  * hop. An internal path is asked of the website at `WEB_INTERNAL_URL`, the
- * one configured private address it may reach; without one an internal
- * path stays `unknown` rather than being asked of the production domain.
+ * one configured private address it may reach; without one it is asked of
+ * `FRONTEND_URL`, publicly, off a development machine (where that is the
+ * production domain) it stays `unknown`. Internal is dead only on 404/410.
  */
 final class LinkProber
 {
@@ -54,11 +55,16 @@ final class LinkProber
 
         if ($link->internal) {
             $base = rtrim((string) config('app.web_internal_url'), '/');
+            $allowPrivate = true; // the operator configured this address; it is ours.
             if ($base === '') {
-                return ['unknown', null];
+                // A customer install sets none: ask its public address, publicly. On a dev machine FRONTEND_URL is production, so stay unknown.
+                if (config('app.env') === 'local') {
+                    return ['unknown', null];
+                }
+                $base = rtrim((string) config('app.frontend_url'), '/');
+                $allowPrivate = false;
             }
             $url = $base.$link->url;
-            $allowPrivate = true; // the operator configured this address; it is ours.
         }
 
         // Range: a file we only need to know exists is not downloaded; the cap in SafeHttp::get() is the backstop.
@@ -83,12 +89,12 @@ final class LinkProber
             }
         } catch (Throwable $e) {
             if ($seen !== null) {
-                return self::judge($seen);
+                return self::judge($seen, $link->internal);
             }
 
             // Laravel turns a failed transfer that carried an error status into a RequestException; that status is the answer.
             if ($e instanceof RequestException) {
-                return self::judge($e->response->status());
+                return self::judge($e->response->status(), $link->internal);
             }
 
             // The size cap fired after the headers arrived: judge the status the server gave, as for any answer.
@@ -101,23 +107,25 @@ final class LinkProber
                 }
             }
             if ($capped) {
-                return $status === null ? ['unknown', null] : self::judge($status);
+                return $status === null ? ['unknown', null] : self::judge($status, $link->internal);
             }
             if (! $e instanceof UnsafeUrl) {
                 Log::info('Site health: no answer', ['url' => $url, 'error' => $e->getMessage()]);
             }
 
-            return ['failed', null];
+            return [$link->internal ? 'unknown' : 'failed', null];
         }
 
-        return self::judge($response->status());
+        return self::judge($response->status(), $link->internal);
     }
 
     /** @return array{0: string, 1: int} */
-    private static function judge(int $status): array
+    private static function judge(int $status, bool $internal): array
     {
         return match (true) {
             $status < 400 => ['ok', $status],
+            // An internal path is dead only when the site itself says it is gone; a 500 is the site's trouble, not a dead link.
+            $internal => [in_array($status, [404, 410], true) ? 'failed' : 'unknown', $status],
             in_array($status, [401, 403, 429], true) => ['unknown', $status],
             default => ['failed', $status],
         };
