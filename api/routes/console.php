@@ -352,6 +352,8 @@ Schedule::command('technoware:prune-backups')->hourly();
 
 // The site health centre's link checker (0.181.0, docs/health.md).
 Schedule::command('technoware:check-links')->everyFifteenMinutes()->withoutOverlapping(10)->runInBackground();
+// The nightly re-check of every record, its score and the day's snapshot.
+Schedule::command('technoware:health-sweep')->dailyAt('02:50');
 
 /*
  * While a restore is replacing the database, nothing else runs: no queue

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** One URL some record links to, and what it answered last (docs/health.md "Link checker"). */
 class HealthLink extends Model
@@ -18,6 +19,12 @@ class HealthLink extends Model
             'checked_at' => 'datetime',
             'next_check_at' => 'datetime',
         ];
+    }
+
+    /** @return HasMany<HealthLinkRef, $this> */
+    public function refs(): HasMany
+    {
+        return $this->hasMany(HealthLinkRef::class);
     }
 
     public static function hashOf(string $url): string
