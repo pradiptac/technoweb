@@ -29,6 +29,7 @@ use App\Models\Tender;
 use App\Support\AeoScore;
 use App\Support\EntityLinks;
 use App\Support\GeoScore;
+use App\Support\Health\Kinds;
 use App\Support\ListSort;
 use App\Support\Seo\GoogleAnalytics;
 use App\Support\Seo\SearchConsole;
@@ -163,6 +164,44 @@ class SeoController extends Controller
         [$class] = self::ENTITIES[$type];
 
         return $class::find($id);
+    }
+
+    /**
+     * The overview's label and console segment for one record type, for the
+     * health centre (docs/health.md) — read from `ENTITIES` so the two
+     * screens cannot disagree about where a record is edited.
+     *
+     * @return array{label: string, admin_path: string}|null
+     */
+    public static function entity(string $type): ?array
+    {
+        if (! isset(self::ENTITIES[$type])) {
+            return null;
+        }
+
+        return ['label' => self::ENTITIES[$type][3], 'admin_path' => self::ENTITIES[$type][2]];
+    }
+
+    /**
+     * Every published indexable record's public path, normalised (no
+     * trailing slash), as a set. What the health centre judges an internal
+     * link against before it asks the website.
+     *
+     * @return array<string, true>
+     */
+    public static function publishedPaths(): array
+    {
+        $paths = [];
+
+        foreach (self::ENTITIES as [$class]) {
+            foreach ($class::query()->get() as $record) {
+                if (Kinds::isPublished($record)) {
+                    $paths[rtrim($record->publicPath(), '/') ?: '/'] = true;
+                }
+            }
+        }
+
+        return $paths;
     }
 
     /** @return array<int, string> */
