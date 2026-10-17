@@ -352,6 +352,27 @@ class SemanticIndexTest extends TestCase
         $this->assertCount(SearchPassage::count(), iterator_to_array(SearchFile::records(SearchFile::load()), false));
     }
 
+    public function test_editing_or_deleting_an_faq_or_answer_block_reindexes_its_owner(): void
+    {
+        $service = Service::create(['title' => 'Site surveys', 'slug' => 'surveys', 'summary' => 'S', 'body' => '<p>We survey sites.</p>', 'status' => 'published']);
+        $text = fn () => SearchPassage::query()->where('subject_type', 'service')->where('subject_id', $service->id)->pluck('text')->implode(' ');
+
+        $faq = $service->faqs()->create(['question' => 'Which districts?', 'answer' => '<p>Every district.</p>', 'sort_order' => 0]);
+        $this->assertStringContainsString('Every district', $text());
+
+        $faq->update(['answer' => '<p>Only the city.</p>']);
+        $this->assertStringContainsString('Only the city', $text());
+        $this->assertStringNotContainsString('Every district', $text());
+
+        $faq->delete();
+        $this->assertStringNotContainsString('Only the city', $text());
+
+        $block = $service->answerBlocks()->create(['kind' => 'definition', 'answer' => 'A survey maps every cable run.', 'status' => 'published', 'sort_order' => 0]);
+        $this->assertStringContainsString('every cable run', $text());
+        $block->delete();
+        $this->assertStringNotContainsString('every cable run', $text());
+    }
+
     public function test_an_edit_that_only_deletes_a_passage_rebuilds_the_file(): void
     {
         $long = '<p>'.str_repeat('Two words here. ', 200).'</p>';

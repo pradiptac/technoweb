@@ -452,5 +452,21 @@ class AppServiceProvider extends ServiceProvider
                 }
             });
         }
+
+        // An FAQ or an answer block is read into its owner's passages, so editing one on its own screen re-indexes the owner.
+        foreach ([Faq::class => 'faqable', AnswerBlock::class => 'blockable'] as $class => $owner) {
+            $reindexOwner = function ($row) use ($owner) {
+                try {
+                    $alias = (string) $row->getAttribute($owner.'_type');
+                    if (SemanticSettings::enabled() && in_array($alias, Indexable::aliases(), true)) {
+                        IndexRecordPassages::dispatch($alias, (int) $row->getAttribute($owner.'_id'))->afterCommit();
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Semantic search: could not queue the owner\'s index', ['type' => $row->getAttribute($owner.'_type'), 'id' => $row->getAttribute($owner.'_id'), 'error' => $e->getMessage()]);
+                }
+            };
+            $class::saved($reindexOwner);
+            $class::deleted($reindexOwner);
+        }
     }
 }
