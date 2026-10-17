@@ -10,6 +10,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Support\Health\LinkProber;
 use App\Support\Net\PublicHost;
+use App\Support\Net\UnsafeUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -106,6 +107,74 @@ class HealthLinksTest extends TestCase
 
         LinkProber::probe($link->fresh());
         $this->assertSame(['link_external_dead'], HealthFinding::pluck('check')->all());
+    }
+
+    public function test_a_big_file_behind_a_refused_head_is_alive(): void
+    {
+        Http::fake(function ($request) {
+            return $request->method() === 'HEAD' ? Http::response('', 405) : Http::response('', 200, ['Content-Length' => 200000]);
+        });
+        $link = $this->link();
+
+        LinkProber::probe($link);
+
+        $this->assertSame(['ok', 0], [$link->result, $link->fails]);
+    }
+
+    public function test_a_size_cap_abort_is_alive_even_when_wrapped(): void
+    {
+        Http::fake(function ($request) {
+            if ($request->method() === 'HEAD') {
+                return Http::response('', 405);
+            }
+            throw new \RuntimeException('wrapped', 0, new UnsafeUrl('The file is larger than the limit.'));
+        });
+        $link = $this->link();
+
+        LinkProber::probe($link);
+
+        $this->assertSame(['ok', 0], [$link->result, $link->fails]);
+    }
+
+    private function internalLink(): HealthLink
+    {
+        return HealthLink::updateOrCreate(['url_hash' => HealthLink::hashOf('/blog/x')],
+            ['url' => '/blog/x', 'host' => '', 'internal' => true, 'next_check_at' => now()]);
+    }
+
+    public function test_an_internal_link_without_a_web_address_is_unknown_and_sends_nothing(): void
+    {
+        config(['app.web_internal_url' => null]);
+        $link = $this->internalLink();
+
+        LinkProber::probe($link);
+
+        $this->assertSame('unknown', $link->result);
+        Http::assertNothingSent();
+    }
+
+    public function test_an_internal_link_is_asked_of_the_configured_web_address(): void
+    {
+        config(['app.web_internal_url' => 'http://127.0.0.1:3000']);
+        Http::fake(['127.0.0.1:3000/*' => Http::response('', 200)]);
+        $link = $this->internalLink();
+
+        LinkProber::probe($link);
+
+        $this->assertSame('ok', $link->result);
+        Http::assertSent(fn ($request) => $request->url() === 'http://127.0.0.1:3000/blog/x');
+    }
+
+    public function test_an_internal_redirect_is_alive_and_never_followed(): void
+    {
+        config(['app.web_internal_url' => 'http://127.0.0.1:3000']);
+        Http::fake(['*' => Http::response('', 301, ['Location' => 'http://169.254.169.254/latest'])]);
+        $link = $this->internalLink();
+
+        LinkProber::probe($link);
+
+        $this->assertSame('ok', $link->result);
+        Http::assertSentCount(1);
     }
 
     public function test_the_command_takes_one_request_per_host_per_second(): void

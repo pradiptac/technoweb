@@ -60,23 +60,28 @@ final class LinkProber
             $allowPrivate = true; // the operator configured this address; it is ours.
         }
 
-        $options = [
-            'timeout' => 10,
-            'allow_private' => $allowPrivate,
-            'allow_http' => true,
-            'max_bytes' => 65536,
-            'headers' => ['User-Agent' => self::agent()],
-        ];
+        // Range: a file we only need to know exists is not downloaded; the cap in SafeHttp::get() is the backstop.
+        $headers = ['User-Agent' => self::agent(), 'Range' => 'bytes=0-0'];
+        $options = ['timeout' => 10, 'allow_private' => $allowPrivate, 'allow_http' => true, 'max_bytes' => 65536, 'headers' => $headers];
 
         try {
-            $response = SafeHttp::request($url, $allowPrivate, true)->timeout(10)->withHeaders($options['headers'])->head($url);
-            if (in_array($response->status(), [405, 501], true) || $response->redirect()) {
-                $response = SafeHttp::get($url, $options);
+            $request = fn () => SafeHttp::request($url, $allowPrivate, true)->timeout(10)->withHeaders($headers);
+            $response = $request()->head($url);
+
+            if (in_array($response->status(), [405, 501], true) || ($response->redirect() && ! $link->internal)) {
+                // An internal path never follows a redirect: the private allowance must not travel to wherever the site sends it.
+                $response = $link->internal ? $request()->withOptions(['stream' => true])->get($url) : SafeHttp::get($url, $options);
             }
-        } catch (UnsafeUrl) {
-            return ['failed', null];
         } catch (Throwable $e) {
-            Log::info('Site health: no answer', ['url' => $url, 'error' => $e->getMessage()]);
+            // The server is sending the file, only more of it than we asked to read: the link is alive.
+            for ($previous = $e; $previous; $previous = $previous->getPrevious()) {
+                if ($previous instanceof UnsafeUrl && $previous->getMessage() === 'The file is larger than the limit.') {
+                    return ['ok', null];
+                }
+            }
+            if (! $e instanceof UnsafeUrl) {
+                Log::info('Site health: no answer', ['url' => $url, 'error' => $e->getMessage()]);
+            }
 
             return ['failed', null];
         }
