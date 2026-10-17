@@ -4,11 +4,14 @@ namespace Tests\Feature;
 
 use App\Enums\Role as RoleEnum;
 use App\Models\BlogPost;
+use App\Models\Redirect;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\Health\Content;
 use App\Support\Health\Kinds;
+use App\Support\Health\LinkTarget;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class HealthChecksTest extends TestCase
@@ -106,5 +109,37 @@ class HealthChecksTest extends TestCase
         }
 
         $this->assertSame([['field' => 'body', 'href' => '/x', 'text' => 'unclosed']], Content::of(BlogPost::where('slug', 'b3')->sole())->links);
+    }
+
+    public function test_links_are_classified(): void
+    {
+        config(['app.frontend_url' => 'https://www.technoware.in']);
+
+        $this->assertSame(['kind' => 'internal', 'value' => '/about'], LinkTarget::classify('https://technoware.in/about/'));
+        $this->assertSame(['kind' => 'internal', 'value' => '/about'], LinkTarget::classify('/about?utm=x#team'));
+        $this->assertSame(['kind' => 'external', 'value' => 'https://vendor.example/a'], LinkTarget::classify('https://vendor.example/a'));
+        $this->assertSame(['kind' => 'anchor', 'value' => 'team'], LinkTarget::classify('#team'));
+        foreach (['mailto:a@b.in', 'tel:+91', '#', '', 'javascript:x'] as $skip) {
+            $this->assertNull(LinkTarget::classify($skip));
+        }
+    }
+
+    public function test_query_strings_and_trailing_slashes_are_normalised(): void
+    {
+        $post = $this->blogPost();
+
+        $this->assertSame(['state' => 'ok'], LinkTarget::judge(LinkTarget::classify($post->publicPath().'/?utm=x')['value']));
+    }
+
+    public function test_an_internal_path_is_judged_cheapest_first(): void
+    {
+        Redirect::create(['from_path' => '/old-page', 'to_path' => '/about', 'status_code' => 301, 'is_active' => true, 'created_automatically' => false]);
+        Storage::fake('public')->put('files/a.pdf', 'x');
+
+        $this->assertSame(['state' => 'ok'], LinkTarget::judge('/blog'));
+        $this->assertSame(['state' => 'redirect', 'to' => '/about'], LinkTarget::judge('/old-page'));
+        $this->assertSame(['state' => 'ok'], LinkTarget::judge('/storage/files/a.pdf'));
+        $this->assertSame(['state' => 'dead'], LinkTarget::judge('/storage/files/missing.pdf'));
+        $this->assertSame(['state' => 'ask'], LinkTarget::judge('/some/frontend/route'));
     }
 }
