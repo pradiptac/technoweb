@@ -169,6 +169,7 @@ Contents:
   - Help, tours, Simple view and empty states — `docs/help-and-tours.md`
   - Ask ALTIS, the console copilot — `docs/copilot.md`
   - Site health — `docs/health.md`
+  - Search by meaning — `docs/semantic-search.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -3148,6 +3149,16 @@ Broken links, stale records and accessibility mistakes in what editors wrote, as
 - `AppServiceProvider` registers one save/delete listener per kind (no trait); a recheck that cannot be queued never fails the save, and the published-path set is forgotten only when an address could have moved, at most every 10s. `technoware:health-sweep` (02:50) is sliced at 40s like the mailbox scan and writes the day's snapshot.
 - The score is published records with no unignored error or warning; drafts are unscored, a notice never lowers it, and it is null (never zero) with nothing published **or before the first sweep** (`health:last_sweep_at`; an update dispatches one through the `FirstHealthSweep` step, a fresh install waits for 02:50), and never 100 beside a bad record. A sanitised body `<img>` whose `alt` is the file's name is missing; `alt=""` is decorative. Linked library sections are not read in this release. `Findings::tabFor(field, alias)` sends a Fix link to `builder` on a page and `sections` on every other record.
 - Hidden sections and custom-code HTML are not read. The checker never writes to a record. The settings screen is `/admin/health/settings` (Content), and the dashboard panel is `defaultHidden`.
+
+### Search by meaning — `docs/semantic-search.md`
+
+The site search and the website assistant also find published content by meaning, through OpenRouter embeddings with the existing key (0.182.0). Off by default; off is exactly the old search.
+
+- `App\Support\Search\Indexable` is the one list (fourteen kinds, each with its own published scope); FAQs and answer blocks are read into their **owner's** document, never indexed alone, so a draft owner's questions are never searchable.
+- A record is split into ~250-word passages at its headings (`Passages`), each prefixed with its title; a passage whose text hash is unchanged keeps its vector, so an edit re-embeds only what changed. Unpublishing or deleting removes the passages at once; a model change marks them all waiting (vectors of two models cannot be compared); `technoware:index-search` (03:10, sliced) catches what a save missed.
+- A search reads one packed file (`SearchFile`, private disk, rebuilt when stale at most once a minute) and computes cosine in PHP — fine to ~20,000 passages. `Semantic::match()` is the one entry point and answers `[]` (words only) when off, with no key or nothing embedded, for a phrase under 3 characters or a part number, past the daily cap, or when OpenRouter takes over 1.5 s.
+- `/search` keeps every word hit in its place; meaning-only records follow within the group's five, and `total` counts them. No passage text, score or vector reaches a visitor. The assistant adds up to four passages, inside the existing fence; the meaning lookup runs after the 5-minute retrieval cache, never inside it, so a failed lookup is never remembered.
+- Query vectors are cached 30 days per phrase **and model**; a cache miss counts against `semantic_search_daily_cap`.
 
 ## Conventions
 
