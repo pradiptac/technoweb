@@ -133,12 +133,16 @@ export default async function SiteHealthPage({ searchParams }: { searchParams: P
                   <tr key={row.id} className="border-b border-line align-top">
                     <td data-label="Select" className="px-3 py-2.5"><RowTick scope="health" id={row.id} label={row.sentence} /></td>
                     <td data-label="Problem" className="min-w-0 px-3 py-2.5">
-                      <Badge tone={TONE[row.severity]}>{meta.severities.find((s) => s.value === row.severity)?.label}</Badge>
-                      <span className="mt-1 block max-w-[64ch] [overflow-wrap:anywhere]">{row.sentence}</span>
+                      <div className="min-w-0">
+                        <Badge tone={TONE[row.severity]}>{meta.severities.find((s) => s.value === row.severity)?.label}</Badge>
+                        <span className="mt-1 block max-w-[64ch] [overflow-wrap:anywhere]">{row.sentence}</span>
+                      </div>
                     </td>
                     <td data-label="Record" className="min-w-0 px-3 py-2.5">
-                      <span className="block font-semibold [overflow-wrap:anywhere]">{row.subject.title ?? "A record that has gone"}</span>
-                      <span className="text-12 text-muted">{row.subject.type_label}</span>
+                      <div className="min-w-0">
+                        <span className="block font-semibold [overflow-wrap:anywhere]">{row.subject.title ?? "A record that has gone"}</span>
+                        <span className="text-12 text-muted">{row.subject.type_label}</span>
+                      </div>
                     </td>
                     <td data-label="Where" className="px-3 py-2.5 text-muted">{row.field_label}</td>
                     <td data-label="First seen" className="px-3 py-2.5 whitespace-nowrap text-muted">{formatDate(row.first_seen_at, "short")}</td>
