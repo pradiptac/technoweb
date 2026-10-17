@@ -20,6 +20,7 @@ use App\Support\Backups\BackupSettings;
 use App\Support\Chat\ChatSettings;
 use App\Support\Chat\OpenRouterModels;
 use App\Support\Events\EventSettings;
+use App\Support\Health\HealthSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\InboundMail;
 use App\Support\LinkPattern;
@@ -1299,7 +1300,9 @@ class SettingController extends Controller
                 // And the `zoho_books` group's choices (0.134.0, docs/store.md).
                 ?? ZohoSettings::refusalFor($key, $row['value'] ?? null)
                 // And the `shiprocket` group's (0.143.0, docs/store.md "Shiprocket").
-                ?? CourierSettings::refusalFor($key, $row['value'] ?? null);
+                ?? CourierSettings::refusalFor($key, $row['value'] ?? null)
+                // And the `health` group's stale thresholds (0.181.0, docs/health.md).
+                ?? HealthSettings::refusalFor($key, $row['value'] ?? null);
 
             if ($refusal !== null) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);

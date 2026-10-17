@@ -151,7 +151,7 @@ class StockNoticeTest extends TestCase
         $variation = $product->variations()->create(['name' => '48 port', 'sku' => 'SW-48', 'stock' => 0]);
 
         StockLedger::record($product, null, -2, StockMovementReason::Adjustment, 1);
-        Queue::assertNothingPushed();
+        Queue::assertNotPushed(SendStockNotices::class);
 
         StockLedger::record($product, $variation, 4, StockMovementReason::Adjustment, 4);
 

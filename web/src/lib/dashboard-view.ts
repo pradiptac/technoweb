@@ -14,7 +14,7 @@
  * order in the document — which a CSS `order` would not give a keyboard or a
  * screen reader.
  */
-export type WidgetKey = "glance" | "kpis" | "volume" | "arrivals" | "status" | "pipeline" | "urgent" | "activity";
+export type WidgetKey = "glance" | "kpis" | "volume" | "arrivals" | "status" | "pipeline" | "urgent" | "activity" | "health";
 export type GroupKey = "support" | "sales" | "diary" | "content";
 
 export type DashboardView = {
@@ -29,7 +29,7 @@ export type DashboardView = {
  *
  * `half` panels sit two abreast from `lg` when they are neighbours.
  */
-export const WIDGETS: { key: WidgetKey; label: string; blurb: string; half?: boolean }[] = [
+export const WIDGETS: { key: WidgetKey; label: string; blurb: string; half?: boolean; defaultHidden?: boolean }[] = [
   { key: "glance", label: "At a glance", blurb: "The tiles: what is open, overdue, new and due today." },
   { key: "kpis", label: "Ticket figures", blurb: "New tickets, first response, time to resolve and the SLA share, over thirty days." },
   { key: "volume", label: "Ticket volume", blurb: "Opened and resolved over time, with what is open by priority and by category." },
@@ -38,6 +38,8 @@ export const WIDGETS: { key: WidgetKey; label: string; blurb: string; half?: boo
   { key: "pipeline", label: "Sales pipeline", blurb: "What happened to the leads that arrived.", half: true },
   { key: "urgent", label: "High priority", blurb: "Critical and high-priority tickets that are open." },
   { key: "activity", label: "Activity", blurb: "What changed lately: the activity log for administrators, new tickets for the desk." },
+  // Administrators only (the page decides), and off until somebody turns it on.
+  { key: "health", label: "Site health", blurb: "The site's health score and the first problems to fix.", defaultHidden: true },
 ];
 
 export const GROUPS: { key: GroupKey; label: string }[] = [
@@ -50,7 +52,14 @@ export const GROUPS: { key: GroupKey; label: string }[] = [
 const KEYS = WIDGETS.map((w) => w.key);
 const HIDEABLE = new Set<string>([...KEYS, ...GROUPS.map((g) => `glance.${g.key}`)]);
 
-export const DEFAULT_VIEW: DashboardView = { order: KEYS, hidden: [] };
+const DEFAULT_HIDDEN = WIDGETS.filter((w) => w.defaultHidden).map((w) => w.key as string);
+
+export const DEFAULT_VIEW: DashboardView = { order: KEYS, hidden: DEFAULT_HIDDEN };
+
+/** Is this the set of hidden panels a dashboard starts with? */
+export function hiddenIsDefault(hidden: string[]): boolean {
+  return hidden.length === DEFAULT_HIDDEN.length && DEFAULT_HIDDEN.every((k) => hidden.includes(k));
+}
 
 /** One cookie per account, so two people sharing a browser keep their own. */
 export function dashboardCookie(staffId: number): string {
@@ -73,6 +82,8 @@ export function cleanView(input: unknown): DashboardView {
   const hidden = Array.isArray(raw.hidden)
     ? [...new Set(raw.hidden.filter((k): k is string => typeof k === "string" && HIDEABLE.has(k)))]
     : [];
+  // A panel the stored order never heard of is new to this account, so it starts as the default says.
+  for (const key of DEFAULT_HIDDEN) if (!listed.includes(key as WidgetKey) && !hidden.includes(key)) hidden.push(key);
 
   return { order, hidden };
 }
@@ -87,7 +98,7 @@ export function parseView(raw: string | undefined): DashboardView {
 }
 
 export function isDefaultView(view: DashboardView): boolean {
-  return view.hidden.length === 0 && view.order.every((key, i) => key === KEYS[i]);
+  return hiddenIsDefault(view.hidden) && view.order.every((key, i) => key === KEYS[i]);
 }
 
 /**

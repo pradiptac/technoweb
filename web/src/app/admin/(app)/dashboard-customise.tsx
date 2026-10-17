@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";
 import { IconSliders } from "@/components/icons-ui";
-import { DEFAULT_VIEW, GROUPS, WIDGETS, isDefaultView, type DashboardView, type GroupKey, type WidgetKey } from "@/lib/dashboard-view";
+import { DEFAULT_VIEW, GROUPS, WIDGETS, hiddenIsDefault, isDefaultView, type DashboardView, type GroupKey, type WidgetKey } from "@/lib/dashboard-view";
 import { saveDashboardView } from "./dashboard-actions";
 
 /**
@@ -73,7 +73,7 @@ export function DashboardCustomise({ view, available, groups }: {
     });
 
   const defaultOrder = DEFAULT_VIEW.order.filter((key) => available.includes(key));
-  const draftIsDefault = hidden.length === 0 && order.every((key, i) => key === defaultOrder[i]);
+  const draftIsDefault = hiddenIsDefault(hidden) && order.every((key, i) => key === defaultOrder[i]);
   const changed = !isDefaultView(view);
 
   return (
@@ -96,7 +96,7 @@ export function DashboardCustomise({ view, available, groups }: {
           <>
             <Button
               type="button" variant="ghost" disabled={pending || draftIsDefault}
-              onClick={() => { setOrder(defaultOrder); setHidden([]); }}
+              onClick={() => { setOrder(defaultOrder); setHidden(DEFAULT_VIEW.hidden); }}
             >
               Reset<span className="sr-only"> to the default arrangement</span>
             </Button>

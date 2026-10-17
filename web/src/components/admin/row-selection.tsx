@@ -101,6 +101,8 @@ const LABEL: Record<BulkAction, string> = {
   draft: "Move to draft",
   archive: "Archive",
   delete: "Delete",
+  ignore: "Ignore",
+  restore: "Stop ignoring",
 };
 
 const initial: BulkState = {};

@@ -41,7 +41,7 @@ class IndexNowTest extends TestCase
 
         $this->solution();
 
-        Queue::assertNothingPushed();
+        Queue::assertNotPushed(PingIndexNow::class);
     }
 
     public function test_a_published_record_pings_its_own_url_on_save_and_on_delete(): void
@@ -67,7 +67,7 @@ class IndexNowTest extends TestCase
         $draft = $this->solution('draft');
         $draft->update(['summary' => 'Edited again.']);
 
-        Queue::assertNothingPushed();
+        Queue::assertNotPushed(PingIndexNow::class);
 
         $live = $this->solution();
         Queue::assertPushed(PingIndexNow::class, 1);

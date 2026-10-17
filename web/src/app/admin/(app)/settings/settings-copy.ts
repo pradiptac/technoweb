@@ -256,6 +256,24 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "The most one person may register for at once, 1 to 20 — what a new event starts with. Each event can set its own on its Registration tab.",
     placeholder: "5",
   },
+  /* The site health centre (0.181.0, docs/health.md). */
+  health_external_links: {
+    label: "Check links to other websites",
+    hint: "Once a week, politely. A link is listed as broken only after it fails twice in a row (checked again a day after the first failure). Sites that block checkers are never listed.",
+  },
+  health_stale_page: { label: "Pages go out of date after (months)", hint: "0 means never." },
+  health_stale_solution: { label: "Solutions (months)", hint: "0 means never." },
+  health_stale_service: { label: "Services (months)", hint: "0 means never." },
+  health_stale_product: { label: "Catalogue products (months)", hint: "0 means never." },
+  health_stale_store_product: { label: "Shop products (months)", hint: "0 means never." },
+  health_stale_knowledge_article: { label: "Knowledge articles (months)", hint: "0 means never." },
+  health_stale_landing_page: { label: "Landing pages (months)", hint: "0 means never." },
+  health_stale_event: { label: "Upcoming events (months)", hint: "0 means never. A past event is not listed for its age." },
+  health_stale_blog_post: { label: "Blog posts (months)", hint: "0 means never — a post is dated, so it is never out of date by age." },
+  health_stale_case_study: { label: "Case studies (months)", hint: "0 means never." },
+  health_stale_tender: { label: "Tenders (months)", hint: "0 means never — a tender closes by its own date." },
+  health_stale_job_opening: { label: "Vacancies (months)", hint: "0 means never — a vacancy past its closing date is listed anyway." },
+  health_stale_entry: { label: "Custom content (months)", hint: "0 means never." },
   /*
     Online meetings (2026-09-29, docs/meetings.md). The defaults every host
     works unless Meetings → Hosts gives them hours of their own, the booking
@@ -1070,6 +1088,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Events",
     blurb: "What every event shares: where a new registration is announced, when the reminder goes out, and how many seats one registration may take unless the event says otherwise. The wording of each email is under System → Email templates.",
   },
+  health: {
+    title: "Site health",
+    blurb: "Whether links to other websites are checked, and how long each kind of record may go without an edit before Site health lists it as out of date. Zero means never.",
+  },
   visits: {
     title: "Engineer visits",
     blurb: "The Book a site visit form: which days and parts of the day it offers, how much notice it needs and how far ahead it reaches, the dates you are closed, and where requests are sent. A request is a wish list — the desk confirms the actual time.",
@@ -1290,6 +1312,9 @@ export const FIELD_ORDER: Record<string, string[]> = {
   visits: ["visits_enabled", "visit_windows", "visit_days", "visit_min_notice_days", "visit_max_days", "visit_holidays",
            "visits_email", "visit_default_minutes"],
   events: ["events_email", "event_reminder_hours", "event_max_seats"],
+  health: ["health_external_links", "health_stale_page", "health_stale_solution", "health_stale_service", "health_stale_product",
+           "health_stale_store_product", "health_stale_knowledge_article", "health_stale_landing_page", "health_stale_event",
+           "health_stale_blog_post", "health_stale_case_study", "health_stale_tender", "health_stale_job_opening", "health_stale_entry"],
   push: ["push_api_key", "push_project_id", "push_messaging_sender_id", "push_app_id", "push_vapid_key"],
   embeds: ["reviews_embed", "reviews_kicker", "reviews_heading", "reviews_lede", "body_code"],
   portal: ["portal_enabled", "registration_enabled", "customer_approval_required"],
@@ -1444,6 +1469,14 @@ export const SCREENS: SettingsScreen[] = [
     lede: "How hard the library compresses the images it makes, how large an upload may be — read against what this server's PHP will actually accept — and, optionally, a CDN for the files visitors download.",
     saveLabel: "Save media settings",
     sections: [{ groups: ["media", "media_cdn"] }],
+  },
+  {
+    path: "/admin/health/settings",
+    title: "Site health settings",
+    area: "Content",
+    lede: "Whether links to other websites are checked, and how long each kind of record may go without an edit before Site health lists it as out of date.",
+    saveLabel: "Save site health settings",
+    sections: [{ groups: ["health"] }],
   },
   {
     path: "/admin/seo/settings",

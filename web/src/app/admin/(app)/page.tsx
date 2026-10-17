@@ -2,10 +2,11 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { StatusBadge, PriorityBadge, statusTone, statusLabel } from "@/components/ui/badge";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
-import { getActivity, getDashboard, getOnboarding, getTickets } from "@/lib/admin";
+import { getActivity, getDashboard, getHealthList, getOnboarding, getTickets } from "@/lib/admin";
 import { OnboardingCard } from "@/components/admin/onboarding-card";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { IconHeart } from "@/components/icons-ui";
 import { IconTicket, IconClock, IconUsers, IconBox, IconPen, IconMail, IconTools, IconMeeting } from "@/components/icons";
 import { istDate } from "@/lib/visit-dates";
 import { StatTile, type Tone } from "@/components/admin/stat-tile";
@@ -81,12 +82,13 @@ const readView = cache(async (): Promise<DashboardView> => {
  * What this role's dashboard can draw at all. The dialog lists exactly this,
  * and `arrange()` ignores a stored key that is not in it.
  */
-function availableFor(dashboard: AdminDashboard): { widgets: WidgetKey[]; groups: GroupKey[] } {
+function availableFor(dashboard: AdminDashboard, isAdmin: boolean): { widgets: WidgetKey[]; groups: GroupKey[] } {
   const widgets: WidgetKey[] = ["glance", "kpis", "volume"];
   if (dashboard.metrics.arrivals) widgets.push("arrivals");
   widgets.push("status");
   if (dashboard.leads?.funnel) widgets.push("pipeline");
   widgets.push("urgent", "activity");
+  if (isAdmin) widgets.push("health");
 
   const groups: GroupKey[] = ["support", "sales"];
   if (dashboard.visits || dashboard.meetings) groups.push("diary");
@@ -98,7 +100,8 @@ function availableFor(dashboard: AdminDashboard): { widgets: WidgetKey[]; groups
 async function CustomiseButton({ volume }: { volume?: string }) {
   const dashboard = await loadDashboard(volume);
   if (!dashboard) return null;
-  const { widgets, groups } = availableFor(dashboard);
+  const isAdmin = await getCurrentStaff().then((me) => Boolean(me?.roles.some((r) => r.slug === "admin"))).catch(() => false);
+  const { widgets, groups } = availableFor(dashboard, isAdmin);
 
   return <DashboardCustomise view={await readView()} available={widgets} groups={groups} />;
 }
@@ -158,6 +161,10 @@ async function DashboardBody({ volume }: { volume?: string }) {
           text: <>{t.reference} · {t.subject}</>,
         }))),
   ).catch(() => null);
+  // Site health panel: administrators only, and not asked for while it is put away. Its own catch, so a failure blanks only this panel.
+  const healthList = Promise.all([getCurrentStaff(), readView()])
+    .then(([me, v]) => (me?.roles.some((r) => r.slug === "admin") && !v.hidden.includes("health") ? getHealthList({ per_page: 3 }) : null))
+    .catch(() => null);
   const dashboard = await loadDashboard(volume);
   if (!dashboard) {
     return (
@@ -328,6 +335,7 @@ async function DashboardBody({ volume }: { volume?: string }) {
   const checklist = await onboarding;
   const view = await readView();
   const recent = await activity;
+  const health = await healthList;
 
   /*
    * The hero's one line and its buttons (Console 2.0), from figures this
@@ -460,6 +468,32 @@ async function DashboardBody({ volume }: { volume?: string }) {
   panels.activity = recent && (
     <Panel title="Activity" icon={<IconClock />}>
       <ActivityFeed items={recent} />
+    </Panel>
+  );
+
+  panels.health = health && (
+    <Panel title="Site health" icon={<IconHeart />} actions={<Link href="/admin/health" className="text-13 text-brand-ink underline">See all</Link>}>
+      <StatTile
+        label="Site health"
+        value={health.meta.score?.value == null ? "—" : `${health.meta.score.value}%`}
+        note={health.meta.score?.change == null ? "Published records with nothing to fix" : `${health.meta.score.change > 0 ? "+" : ""}${health.meta.score.change} points in 30 days`}
+        tone={health.meta.score?.value == null ? "neutral" : "ok"}
+        icon={IconHeart}
+      />
+      {health.data.length === 0 ? (
+        <p className="mt-3 text-13 text-muted">Nothing to fix.</p>
+      ) : (
+        <ul className="mt-3 grid gap-2">
+          {health.data.map((row) => (
+            <li key={row.id} className="min-w-0 text-13">
+              {row.admin_path
+                ? <Link href={row.admin_path} className="font-semibold text-brand-ink hover:underline [overflow-wrap:anywhere]">{row.subject.title ?? "A record that has gone"}</Link>
+                : <span className="font-semibold [overflow-wrap:anywhere]">{row.subject.title ?? "A record that has gone"}</span>}
+              <span className="block text-muted [overflow-wrap:anywhere]">{row.sentence}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </Panel>
   );
 

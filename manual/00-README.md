@@ -40,6 +40,7 @@ update. `config/` and `storage/` are yours: an update never touches them.
 | Showing your service centres on a map | [28 — The support network](28-support-network.md) |
 | Posting the work you invite bids on | [29 — Tenders](29-tenders.md) |
 | Asking the console a question | [30 — Ask ALTIS](30-ask-altis.md) |
+| Finding broken links and other things to fix | [31 — Site health](31-site-health.md) |
 
 ## The two addresses
 

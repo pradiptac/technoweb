@@ -5796,6 +5796,87 @@ asking's own length), the model is the fallback below `SURE` (0.45), and a weak
 word match is the last resort. A refusal, an outage, an unreadable reply and an
 index out of range are all free and all fall through — a run is counted against
 the SEO assistant's daily cap only when it is used.
+
+---
+
+## Admin — site health
+
+A worklist of broken links, out-of-date records and accessibility mistakes in
+what editors wrote (0.181.0, `docs/health.md`). Behind
+`role:content_manager,store_manager,seo_manager`, **narrowed per finding by the
+controller** to the kinds the caller owns (`Kinds::allows()`: the owning role of
+the record's kind, or an administrator). A finding on a kind the caller does not
+own is a **404**, never a 403.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/health` | Paginated, 50 a page by default (`?per_page=`, 1–100). `?group=links\|stale\|accessibility`, `?severity=error\|warning\|notice`, `?type=<alias>` (ignored when the caller does not own it), `?ignored=1` for the ignored ones — otherwise those are left out. Errors first, then warnings, then notices; oldest first within each. An unknown filter value is ignored, not refused |
+| `POST` | `/admin/health/recheck` | `type`, `id`. Checks that one record now — synchronously — and answers its findings as `{data: [row…]}`. 422 on an unknown `type`; **404** for a kind the caller does not own or a record that is not there. Throttled 30/min |
+| `POST` | `/admin/health/bulk` | `ids[]` (1–100, integers, distinct), `action` of `ignore` or `restore`. **200 always** with `{updated: [ids], refused: []}`. Scoped to the caller's kinds, so an id outside them is **in neither list** — `refused` is always empty and exists only for the `POST /admin/tickets/bulk` shape. Throttled 30/min. **Declared above `{finding}`** |
+| `POST` | `/admin/health/{finding}/ignore` | Answers the row. Idempotent: an already-ignored finding keeps its first `ignored_at`. 404 for a foreign kind. `{finding}` is digits only |
+| `POST` | `/admin/health/{finding}/restore` | Puts an ignored finding back. Answers the row |
+
+**The row** is `{id, check, group, severity, sentence, field, field_label,
+detail, subject: {type, type_label, id, title}, admin_path, first_seen_at,
+ignored_at}`.
+
+- `check` is one of fourteen keys and `group` its group — `links`
+  (`link_internal_dead`, `link_external_dead`, `link_redirected`,
+  `link_anchor_missing`), `stale` (`stale`, `event_past_featured`,
+  `vacancy_closed`, `certification_expired`) or `accessibility`
+  (`image_no_alt`, `heading_jump`, `link_text_vague`, `link_empty`,
+  `table_no_header`, `video_no_title`). `severity` is the check's fixed one:
+  `error` for a dead link or a picture with no description, `notice` for a link
+  that redirects, `warning` for the rest.
+- **`sentence` is the API's words**, ready to show; `field_label` is the place
+  ("Section 3", "Cover picture", "The record"). Nothing downstream composes a
+  message from `check`.
+- `detail` is the check's evidence (`{url}`, `{url, to}`, `{months}`,
+  `{from, to}`, `{text}`, `{path}`…), `{}` when it has none. A dead external
+  link adds `status`.
+- `subject.title` is null when the record has since been deleted (its findings
+  are deleted with it, so this is a race, not a state).
+- **`admin_path` is a console path, never a URL**, with `?tab=builder` (a page)
+  or `?tab=sections` (any other record) when the problem is in the sections,
+  else the bare edit screen; null when the record has gone.
+- `ignored_at` is null for a finding to fix.
+
+**`meta`** (beside the paginator's own): `summary` — `{links, stale,
+accessibility}` each `{error, warning, notice}` counts of **unignored** findings,
+over the caller's kinds only; `last_sweep_at` (ISO 8601, or null before the first
+nightly sweep); `groups` and `severities` (`[{value, label}]`, so the console
+lists none); `kinds` (`[{value, label}]`, the kinds this caller owns). **For an
+administrator only:** `score` — `{value, series, change}` — and `links_due`, the
+number of probed links waiting for a check.
+
+**The score** is `round(100 × (published − bad) / published)` over published,
+checked records of every kind, where `bad` is the records with at least one
+unignored `error` or `warning` finding. Drafts are unscored (their findings are
+listed, never counted), a notice never lowers it, and `value` is **null, never
+zero**, when nothing is published or before the first sweep has finished (`last_sweep_at` null), and is held at 99 while any published record has a problem. `series` is `[{date, score}]` for the last 90
+days of nightly snapshots (`score` null on a day with nothing published) and
+`change` is `value` less the newest snapshot at least 30 days old, null while
+there is none.
+
+**Recheck and the save hooks.** Every save of a checked record queues a recheck
+(`CheckRecordHealth`, after commit) — a finding clears within a minute of the
+fix — and a delete removes its findings. `technoware:check-links` probes due
+links every 15 minutes and `technoware:health-sweep` rechecks everything at
+02:50; both are the scheduler's. `POST /admin/health/recheck` is the same check,
+run now.
+
+**The settings** are the private `health` group, saved through
+`PATCH /admin/settings` (`role:admin`, with the other groups; the console draws
+them at `/admin/health/settings`): `health_external_links` (`0`/`1`, on — links
+to other websites are checked) and `health_stale_<kind>` for `page`, `solution`,
+`service`, `product`, `store_product`, `knowledge_article`, `landing_page`,
+`event`, `blog_post`, `case_study`, `tender`, `job_opening` and `entry` — a
+whole number of months, **0 to 60, 0 meaning never; a non-numeric value, or one over 60, is a 422** on
+the row ("A whole number of months, 0 to 60."). A missing or invalid stored value
+falls back to that kind's default (18 months for pages, solutions, services,
+products and shop products; 12 for knowledge articles, landing pages and
+events; never for the rest). None of it is on the public `/settings` map.
+
 ## Admin — staff (`role:admin`)
 
 | Method | Path | Notes |

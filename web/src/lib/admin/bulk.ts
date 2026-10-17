@@ -37,6 +37,8 @@ const VERB: Record<BulkAction, string> = {
   draft: "moved to draft",
   archive: "archived",
   delete: "deleted",
+  ignore: "ignored",
+  restore: "no longer ignored",
 };
 
 const count = (n: number, noun: readonly [string, string]) => `${n} ${n === 1 ? noun[0] : noun[1]}`;

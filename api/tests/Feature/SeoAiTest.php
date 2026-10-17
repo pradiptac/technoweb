@@ -643,7 +643,7 @@ class SeoAiTest extends TestCase
             ->assertStatus(422)
             ->assertJsonPath('errors.ai.0', 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.');
 
-        Queue::assertNothingPushed();
+        Queue::assertNotPushed(RunSeoSuggestion::class);
     }
 
     public function test_a_bulk_run_never_queues_past_the_daily_cap(): void

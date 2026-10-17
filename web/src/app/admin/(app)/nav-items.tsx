@@ -10,7 +10,7 @@ import {
   IconProjector, IconSearch, IconTruck, IconContract,
 } from "@/components/icons";
 // A chrome glyph, which lives in `icons-ui` and is not re-exported by the map.
-import { IconDownload, IconMapPin } from "@/components/icons-ui";
+import { IconDownload, IconMapPin, IconHeart } from "@/components/icons-ui";
 
 /**
  * The console's sidebar, as data. Rendered by `admin-nav.tsx`, which is a
@@ -39,7 +39,7 @@ export type RoleSlug = "support_engineer" | "content_manager" | "seo_manager" | 
  * `AdminNavRolesTest` compares the two strings as they are. Messaging is the
  * first: its templates, automations and broadcasts are worked by both desks.
  */
-export type RoleGate = RoleSlug | `${RoleSlug},${RoleSlug}`;
+export type RoleGate = RoleSlug | `${RoleSlug},${RoleSlug}` | `${RoleSlug},${RoleSlug},${RoleSlug}`;
 
 export type NavLink = {
   href: string;
@@ -340,6 +340,8 @@ export const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/pages/library", label: "Section library", icon: IconBox },
       // How every page of one kind of record is laid out (docs/page-builder.md "Detail templates"). The shop's are a store manager's, so the row takes both roles and the API narrows by kind.
       { role: "content_manager,store_manager", href: "/admin/detail-templates", label: "Detail templates", icon: IconGrid },
+      // Site health (docs/health.md): every owning role reaches it and the API narrows each finding to the kinds the account owns.
+      { role: "content_manager,store_manager,seo_manager", href: "/admin/health", label: "Site health", icon: IconHeart },
       { role: "content_manager", href: "/admin/faqs", label: "FAQs", icon: IconLifebuoy },
       // The downloads centre (docs/downloads.md). Its categories are a screen
       // under it, reached from its header — one row serves both, by the
@@ -347,6 +349,8 @@ export const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/downloads", label: "Downloads", icon: IconDownload },
       { role: "content_manager", href: "/admin/media", label: "Media", icon: IconImage },
       { role: "admin", href: "/admin/media/settings", label: "Media settings", icon: IconSliders },
+      // Site health's own settings (0.181.0, docs/health.md). The screen itself is `/admin/health`.
+      { role: "admin", href: "/admin/health/settings", label: "Site health settings", icon: IconSliders },
       // The company profile. `IconShield` rather than `IconCert`, which Case
       // studies already wears in this group — two rows, one mark, reads as a
       // duplicate entry.

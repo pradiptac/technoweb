@@ -17,9 +17,19 @@ What the parts mean, for an application rather than a library:
 | **patch** | a fix or an internal change nobody has to be told about |
 
 Entries are newest first. Dates are the day the work landed on
-`phase-3-admin-cms`.
+`altis-cms` (`phase-3-admin-cms` until 2026-10-15).
 
 ---
+
+## 0.181.0 — 2026-10-17
+
+**Site health** — a list of what needs fixing in what you have written, each with a button that opens the right place.
+
+- **Broken links**: links to pages on this site that do not exist, and links to other websites that stopped answering (checked about once a week, and listed only after failing twice). Links that still work through a redirect are listed as a notice, with the new address to use.
+- **Out of date**: pages, products and articles not edited for a long time (how long is yours to set, per kind), past events still featured, vacancies past their closing date, expired certifications.
+- **Accessibility**: pictures with no description, headings that skip a level, links that say only "click here", empty links, tables with no header row, videos with no title.
+- **Everyone sees their own**: content, shop and SEO managers each see the problems on the records they look after; administrators see all of it, with a health score and its trend, an optional dashboard panel, and a settings screen under Content.
+- Saving a record rechecks it within a minute; everything is checked again each night. Ignore sets a problem aside without deleting it.
 
 ## 0.180.0 — 2026-10-15
 

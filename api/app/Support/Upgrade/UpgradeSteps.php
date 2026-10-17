@@ -24,6 +24,7 @@ final class UpgradeSteps
         Steps\RetireDownloadsPage::class,
         Steps\SeedStarterTemplates::class,
         Steps\PricesIncludeGst::class,
+        Steps\FirstHealthSweep::class,
     ];
 
     /** @return list<UpgradeStep> */

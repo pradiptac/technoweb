@@ -5,10 +5,10 @@
  * No directive: both the server library and the client bar import these.
  */
 
-/** The four things a list's ticked rows can be asked to do. */
-export type BulkAction = "publish" | "draft" | "archive" | "delete";
+/** What a list's ticked rows can be asked to do (ignore/restore: Site health). */
+export type BulkAction = "publish" | "draft" | "archive" | "delete" | "ignore" | "restore";
 
-export const BULK_ACTIONS: readonly BulkAction[] = ["publish", "draft", "archive", "delete"];
+export const BULK_ACTIONS: readonly BulkAction[] = ["publish", "draft", "archive", "delete", "ignore", "restore"];
 
 /** One row the API would not move, in its own words. */
 export type BulkRefusal = { id: number; title: string; message: string };

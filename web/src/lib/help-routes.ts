@@ -31,6 +31,8 @@ export const HELP_ROUTES: { prefix: string; sections: string[] }[] = [
   { prefix: "/admin/knowledge-base", sections: ["05-content#knowledge-base"] },
   { prefix: "/admin/case-studies", sections: ["05-content#case-studies"] },
   { prefix: "/admin/faqs", sections: ["05-content#faqs"] },
+  { prefix: "/admin/health", sections: ["31-site-health#reading-the-list", "31-site-health#ignore-and-recheck"] },
+  { prefix: "/admin/health/settings", sections: ["31-site-health#the-settings-administrators"] },
   { prefix: "/admin/blocks", sections: ["05-content#content-blocks"] },
   { prefix: "/admin/menus", sections: ["05-content#menus"] },
   { prefix: "/admin/popups", sections: ["05-content#popups"] },
