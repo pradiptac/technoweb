@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Jobs\CheckRecordHealth;
+use App\Jobs\IndexRecordPassages;
 use App\Models\AnswerBlock;
 use App\Models\Backup;
 use App\Models\BackupRestore;
@@ -107,6 +108,9 @@ use App\Support\InboundMail\MailboxScanner;
 use App\Support\Meetings\GoogleCalendar;
 use App\Support\Meetings\MeetingCalendar;
 use App\Support\QueueHealth;
+use App\Support\Search\Indexable;
+use App\Support\Search\Indexer;
+use App\Support\Search\SemanticSettings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Mail\Markdown;
@@ -417,6 +421,34 @@ class AppServiceProvider extends ServiceProvider
                     Findings::forget($alias, (int) $model->getKey());
                 } catch (\Throwable $e) {
                     Log::warning('Site health: could not forget a record', ['type' => $alias, 'id' => $model->getKey(), 'error' => $e->getMessage()]);
+                }
+            });
+        }
+
+        /*
+         * Search by meaning (docs/semantic-search.md): a saved record of an
+         * indexed kind is re-indexed after commit, and a deleted one
+         * forgotten. Guarded like Site health: indexing never fails a save,
+         * and switched off nothing is queued.
+         */
+        foreach (Indexable::aliases() as $alias) {
+            $class = Indexable::classFor($alias);
+
+            $class::saved(function ($model) use ($alias) {
+                try {
+                    if (SemanticSettings::enabled()) {
+                        IndexRecordPassages::dispatch($alias, (int) $model->getKey())->afterCommit();
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Semantic search: could not queue an index', ['type' => $alias, 'id' => $model->getKey(), 'error' => $e->getMessage()]);
+                }
+            });
+
+            $class::deleted(function ($model) use ($alias) {
+                try {
+                    Indexer::forget($alias, (int) $model->getKey());
+                } catch (\Throwable $e) {
+                    Log::warning('Semantic search: could not forget a record', ['type' => $alias, 'id' => $model->getKey(), 'error' => $e->getMessage()]);
                 }
             });
         }

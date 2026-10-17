@@ -2,22 +2,28 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\IndexSearch;
 use App\Models\Brand;
 use App\Models\KnowledgeArticle;
 use App\Models\Page;
 use App\Models\Product;
+use App\Models\SearchPassage;
 use App\Models\Service;
 use App\Models\Setting;
 use App\Models\StoreProduct;
 use App\Support\Search\Document;
 use App\Support\Search\Embeddings;
 use App\Support\Search\Indexable;
+use App\Support\Search\Indexer;
 use App\Support\Search\SemanticSettings;
+use App\Support\Search\Vectors;
+use App\Support\Upgrade\Steps\FirstSearchIndex;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\Concerns\FakesEmbeddings;
 use Tests\TestCase;
 
@@ -217,5 +223,124 @@ class SemanticIndexTest extends TestCase
 
         $this->assertStringContainsString('Aruba', $text);
         $this->assertStringContainsString('Radios: Tri-band', $text);
+    }
+
+    private function article(array $attributes = []): KnowledgeArticle
+    {
+        return KnowledgeArticle::create($attributes + [
+            'title' => 'Wi-Fi drops', 'slug' => 'wifi-drops', 'excerpt' => 'Why wireless drops.',
+            'body' => '<p>Busy channels make the wireless network drop.</p>', 'status' => 'published',
+        ]);
+    }
+
+    public function test_a_save_indexes_and_embeds_the_record(): void
+    {
+        $article = $this->article();
+
+        $rows = SearchPassage::query()->where('subject_type', 'knowledge_article')->where('subject_id', $article->id)->get();
+        $this->assertCount(1, $rows);
+        $this->assertNotNull($rows[0]->embedded_at);
+        $this->assertSame('openai/text-embedding-3-small', $rows[0]->model);
+        $this->assertCount(8, Vectors::unpack($rows[0]->vector));
+    }
+
+    public function test_an_unchanged_passage_is_not_embedded_again(): void
+    {
+        $long = '<p>'.str_repeat('Two words here. ', 200).'</p>';
+        $article = $this->article(['body' => '<p>One.</p><h2>Two</h2>'.$long]);
+
+        $before = count(Http::recorded());
+        $article->update(['excerpt' => 'Why wireless drops.']); // nothing changed in the text
+        $this->assertSame(0, count(Http::recorded()) - $before);
+
+        $article->update(['body' => '<p>One changed.</p><h2>Two</h2>'.$long]);
+        $this->assertSame(1, count(Http::recorded()) - $before);
+        $this->assertCount(1, Http::recorded()->last()[0]['input']); // only the changed passage
+    }
+
+    public function test_unpublishing_removes_the_passages(): void
+    {
+        $article = $this->article();
+
+        $article->update(['status' => 'draft']);
+
+        $this->assertSame(0, SearchPassage::query()->where('subject_id', $article->id)->count());
+    }
+
+    public function test_deleting_removes_the_passages(): void
+    {
+        $article = $this->article();
+
+        $article->delete();
+
+        $this->assertSame(0, SearchPassage::count());
+    }
+
+    public function test_switched_off_nothing_is_indexed_or_sent(): void
+    {
+        Setting::query()->where('key', 'semantic_search_enabled')->update(['value' => '0']);
+        Setting::flushCache();
+        $before = count(Http::recorded());
+
+        $this->article();
+
+        $this->assertSame(0, SearchPassage::count());
+        $this->assertSame(0, count(Http::recorded()) - $before);
+    }
+
+    public function test_a_draft_owners_faq_is_never_indexed(): void
+    {
+        $service = Service::create(['title' => 'Draft service', 'slug' => 'draft-service', 'summary' => 'S', 'body' => '<p>B</p>', 'status' => 'draft']);
+        $service->faqs()->create(['question' => 'Secret question?', 'answer' => '<p>Secret.</p>', 'sort_order' => 0]);
+
+        Indexer::index($service->fresh());
+
+        $this->assertSame(0, SearchPassage::count());
+    }
+
+    public function test_a_refused_embedding_leaves_the_passage_waiting(): void
+    {
+        $this->fakeEmbeddings(status: 500);
+
+        $this->article();
+
+        $this->assertNull(SearchPassage::sole()->embedded_at);
+    }
+
+    public function test_a_model_change_marks_every_passage_waiting(): void
+    {
+        $this->article();
+
+        Indexer::markAllWaiting();
+
+        $this->assertSame(0, SearchPassage::whereNotNull('embedded_at')->count());
+    }
+
+    public function test_the_nightly_run_indexes_records_saved_without_events_and_resumes_after_a_slice(): void
+    {
+        KnowledgeArticle::withoutEvents(fn () => $this->article(['slug' => 'a']) && $this->article(['slug' => 'b', 'title' => 'Firewall rules', 'body' => '<p>A firewall blocks attacks.</p>']));
+        $this->assertSame(0, SearchPassage::count());
+
+        IndexSearch::$budgetSeconds = 0;
+        try {
+            $this->artisan('technoware:index-search')->assertSuccessful();
+        } finally {
+            IndexSearch::$budgetSeconds = 40;
+        }
+
+        $this->assertSame(2, SearchPassage::whereNotNull('embedded_at')->count());
+    }
+
+    public function test_an_update_queues_the_first_index_only_when_switched_on(): void
+    {
+        Queue::fake();
+        (new FirstSearchIndex)->run();
+        Queue::assertPushed(IndexSearch::class);
+
+        Setting::query()->where('key', 'semantic_search_enabled')->update(['value' => '0']);
+        Setting::flushCache();
+        Queue::fake();
+        (new FirstSearchIndex)->run();
+        Queue::assertNothingPushed();
     }
 }
