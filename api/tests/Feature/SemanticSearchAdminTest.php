@@ -10,6 +10,9 @@ use App\Models\User;
 use App\Support\Search\SemanticSettings;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\Concerns\FakesEmbeddings;
 use Tests\TestCase;
@@ -119,9 +122,63 @@ class SemanticSearchAdminTest extends TestCase
     public function test_reindex_queues_the_run_and_only_an_administrator_may(): void
     {
         $this->seed(SettingsSeeder::class);
+        $this->enableSemanticSearch();
         Queue::fake();
         $this->asStaff(RoleEnum::ContentManager)->postJson('/api/v1/admin/search/semantic/reindex')->assertForbidden();
         $this->asStaff(RoleEnum::Admin)->postJson('/api/v1/admin/search/semantic/reindex')->assertStatus(202);
         Queue::assertPushed(IndexSearch::class);
+    }
+
+    public function test_reindex_is_refused_while_switched_off(): void
+    {
+        $this->seed(SettingsSeeder::class);
+        Queue::fake();
+
+        $this->asStaff(RoleEnum::Admin)->postJson('/api/v1/admin/search/semantic/reindex')
+            ->assertStatus(422)->assertJsonPath('errors.semantic.0', 'Switch search by meaning on first.');
+        Queue::assertNothingPushed();
+    }
+
+    public function test_reindex_is_refused_while_a_run_is_in_flight(): void
+    {
+        $this->seed(SettingsSeeder::class);
+        $this->enableSemanticSearch();
+        Queue::fake();
+
+        $this->asStaff(RoleEnum::Admin)->postJson('/api/v1/admin/search/semantic/reindex')->assertStatus(202);
+        $this->asStaff(RoleEnum::Admin)->getJson('/api/v1/admin/search/semantic')->assertJsonPath('data.indexing', true);
+        $this->asStaff(RoleEnum::Admin)->postJson('/api/v1/admin/search/semantic/reindex')
+            ->assertStatus(422)->assertJsonPath('errors.semantic.0', 'Indexing is already running — it will finish on its own.');
+        Queue::assertPushed(IndexSearch::class, 1);
+    }
+
+    public function test_a_finished_run_lets_go_of_the_flag(): void
+    {
+        $this->seed(SettingsSeeder::class);
+        $this->enableSemanticSearch();
+        Cache::put(IndexSearch::RUNNING_KEY, 1, 300);
+
+        (new IndexSearch)->handle();
+
+        $this->assertFalse(Cache::has(IndexSearch::RUNNING_KEY));
+    }
+
+    public function test_the_model_test_without_a_key_says_so(): void
+    {
+        $this->seed(SettingsSeeder::class);
+
+        $this->asStaff(RoleEnum::Admin)->postJson('/api/v1/admin/search/semantic/test')
+            ->assertStatus(422)->assertJsonPath('errors.model.0', 'Save an OpenRouter API key first.');
+    }
+
+    public function test_a_timeout_never_reports_an_older_refusal(): void
+    {
+        $this->seed(SettingsSeeder::class);
+        $this->enableSemanticSearch();
+        SemanticSettings::recordError('Refused long ago');
+        Http::fake(['openrouter.ai/*' => fn () => throw new ConnectionException('timed out')]);
+
+        $this->asStaff(RoleEnum::Admin)->postJson('/api/v1/admin/search/semantic/test')
+            ->assertStatus(422)->assertJsonPath('errors.model.0', 'OpenRouter did not answer in time.');
     }
 }

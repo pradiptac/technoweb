@@ -26,6 +26,11 @@ class IndexSearch implements ShouldQueue
 
     public const LAST_RUN_KEY = 'search:last_index_at';
 
+    /** Held for the whole chain: the console takes it before the first slice, each slice renews it, the last releases it. A crashed chain lets go when it expires. */
+    public const RUNNING_KEY = 'search:indexing';
+
+    public const RUNNING_TTL = 300;
+
     public int $tries = 1;
 
     public int $timeout = 80;
@@ -38,8 +43,12 @@ class IndexSearch implements ShouldQueue
     public function handle(): void
     {
         if (! SemanticSettings::enabled()) {
+            Cache::forget(self::RUNNING_KEY);
+
             return;
         }
+
+        Cache::put(self::RUNNING_KEY, 1, self::RUNNING_TTL);
 
         $started = microtime(true);
         $aliases = Indexable::aliases();
@@ -70,5 +79,6 @@ class IndexSearch implements ShouldQueue
         SearchQueryVector::query()->where('last_used_at', '<', now()->subDays(30))->delete();
         SearchFile::markStale();
         Cache::forever(self::LAST_RUN_KEY, now()->toIso8601String());
+        Cache::forget(self::RUNNING_KEY);
     }
 }

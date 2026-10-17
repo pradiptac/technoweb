@@ -8,4 +8,6 @@ export type SemanticStatus = {
   error: string | null;
   /** ISO 8601 of the last full index, or null before the first. */
   last_index_at: string | null;
+  /** An index run is in progress (a re-index is refused meanwhile). */
+  indexing: boolean;
 };

@@ -4990,7 +4990,7 @@ createServer(async (req, res) => {
       const opts = (m) => Object.entries(m).map(([value, label]) => ({ value, label }));
       /* Search by meaning (0.182.0): the panel's status, Test this model and Re-index now. */
       if (p === '/admin/search/semantic' && req.method === 'GET') {
-        return json(res, 200, { data: { enabled: true, model: 'openai/text-embedding-3-small', passages: { total: 412, embedded: 396, waiting: 16 }, today: { phrases: 37, cap: 2000 }, error: null, last_index_at: '2026-10-17T02:50:00+05:30' } });
+        return json(res, 200, { data: { enabled: true, model: 'openai/text-embedding-3-small', passages: { total: 412, embedded: 396, waiting: 16 }, today: { phrases: 37, cap: 2000 }, error: null, last_index_at: '2026-10-17T02:50:00+05:30', indexing: false } });
       }
       if (p === '/admin/search/semantic/test' && req.method === 'POST') return json(res, 200, { data: { model: 'openai/text-embedding-3-small', dimensions: 512 } });
       if (p === '/admin/search/semantic/reindex' && req.method === 'POST') return json(res, 202, { message: 'Indexing has started. It runs in the background.' });

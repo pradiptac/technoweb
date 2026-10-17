@@ -31,23 +31,24 @@ class SemanticSearchController extends Controller
             'today' => ['phrases' => (int) Cache::get(Semantic::TODAY_KEY_PREFIX.now()->toDateString(), 0), 'cap' => SemanticSettings::dailyCap()],
             'error' => Setting::get('semantic_search_error') ?: null,
             'last_index_at' => Cache::get(IndexSearch::LAST_RUN_KEY),
+            'indexing' => Cache::has(IndexSearch::RUNNING_KEY),
         ]]);
     }
 
     public function test(): JsonResponse
     {
         if (ChatSettings::apiKey() === null) {
-            $message = 'Save an OpenRouter API key first.';
-
-            return response()->json(['message' => $message, 'errors' => ['model' => [$message]]], 422);
+            return $this->refuse('Save an OpenRouter API key first.', 'model');
         }
 
+        // Forget an older refusal, so what is read below is this attempt's.
+        SemanticSettings::clearError();
         $vectors = Embeddings::embed(['A test from the console.'], 15);
 
         if ($vectors === null || ! isset($vectors[0])) {
             $message = (string) (Setting::get('semantic_search_error') ?: 'OpenRouter did not answer in time.');
 
-            return response()->json(['message' => $message, 'errors' => ['model' => [$message]]], 422);
+            return $this->refuse($message, 'model');
         }
 
         return response()->json(['data' => ['model' => SemanticSettings::model(), 'dimensions' => count($vectors[0])]]);
@@ -55,8 +56,21 @@ class SemanticSearchController extends Controller
 
     public function reindex(): JsonResponse
     {
+        if (! SemanticSettings::enabled()) {
+            return $this->refuse('Switch search by meaning on first.');
+        }
+
+        if (! Cache::add(IndexSearch::RUNNING_KEY, 1, IndexSearch::RUNNING_TTL)) {
+            return $this->refuse('Indexing is already running — it will finish on its own.');
+        }
+
         IndexSearch::dispatch();
 
         return response()->json(['message' => 'Indexing has started. It runs in the background.'], 202);
+    }
+
+    private function refuse(string $message, string $field = 'semantic'): JsonResponse
+    {
+        return response()->json(['message' => $message, 'errors' => [$field => [$message]]], 422);
     }
 }
