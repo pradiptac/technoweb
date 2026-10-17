@@ -17,6 +17,9 @@ final class Passages
 
     public const MAX_CHARS = 2000;
 
+    /** A piece's own budget; the rest of MAX_CHARS is for the title and heading prefix. */
+    private const PIECE_CHARS = 1800;
+
     /**
      * @param  list<array{heading: ?string, text: string}>  $sections
      * @return list<array{heading: ?string, text: string}>
@@ -53,10 +56,15 @@ final class Passages
             $text = $prefix.' '.$p['text'];
 
             if (mb_strlen($text) > self::MAX_CHARS) {
-                // Cut back to a sentence end inside the cap, so a passage never stops mid-word.
+                // Cut back to a sentence end inside the cap (past the prefix), else to a word: never mid-word.
                 $head = mb_substr($text, 0, self::MAX_CHARS);
                 $end = mb_strrpos($head, '.');
-                $text = $end === false ? $head : mb_substr($head, 0, $end + 1);
+                if ($end === false || $end < mb_strlen($prefix)) {
+                    $end = mb_strrpos($head, ' ');
+                    $text = $end === false ? $head : mb_substr($head, 0, $end);
+                } else {
+                    $text = mb_substr($head, 0, $end + 1);
+                }
             }
 
             return ['heading' => $p['heading'], 'text' => $text];
@@ -66,15 +74,21 @@ final class Passages
     /** @return list<string> pieces of at most MAX_WORDS, cut after a sentence */
     private static function cut(string $text): array
     {
-        if (self::count($text) <= self::MAX_WORDS) {
+        if (self::count($text) <= self::MAX_WORDS && mb_strlen($text) <= self::PIECE_CHARS) {
             return [$text];
         }
 
-        $sentences = preg_split('/(?<=[.!?])\s+/u', $text) ?: [$text];
+        // । is the Devanagari full stop.
+        $sentences = [];
+        foreach (preg_split('/(?<=[.!?।])\s+/u', $text) ?: [$text] as $sentence) {
+            array_push($sentences, ...self::words($sentence));
+        }
+
         $pieces = [];
         $current = '';
         foreach ($sentences as $sentence) {
-            if ($current !== '' && self::count($current) + self::count($sentence) > self::TARGET_WORDS) {
+            if ($current !== '' && (self::count($current) + self::count($sentence) > self::TARGET_WORDS
+                || mb_strlen($current) + mb_strlen($sentence) + 1 > self::PIECE_CHARS)) {
                 $pieces[] = $current;
                 $current = '';
             }
@@ -87,8 +101,32 @@ final class Passages
         return $pieces;
     }
 
+    /** @return list<string> a sentence as is, or in word-boundary parts when it alone is too long */
+    private static function words(string $sentence): array
+    {
+        if (self::count($sentence) <= self::TARGET_WORDS && mb_strlen($sentence) <= self::PIECE_CHARS) {
+            return [$sentence];
+        }
+
+        $parts = [];
+        $current = '';
+        foreach (preg_split('/\s+/u', $sentence, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
+            if ($current !== '' && (self::count($current) >= self::TARGET_WORDS || mb_strlen($current) + mb_strlen($word) + 1 > self::PIECE_CHARS)) {
+                $parts[] = $current;
+                $current = '';
+            }
+            $current = trim($current.' '.$word);
+        }
+        if ($current !== '') {
+            $parts[] = $current;
+        }
+
+        return $parts;
+    }
+
+    /** Words in any script: letters, combining marks (Devanagari vowel signs) and digits. */
     private static function count(string $text): int
     {
-        return str_word_count(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $text) ?? '');
+        return (int) preg_match_all('/[\p{L}\p{M}\p{N}]+/u', $text);
     }
 }

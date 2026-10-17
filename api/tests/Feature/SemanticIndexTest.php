@@ -161,6 +161,53 @@ class SemanticIndexTest extends TestCase
         $this->assertStringNotContainsString('script words', $text);
     }
 
+    public function test_only_prose_keys_of_a_section_are_read(): void
+    {
+        $page = Page::create(['title' => 'Mixed', 'slug' => 'mixed', 'status' => 'published', 'template' => 'builder', 'blocks' => [
+            ['id' => 'a', 'type' => 'countdown', 'data' => ['heading' => 'Launch day', 'ends_at' => '2026-12-31T18:00', 'tone' => 'brand']],
+            ['id' => 'b', 'type' => 'video', 'data' => ['caption' => 'Watch the demo', 'youtube' => 'dQw4w9WgXcQ', 'source' => 'youtube']],
+            ['id' => 'c', 'type' => 'features', 'data' => ['display' => 'cards', 'items' => [['title' => 'Fast roaming', 'body' => 'Clients move without drops.', 'icon' => 'wifi']]]],
+            ['id' => 'd', 'type' => 'checklist', 'data' => ['items' => ['Survey the site', 'Mount the access points']]],
+            ['id' => 'e', 'type' => 'timeline', 'data' => ['items' => [['date' => '2026-01-05', 'title' => 'Kick-off']]]],
+        ]]);
+
+        $text = implode(' ', array_column(Document::sections($page), 'text'));
+
+        foreach (['Launch day', 'Watch the demo', 'Fast roaming', 'Clients move without drops.', 'Survey the site', 'Mount the access points', 'Kick-off'] as $prose) {
+            $this->assertStringContainsString($prose, $text);
+        }
+        foreach (['2026-12-31', 'brand', 'dQw4w9WgXcQ', 'cards', 'wifi', '2026-01-05'] as $notProse) {
+            $this->assertStringNotContainsString($notProse, $text);
+        }
+    }
+
+    public function test_the_written_body_is_indexed_only_while_the_page_draws_it(): void
+    {
+        $service = Service::create(['title' => 'Cabling', 'slug' => 'cabling', 'summary' => 'x', 'body' => '<p>Old written body.</p>', 'status' => 'published',
+            'blocks' => [['id' => 'a', 'type' => 'rich_text', 'data' => ['body' => '<p>Section words.</p>']]]]);
+
+        $text = fn () => implode(' ', array_column(Document::sections($service->fresh()), 'text'));
+
+        $this->assertStringContainsString('Old written body.', $text()); // body_layout is still 'body'
+        $this->assertStringNotContainsString('Section words.', $text());
+
+        $service->update(['body_layout' => 'sections']);
+
+        $this->assertStringContainsString('Section words.', $text());
+        $this->assertStringNotContainsString('Old written body.', $text());
+
+        $page = Page::create(['title' => 'Built', 'slug' => 'built-body', 'status' => 'published', 'template' => 'builder', 'body' => '<p>Stale page body.</p>',
+            'blocks' => [['id' => 'a', 'type' => 'rich_text', 'data' => ['body' => '<p>Builder words.</p>']]]]);
+        $pageText = implode(' ', array_column(Document::sections($page), 'text'));
+        $this->assertStringContainsString('Builder words.', $pageText);
+        $this->assertStringNotContainsString('Stale page body.', $pageText);
+
+        $page->update(['template' => 'default']);
+        $pageText = implode(' ', array_column(Document::sections($page->fresh()), 'text'));
+        $this->assertStringContainsString('Stale page body.', $pageText);
+        $this->assertStringNotContainsString('Builder words.', $pageText);
+    }
+
     public function test_a_product_document_names_its_brand_and_spec_sheet(): void
     {
         $brand = Brand::create(['name' => 'Aruba', 'slug' => 'aruba']);

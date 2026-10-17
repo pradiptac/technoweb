@@ -3,6 +3,7 @@
 namespace App\Support\Search;
 
 use App\Support\HtmlSanitiser;
+use App\Support\PageSections\RecordSections;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -14,7 +15,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 final class Document
 {
-    private const SKIP_KEYS = ['type', 'id', 'href', 'url', 'style', 'reveal', 'background', 'icon', 'layout', 'source', 'ratio', 'align', 'size', 'variant', 'mode', 'height'];
+    /** The keys a builder section keeps prose under; a whitelist, so nothing else is ever sent. */
+    private const TEXT_KEYS = ['heading', 'kicker', 'lede', 'title', 'subtitle', 'body', 'html', 'text', 'caption', 'question', 'answer', 'quote', 'note', 'summary', 'description', 'label', 'name', 'role'];
 
     /** @return list<array{heading: ?string, text: string}> */
     public static function sections(Model $model): array
@@ -39,12 +41,15 @@ final class Document
             }
         }
 
-        foreach (Indexable::bodyColumns($alias) as $column) {
-            array_push($out, ...self::richSections((string) ($model->getAttribute($column) ?? '')));
-        }
-
-        foreach (self::blockTexts($model) as $text) {
-            $out[] = ['heading' => null, 'text' => $text];
+        // The page draws its sections or its written body, never both.
+        if (self::usesSections($model)) {
+            foreach (self::blockTexts((array) $model->getAttribute('blocks')) as $text) {
+                $out[] = ['heading' => null, 'text' => $text];
+            }
+        } else {
+            foreach (Indexable::bodyColumns($alias) as $column) {
+                array_push($out, ...self::richSections((string) ($model->getAttribute($column) ?? '')));
+            }
         }
 
         if (method_exists($model, 'answerBlocks')) {
@@ -85,29 +90,30 @@ final class Document
         return $sections;
     }
 
-    /** @return list<string> the words of each visible builder section */
-    private static function blockTexts(Model $model): array
+    private static function usesSections(Model $model): bool
     {
-        $blocks = $model->getAttribute('blocks');
-        $uses = $model->getMorphClass() === 'page'
-            ? $model->getAttribute('template') === 'builder'
-            : $model->getAttribute('body_layout') === 'sections';
+        if ($model->getMorphClass() === 'page') {
+            $blocks = $model->getAttribute('blocks');
 
-        if (! $uses || ! is_array($blocks)) {
-            return [];
+            return $model->getAttribute('template') === 'builder' && is_array($blocks) && $blocks !== [];
         }
 
+        return RecordSections::inUse($model);
+    }
+
+    /**
+     * @param  array<mixed>  $blocks
+     * @return list<string> the words of each visible builder section
+     */
+    private static function blockTexts(array $blocks): array
+    {
         $texts = [];
         foreach ($blocks as $block) {
             if (! is_array($block) || ! empty($block['hidden']) || ($block['type'] ?? '') === 'custom_code' || ! is_array($block['data'] ?? null)) {
                 continue;
             }
             $words = [];
-            array_walk_recursive($block['data'], function ($value, $key) use (&$words) {
-                if (is_string($value) && ! in_array($key, self::SKIP_KEYS, true) && ! str_ends_with((string) $key, '_path') && ! str_ends_with((string) $key, '_id')) {
-                    $words[] = HtmlSanitiser::toText($value);
-                }
-            });
+            self::collect($block['data'], false, $words);
             $text = trim(implode(' ', array_filter($words)));
             if ($text !== '') {
                 $texts[] = $text;
@@ -115,5 +121,24 @@ final class Document
         }
 
         return $texts;
+    }
+
+    /**
+     * Walks a section's data for prose only: a string counts when its key is a
+     * known text key, or it is a bare entry of a list called `items` (a
+     * checklist). Dates, ids, enum values and addresses are never in the list.
+     *
+     * @param  array<mixed>  $data
+     * @param  list<string>  $words
+     */
+    private static function collect(array $data, bool $inItems, array &$words): void
+    {
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                self::collect($value, $key === 'items', $words);
+            } elseif (is_string($value) && (in_array($key, self::TEXT_KEYS, true) || ($inItems && is_int($key)))) {
+                $words[] = HtmlSanitiser::toText($value);
+            }
+        }
     }
 }

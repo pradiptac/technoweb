@@ -45,6 +45,38 @@ class SearchPassagesTest extends TestCase
         }
     }
 
+    public function test_words_are_counted_in_any_script(): void
+    {
+        $sentence = implode(' ', array_fill(0, 40, 'नेटवर्क')).'।'; // 40 Devanagari words, ended with a danda
+        $out = Passages::split('T', [['heading' => null, 'text' => implode(' ', array_fill(0, 15, $sentence))]]); // 600 words
+
+        $this->assertGreaterThan(1, count($out));
+        foreach ($out as $p) {
+            $this->assertStringEndsWith('।', $p['text']);
+        }
+    }
+
+    public function test_a_sentence_longer_than_a_passage_is_cut_at_a_space(): void
+    {
+        $out = Passages::split('T', [['heading' => null, 'text' => implode(' ', array_fill(0, 900, 'longword'))]]); // no full stop at all
+
+        $this->assertGreaterThan(1, count($out));
+        foreach ($out as $p) {
+            $this->assertLessThanOrEqual(Passages::MAX_CHARS, mb_strlen($p['text']));
+            $this->assertStringEndsWith('longword', $p['text']);
+        }
+    }
+
+    public function test_a_long_title_cannot_push_a_passage_past_the_cap(): void
+    {
+        $title = str_repeat('Title ', 100); // 600 characters of prefix
+        $out = Passages::split($title, [['heading' => null, 'text' => $this->words(190, 'abcdefgh')]]); // 1,800 characters of text
+
+        $this->assertCount(1, $out);
+        $this->assertLessThanOrEqual(Passages::MAX_CHARS, mb_strlen($out[0]['text']));
+        $this->assertStringEndsWith('abcdefgh', $out[0]['text']); // cut back to a word, not mid-word
+    }
+
     public function test_empty_sections_give_nothing(): void
     {
         $this->assertSame([], Passages::split('T', [['heading' => 'Empty', 'text' => '   ']]));
