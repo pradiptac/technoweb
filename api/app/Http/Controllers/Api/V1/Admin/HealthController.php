@@ -44,7 +44,7 @@ class HealthController extends Controller
             ->orderByRaw("field(severity, 'error', 'warning', 'notice')")
             ->orderBy('first_seen_at')
             ->orderBy('id')
-            ->paginate(min($request->integer('per_page', 50), 100))
+            ->paginate(max(1, min($request->integer('per_page', 50), 100)))
             ->withQueryString();
 
         $subjects = $this->subjects($rows->getCollection());
@@ -53,7 +53,6 @@ class HealthController extends Controller
         $meta = [
             'summary' => Score::counts($aliases),
             'last_sweep_at' => Cache::get(Score::LAST_SWEEP_KEY),
-            'links_due' => HealthLink::query()->where('next_check_at', '<=', now())->count(),
             'groups' => $this->options(Findings::GROUPS),
             'severities' => $this->options(Findings::SEVERITIES),
             'kinds' => array_map(fn ($a) => ['value' => $a, 'label' => Kinds::label($a)], $aliases),
@@ -61,6 +60,7 @@ class HealthController extends Controller
 
         if ($user->isAdmin()) {
             $meta['score'] = $this->score();
+            $meta['links_due'] = HealthLink::query()->where('next_check_at', '<=', now())->count();
         }
 
         return response()->json(PaginatedEnvelope::from($rows, $meta));
@@ -110,21 +110,16 @@ class HealthController extends Controller
 
         $aliases = Kinds::aliasesFor($request->user());
         $updated = [];
-        $refused = [];
 
-        foreach (HealthFinding::query()->whereIn('id', $data['ids'])->get() as $row) {
-            if (! in_array($row->subject_type, $aliases, true)) {
-                $refused[] = ['id' => $row->id, 'title' => Findings::sentence($row), 'message' => 'That is not one of your records.'];
-
-                continue;
-            }
+        // A foreign id is treated exactly like a missing one: in neither list, so it cannot be probed.
+        foreach (HealthFinding::query()->whereIn('id', $data['ids'])->whereIn('subject_type', $aliases)->get() as $row) {
             $row->forceFill($data['action'] === 'ignore'
                 ? ['ignored_at' => $row->ignored_at ?? now(), 'ignored_by' => $row->ignored_by ?? $request->user()->id]
                 : ['ignored_at' => null, 'ignored_by' => null])->save();
             $updated[] = $row->id;
         }
 
-        return response()->json(['updated' => $updated, 'refused' => $refused]);
+        return response()->json(['updated' => $updated, 'refused' => []]);
     }
 
     private function owned(Request $request, int $id): HealthFinding

@@ -71,13 +71,40 @@ class HealthAccessTest extends TestCase
             ->getJson('/api/v1/admin/health')->assertForbidden();
     }
 
-    public function test_bulk_ignore_answers_updated_and_refused(): void
+    public function test_bulk_never_discloses_or_touches_another_roles_findings(): void
     {
         $this->seedFindings();
-        $ids = HealthFinding::orderBy('id')->pluck('id')->all();
+        $own = HealthFinding::where('subject_type', 'page')->value('id');
+        $foreign = HealthFinding::where('subject_type', 'store_product')->value('id');
 
-        $this->asStaff(RoleEnum::ContentManager)->postJson('/api/v1/admin/health/bulk', ['ids' => $ids, 'action' => 'ignore'])
-            ->assertOk()->assertJsonCount(1, 'updated')->assertJsonCount(1, 'refused');
+        $res = $this->asStaff(RoleEnum::ContentManager)->postJson('/api/v1/admin/health/bulk', ['ids' => [$own, $foreign], 'action' => 'ignore'])
+            ->assertOk()->assertJsonPath('updated', [$own])->assertJsonPath('refused', []);
+
+        $this->assertStringNotContainsString('here', $res->getContent());
+        $this->assertNotNull(HealthFinding::find($own)->ignored_at);
+        $this->assertNull(HealthFinding::find($foreign)->ignored_at);
+    }
+
+    public function test_restore_and_recheck_respect_ownership(): void
+    {
+        [$page, $shop] = $this->seedFindings();
+        $own = HealthFinding::where('subject_type', 'page')->value('id');
+        $foreign = HealthFinding::where('subject_type', 'store_product')->value('id');
+        HealthFinding::whereKey($own)->update(['ignored_at' => now()]);
+
+        $this->asStaff(RoleEnum::ContentManager)->postJson("/api/v1/admin/health/{$foreign}/restore")->assertNotFound();
+        $this->asStaff(RoleEnum::ContentManager)->postJson("/api/v1/admin/health/{$own}/restore")
+            ->assertOk()->assertJsonPath('data.ignored_at', null);
+        $this->assertNull(HealthFinding::find($own)->ignored_at);
+
+        $this->asStaff(RoleEnum::ContentManager)->postJson('/api/v1/admin/health/recheck', ['type' => 'page', 'id' => $page->id])
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.subject.type', 'page');
+    }
+
+    public function test_links_due_is_an_administrators_alone(): void
+    {
+        $this->asStaff(RoleEnum::ContentManager)->getJson('/api/v1/admin/health')->assertJsonMissingPath('meta.links_due');
+        $this->asStaff(RoleEnum::Admin)->getJson('/api/v1/admin/health')->assertJsonPath('meta.links_due', 0);
     }
 
     public function test_the_list_filters_and_carries_its_vocabulary(): void
