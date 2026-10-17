@@ -21,6 +21,9 @@ return [
      */
     'web_internal_url' => env('WEB_INTERNAL_URL'),
 
+    /** Lets the site health link checker fetch a private address (local development only; docs/health.md). */
+    'health_allow_private' => (bool) env('HEALTH_ALLOW_PRIVATE', false),
+
     /*
      * The shared secret the API sends the website to have it throw away its
      * cached pages (`/api/internal/revalidate`), after an install or an

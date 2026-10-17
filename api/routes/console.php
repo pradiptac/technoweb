@@ -350,6 +350,9 @@ Schedule::command('technoware:backups-work')
     ->name('backups-work');
 Schedule::command('technoware:prune-backups')->hourly();
 
+// The site health centre's link checker (0.181.0, docs/health.md).
+Schedule::command('technoware:check-links')->everyFifteenMinutes()->withoutOverlapping()->runInBackground();
+
 /*
  * While a restore is replacing the database, nothing else runs: no queue
  * drain (a campaign batch, a reminder, a webhook would write into tables
