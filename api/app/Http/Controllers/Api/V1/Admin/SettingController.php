@@ -16,6 +16,7 @@ use App\Models\GoogleFont;
 use App\Models\Media;
 use App\Models\Page;
 use App\Models\Setting;
+use App\Support\Alerts\AlertSettings;
 use App\Support\Announcement;
 use App\Support\Backups\BackupSettings;
 use App\Support\Chat\ChatSettings;
@@ -332,6 +333,7 @@ class SettingController extends Controller
             'chatbot_animation' => ChatSettings::ANIMATIONS,
             'stats_size' => self::STAT_SIZES,
             'social_style' => self::SOCIAL_STYLES,
+            'alerts_default_digest' => AlertSettings::DIGEST_OPTIONS,
             // Zoho Books: the data centre, when an invoice is made, and the
             // state the business is registered in — `ZohoSettings` owns all three.
             'zoho_books_dc', 'zoho_books_invoice_when', 'zoho_books_home_state' => ZohoSettings::options($key),
@@ -1326,7 +1328,9 @@ class SettingController extends Controller
                 // And writing help's cap and house style (0.183.0, docs/ai-writing.md).
                 ?? WritingSettings::refusalFor($key, $row['value'] ?? null)
                 // And AI images' cap, house style and model (0.184.0, docs/ai-images.md).
-                ?? ImageSettings::refusalFor($key, $row['value'] ?? null);
+                ?? ImageSettings::refusalFor($key, $row['value'] ?? null)
+                // And the alerts group's thresholds and default digest (0.185.0, docs/digest-alerts.md).
+                ?? AlertSettings::refusalFor($key, $row['value'] ?? null);
 
             if ($refusal !== null) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);

@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Setting;
+use App\Support\Alerts\AlertSettings;
 use App\Support\Events\EventSettings;
 use App\Support\Health\HealthSettings;
 use App\Support\Meetings\MeetingSettings;
@@ -368,6 +369,22 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
                 fn (string $alias, int $months) => ['group' => 'health', 'key' => 'health_stale_'.$alias, 'value' => (string) $months, 'type' => 'string'],
                 array_keys(HealthSettings::STALE_DEFAULTS),
                 HealthSettings::STALE_DEFAULTS,
+            ),
+
+            /*
+             * Digest and alerts (0.185.0, docs/digest-alerts.md): each rule's
+             * switch and threshold, and the digest new staff start with. Private.
+             */
+            ['group' => 'alerts', 'key' => 'alerts_default_digest', 'value' => 'weekly', 'type' => 'string'],
+            ...array_map(
+                fn (string $rule) => ['group' => 'alerts', 'key' => 'alert_'.$rule.'_enabled', 'value' => '1', 'type' => 'boolean'],
+                ['ticket_critical_unassigned', 'ticket_overdue', 'lead_hot_untouched', 'order_not_dispatched',
+                    'return_waiting', 'mail_stalled', 'backup_failed', 'health_drop'],
+            ),
+            ...array_map(
+                fn (string $key, array $spec) => ['group' => 'alerts', 'key' => $key, 'value' => (string) $spec[0], 'type' => 'string'],
+                array_keys(AlertSettings::THRESHOLDS),
+                AlertSettings::THRESHOLDS,
             ),
 
             /*

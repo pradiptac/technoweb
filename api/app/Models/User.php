@@ -7,6 +7,7 @@ use App\Support\Meetings\HostSync;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -57,6 +58,18 @@ class User extends Authenticatable
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class);
+    }
+
+    /** @return HasOne<StaffPreference, $this> */
+    public function staffPreference(): HasOne
+    {
+        return $this->hasOne(StaffPreference::class);
+    }
+
+    /** @return HasMany<StaffPushSubscription, $this> */
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(StaffPushSubscription::class);
     }
 
     /** @return HasMany<Ticket, $this> */
