@@ -11,7 +11,7 @@
  */
 export const HELP_ROUTES: { prefix: string; sections: string[] }[] = [
   { prefix: "/admin", sections: ["08-tickets#the-dashboard", "04-first-steps#overview"] },
-  { prefix: "/admin/profile", sections: ["17-users-and-roles#your-account", "17-users-and-roles#signing-in-codes-and-passwords"] },
+  { prefix: "/admin/profile", sections: ["17-users-and-roles#your-account", "17-users-and-roles#signing-in-codes-and-passwords", "35-digest-and-alerts#choosing-your-digest"] },
 
   { prefix: "/admin/tickets", sections: ["08-tickets#the-ticket-queue", "08-tickets#saved-replies"] },
   { prefix: "/admin/tickets/*", sections: ["08-tickets#working-a-ticket", "08-tickets#merging-tickets", "08-tickets#saved-replies", "33-ai-writing#drafting-a-ticket-reply"] },

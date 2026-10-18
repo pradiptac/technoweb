@@ -2511,6 +2511,46 @@
    "title": "Limits of this release",
    "html": "<ul><li>One picture at a time; no editing of an existing picture and no starting from a photo of your own.</li><li>Several people making pictures at once can take the day slightly past the limit.</li></ul>",
    "text": "One picture at a time; no editing of an existing picture and no starting from a photo of your own. Several people making pictures at once can take the day slightly past the limit."
+  },
+  {
+   "id": "35-digest-and-alerts#overview",
+   "chapter": "35-digest-and-alerts",
+   "chapterTitle": "Your digest and alerts",
+   "title": "Overview",
+   "html": "<p><em>Who can use this: Everybody chooses their own. Administrators set the defaults and can change anybody's.</em></p><p>The console can tell you what needs you without your having to open it, in two ways:</p><ul><li><strong>The digest</strong> is a short email, daily or weekly, listing the figures that matter to your role and how each has changed since the last one.</li><li><strong>Alerts</strong> arrive within about five minutes of something needing you, by email and, if you want, as a notification in your browser.</li></ul><p>Everything is on <strong>Your account</strong> (the menu under your name), in the <strong>Notifications</strong> card.</p>",
+   "text": "Who can use this: Everybody chooses their own. Administrators set the defaults and can change anybody's. The console can tell you what needs you without your having to open it, in two ways: The digest is a short email, daily or weekly, listing the figures that matter to your role and how each has changed since the last one. Alerts arrive within about five minutes of something needing you, by email and, if you want, as a notification in your browser. Everything is on Your account (the menu under your name), in the Notifications card."
+  },
+  {
+   "id": "35-digest-and-alerts#choosing-your-digest",
+   "chapter": "35-digest-and-alerts",
+   "chapterTitle": "Your digest and alerts",
+   "title": "Choosing your digest",
+   "html": "<ul><li><strong>How often</strong>: Off, Daily or Weekly. New staff start on the site's default, which is Weekly unless an administrator has changed it.</li><li><strong>At</strong>: the hour it arrives.</li><li><strong>On</strong>: the day of the week, for a weekly digest.</li><li><strong>Skip a day when everything is zero</strong>: switched on, a digest with nothing to report is not sent at all.</li></ul><p>The digest uses the same figures as <strong>Ask ALTIS</strong> (chapter 30). A figure that is zero is gathered into one &quot;All clear&quot; line at the end. A count that has changed since your last digest shows how much it went up or down.</p><p>Press <strong>Send me today's digest</strong> to see one now. It does not count as your scheduled digest.</p>",
+   "text": "How often : Off, Daily or Weekly. New staff start on the site's default, which is Weekly unless an administrator has changed it. At : the hour it arrives. On : the day of the week, for a weekly digest. Skip a day when everything is zero : switched on, a digest with nothing to report is not sent at all. The digest uses the same figures as Ask ALTIS (chapter 30). A figure that is zero is gathered into one \"All clear\" line at the end. A count that has changed since your last digest shows how much it went up or down. Press Send me today's digest to see one now. It does not count as your scheduled digest."
+  },
+  {
+   "id": "35-digest-and-alerts#the-alerts",
+   "chapter": "35-digest-and-alerts",
+   "chapterTitle": "Your digest and alerts",
+   "title": "The alerts",
+   "html": "<p>You see only the alerts that belong to your role, and each one can be switched off.</p><table><thead><tr><th>Alert</th><th>Who gets it</th><th>When it is sent</th></tr></thead><tbody><tr><td>A critical ticket nobody has taken</td><td>Support</td><td>after 30 minutes</td></tr><tr><td>A ticket past its due time</td><td>Support</td><td>as soon as it is overdue</td></tr><tr><td>A hot lead nobody has answered</td><td>Sales</td><td>after 2 hours</td></tr><tr><td>A paid order not yet sent</td><td>Store</td><td>after 2 days</td></tr><tr><td>A return nobody has answered</td><td>Store</td><td>after 2 days</td></tr><tr><td>Email not leaving</td><td>Administrators</td><td>after 10 minutes</td></tr><tr><td>A backup that failed or did not run</td><td>Administrators</td><td>as soon as it happens</td></tr><tr><td>The site health score fell</td><td>Administrators</td><td>by 10 points in a week</td></tr></tbody></table><p>The times are the defaults; an administrator can change them.</p><p>You are told <strong>once</strong> about each thing. If a ticket is taken and later becomes critical and unassigned again, you are told again. Several new alerts at once arrive together in one email.</p><p>An alert names the ticket, order, lead or return by its number. It never contains a customer's name, address, telephone number or message.</p>",
+   "text": "You see only the alerts that belong to your role, and each one can be switched off. Alert Who gets it When it is sent A critical ticket nobody has taken Support after 30 minutes A ticket past its due time Support as soon as it is overdue A hot lead nobody has answered Sales after 2 hours A paid order not yet sent Store after 2 days A return nobody has answered Store after 2 days Email not leaving Administrators after 10 minutes A backup that failed or did not run Administrators as soon as it happens The site health score fell Administrators by 10 points in a week The times are the defaults; an administrator can change them. You are told once about each thing. If a ticket is taken and later becomes critical and unassigned again, you are told again. Several new alerts at once arrive together in one email. An alert names the ticket, order, lead or return by its number. It never contains a customer's name, address, telephone number or message."
+  },
+  {
+   "id": "35-digest-and-alerts#getting-alerts-in-this-browser",
+   "chapter": "35-digest-and-alerts",
+   "chapterTitle": "Your digest and alerts",
+   "title": "Getting alerts in this browser",
+   "html": "<ol><li>Press <strong>Get alerts in this browser</strong> and allow notifications when the browser asks.</li><li>The browser appears in your <strong>Browsers</strong> list.</li><li>To stop, press <strong>Remove</strong> beside it.</li></ol><p>If the button is missing and the card says &quot;Browser notifications are not set up on this site&quot;, the site's push service has not been connected. Chapter 12 says how.</p><p><strong>Quiet hours</strong> hold back browser notifications between the two times you choose (21:00 to 08:00 to start with). Email still arrives during quiet hours. Press <strong>Send a test alert</strong> to check that everything reaches you.</p>",
+   "text": "Press Get alerts in this browser and allow notifications when the browser asks. The browser appears in your Browsers list. To stop, press Remove beside it. If the button is missing and the card says \"Browser notifications are not set up on this site\", the site's push service has not been connected. Chapter 12 says how. Quiet hours hold back browser notifications between the two times you choose (21:00 to 08:00 to start with). Email still arrives during quiet hours. Press Send a test alert to check that everything reaches you."
+  },
+  {
+   "id": "35-digest-and-alerts#for-administrators",
+   "chapter": "35-digest-and-alerts",
+   "chapterTitle": "Your digest and alerts",
+   "title": "For administrators",
+   "html": "<ul><li><strong>Settings → Notifications</strong> sets:<ul><li>the digest new staff start with;</li><li>which alerts the site sends at all;</li><li>how long each one waits. An alert switched off there is off for everybody, and shows as such on each person's card.</li></ul></li><li><strong>Staff → (a person)</strong> shows that person's Notifications card. You can change their digest and alerts there. You cannot add a browser for them; each person does that on their own account.</li></ul>",
+   "text": "Settings → Notifications sets: the digest new staff start with; which alerts the site sends at all; how long each one waits. An alert switched off there is off for everybody, and shows as such on each person's card. Staff → (a person) shows that person's Notifications card. You can change their digest and alerts there. You cannot add a browser for them; each person does that on their own account."
   }
  ]
 }

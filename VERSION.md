@@ -21,6 +21,15 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.185.0 — 2026-10-18
+
+**Digest and alerts** — the console tells each staff member what needs them, without their having to open it.
+
+- A digest by email, daily or weekly at the hour each person chooses: the figures Ask ALTIS gives for their role, each with how much it has changed since the last one, and the zeros gathered into one "All clear" line.
+- Eight alerts — a critical ticket nobody has taken, a ticket past its due time, a hot lead with no reply, a paid order not sent, a return not answered, email not leaving, a failed backup, a fall in the site health score — sent within five minutes, once per thing, by email and, when wanted, as a browser notification. Quiet hours hold back browser notifications, never email.
+- Everyone chooses their own on Your account → Notifications; an administrator sets the defaults and the thresholds on Settings → Notifications and can change anybody's on the Staff screen.
+
+
 ## 0.184.0 — 2026-10-18
 
 **AI images** — make a picture from a description, inside the media picker.

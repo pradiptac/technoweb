@@ -172,6 +172,7 @@ Contents:
   - Search by meaning — `docs/semantic-search.md`
   - AI writing everywhere — `docs/ai-writing.md`
   - AI images — `docs/ai-images.md`
+  - Digest and alerts — `docs/digest-alerts.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -3181,6 +3182,15 @@ A picture made from a description inside the media picker (0.184.0): one per pre
 - A made picture is a **private preview** (`ImagePreviews`: `ai-images/{token}` on the local disk, 64-hex token, the maker's alone, ten minutes, swept by `technoware:prune-ai-images`) until **Use** sends it through `MediaUploader` — so a picture is checked, limited and blurred like any upload — tagged `ai-generated` with the model and prompt in its description. A rejected attempt never reaches the library.
 - One switch (`seo_ai_enabled`), its **own** cap (`ai_image_daily_cap`, default 30, counter `ai:image:runs:<date>`, atomic), counted only when a picture decodes; every refusal is one sentence and OpenRouter's words go only to the log and the admin's model test.
 - The tab is in `MediaBrowser`, so every image field has it; the nearest shape to the field's image spec is pre-selected; `role:content_manager`, the library's own.
+
+### Digest and alerts — `docs/digest-alerts.md`
+
+A scheduled digest of each person's copilot figures and immediate alerts by email and browser push (0.185.0).
+
+- The digest is `Copilot\Questions::for()` and nothing else: every figure, sentence and link is the copilot's; a change ("up 3") only for a whole number, against the figures the last digest stored (zeros included); once a day by `last_digest_at`, at the person's hour (`technoware:send-digests`, hourly at :05).
+- Eight fixed `AlertRule`s in `App\Support\Alerts\Rules`, each reading the scope its screen uses; a line names a record by reference, never a customer's contact details or words. `alert_fires` is one row per (rule, subject, person), re-armed by `updateOrCreate` — MySQL has no partial unique index; the check clears what has gone before it delivers, writes the fires before it sends, and a rule that throws skips only itself (`technoware:check-alerts`, every five minutes).
+- Staff push is `staff_push_subscriptions`, never `message_contacts`; Remove deletes the row and never calls `unsubscribe()`, because a customer subscription in the same browser shares the token. Quiet hours hold back push, never email. `hasRole()` does not pass an administrator: `Rules::holds()` checks `isAdmin()` first.
+- The Notifications card's `<Form>` is keyed on the saved values: React's reset after a successful save put the hour select back to its old default until it was (`scripts/probes/notifications.mjs`).
 
 ## Conventions
 
