@@ -1359,6 +1359,10 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             // Drawn on Settings → API keys with the key and `chatbot_model` (0.116.0).
             ['group' => 'integrations', 'key' => 'seo_ai_model', 'value' => null, 'type' => 'string'],
             ['group' => 'seo', 'key' => 'seo_ai_daily_cap', 'value' => '100', 'type' => 'string'],
+            // Writing help (0.183.0, docs/ai-writing.md): its own cap and the house style.
+            ['group' => 'seo', 'key' => 'ai_writing_daily_cap', 'value' => '300', 'type' => 'string'],
+            ['group' => 'seo', 'key' => 'ai_writing_style', 'value' => null, 'type' => 'text'],
+            ['group' => 'seo', 'key' => 'ai_writing_avoid', 'value' => null, 'type' => 'text'],
 
             /*
              * The business context the assistant is given (§6).

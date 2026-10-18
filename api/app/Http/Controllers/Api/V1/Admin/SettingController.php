@@ -44,6 +44,7 @@ use App\Support\Store\Zoho\ZohoSettings;
 use App\Support\ThemeOptions;
 use App\Support\UploadLimits;
 use App\Support\Visits\VisitSettings;
+use App\Support\Writing\WritingSettings;
 use App\Support\YouTube;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -1320,7 +1321,9 @@ class SettingController extends Controller
                 // And the `health` group's stale thresholds (0.181.0, docs/health.md).
                 ?? HealthSettings::refusalFor($key, $row['value'] ?? null)
                 // And the `semantic_search` group's (0.182.0, docs/semantic-search.md).
-                ?? SemanticSettings::refusalFor($key, $row['value'] ?? null);
+                ?? SemanticSettings::refusalFor($key, $row['value'] ?? null)
+                // And writing help's cap and house style (0.183.0, docs/ai-writing.md).
+                ?? WritingSettings::refusalFor($key, $row['value'] ?? null);
 
             if ($refusal !== null) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);

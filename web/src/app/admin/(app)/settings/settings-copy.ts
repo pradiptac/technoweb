@@ -187,6 +187,18 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "AI requests per day",
     hint: "The only ceiling that bounds the bill. 0 removes it entirely. Refused requests are free.",
   },
+  ai_writing_daily_cap: {
+    label: "Writing help requests per day",
+    hint: "Its own ceiling, separate from the SEO assistant's: drafting replies cannot use up the SEO team's day. 0 switches writing help off.",
+  },
+  ai_writing_style: {
+    label: "House style",
+    hint: "A line or two the writing help always follows, e.g. “Plain, confident, Indian English. No hype.”",
+  },
+  ai_writing_avoid: {
+    label: "Words to avoid",
+    hint: "One word or phrase per line. Writing help will not use them.",
+  },
   seo_ai_business_type: {
     label: "What the business does",
     hint: "One line, given to the AI as context. Falls back to the tagline.",
