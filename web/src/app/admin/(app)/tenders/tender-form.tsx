@@ -108,9 +108,10 @@ export function TenderForm({ tender, meta }: { tender?: AdminTender; meta: Tende
               />
             </Field>
 
+            <SummaryAi fieldId="summary" type="tender" id={tender?.id} max={300} />
             <Field
               label="Summary" htmlFor="summary" error={err("summary")}
-              hint={<>A sentence or two, shown on the Tenders page and used as the meta description when no SEO override is set. Max 300 characters. <SummaryAi fieldId="summary" type="tender" id={tender?.id} max={300} /></>}
+              hint="A sentence or two, shown on the Tenders page and used as the meta description when no SEO override is set. Max 300 characters."
             >
               <Textarea id="summary" name="summary" rows={3} defaultValue={tender?.summary ?? ""} maxLength={300} aria-invalid={Boolean(err("summary"))} />
             </Field>

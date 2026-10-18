@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { subjectLinesAction } from "@/app/admin/(app)/writing-actions";
 import { useWritingStatus } from "./ai-write-button";
 
-/** Three subject lines for a saved campaign, each a button that sets the subject. Nothing while writing help is off. */
+/** Three subject lines for a saved campaign, each a button that sets the subject. A row above the subject field; nothing while writing help is off. */
 export function SubjectLines({ campaignId, onPick }: { campaignId: number; onPick: (subject: string) => void }) {
   const status = useWritingStatus();
   const [pending, start] = useTransition();
@@ -23,26 +23,28 @@ export function SubjectLines({ campaignId, onPick }: { campaignId: number; onPic
   };
 
   return (
-    <span className="mt-1 block">
-      <button
-        type="button"
-        onClick={suggest}
-        disabled={pending}
-        className="cursor-pointer rounded text-12-5 font-semibold text-brand-ink hover:underline disabled:cursor-wait disabled:opacity-60"
-      >
-        {pending ? "Thinking…" : "Suggest subject lines"}
-      </button>
-      {error && <span role="alert" className="ml-2 text-err">{error}</span>}
+    <div className="grid min-w-0 gap-1">
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+        {error && <span role="alert" className="text-12-5 text-err">{error}</span>}
+        <button
+          type="button"
+          onClick={suggest}
+          disabled={pending}
+          className="cursor-pointer rounded text-12-5 font-semibold text-brand-ink hover:underline disabled:cursor-wait disabled:opacity-60"
+        >
+          {pending ? "Thinking…" : "Suggest subject lines"}
+        </button>
+      </div>
       {subjects.map((s) => (
         <button
           key={s}
           type="button"
           onClick={() => onPick(s)}
-          className="mt-1 block w-full cursor-pointer rounded border border-line bg-card px-2 py-1 text-left text-13 text-ink [overflow-wrap:anywhere] hover:bg-surface-2"
+          className="block w-full cursor-pointer rounded border border-line bg-card px-2 py-1 text-left text-13 text-ink [overflow-wrap:anywhere] hover:bg-surface-2"
         >
           {s}
         </button>
       ))}
-    </span>
+    </div>
   );
 }

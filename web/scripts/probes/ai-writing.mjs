@@ -7,7 +7,8 @@
  *  - Off: the post editor has no visible AI button, the summary field has no writing-help
  *    button and an open ticket has no "Draft a reply"; prints "off — no AI controls drawn".
  *  - On: all three are there, and the panel opens on the post editor with the six modes.
- * Never presses Suggest, so it spends nothing and writes nothing. API_BASE_URL overrides the API.
+ * The answer to Suggest is a stub (the server action is intercepted in the browser), so it spends nothing
+ * and writes nothing. API_BASE_URL overrides the API.
  */
 import { chromium } from "playwright";
 
@@ -33,7 +34,7 @@ try {
   await page.locator(".note-editable").first().waitFor({ timeout: T });
   await page.waitForTimeout(4000); // the status is read after mount
   const aiButton = page.locator(".note-btn-ai");
-  const summaryButton = page.locator("#excerpt-hint").getByRole("button", { name: "Writing help" });
+  const summaryButton = page.locator('button[aria-label="Writing help"]');
 
   // A ticket, found from the queue.
   await page.goto(`${BASE}/admin/tickets`, { waitUntil: "load", timeout: T });
@@ -68,6 +69,24 @@ try {
     await dialog.waitFor({ timeout: 30000 }).catch(() => fail("the panel did not open"));
     const modes = await dialog.locator('[role="group"][aria-label="What to do"] button').count();
     if (modes !== 6) fail(`the panel offers ${modes} modes, not 6`);
+    // Replace with a stubbed answer: the form must read as changed (the leave guard and the draft listen for an input event).
+    await page.route("**/*", async (route) => {
+      const r = route.request();
+      if (r.method() === "POST" && r.headers()["next-action"] && (r.postData() ?? "").includes('"surface"')) {
+        const body = '0:{"a":"$@1","f":"","b":"development"}\n1:{"ok":true,"output":"<p>Stubbed answer.</p>"}\n';
+        return route.fulfill({ status: 200, contentType: "text/x-component", body });
+      }
+      return route.continue();
+    });
+    await dialog.getByRole("button", { name: "Suggest" }).click();
+    await dialog.getByRole("button", { name: "Replace" }).click({ timeout: 30000 }).catch(() => fail("the stubbed answer did not arrive"));
+    // Leaving by an in-app link must now ask first.
+    let asked = false;
+    page.once("dialog", (d) => { asked = d.type() === "confirm"; void d.dismiss(); });
+    await page.locator('a[href="/admin"]:visible').first().click({ timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(1500);
+    if (!asked) fail("applying an answer did not reach the leave guard");
+    if (!(await page.locator(".note-editable").first().textContent())?.includes("Stubbed answer.")) fail("the answer is not in the editor");
     if (!process.exitCode) console.log("ai-writing probe passed");
   }
 } catch (e) {

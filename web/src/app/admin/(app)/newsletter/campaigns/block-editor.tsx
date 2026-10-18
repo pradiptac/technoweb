@@ -148,6 +148,8 @@ export function BlockEditor({
                       html={block.type === "text"}
                       getInput={() => JSON.stringify(block)}
                       format={readable}
+                      // The answer is the block's words rewritten, so "below" would only repeat them.
+                      hideBelow
                       onApply={(out) => patch(i, wordsOf(block, out))}
                     />
                   )}

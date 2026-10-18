@@ -101,8 +101,9 @@ export function ServiceForm({
               <Input id="slug" name="slug" defaultValue={service?.slug} className="font-mono text-14" />
             </Field>
 
+            <SummaryAi fieldId="summary" type="service" id={service?.id} max={500} />
             <Field label="Summary" htmlFor="summary" error={err("summary")}
-              hint={<>One or two sentences, shown on the services index and in the header menu. Max 500 characters. <SummaryAi fieldId="summary" type="service" id={service?.id} max={500} /></>}>
+              hint="One or two sentences, shown on the services index and in the header menu. Max 500 characters.">
               <Textarea id="summary" name="summary" rows={3} defaultValue={service?.summary ?? ""} maxLength={500} />
             </Field>
 

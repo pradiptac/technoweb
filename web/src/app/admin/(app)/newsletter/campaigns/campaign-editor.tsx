@@ -249,11 +249,9 @@ export function CampaignEditor({
                 onChange={edit} />
             </Field>
 
+            {editable && <SubjectLines campaignId={campaign.id} onPick={(s) => { patchCopy({ subject: s }); touch(); }} />}
             <Field label="Subject" htmlFor="subject" variant="float"
-              hint={<>
-                {subject.length} characters. Most clients truncate past 70, and a phone nearer 35.
-                {editable && <SubjectLines campaignId={campaign.id} onPick={(s) => { patchCopy({ subject: s }); touch(); }} />}
-              </>}>
+              hint={`${subject.length} characters. Most clients truncate past 70, and a phone nearer 35.`}>
               <Input id="subject" value={subject} disabled={!editable}
                 onChange={edit} />
             </Field>

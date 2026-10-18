@@ -85,8 +85,9 @@ export function EntryForm({
                 aria-invalid={Boolean(err("slug"))} />
             </Field>
 
+            <SummaryAi fieldId="summary" type="entry" id={entry?.id} max={1000} />
             <Field label="Summary" htmlFor="summary" error={err("summary")}
-              hint={<>A sentence or two: the archive tile, the page&apos;s lede and the meta description. <SummaryAi fieldId="summary" type="entry" id={entry?.id} max={1000} /></>}>
+              hint="A sentence or two: the archive tile, the page's lede and the meta description.">
               <Textarea id="summary" name="summary" rows={3} maxLength={1000} defaultValue={entry?.summary ?? ""} />
             </Field>
 

@@ -11,7 +11,7 @@ import type { WritingModeKey, WritingStatus, WritingSurface, WritingToneKey } fr
 const number = new Intl.NumberFormat("en-IN");
 
 export function WritingPanel({
-  open, onClose, surface, ref_, getInput, html = false, max, draftLabel, modes, status, onApply, format,
+  open, onClose, surface, ref_, getInput, html = false, max, draftLabel, modes, status, onApply, format, hideBelow = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -27,6 +27,8 @@ export function WritingPanel({
   onApply: (output: string, how: "replace" | "below") => void;
   /** What to show of the answer when it is not itself readable (a campaign block comes back as JSON). */
   format?: (output: string) => string;
+  /** For a surface where "insert below" means nothing (a heading, a subject line). */
+  hideBelow?: boolean;
 }) {
   const id = useId();
   const offered = status.modes.filter((m) => !modes || modes.includes(m.value));
@@ -65,7 +67,12 @@ export function WritingPanel({
 
   function apply(how: "replace" | "below") {
     if (output === null) return;
-    onApply(output, how);
+    try {
+      onApply(output, how);
+    } catch {
+      setError("That answer could not be used. Try again.");
+      return;
+    }
     close();
   }
 
@@ -119,7 +126,7 @@ export function WritingPanel({
             )}
             <div className="flex flex-wrap gap-2">
               <Button type="button" size="sm" onClick={() => apply("replace")}>Replace</Button>
-              <Button type="button" size="sm" variant="secondary" onClick={() => apply("below")}>Insert below</Button>
+              {!hideBelow && <Button type="button" size="sm" variant="secondary" onClick={() => apply("below")}>Insert below</Button>}
               <Button type="button" size="sm" variant="ghost" onClick={() => setOutput(null)}>Discard</Button>
             </div>
           </>

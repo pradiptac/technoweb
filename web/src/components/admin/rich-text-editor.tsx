@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import $ from "jquery";
+import { createPortal } from "react-dom";
 import "summernote/dist/summernote-lite";
 import "summernote/dist/summernote-lite.css";
 import { uploadMediaFile } from "@/lib/media-upload";
@@ -517,12 +518,15 @@ export function RichTextEditor({
     }
     // `code` does not always fire Summernote's own onChange.
     onChangeRef.current($el.summernote("code"));
+    // Neither `code` nor `pasteHTML` fires a DOM event, and the form's draft and leave guard listen for one.
+    el.closest(".cms-editor")?.querySelector(".note-editable")?.dispatchEvent(new Event("input", { bubbles: true }));
   }, []);
 
   return (
     <div id={id} className="cms-editor">
       <div ref={host} />
-      {ai && status && (
+      {ai && status && createPortal(
+        // In the body, not the form: typing a brief must not mark the record changed.
         <WritingPanel
           open={writing}
           onClose={() => setWriting(false)}
@@ -532,7 +536,8 @@ export function RichTextEditor({
           status={status}
           getInput={() => selectionRef.current ?? (host.current ? $(host.current).summernote("code") : "")}
           onApply={applyWriting}
-        />
+        />,
+        document.body,
       )}
       <MediaBrowser open={browsing} onClose={() => setBrowsing(false)} onPick={insertImage} />
       <Modal open={pickingIcon} onClose={() => setPickingIcon(false)} title="Insert a Google icon" size="lg">

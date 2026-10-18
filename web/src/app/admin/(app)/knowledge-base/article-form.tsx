@@ -105,8 +105,9 @@ export function ArticleForm({
                 aria-invalid={Boolean(err("slug"))} />
             </Field>
 
+            <SummaryAi fieldId="excerpt" type="knowledge_article" id={article?.id} max={500} />
             <Field label="Excerpt" htmlFor="excerpt" error={err("excerpt")}
-              hint={<>Shown in search results and on the knowledge-base index. Max 500 characters. <SummaryAi fieldId="excerpt" type="knowledge_article" id={article?.id} max={500} /></>}>
+              hint="Shown in search results and on the knowledge-base index. Max 500 characters.">
               <Textarea id="excerpt" name="excerpt" rows={3} defaultValue={article?.excerpt ?? ""}
                 maxLength={500} aria-invalid={Boolean(err("excerpt"))} />
             </Field>

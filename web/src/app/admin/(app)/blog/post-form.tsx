@@ -116,8 +116,9 @@ export function PostForm({
                 aria-invalid={Boolean(err("slug"))} />
             </Field>
 
+            <SummaryAi fieldId="excerpt" type="blog_post" id={post?.id} max={500} />
             <Field label="Excerpt" htmlFor="excerpt" error={err("excerpt")}
-              hint={<>Shown on the blog index and used as the meta description when no SEO override is set. Max 500 characters. <SummaryAi fieldId="excerpt" type="blog_post" id={post?.id} max={500} /></>}>
+              hint="Shown on the blog index and used as the meta description when no SEO override is set. Max 500 characters.">
               <Textarea id="excerpt" name="excerpt" rows={3} defaultValue={post?.excerpt ?? ""}
                 maxLength={500} aria-invalid={Boolean(err("excerpt"))} />
             </Field>

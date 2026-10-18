@@ -8,6 +8,7 @@ import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
 import { Switch } from "@/components/ui/switch";
+import { AiRow } from "@/components/admin/writing/ai-row";
 import { AiWriteButton } from "@/components/admin/writing/ai-write-button";
 import { setFieldValue } from "@/components/admin/writing/apply";
 import { cn } from "@/lib/utils";
@@ -144,26 +145,27 @@ export function TemplateEditor({
             </span>
           </label>
 
+          {!locked && (
+            <AiRow>
+              <AiWriteButton
+                surface="email_template"
+                ref_={{ key: templateKey, field: "subject" }}
+                max={200}
+                hideBelow
+                getInput={() => subject}
+                onApply={(out) => {
+                  // Through the input, so the form's draft and leave guard hear of it.
+                  const el = document.getElementById("subject") as HTMLInputElement | null;
+                  if (el) setFieldValue(el, out);
+                  else setSubject(out);
+                }}
+              />
+            </AiRow>
+          )}
           <Field
             label="Subject"
             htmlFor="subject"
-            hint={<>
-              Placeholders work here too. A line break is refused — it would be a mail header.
-              {!locked && (
-                <AiWriteButton
-                  surface="email_template"
-                  ref_={{ key: templateKey, field: "subject" }}
-                  max={200}
-                  getInput={() => subject}
-                  onApply={(out) => {
-                    // Through the input, so the form's draft and leave guard hear of it.
-                    const el = document.getElementById("subject") as HTMLInputElement | null;
-                    if (el) setFieldValue(el, out);
-                    else setSubject(out);
-                  }}
-                />
-              )}
-            </>}
+            hint="Placeholders work here too. A line break is refused — it would be a mail header."
           >
             <Input
               id="subject" name="subject" required maxLength={200}

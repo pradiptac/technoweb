@@ -7,6 +7,7 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Select, Textarea } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";
+import { AiRow } from "@/components/admin/writing/ai-row";
 import { AiWriteButton } from "@/components/admin/writing/ai-write-button";
 import { setFieldValue } from "@/components/admin/writing/apply";
 import { TICKET_ATTACHMENT_ACCEPT, TICKET_ATTACHMENT_HINT, TICKET_ATTACHMENT_MAX, TICKET_ATTACHMENT_MAX_BYTES } from "@/lib/ticket-attachments";
@@ -98,8 +99,8 @@ export function ReplyForm({ reference, savedReplies = [] }: { reference: string;
         </Field>
       )}
 
-      <Field label="Message" htmlFor="body" error={state.fieldErrors?.body?.[0]}
-        hint={internal ? undefined : (
+      {!internal && (
+        <AiRow>
           <AiWriteButton
             label="Draft a reply"
             surface="ticket_reply"
@@ -111,7 +112,9 @@ export function ReplyForm({ reference, savedReplies = [] }: { reference: string;
               if (box) setFieldValue(box, how === "below" && box.value ? box.value + "\n\n" + out : out);
             }}
           />
-        )}>
+        </AiRow>
+      )}
+      <Field label="Message" htmlFor="body" error={state.fieldErrors?.body?.[0]}>
         <Textarea ref={bodyRef} id="body" name="body" rows={4} required
           aria-invalid={Boolean(state.fieldErrors?.body)} />
       </Field>

@@ -98,8 +98,9 @@ export function CaseStudyForm({
                 aria-invalid={Boolean(err("slug"))} />
             </Field>
 
+            <SummaryAi fieldId="summary" type="case_study" id={study?.id} max={500} />
             <Field label="Summary" htmlFor="summary" error={err("summary")}
-              hint={<>Shown on the case-studies index and used as the meta description when no SEO override is set. Max 500 characters. <SummaryAi fieldId="summary" type="case_study" id={study?.id} max={500} /></>}>
+              hint="Shown on the case-studies index and used as the meta description when no SEO override is set. Max 500 characters.">
               <Textarea id="summary" name="summary" rows={3} defaultValue={study?.summary ?? ""}
                 maxLength={500} aria-invalid={Boolean(err("summary"))} />
             </Field>

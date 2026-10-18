@@ -30,7 +30,7 @@ export function useWritingStatus(): WritingStatus | null {
 }
 
 export function AiWriteButton({
-  label, surface, ref_, getInput, onApply, html, max, modes, format,
+  label, surface, ref_, getInput, onApply, html, max, modes, format, hideBelow,
 }: {
   label?: string;
   surface: WritingSurface;
@@ -41,6 +41,7 @@ export function AiWriteButton({
   max?: number;
   modes?: WritingModeKey[];
   format?: (output: string) => string;
+  hideBelow?: boolean;
 }) {
   const status = useWritingStatus();
   const [open, setOpen] = useState(false);
@@ -73,6 +74,7 @@ export function AiWriteButton({
         status={status}
         onApply={onApply}
         format={format}
+        hideBelow={hideBelow}
       />,
       document.body,
       )}

@@ -118,8 +118,9 @@ export function ProductForm({
               <Input id="sku" name="sku" defaultValue={product?.sku ?? ""} className="font-mono text-14" />
             </Field>
 
+            <SummaryAi fieldId="short_description" type="product" id={product?.id} max={500} />
             <Field label="Short description" htmlFor="short_description" error={err("short_description")}
-              hint={<>One line, used on catalogue cards and as the search-result description. Plain text, max 500 characters. <SummaryAi fieldId="short_description" type="product" id={product?.id} max={500} /></>}>
+              hint="One line, used on catalogue cards and as the search-result description. Plain text, max 500 characters.">
               <Textarea id="short_description" name="short_description" rows={3}
                 defaultValue={product?.short_description ?? ""} maxLength={500} />
             </Field>

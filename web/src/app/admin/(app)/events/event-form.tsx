@@ -173,8 +173,9 @@ export function EventForm({ event, meta, builder }: {
                 autoCapitalize="none" spellCheck={false} aria-invalid={Boolean(err("slug"))} />
             </Field>
 
+            <SummaryAi fieldId="summary" type="event" id={event?.id} max={300} />
             <Field label="Summary" htmlFor="summary" error={err("summary")}
-              hint={<>A sentence or two. Shown on the Events page and under the heading, and used as the meta description when no SEO override is set. Max 300 characters. <SummaryAi fieldId="summary" type="event" id={event?.id} max={300} /></>}>
+              hint="A sentence or two. Shown on the Events page and under the heading, and used as the meta description when no SEO override is set. Max 300 characters.">
               <Textarea id="summary" name="summary" rows={3} defaultValue={event?.summary ?? ""}
                 maxLength={300} aria-invalid={Boolean(err("summary"))} />
             </Field>

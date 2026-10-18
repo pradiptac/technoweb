@@ -113,8 +113,9 @@ export function SolutionForm({
                 aria-invalid={Boolean(err("slug"))} />
             </Field>
 
+            <SummaryAi fieldId="summary" type="solution" id={solution?.id} max={500} />
             <Field label="Summary" htmlFor="summary" error={err("summary")}
-              hint={<>One or two sentences, shown on the solutions index and as the meta description. Max 500 characters. <SummaryAi fieldId="summary" type="solution" id={solution?.id} max={500} /></>}>
+              hint="One or two sentences, shown on the solutions index and as the meta description. Max 500 characters.">
               <Textarea id="summary" name="summary" rows={3} defaultValue={solution?.summary ?? ""}
                 maxLength={500} aria-invalid={Boolean(err("summary"))} />
             </Field>
