@@ -57,9 +57,14 @@ export function MakeWithAi({ status, initialShape, folderId, onKept }: {
   const [used, setUsed] = useState(status.used);
   // The token of a preview not yet kept, for the cleanup below.
   const open = useRef<string | null>(null);
+  const mounted = useRef(false);
 
-  useEffect(() => () => {
-    if (open.current) void discardImageAction(open.current);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (open.current) void discardImageAction(open.current);
+    };
   }, []);
 
   function drop() {
@@ -73,7 +78,10 @@ export function MakeWithAi({ status, initialShape, folderId, onKept }: {
     setError(null);
     try {
       const res = await makeImageAction({ prompt: prompt.trim(), style, shape });
-      if (res.ok) {
+      if (res.ok && !mounted.current) {
+        // The dialog closed while this was being made: nobody will see it, so it goes now.
+        void discardImageAction(res.image.token);
+      } else if (res.ok) {
         open.current = res.image.token;
         setImage(res.image);
         setMade(shape);
@@ -126,15 +134,21 @@ export function MakeWithAi({ status, initialShape, folderId, onKept }: {
         <p className="text-right text-11-5 text-muted">{number.format(prompt.length)} of {number.format(1000)}</p>
       </div>
 
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Style">
+      <div>
+        <p id={`${id}-style`} className="mb-1.5 text-13 font-semibold">Style</p>
+        <div className="flex flex-wrap gap-2" role="group" aria-labelledby={`${id}-style`}>
         {status.styles.map((s) => (
           <button key={s.value} type="button" aria-pressed={s.value === style} className={chip(s.value === style)} onClick={() => setStyle(s.value)} disabled={busy !== null}>{s.label}</button>
         ))}
+        </div>
       </div>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Shape">
+      <div>
+        <p id={`${id}-shape`} className="mb-1.5 text-13 font-semibold">Shape</p>
+        <div className="flex flex-wrap gap-2" role="group" aria-labelledby={`${id}-shape`}>
         {status.shapes.map((s) => (
           <button key={s.value} type="button" aria-pressed={s.value === shape} className={chip(s.value === shape)} onClick={() => setShape(s.value)} disabled={busy !== null}>{s.label}</button>
         ))}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">

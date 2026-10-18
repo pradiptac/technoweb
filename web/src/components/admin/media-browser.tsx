@@ -76,11 +76,12 @@ export function MediaBrowser({
   const [ai, setAi] = useState<ImageStatus | null>(null);
 
   useEffect(() => {
-    if (!open || kind !== "image" || ai) return;
+    // One read per open: the day's count and whether the cap has been reached change between opens.
+    if (!open || kind !== "image") return;
     let live = true;
-    void imageStatusAction().then((s) => { if (live && s?.available) setAi(s); });
+    void imageStatusAction().then((s) => { if (live) setAi(s?.available ? s : null); });
     return () => { live = false; };
-  }, [open, kind, ai]);
+  }, [open, kind]);
 
   /*
     Uploading from inside the picker.
@@ -183,7 +184,7 @@ export function MediaBrowser({
   const filter = (value: string) => { setFolder(value); setPage(1); };
 
   const items = result?.items ?? [];
-  const close = () => { setView("library"); onClose(); };
+  const close = () => { setView("library"); setAi(null); onClose(); };
 
   return (
     <Modal

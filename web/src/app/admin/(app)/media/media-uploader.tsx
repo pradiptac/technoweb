@@ -159,7 +159,16 @@ export function MakeWithAiButton({ folderId }: { folderId?: string }) {
 
   return (
     <div className="mb-3">
-      <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(true)}>Make with AI</Button>
+      <Button
+        type="button" size="sm" variant="secondary"
+        // Read afresh on every open: the count and the cap move as pictures are made.
+        onClick={async () => {
+          const fresh = await imageStatusAction();
+          if (fresh?.available) { setStatus(fresh); setOpen(true); } else setStatus(null);
+        }}
+      >
+        Make with AI
+      </Button>
       <Modal open={open} onClose={() => setOpen(false)} title="Make a picture with AI" description="Describe it, make it, and keep it in the library.">
         {open && (
           <MakeWithAi

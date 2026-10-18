@@ -31,31 +31,43 @@ try {
   if (!status) throw new Error("could not read /admin/media/ai-image/status");
 
   // Stubs: told apart by their arguments (status [], make [{prompt…}], keep [token, alt, folder], discard [token]).
+  // Fails closed: a Server Action POST that is neither stubbed nor a known harmless read is aborted and fails
+  // the probe, so a changed argument encoding can never reach a real (paid) make.
   const discarded = [];
   let made = 0;
   const reply = (route, value) => route.fulfill({
     status: 200, contentType: "text/x-component",
-    body: `0:{"a":"$@1","f":"","b":"development"}\n1:${JSON.stringify(value)}\n`,
+    body: `0:{"a":"$@1","f":"","b":"development"}
+1:${JSON.stringify(value)}
+`,
   });
+  const tokenOf = (n) => n.toString(16).padStart(64, "a");
   if (status.available) {
     await page.route("**/*", async (route) => {
       const r = route.request();
-      const raw = r.method() === "POST" && r.headers()["next-action"] ? r.postData() ?? "" : null;
+      if (r.method() !== "POST" || !r.headers()["next-action"]) return route.continue();
+      const raw = r.postData() ?? "";
       let args = null;
-      try { args = raw ? JSON.parse(raw) : null; } catch { /* not a plain-argument action */ }
-      if (!Array.isArray(args)) return route.continue();
-      if (args.length === 1 && args[0] && typeof args[0] === "object" && "prompt" in args[0]) {
-        made += 1;
-        return reply(route, { ok: true, image: { token: made.toString(16).padStart(64, "a"), width: 1344, height: 756, model: "stub", mime: "image/png" } });
+      try { args = JSON.parse(raw); } catch { /* not a plain-argument action */ }
+      if (Array.isArray(args)) {
+        const [a0] = args;
+        if (args.length === 1 && a0 && typeof a0 === "object" && "prompt" in a0) {
+          if (String(a0.prompt).includes("REFUSE")) return reply(route, { ok: false, error: "AI help is switched off. Turn it on in SEO → Settings." });
+          made += 1;
+          return reply(route, { ok: true, image: { token: tokenOf(made), width: 1344, height: 756, model: "stub", mime: "image/png" } });
+        }
+        if (args.length === 3 && /^[a-f0-9]{64}$/.test(String(a0))) {
+          return reply(route, { ok: true, file: { url: `http://127.0.0.1:8000/storage/${STUB_PATH}`, alt: String(args[1]), path: STUB_PATH, name: "stub.png", bytes: 1 } });
+        }
+        if (args.length === 1 && /^[a-f0-9]{64}$/.test(String(a0))) {
+          discarded.push(a0);
+          return reply(route, null);
+        }
+        // Harmless reads: the status (no arguments) and the picker's own listing.
+        if (args.length === 0 || (args.length === 1 && a0 && typeof a0 === "object" && "kind" in a0 && !raw.includes("prompt"))) return route.continue();
       }
-      if (args.length === 3 && /^[a-f0-9]{64}$/.test(String(args[0]))) {
-        return reply(route, { ok: true, file: { url: `http://127.0.0.1:8000/storage/${STUB_PATH}`, alt: String(args[1]), path: STUB_PATH, name: "stub.png", bytes: 1 } });
-      }
-      if (args.length === 1 && /^[a-f0-9]{64}$/.test(String(args[0]))) {
-        discarded.push(args[0]);
-        return reply(route, null);
-      }
-      return route.continue();
+      fail(`an unstubbed Server Action was aborted: ${raw.slice(0, 120)}`);
+      return route.abort();
     });
   }
 
@@ -82,9 +94,28 @@ try {
     if ((await wide.getAttribute("aria-pressed")) !== "true") fail("the cover picker did not open on Wide");
     const make = dialog.getByRole("button", { name: "Make picture" });
     if (!(await make.isDisabled())) fail("Make picture is enabled with nothing described");
+    // A refusal shows the Alert and leaves the form usable.
+    await dialog.getByLabel("Describe the picture").fill("REFUSE: a tidy server room with blue light.");
+    await make.click();
+    await dialog.getByText("AI help is switched off. Turn it on in SEO → Settings.").waitFor({ timeout: 30000 }).catch(() => fail("a refused make did not show its sentence"));
+    if (!(await dialog.getByText("The picture could not be made").count())) fail("a refused make did not show the Alert");
+    if (!(await dialog.getByText("Style", { exact: true }).count()) || !(await dialog.getByText("Shape", { exact: true }).count())) fail("the Style and Shape labels are not drawn");
+
+    // Make, Try again (the first is discarded, a second made), Discard (clears the preview), make again, keep.
     await dialog.getByLabel("Describe the picture").fill("A tidy server room with blue light along the racks.");
     await make.click();
-    await dialog.getByRole("button", { name: "Use this picture" }).click();
+    const use = dialog.getByRole("button", { name: "Use this picture" });
+    await use.waitFor();
+    const altValue = await dialog.getByLabel("Alt text").inputValue();
+    if (!altValue.startsWith("A tidy server room")) fail(`the alt text was not prefilled from the description ("${altValue}")`);
+    await dialog.getByRole("button", { name: "Try again" }).click();
+    await page.waitForFunction((t) => document.querySelector("dialog[open] img")?.getAttribute("src")?.endsWith(t), tokenOf(2)).catch(() => fail("Try again did not show a second picture"));
+    if (!discarded.includes(tokenOf(1))) fail("Try again did not discard the first picture");
+    await dialog.getByRole("button", { name: "Discard" }).click();
+    await use.waitFor({ state: "detached" }).catch(() => fail("Discard did not clear the preview"));
+    if (!discarded.includes(tokenOf(2))) fail("Discard did not discard the second picture");
+    await make.click();
+    await use.click();
     await page.locator("dialog[open]").waitFor({ state: "detached", timeout: 30000 }).catch(() => fail("the dialog stayed open after keeping"));
     const value = await page.locator('input[type="hidden"][name="cover_image_path"]').inputValue();
     if (value !== STUB_PATH) fail(`the cover field holds "${value}", not the kept picture`);
@@ -97,7 +128,7 @@ try {
     await dialog.getByRole("button", { name: "Use this picture" }).waitFor();
     await dialog.getByRole("button", { name: "Close" }).click();
     await page.waitForTimeout(1500);
-    if (!discarded.length) fail("closing the dialog did not discard the unused picture");
+    if (!discarded.includes(tokenOf(made))) fail("closing the dialog did not discard the unused picture");
     if (!process.exitCode) console.log("ai-image probe passed");
   }
 } catch (e) {

@@ -1,4 +1,5 @@
 import "server-only";
+import { redirect } from "next/navigation";
 import { ApiError, apiFetch } from "@/lib/api";
 import { pickedFile } from "@/lib/media-pick";
 import type { MediaItem } from "@/types/api";
@@ -9,7 +10,10 @@ const GENERIC = "Picture help is not available right now.";
 
 /** A refusal (403, 404, 422) is the API's own sentence, returned rather than thrown. */
 function sentence(error: unknown): string {
-  if (error instanceof ApiError && [403, 404, 422].includes(error.status)) {
+  if (error instanceof ApiError && error.status === 401) redirect("/admin/login");
+  // Previews last ten minutes; keep and discard answer 404 for one that has gone.
+  if (error instanceof ApiError && error.status === 404) return "That preview has expired. Make the picture again.";
+  if (error instanceof ApiError && [403, 422].includes(error.status)) {
     return error.errors?.image?.[0] ?? error.errors?.file?.[0] ?? error.message ?? GENERIC;
   }
   return GENERIC;
