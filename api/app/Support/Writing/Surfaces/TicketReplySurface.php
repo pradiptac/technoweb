@@ -108,8 +108,9 @@ final class TicketReplySurface implements Surface
     private function sources(Ticket $ticket, string $last): array
     {
         // This phrase goes to the embeddings endpoint, so it is masked and cut like everything else that leaves.
-        $subject = self::mask(mb_substr((string) $ticket->subject, 0, 100));
-        $phrase = self::mask(trim($subject.' '.mb_substr(HtmlSanitiser::toText($last), 0, 600)));
+        // Masked before it is cut: a cut through an address or a number would leave the fragment unmasked.
+        $subject = mb_substr(self::mask((string) $ticket->subject), 0, 100);
+        $phrase = trim($subject.' '.mb_substr(self::mask(HtmlSanitiser::toText($last)), 0, 600));
         $ids = [];
         foreach (Semantic::passages($phrase, ['knowledge_article'], 6) as $hit) {
             $ids[] = (int) $hit['subject_id'];
