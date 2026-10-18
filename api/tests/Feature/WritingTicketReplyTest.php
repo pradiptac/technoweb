@@ -11,14 +11,18 @@ use App\Models\KnowledgeArticle;
 use App\Models\Ticket;
 use App\Models\TicketCategory;
 use App\Models\User;
+use App\Support\Writing\Surfaces\TicketReplySurface;
+use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\FakesEmbeddings;
 use Tests\Concerns\FakesWriter;
 use Tests\TestCase;
 
 /** A ticket reply drafted from what the customer can see — and nothing private. */
 class WritingTicketReplyTest extends TestCase
 {
-    use FakesWriter, RefreshDatabase;
+    use FakesEmbeddings, FakesWriter, RefreshDatabase;
 
     /**
      * @param  list<array{0: string, 1: string, 2: bool, 3: bool}>  $rows  [author, body, is_internal, is_sensitive]
@@ -161,5 +165,56 @@ class WritingTicketReplyTest extends TestCase
         $this->fakeModel(['text' => 'Thanks for getting in touch.']);
 
         $this->ask($this->staff(Role::SupportEngineer), $ticket, ['brief' => '', 'input' => ''])->assertOk();
+    }
+
+    public function test_the_mask_hides_phone_numbers_and_keeps_technical_facts(): void
+    {
+        foreach (['+91 98765 43210', '98765-43210', '09876543210', '033 2345 6789', '+44 20 7946 0958'] as $number) {
+            $this->assertSame('call [phone] now', TicketReplySurface::mask("call {$number} now"), $number);
+        }
+        foreach (['TW-2026-00007', 'ORD-2026-00012', 'v7.2.1', '192.168.1.10', '2026-10-18', '10:30', '2026-10-18 10:30:45', 'firmware 7.2.0.1234'] as $keep) {
+            $this->assertSame("see {$keep} ok", TicketReplySurface::mask("see {$keep} ok"), $keep);
+        }
+        $this->assertSame('[email] or [phone]', TicketReplySurface::mask('a.b@example.in or 9876543210'));
+    }
+
+    public function test_the_engineers_own_draft_is_masked_too(): void
+    {
+        $this->writerOn();
+        [$ticket] = $this->ticketWithThread([['customer', 'Hello?', false, false]]);
+        $fake = $this->fakeModel(['text' => 'Better wording.']);
+
+        $this->ask($this->staff(Role::SupportEngineer), $ticket, ['mode' => 'rewrite', 'brief' => '', 'input' => 'Ring neil@example.in on 9876543210'])->assertOk();
+
+        $this->assertStringNotContainsString('9876543210', $this->sent($fake));
+        $this->assertStringNotContainsString('neil@example.in', $this->sent($fake));
+    }
+
+    public function test_an_admin_can_draft(): void
+    {
+        $this->writerOn();
+        [$ticket] = $this->ticketWithThread([['customer', 'Hello?', false, false]]);
+        $this->fakeModel(['text' => 'Thanks for getting in touch.']);
+
+        $this->ask($this->staff(Role::Admin), $ticket)->assertOk();
+    }
+
+    public function test_sources_keep_the_semantic_order(): void
+    {
+        Storage::fake('local');
+        $this->seed(SettingsSeeder::class);
+        $this->enableSemanticSearch();
+        $this->writerOn();
+        [$ticket] = $this->ticketWithThread([['customer', 'My network keeps dropping', false, false]], ['subject' => 'network keeps dropping']);
+        // The weaker match is created first, so a plain id sort would cite it as [S1].
+        $weak = KnowledgeArticle::create(['title' => 'Weak match', 'slug' => 'weak', 'excerpt' => 'x', 'body' => '<p>Wireless signal, switch ports and poe.</p>', 'status' => PublishStatus::Published, 'published_at' => now()]);
+        $strong = KnowledgeArticle::create(['title' => 'Strong match', 'slug' => 'strong', 'excerpt' => 'x', 'body' => '<p>Wireless signal and disconnects.</p>', 'status' => PublishStatus::Published, 'published_at' => now()]);
+        $fake = $this->fakeModel(['text' => 'See [S1].']);
+
+        $res = $this->ask($this->staff(Role::SupportEngineer), $ticket)->assertOk();
+
+        $this->assertStringContainsString('[S1] Strong match', $this->sent($fake));
+        $this->assertStringContainsString('/knowledge-base/strong', $res->json('data.output'));
+        $this->assertTrue($strong->id > $weak->id);
     }
 }

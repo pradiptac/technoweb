@@ -67,7 +67,7 @@ final class TicketReplySurface implements Surface
         }
 
         return new Prepared(
-            content: trim(strip_tags($input->text)),
+            content: self::mask(trim(strip_tags($input->text))),
             context: $context,
             shape: '{"text": "the reply to send, plain text, no markup, at most '.self::MAX.' characters; cite a knowledge-base source as [S1] only where it helps; never promise a refund, a date, a price or a visit — write [CHECK: …] there instead"}',
             maxTokens: 1500,
@@ -92,7 +92,15 @@ final class TicketReplySurface implements Surface
     {
         $text = preg_replace('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', '[email]', $text) ?? $text;
 
-        return preg_replace('/(?<!\w)(?:\+?\d[\d\s().-]{7,}\d)(?!\w)/', '[phone]', $text) ?? $text;
+        // Phone shapes only: +country runs, Indian mobiles, STD landlines, or 10+ bare digits. Never
+        // inside a token (TW-2026-00007, v7.2.1, 192.168.1.10, 2026-10-18, 10:30): not after a letter,
+        // digit, dot or hyphen, and not before one.
+        // shortcut: a short extension or a landline with no area code is left alone, tighten if a desk needs it.
+        return preg_replace(
+            '/(?<![\w.\-])(?:\+\d{1,3}(?:[\s-]?\d){8,12}|(?:\+?91[\s-]?|0)?[6-9]\d{4}[\s-]?\d{5}|0\d{2,4}(?:[\s-]?\d){6,8}|\d{10,})(?![\w]|[.\-]\d)/',
+            '[phone]',
+            $text,
+        ) ?? $text;
     }
 
     /** @return array<int, array{title: string, excerpt: string, url: string}> */
@@ -105,7 +113,7 @@ final class TicketReplySurface implements Surface
         }
         $query = KnowledgeArticle::query()->published();
         $articles = $ids !== []
-            ? $query->whereKey(array_unique($ids))->get()
+            ? $query->whereKey(array_unique($ids))->get()->sortBy(fn (KnowledgeArticle $a) => array_search($a->id, $ids, true))
             : $query->search(mb_substr((string) $ticket->subject, 0, 100))->limit(3)->get();
 
         $out = [];
