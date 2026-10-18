@@ -46,6 +46,7 @@ Route::post('copilot/ask', [CopilotController::class, 'ask'])
  */
 Route::get('writing/status', [WritingController::class, 'status'])->name('writing.status');
 Route::post('writing', [WritingController::class, 'write'])->middleware('throttle:20,1')->name('writing.write');
+Route::post('writing/subjects', [WritingController::class, 'subjects'])->middleware('throttle:20,1')->name('writing.subjects');
 
 // Outside every role: a support engineer must be able to change
 // their own password without asking an administrator to do it for

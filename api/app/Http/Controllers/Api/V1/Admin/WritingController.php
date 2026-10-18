@@ -7,6 +7,8 @@ use App\Enums\WritingTone;
 use App\Http\Controllers\Controller;
 use App\Support\Writing\Surface;
 use App\Support\Writing\Surfaces\BodySurface;
+use App\Support\Writing\Surfaces\CampaignBlockSurface;
+use App\Support\Writing\Surfaces\EmailTemplateSurface;
 use App\Support\Writing\Surfaces\SummarySurface;
 use App\Support\Writing\Surfaces\TicketReplySurface;
 use App\Support\Writing\Writer;
@@ -27,6 +29,8 @@ class WritingController extends Controller
         'summary' => SummarySurface::class,
         'body' => BodySurface::class,
         'ticket_reply' => TicketReplySurface::class,
+        'campaign_block' => CampaignBlockSurface::class,
+        'email_template' => EmailTemplateSurface::class,
     ];
 
     public function status(): JsonResponse
@@ -71,5 +75,15 @@ class WritingController extends Controller
         }
 
         return response()->json(['data' => ['output' => $result->output, 'changed' => true]]);
+    }
+
+    public function subjects(Request $request, Writer $writer): JsonResponse
+    {
+        $data = $request->validate(['campaign_id' => ['required', 'integer']]);
+        $result = $writer->subjects((int) $data['campaign_id'], $request->user());
+
+        return $result->ok
+            ? response()->json(['data' => ['subjects' => json_decode($result->output, true)]])
+            : response()->json(['message' => $result->message, 'errors' => ['writing' => [$result->message]]], $result->status);
     }
 }
