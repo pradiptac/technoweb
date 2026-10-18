@@ -1363,6 +1363,9 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'seo', 'key' => 'ai_writing_daily_cap', 'value' => '300', 'type' => 'string'],
             ['group' => 'seo', 'key' => 'ai_writing_style', 'value' => null, 'type' => 'text'],
             ['group' => 'seo', 'key' => 'ai_writing_avoid', 'value' => null, 'type' => 'text'],
+            ['group' => 'seo', 'key' => 'ai_image_daily_cap', 'value' => '30', 'type' => 'string'],
+            ['group' => 'seo', 'key' => 'ai_image_style', 'value' => null, 'type' => 'text'],
+            ['group' => 'seo', 'key' => 'ai_image_model', 'value' => null, 'type' => 'string'],
 
             /*
              * The business context the assistant is given (§6).

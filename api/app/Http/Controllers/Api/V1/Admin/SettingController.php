@@ -23,6 +23,7 @@ use App\Support\Chat\OpenRouterModels;
 use App\Support\Events\EventSettings;
 use App\Support\Health\HealthSettings;
 use App\Support\HtmlSanitiser;
+use App\Support\Images\ImageSettings;
 use App\Support\InboundMail\InboundMail;
 use App\Support\LinkPattern;
 use App\Support\Media\BrandPalette;
@@ -1323,7 +1324,9 @@ class SettingController extends Controller
                 // And the `semantic_search` group's (0.182.0, docs/semantic-search.md).
                 ?? SemanticSettings::refusalFor($key, $row['value'] ?? null)
                 // And writing help's cap and house style (0.183.0, docs/ai-writing.md).
-                ?? WritingSettings::refusalFor($key, $row['value'] ?? null);
+                ?? WritingSettings::refusalFor($key, $row['value'] ?? null)
+                // And AI images' cap, house style and model (0.184.0, docs/ai-images.md).
+                ?? ImageSettings::refusalFor($key, $row['value'] ?? null);
 
             if ($refusal !== null) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);

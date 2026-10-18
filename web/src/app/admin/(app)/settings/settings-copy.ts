@@ -199,6 +199,18 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Words to avoid",
     hint: "One word or phrase per line. Writing help will not use them.",
   },
+  ai_image_daily_cap: {
+    label: "AI pictures per day",
+    hint: "Its own ceiling, separate from writing help and the SEO assistant. 0 switches pictures off.",
+  },
+  ai_image_style: {
+    label: "House picture style",
+    hint: "A line the picture maker always follows, e.g. “Clean, bright photography in a modern Indian office or data centre.”",
+  },
+  ai_image_model: {
+    label: "Picture model",
+    hint: "An OpenRouter image model id. Blank uses google/gemini-2.5-flash-image.",
+  },
   seo_ai_business_type: {
     label: "What the business does",
     hint: "One line, given to the AI as context. Falls back to the tagline.",
@@ -1270,6 +1282,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
            "motion_splash", "motion_hero"],
   seo: ["default_meta_description", "default_og_image", "landing_page_cap",
         "seo_ai_enabled", "seo_ai_daily_cap", "ai_writing_daily_cap", "ai_writing_style", "ai_writing_avoid",
+        "ai_image_daily_cap", "ai_image_style", "ai_image_model",
         "seo_ai_business_type", "seo_ai_audience", "seo_ai_locations", "seo_ai_context"],
   banners: ["banner_enabled", "banner_default_path", "banner_solutions_path", "banner_products_path",
             "banner_services_path", "banner_industries_path", "banner_store_path", "banner_support_path",
