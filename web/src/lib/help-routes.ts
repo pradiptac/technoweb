@@ -14,7 +14,7 @@ export const HELP_ROUTES: { prefix: string; sections: string[] }[] = [
   { prefix: "/admin/profile", sections: ["17-users-and-roles#your-account", "17-users-and-roles#signing-in-codes-and-passwords"] },
 
   { prefix: "/admin/tickets", sections: ["08-tickets#the-ticket-queue", "08-tickets#saved-replies"] },
-  { prefix: "/admin/tickets/*", sections: ["08-tickets#working-a-ticket", "08-tickets#merging-tickets", "08-tickets#saved-replies"] },
+  { prefix: "/admin/tickets/*", sections: ["08-tickets#working-a-ticket", "08-tickets#merging-tickets", "08-tickets#saved-replies", "33-ai-writing#drafting-a-ticket-reply"] },
   { prefix: "/admin/tickets/settings", sections: ["08-tickets#email-to-ticket", "08-tickets#the-satisfaction-survey"] },
   { prefix: "/admin/tickets/canned-replies", sections: ["08-tickets#saved-replies"] },
   { prefix: "/admin/customers", sections: ["09-customers#the-approval-queue", "09-customers#account-statuses", "09-customers#managing-an-account"] },
@@ -86,6 +86,7 @@ export const HELP_ROUTES: { prefix: string; sections: string[] }[] = [
   { prefix: "/admin/messaging", sections: ["12-messaging#overview", "12-messaging#consent-comes-only-from-the-customer"] },
 
   { prefix: "/admin/seo", sections: ["13-seo#the-overview-and-the-three-scores", "13-seo#the-ai-seo-assistant"] },
+  { prefix: "/admin/seo/settings", sections: ["33-ai-writing#switching-it-on", "13-seo#the-ai-seo-assistant"] },
   { prefix: "/admin/redirects", sections: ["13-seo#redirects"] },
   { prefix: "/admin/not-found", sections: ["13-seo#missing-pages"] },
   { prefix: "/admin/media", sections: ["14-media#uploading", "14-media#working-with-a-file", "14-media#the-bin"] },

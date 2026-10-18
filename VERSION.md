@@ -21,6 +21,14 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.183.0 — 2026-10-18
+
+**AI writing everywhere** — writing help in every editor, on ticket replies, in newsletter campaigns and in the system emails.
+
+- Select some text, or none, press AI and choose Write, Rewrite, Shorten, Expand, Fix grammar or Change tone. The suggestion opens in a preview; nothing changes until you press Replace or Insert below.
+- On a ticket, "Draft a reply" writes a reply from what the customer can already see and the published knowledge base — never from internal notes or sensitive messages — for the engineer to edit and send.
+- A house style and words to avoid (SEO → Settings) keep every screen in one voice. Writing help has its own daily limit, so it cannot use up the SEO assistant's.
+
 ## 0.182.0 — 2026-10-18
 
 **Search by meaning** — the site search and the website assistant find pages by what they mean, not only by their words.

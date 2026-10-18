@@ -5799,6 +5799,88 @@ the SEO assistant's daily cap only when it is used.
 
 ---
 
+## Admin — writing help
+
+Write / Rewrite / Shorten / Expand / Fix grammar / Change tone on the words an
+editor types (0.183.0, `docs/ai-writing.md`). **Staff-wide, not role-gated** —
+the copilot's rule — and each surface narrows by role before any model is
+reached. **Nothing here writes to a record**: the answer is text for the
+console to preview and put in a field, and the record's own endpoint saves it.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/writing/status` | `{data: {available, reason, used, cap, tones[{value,label,blurb}], modes[{value,label,needs_brief}]}}`. `available` is false with the sentence in `reason` when AI help is off, has no key, writing's limit is 0 or the day's limit is reached. The console draws no control unless `available` |
+| `POST` | `/admin/writing` | One request, one answer. Throttled 20/min. Body below |
+| `POST` | `/admin/writing/subjects` | `campaign_id` (integer). Three subject lines for a **saved** campaign. `campaign_manager`. Throttled 20/min |
+
+**The body of `POST /admin/writing`:**
+
+| Field | Rule |
+|---|---|
+| `surface` | required: `summary`, `body`, `ticket_reply`, `campaign_block`, `email_template` |
+| `mode` | required: `write`, `rewrite`, `shorten`, `expand`, `grammar`, `tone` |
+| `tone` | `default` (the house style alone), `formal`, `friendly`, `plain`. `mode: tone` with `default` is refused |
+| `brief` | at most 600 characters. Required for `write` — except on a ticket reply, whose thread is the brief |
+| `input` | at most 60,000 characters. What to work on; required for every mode but `write`. A campaign block is JSON-encoded |
+| `ref` | object, per surface (below) |
+| `max` | 20–5,000; a summary's field length, the answer is cut to it at a word boundary (600 at most) |
+
+**Answers.** 200 `{data: {output, changed: true}}`, where `output` is plain text
+(`summary`, `ticket_reply`, an email subject), HTML already cleaned by
+`HtmlSanitiser` (`body`, an email body, a text block's `html` inside the JSON),
+or the block as JSON (`campaign_block`). `POST …/subjects` answers
+`{data: {subjects: [string, string, string]}}`. **A refusal is one sentence**,
+never the provider's words: `{message, errors: {writing: [message]}}` with 422
+(switched off, no key, limit reached, "The AI service did not answer. Try again
+shortly.", unreadable or unusable answer, the assistant changed or dropped
+something it was told to keep, **"The assistant suggested no change."**), 403
+(the surface is not this role's) or 404 (the record, ticket, campaign or email
+is not there). A validation error is the ordinary 422 `errors` keyed by field.
+**A run is counted only when `data` is returned.**
+
+**The surfaces:**
+
+| Surface | `ref` | Role | Returns |
+|---|---|---|---|
+| `body` | `{type, id?}` — `type` a morph alias the page history knows (`page`, `blog_post`, `knowledge_article`, `case_study`, `solution`, `service`, `product`, `store_product`, `event`, `job_opening`, `tender`, `landing_page`, `entry`); a given `id` must exist | that kind's owner (`Revisions::roleFor`: `content_manager`; `store_manager` for `store_product`; `seo_manager` for `landing_page`) | cleaned HTML, at most 40,000 characters |
+| `summary` | the same | the same | plain text |
+| `ticket_reply` | `{reference}` | `support_engineer` | plain text, at most 5,000 characters, `[Sn]` replaced by an article's title and public address |
+| `campaign_block` | `{campaign_id}`; `input` is the block as JSON, `type` of `heading`, `text`, `button` or `columns` | `campaign_manager` | the block as JSON, only its words changed |
+| `email_template` | `{key, field}` — `field` `subject` or `body` | `admin` | the subject (200 characters) or cleaned HTML |
+
+An administrator passes every gate. An alias outside the list is a 403.
+
+**What a body is.** The input HTML becomes numbered lines; links and pictures
+travel as `[Ln]`/`[Pn]` and stay server-side, tables, embeds, code and
+shortcode paragraphs are locked `[Kn]` and come back byte-identical, and every
+word the model writes is escaped before the markup is rebuilt. An answer that
+drops a link, a picture or a locked line is refused; an invented token is
+stripped. Alignment, underline, strike, sub/superscript, colours and h5/h6 are
+not carried through a rewrite.
+
+**Placeholders.** An input `{{name}}` must come back. A body drops an invented
+one; an email template refuses it (its allowed set is the catalogue's); a
+campaign heading, button or columns block refuses a dropped one.
+
+**A ticket reply** reads the subject, the description (not when the ticket is
+sensitive) and the latest 12 public messages (never an internal note, a
+sensitive message or an attachment), with emails and phone numbers masked, plus
+up to three published knowledge-base articles. A merged or closed ticket is a
+422 ("This ticket is closed, so there is nothing to reply to."). **An email
+template** that is one of the three locked messages (`verify_customer_email`,
+`reset_password`, `sign_in_code_issued`) is a 422.
+
+**The settings** are three rows in the private `seo` group, saved through
+`PATCH /admin/settings` (`role:admin`) and drawn on the SEO settings screen:
+`ai_writing_daily_cap` (a whole number 0–10,000, default 300, 0 switches
+writing off; a 422 on the row otherwise), `ai_writing_style` (at most 500
+characters) and `ai_writing_avoid` (one word or phrase per line, at most 50
+lines of 40 characters). The switch, key and model are the SEO assistant's
+(`seo_ai_enabled`, `openrouter_api_key`, `seo_ai_model`). None is on the public
+`/settings` map.
+
+---
+
 ## Admin — site health
 
 A worklist of broken links, out-of-date records and accessibility mistakes in

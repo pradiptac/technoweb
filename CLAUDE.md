@@ -170,6 +170,7 @@ Contents:
   - Ask ALTIS, the console copilot — `docs/copilot.md`
   - Site health — `docs/health.md`
   - Search by meaning — `docs/semantic-search.md`
+  - AI writing everywhere — `docs/ai-writing.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -3159,6 +3160,17 @@ The site search and the website assistant also find published content by meaning
 - A search reads one packed file (`SearchFile`, private disk) that **only queued work builds** (`RebuildSearchFile`, unique until processing, queued by every change — a deleted passage too); a visitor's request reads whatever file exists, stale or missing, and **scores it in place**, one vector unpacked at a time, keeping the best few. A **memory guard** skips meaning (warning hourly) unless the file × 3 + 16 MB fits under `memory_limit`. Cosine in PHP: **about 4,000 passages score under 300 ms; 20,000 take ~1.1 s** (measured 2026-10-18). `Semantic::match()` is the one entry point and answers `[]` (words only) when off, with no key or nothing embedded, for a phrase under 3 characters or a part number, past the daily cap, or when OpenRouter takes over 1.5 s or refuses — and then skips the call for 60 s (`BACKOFF_KEY`); the error row is written only when it changes. Off, `passages()` runs no query.
 - `/search` keeps every word hit in its place; meaning-only records follow within the group's five, checked against the published query before `total` counts them. A download's address is `/downloads?q=<title>` (`Download::publicPath()`). No passage text, score or vector reaches a visitor. The assistant adds up to four passages, inside the existing fence; the meaning lookup runs after the 5-minute retrieval cache, never inside it, so a failed lookup is never remembered.
 - Query vectors are cached 30 days per phrase **and model**; a cache miss counts against `semantic_search_daily_cap`.
+
+### AI writing everywhere — `docs/ai-writing.md`
+
+Write / Rewrite / Shorten / Expand / Fix grammar / Change tone on rich-text bodies, summary fields, ticket replies, newsletter campaign blocks and system email templates (0.183.0). Always a preview; nothing is written to a record until its own Save.
+
+- `App\Support\Writing\Writer` is the one implementation and `POST /admin/writing` the one endpoint (`GET writing/status`, `POST writing/subjects` beside it, all in `routes/api/admin-auth.php`, staff-wide); five `Surface` classes prepare context and limits and rebuild the answer, narrowed by role in the controller's surfaces (bodies and summaries by the record kind's owning role through `Revisions`, tickets `support_engineer`, campaigns `campaign_manager`, email templates `admin`). **A gate is `isAdmin() || hasRole(X)`** — `hasRole` does not pass an administrator.
+- A body is a numbered outline (`Outline`): links `[Ln]` and pictures `[Pn]` stay server-side and come back by number, tables/embeds/code/shortcode paragraphs are locked `[Kn]` lines returned byte-identical (a missing, repeated or moved one refuses the answer), an invented `[K9]`/`[S3]`/link/picture number is stripped, nested lists stay nested, and every word is escaped on rebuild — marks are applied to escaped words only — before `HtmlSanitiser`. Never trust model output as HTML.
+- A `{{placeholder}}` in the input must survive (repeats allowed); a body drops an invented one, an email template refuses it, and a campaign heading, button or columns block refuses a dropped one.
+- One switch (`seo_ai_enabled`), writing's **own** cap (`ai_writing_daily_cap`, counter `ai:writing:runs:<date>`), a house style and words to avoid sent outside the fence; a run is counted only when a result is returned. The three rows are drawn on SEO → Settings.
+- A ticket draft reads the latest 12 `publicMessages` only, skips sensitive messages, attachments and a sensitive ticket's description, masks emails, mobiles, landlines and 10-digit-plus runs (never references, IPs, dates or versions) — the engineer's own text included — refuses a closed or merged ticket, and cites only published KB articles by `[Sn]` (by meaning when it is on, else a word search). The three locked email messages are refused; an email is written one field at a time (`ref {key, field}`) and its placeholders are the catalogue's and no others.
+- The console's controls live in `web/src/components/admin/writing/`: one status fetch a page (`useWritingStatus`), a row *above* the field (`AiRow` — never inside a `Field` hint, which is its `aria-describedby`), the panel portalled to `document.body`, and a bubbling `input` after every apply so the leave guard and `FormDraft` hear it. The mock answers writing as unavailable. Known limits: a selection's Replace has never run in a browser, subject lines read the saved campaign, and the status is cached for the life of a page.
 
 ## Conventions
 

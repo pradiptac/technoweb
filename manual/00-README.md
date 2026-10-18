@@ -42,6 +42,7 @@ update. `config/` and `storage/` are yours: an update never touches them.
 | Asking the console a question | [30 — Ask ALTIS](30-ask-altis.md) |
 | Finding broken links and other things to fix | [31 — Site health](31-site-health.md) |
 | Letting search find pages by what they mean | [32 — Search by meaning](32-semantic-search.md) |
+| Getting help writing pages, replies and emails | [33 — Writing help](33-ai-writing.md) |
 
 ## The two addresses
 
