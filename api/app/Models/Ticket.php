@@ -175,7 +175,11 @@ class Ticket extends Model
         return $this->hasMany(TicketMessage::class)->orderBy('created_at');
     }
 
-    /** Messages a customer is allowed to see — internal notes excluded. */
+    /**
+     * Messages a customer is allowed to see — internal notes excluded.
+     *
+     * @return HasMany<TicketMessage, $this>
+     */
     public function publicMessages(): HasMany
     {
         return $this->messages()->where('is_internal', false);

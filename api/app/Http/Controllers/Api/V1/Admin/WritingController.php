@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Support\Writing\Surface;
 use App\Support\Writing\Surfaces\BodySurface;
 use App\Support\Writing\Surfaces\SummarySurface;
+use App\Support\Writing\Surfaces\TicketReplySurface;
 use App\Support\Writing\Writer;
 use App\Support\Writing\WritingInput;
 use App\Support\Writing\WritingSettings;
@@ -25,6 +26,7 @@ class WritingController extends Controller
     public const SURFACES = [
         'summary' => SummarySurface::class,
         'body' => BodySurface::class,
+        'ticket_reply' => TicketReplySurface::class,
     ];
 
     public function status(): JsonResponse
