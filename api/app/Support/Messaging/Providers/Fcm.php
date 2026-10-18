@@ -56,6 +56,12 @@ class Fcm extends Provider
         return $this->push($to, MailBrand::name().' test', self::TEST_BODY, null, null);
     }
 
+    /** A push with no template: the staff alerts' (docs/digest-alerts.md). */
+    public function pushTo(string $token, string $title, string $body, ?string $link): string
+    {
+        return $this->push($token, $title, $body, null, $link);
+    }
+
     private function push(string $token, string $title, string $body, ?string $image, ?string $link): string
     {
         try {

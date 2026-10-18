@@ -43,6 +43,7 @@ use App\Notifications\ReturnRequestReceived;
 use App\Notifications\ReturnStatusChanged;
 use App\Notifications\ReviewRequested;
 use App\Notifications\SignInCodeIssued;
+use App\Notifications\StaffAlerts;
 use App\Notifications\TicketAcknowledged;
 use App\Notifications\TicketCreated;
 use App\Notifications\TicketMerged;
@@ -1216,6 +1217,25 @@ IFSC HDFC0001234</pre><p>Quote <strong>ORD-2026-00117</strong> as the reference 
                     .'<p>{{reason}}</p>'
                     .'<p><a href="{{url}}">Open Backups</a></p>'
                     .'<p>Until a backup completes, the newest restorable copy is older than you expect.</p>',
+            ],
+
+            /*
+             * Digest and alerts (0.185.0, docs/digest-alerts.md): the things
+             * that need this staff member, one email per five-minute check.
+             */
+            'staff_alerts' => [
+                'label' => 'Alerts — to a staff member',
+                'description' => 'Sent when something a staff member looks after needs them: a critical ticket nobody has taken, a hot lead with no reply, a backup that failed. One email per check, listing every new alert.',
+                'audience' => self::INTERNAL,
+                'class' => StaffAlerts::class,
+                'variables' => [
+                    'name' => ['about' => 'The staff member’s name.', 'sample' => 'Priya Sharma'],
+                    'count' => ['about' => 'How many alerts are in this email.', 'sample' => '2'],
+                    'alerts' => self::details('The alerts, each a link to its record.', '<ul><li><a href="https://www.example.com/admin/tickets/TW-2026-00041">TW-2026-00041 is past its due time.</a></li></ul>'),
+                    'url' => ['about' => 'Where to choose which alerts arrive.', 'sample' => 'https://www.example.com/admin/profile'],
+                ],
+                'subject' => '{{count}} things need you',
+                'body' => '<p>Hello {{name}},</p>{{alerts}}<p><a href="{{url}}">Choose which alerts you get</a></p>',
             ],
 
             'block_lead_captured' => [
