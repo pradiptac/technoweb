@@ -549,6 +549,8 @@ const storeProducts = [
  * constants, because the mock proves the shape of the wire and not the
  * arithmetic. `words` is the vocabulary the asking is scored against.
  */
+const MOCK_WRITING_OFF = 'AI help is switched off. Turn it on in Settings → SEO defaults.';
+
 const MOCK_COPILOT = [
   { key: 'tickets_open', label: 'How many tickets are open?', words: 'ticket open outstanding queue support', figure: 7, sentence: '7 tickets are open.', href: '/admin/tickets?open=1' },
   { key: 'tickets_overdue', label: 'Which tickets are overdue?', words: 'ticket overdue late sla breached past due', figure: 2, sentence: '2 tickets are past their due time.', href: '/admin/tickets?overdue=1' },
@@ -6280,6 +6282,33 @@ createServer(async (req, res) => {
         matched: true, key: best.key, question: best.label, source: 'words',
         figure: best.figure, sentence: best.sentence, href: best.href, suggestions: [],
       } });
+    }
+    /*
+     * AI writing help (0.183.0). The mock is always "switched off", so every
+     * button renders nothing against it and the writing calls are refused in
+     * the API's own shape.
+     */
+    if (p === '/admin/writing/status') {
+      return json(res, 200, { data: {
+        available: false, reason: MOCK_WRITING_OFF, used: 0, cap: 300,
+        tones: [
+          { value: 'default', label: 'House style', blurb: 'The house style alone.' },
+          { value: 'formal', label: 'Formal', blurb: 'Measured and professional.' },
+          { value: 'friendly', label: 'Friendly', blurb: 'Warm and direct, still professional.' },
+          { value: 'plain', label: 'Plain', blurb: 'Short sentences and everyday words.' },
+        ],
+        modes: [
+          { value: 'write', label: 'Write', needs_brief: true },
+          { value: 'rewrite', label: 'Rewrite', needs_brief: false },
+          { value: 'shorten', label: 'Shorten', needs_brief: false },
+          { value: 'expand', label: 'Expand', needs_brief: false },
+          { value: 'grammar', label: 'Fix grammar', needs_brief: false },
+          { value: 'tone', label: 'Change tone', needs_brief: false },
+        ],
+      } });
+    }
+    if ((p === '/admin/writing' || p === '/admin/writing/subjects') && req.method === 'POST') {
+      return json(res, 422, { message: MOCK_WRITING_OFF, errors: { writing: [MOCK_WRITING_OFF] } });
     }
     if (p === '/admin/system/status') {
       return json(res, 200, { data: {
