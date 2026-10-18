@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Alert, Field, Select, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Prose } from "@/components/ui/prose";
-import { cn } from "@/lib/utils";
 import type { WritingModeKey, WritingStatus, WritingSurface, WritingToneKey } from "@/types/writing";
 
 const number = new Intl.NumberFormat("en-IN");
@@ -56,15 +55,20 @@ export function WritingPanel({
     }
   }
 
-  function apply(how: "replace" | "below") {
-    if (output === null) return;
-    onApply(output, how);
+  function close() {
     setOutput(null);
+    setError(null);
     onClose();
   }
 
+  function apply(how: "replace" | "below") {
+    if (output === null) return;
+    onApply(output, how);
+    close();
+  }
+
   return (
-    <Modal open={open} onClose={onClose} title="Writing help" size="side" dataAttr="writing-panel">
+    <Modal open={open} onClose={close} title="Writing help" size="side" dataAttr="writing-panel">
       <div className="grid gap-4">
         <div className="flex flex-wrap gap-2" role="group" aria-label="What to do">
           {offered.map((m) => (
@@ -74,7 +78,7 @@ export function WritingPanel({
               size="sm"
               variant={m.value === mode ? "primary" : "secondary"}
               aria-pressed={m.value === mode}
-              onClick={() => setMode(m.value)}
+              onClick={() => { setMode(m.value); setOutput(null); setError(null); }}
             >
               {m.value === "write" && draftLabel ? draftLabel : m.label}
             </Button>
@@ -96,7 +100,7 @@ export function WritingPanel({
         )}
 
         <div>
-          <Button type="button" pending={pending} onClick={suggest}>Suggest</Button>
+          <Button type="button" pending={pending} disabled={mode === "tone" && tone === "default"} onClick={suggest}>Suggest</Button>
         </div>
 
         {error && <Alert tone="err" title="Writing help could not do that" dismissible={false}>{error}</Alert>}
@@ -106,7 +110,7 @@ export function WritingPanel({
             {html ? (
               <Prose html={output} className="rounded-lg border border-line bg-card p-3" />
             ) : (
-              <p className={cn("whitespace-pre-wrap [overflow-wrap:anywhere] rounded-lg border border-line bg-card p-3 text-14 text-ink")}>{output}</p>
+              <p className="whitespace-pre-wrap [overflow-wrap:anywhere] rounded-lg border border-line bg-card p-3 text-14 text-ink">{output}</p>
             )}
             {output.includes("[CHECK:") && (
               <Alert tone="warn" title="Unchecked facts" dismissible={false}>Check every [CHECK: …] before you save or send.</Alert>

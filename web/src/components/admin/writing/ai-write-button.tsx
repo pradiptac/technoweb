@@ -14,9 +14,10 @@ export function useWritingStatus(): WritingStatus | null {
   const [status, setStatus] = useState<WritingStatus | null>(null);
 
   useEffect(() => {
-    pending ??= writingStatusAction();
+    pending ??= writingStatusAction().catch(() => null);
     let live = true;
     void pending.then((s) => {
+      if (!s) pending = null; // a failed read is retried by the next mount
       if (live) setStatus(s?.available ? s : null);
     });
     return () => {
