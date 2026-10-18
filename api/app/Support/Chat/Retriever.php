@@ -18,6 +18,8 @@ use App\Models\Tender;
 use App\Support\Events\EventText;
 use App\Support\HtmlSanitiser;
 use App\Support\MediaUrl;
+use App\Support\Search\Indexable;
+use App\Support\Search\Semantic;
 use App\Support\Store\Tax;
 use App\Support\Tenders\TenderText;
 use Illuminate\Database\Eloquent\Builder;
@@ -71,7 +73,7 @@ class Retriever
         $terms = self::terms($question);
 
         if ($terms === []) {
-            return [];
+            return self::meaning($question);
         }
 
         // The most distinctive word, for ranking an exact part number first.
@@ -129,7 +131,60 @@ class Retriever
             $editorial,
         );
 
-        return array_slice(array_merge(...$groups), 0, self::MAX_RECORDS);
+        $words = array_slice(array_merge(...$groups), 0, self::MAX_RECORDS);
+        $seen = array_column($words, 'url');
+
+        // Meaning is asked of the whole question, outside the cache keyed on terms: two phrasings
+        // share terms and not meaning, and a failed embedding must never be remembered.
+        // It adds at most four beyond the word cap, never a page the words already carry.
+        $meaning = array_filter(self::meaning($question), fn (array $m) => ! in_array($m['url'], $seen, true));
+
+        return array_merge($words, array_values($meaning));
+    }
+
+    /**
+     * Up to four passages that answer the question by meaning (docs/semantic-search.md).
+     * Empty when meaning is off or cannot help — and a failure here never breaks the assistant.
+     *
+     * @return array<int, array{type: string, label: string, title: string, excerpt: string, url: string, meta: array<string, mixed>}>
+     */
+    private static function meaning(string $question): array
+    {
+        try {
+            $out = [];
+            foreach (Semantic::passages($question, Indexable::aliases(), 8) as $hit) {
+                $class = Indexable::classFor($hit['subject_type']);
+                $record = $class ? $class::find($hit['subject_id']) : null;
+
+                if ($record === null || ! method_exists($record, 'publicPath') || ! Indexable::isIndexed($record)) {
+                    continue;
+                }
+
+                $url = $record->publicPath();
+                if (isset($out[$url])) {
+                    continue;
+                }
+
+                $out[$url] = [
+                    'type' => $hit['subject_type'],
+                    'label' => Indexable::label($hit['subject_type']),
+                    'title' => Indexable::title($record),
+                    'excerpt' => Str::limit($hit['text'], 597),
+                    'url' => $url,
+                    'meta' => [],
+                ];
+
+                if (count($out) === 4) {
+                    break;
+                }
+            }
+
+            return array_values($out);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [];
+        }
     }
 
     /**

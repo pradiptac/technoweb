@@ -198,6 +198,7 @@ Keys for outside services used by several modules:
 | Hunter.io API key | Newsletter address checking (chapter 11) |
 | Search Console service account and property | The SEO overview (chapter 13) |
 | Google Analytics 4 property ID | The SEO overview and the shop's overview (chapter 13) |
+| Search by meaning (not a key, but it spends the OpenRouter key) | The site search and the website assistant find pages by what they mean (chapter 32) |
 
 Each key has a test button that proves it works and reports any refusal in
 the provider's own words. They test the **saved** value, so save first.

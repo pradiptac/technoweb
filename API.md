@@ -5877,6 +5877,44 @@ falls back to that kind's default (18 months for pages, solutions, services,
 products and shop products; 12 for knowledge articles, landing pages and
 events; never for the rest). None of it is on the public `/settings` map.
 
+## Admin — search by meaning (`role:admin`)
+
+The site search and the website assistant also find published content by what
+it means (0.182.0, `docs/semantic-search.md`). Off by default; switched off,
+every route below still answers and nothing else changes.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/search/semantic` | `{data: {enabled, model, passages: {total, embedded, waiting}, today: {phrases, cap}, error, last_index_at, indexing}}`. `embedded` counts passages of the **current** model; `waiting` those with no vector yet. `today.phrases` is the new phrases embedded today (a repeat phrase is free), `cap` the daily cap. `error` is OpenRouter's last refusal in its own words, or null. `last_index_at` is an ISO 8601 time or null; `indexing` is true while an index run holds its flag |
+| `POST` | `/admin/search/semantic/test` | One short real embedding through the **saved** key and model. 200 `{data: {model, dimensions}}`; **422** (`message`, `errors.model`) with OpenRouter's own words when it refuses or does not answer in 15 s, or "Save an OpenRouter API key first." Throttled 6/min |
+| `POST` | `/admin/search/semantic/reindex` | Queues `IndexSearch` (a sliced job). **202** `{message}`. **422** (`errors.semantic`) while switched off ("Switch search by meaning on first.") or while a run holds its flag ("Indexing is already running — it will finish on its own."); the flag lasts up to five minutes if nothing drains the queue. Throttled 2/min |
+
+**`/search` and the chat retrieval gain meaning results with no shape change.**
+`GET /search?q=` keeps every word hit where it was; records found only by
+meaning follow them within a group's five, and `data.total` counts them. A part
+number, a phrase under three characters, a day past the cap, a slow or refused
+OpenRouter call and a switched-off feature all answer exactly the word search.
+No passage text, score or vector is in any public response. The chat assistant
+adds up to four passages inside its existing fenced context.
+
+**The settings** are the private `semantic_search` group, saved through
+`PATCH /admin/settings` (`role:admin`) and drawn on Settings → Infrastructure:
+`semantic_search_enabled` (`0`/`1`, off), `semantic_search_model` (an OpenRouter
+id by shape, default `openai/text-embedding-3-small` — a 422 on the row
+otherwise; "Test this model" is the real proof, since OpenRouter's model list
+does not carry embedding models), `semantic_search_daily_cap` (a whole number,
+0–100,000, default 2,000) and `semantic_search_floor` (0–1, default 0.35; not
+drawn on the form). `semantic_search_error` is written by a refused call and
+cleared by a good one. None is on the public `/settings` map.
+
+**What a save does.** Switching it on queues the first index; changing the model
+marks every passage waiting and queues the index (vectors of two models are not
+comparable). Saving a record of an indexed kind queues that record's passages
+after commit; deleting it removes them at once, unpublishing it when that
+queued job runs. Editing or deleting an FAQ or an answer block queues its
+owner's passages the same way.
+`technoware:index-search` runs nightly at 03:10 and catches what a save missed.
+
 ## Admin — staff (`role:admin`)
 
 | Method | Path | Notes |

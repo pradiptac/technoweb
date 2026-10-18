@@ -25,6 +25,7 @@ final class UpgradeSteps
         Steps\SeedStarterTemplates::class,
         Steps\PricesIncludeGst::class,
         Steps\FirstHealthSweep::class,
+        Steps\FirstSearchIndex::class,
     ];
 
     /** @return list<UpgradeStep> */

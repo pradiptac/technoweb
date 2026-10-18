@@ -9,6 +9,7 @@ use App\Enums\MailTransport;
 use App\Enums\MessageChannel;
 use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
+use App\Jobs\IndexSearch;
 use App\Models\ContentBlock;
 use App\Models\Coupon;
 use App\Models\GoogleFont;
@@ -32,6 +33,8 @@ use App\Support\Messaging\ProviderOption;
 use App\Support\Messaging\Providers\Fcm;
 use App\Support\Messaging\Providers\GoogleRbm;
 use App\Support\Net\PublicHost;
+use App\Support\Search\Indexer;
+use App\Support\Search\SemanticSettings;
 use App\Support\Seo\GoogleServiceAccount;
 use App\Support\Store\CartReminders;
 use App\Support\Store\Fulfilment;
@@ -592,6 +595,9 @@ class SettingController extends Controller
             }
         }
 
+        $wasSearchOn = SemanticSettings::enabled();
+        $wasSearchModel = SemanticSettings::model();
+
         DB::transaction(function () use ($validated, $existing) {
             foreach ($validated['settings'] as $row) {
                 $setting = $existing->get($row['key']);
@@ -630,6 +636,16 @@ class SettingController extends Controller
         });
 
         cache()->forget('settings.all');
+        Setting::flushCache();
+
+        // Search by meaning: a new model means every vector is of the wrong kind; switching it on means a first index.
+        $modelChanged = SemanticSettings::model() !== $wasSearchModel;
+        if ($modelChanged) {
+            Indexer::markAllWaiting();
+        }
+        if ($modelChanged || (! $wasSearchOn && SemanticSettings::enabled())) {
+            IndexSearch::dispatch();
+        }
 
         return response()->json(['message' => 'Settings saved.']);
     }
@@ -1302,7 +1318,9 @@ class SettingController extends Controller
                 // And the `shiprocket` group's (0.143.0, docs/store.md "Shiprocket").
                 ?? CourierSettings::refusalFor($key, $row['value'] ?? null)
                 // And the `health` group's stale thresholds (0.181.0, docs/health.md).
-                ?? HealthSettings::refusalFor($key, $row['value'] ?? null);
+                ?? HealthSettings::refusalFor($key, $row['value'] ?? null)
+                // And the `semantic_search` group's (0.182.0, docs/semantic-search.md).
+                ?? SemanticSettings::refusalFor($key, $row['value'] ?? null);
 
             if ($refusal !== null) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);

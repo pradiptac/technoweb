@@ -189,9 +189,11 @@ class OpenRouterProvider implements AiProvider
      * the customer and never as the product. A header value cannot hold a
      * line break, and a company name is something a person typed.
      *
+     * Public for the embeddings call (docs/semantic-search.md), which must send the same attribution.
+     *
      * @return array<string, string>
      */
-    private static function attribution(): array
+    public static function attribution(): array
     {
         $title = trim((string) Setting::get('company_name', ''));
         $title = $title !== '' ? $title : (string) config('app.name');

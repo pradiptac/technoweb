@@ -21,6 +21,14 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.182.0 — 2026-10-18
+
+**Search by meaning** — the site search and the website assistant find pages by what they mean, not only by their words.
+
+- Somebody searching "network keeps dropping" finds the Wi-Fi troubleshooting article and the managed-switches page, although neither uses those words. A part number or an exact title still comes first.
+- The assistant answers more questions from the website, so fewer land on the unanswered list.
+- Off until switched on, under Settings → Infrastructure → Search by meaning, with the OpenRouter key already saved on the API keys tab. Each new search phrase costs one small request; the same phrase is free for 30 days, and a daily cap keeps the cost bounded. If the service is slow or switched off, search works exactly as before.
+
 ## 0.181.0 — 2026-10-17
 
 **Site health** — a list of what needs fixing in what you have written, each with a button that opens the right place.

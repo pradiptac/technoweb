@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\IntegrationsController;
 use App\Http\Controllers\Api\V1\Admin\MailController;
 use App\Http\Controllers\Api\V1\Admin\MediaCdnController;
 use App\Http\Controllers\Api\V1\Admin\MessagingSettingsController;
+use App\Http\Controllers\Api\V1\Admin\SemanticSearchController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\Admin\SiteImportController;
 use App\Http\Controllers\Api\V1\Admin\SupportCentreController as AdminSupportCentreController;
@@ -26,6 +27,11 @@ use Illuminate\Support\Facades\Route;
  * admin group by routes/api.php.
  */
 Route::middleware('role:admin')->group(function () {
+    // Search by meaning's console (0.182.0, docs/semantic-search.md): status, Test this model, Re-index now.
+    Route::get('search/semantic', [SemanticSearchController::class, 'show'])->name('search.semantic.show');
+    Route::post('search/semantic/test', [SemanticSearchController::class, 'test'])->middleware('throttle:6,1')->name('search.semantic.test');
+    Route::post('search/semantic/reindex', [SemanticSearchController::class, 'reindex'])->middleware('throttle:2,1')->name('search.semantic.reindex');
+
     /*
      * Read-only, and deliberately so. No store, no update, no destroy:
      * the only thing that removes a row is the scheduled retention

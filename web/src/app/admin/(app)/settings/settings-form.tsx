@@ -22,6 +22,7 @@ import { PaymentsPanel } from "./payments-panel";
 import { BannersPanel } from "./banners-panel";
 import { HunterTest } from "./hunter-test";
 import { OpenRouterTest } from "./openrouter-test";
+import { SemanticSearchPanel } from "./semantic-search-panel";
 import { GscTest } from "./gsc-test";
 import { Ga4Test } from "./ga4-test";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
@@ -530,6 +531,9 @@ function GroupPanel({
           own: the generic rows draw a key correctly, and what was
           missing was a way to prove it works.
         */}
+        {/* Search by meaning: what is indexed, today's phrases against the cap, the last refusal, Test and Re-index. */}
+        {group === "semantic_search" && <SemanticSearchPanel />}
+
         {/* The media CDN: prove the saved address before switching it on. */}
         {group === "media_cdn" && <MediaCdnTest configured={Boolean(rows.find((r) => r.key === "media_cdn_url")?.value)} />}
 

@@ -162,4 +162,10 @@ class Download extends Model
     {
         return "/admin/downloads/{$this->id}";
     }
+
+    /** A download has no page of its own: its address is the centre searched for it, as the site search links it. */
+    public function publicPath(): string
+    {
+        return '/downloads?q='.rawurlencode((string) $this->title);
+    }
 }

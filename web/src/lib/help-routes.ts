@@ -95,7 +95,7 @@ export const HELP_ROUTES: { prefix: string; sections: string[] }[] = [
   { prefix: "/admin/themes", sections: ["15-appearance#site-themes", "15-appearance#colour-palette-and-fonts"] },
   { prefix: "/admin/site", sections: ["15-appearance#site-themes"] },
   { prefix: "/admin/info-bar", sections: ["15-appearance#the-info-bar"] },
-  { prefix: "/admin/settings", sections: ["18-settings#general", "18-settings#contact", "18-settings#homepage"] },
+  { prefix: "/admin/settings", sections: ["18-settings#general", "18-settings#contact", "18-settings#homepage", "32-semantic-search#switching-it-on"] },
   { prefix: "/admin/settings/email-templates", sections: ["18-settings#email-templates"] },
   { prefix: "/admin/webhooks", sections: ["18-settings#webhooks"] },
   { prefix: "/admin/users", sections: ["17-users-and-roles#managing-staff", "17-users-and-roles#the-roles"] },

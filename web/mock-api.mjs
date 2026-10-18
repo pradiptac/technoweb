@@ -4988,6 +4988,12 @@ createServer(async (req, res) => {
         finding(3, 'error', 'image_no_alt', 'accessibility', 'The picture media/hero.jpg has no description for screen readers.', 'solution', 'Solutions', 3, 'Networking', 'hero_image_path', 'Cover picture', '/admin/solutions/3'),
       ];
       const opts = (m) => Object.entries(m).map(([value, label]) => ({ value, label }));
+      /* Search by meaning (0.182.0): the panel's status, Test this model and Re-index now. */
+      if (p === '/admin/search/semantic' && req.method === 'GET') {
+        return json(res, 200, { data: { enabled: true, model: 'openai/text-embedding-3-small', passages: { total: 412, embedded: 396, waiting: 16 }, today: { phrases: 37, cap: 2000 }, error: null, last_index_at: '2026-10-17T02:50:00+05:30', indexing: false } });
+      }
+      if (p === '/admin/search/semantic/test' && req.method === 'POST') return json(res, 200, { data: { model: 'openai/text-embedding-3-small', dimensions: 512 } });
+      if (p === '/admin/search/semantic/reindex' && req.method === 'POST') return json(res, 202, { message: 'Indexing has started. It runs in the background.' });
       if (p === '/admin/health' && req.method === 'GET') {
         const ignored = url.searchParams.get('ignored') === '1';
         const group = url.searchParams.get('group');
@@ -5583,6 +5589,13 @@ createServer(async (req, res) => {
           /* HealthSettings::STALE_DEFAULTS */
           ...Object.entries({ page: 18, solution: 18, service: 18, product: 18, store_product: 18, knowledge_article: 12, landing_page: 12, event: 12, blog_post: 0, case_study: 0, tender: 0, job_opening: 0, entry: 0 })
             .map(([k, months]) => s(`health_stale_${k}`, String(months), { group: 'health' })),
+        ],
+        /* Search by meaning (0.182.0): the switch, the model and the daily cap; the floor and the error are hidden rows. */
+        semantic_search: [
+          s('semantic_search_enabled', '0', { group: 'semantic_search', type: 'boolean' }),
+          s('semantic_search_model', 'openai/text-embedding-3-small', { group: 'semantic_search' }),
+          s('semantic_search_daily_cap', '2000', { group: 'semantic_search' }),
+          s('semantic_search_floor', '0.35', { group: 'semantic_search' }), s('semantic_search_error', null, { group: 'semantic_search' }),
         ],
         auth: [s('otp_login_enabled', '1'), s('otp_admin_login_enabled', '1'), s('password_login_enabled', '1')],
         mail: [

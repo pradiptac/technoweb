@@ -256,6 +256,19 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "The most one person may register for at once, 1 to 20 — what a new event starts with. Each event can set its own on its Registration tab.",
     placeholder: "5",
   },
+  /* Semantic search (0.182.0, docs/semantic-search.md). */
+  semantic_search_enabled: {
+    label: "Search by meaning",
+    hint: "The site search and the website assistant also find pages by what they mean, not only by their words. Uses the OpenRouter key above. Off: nothing is sent and search works as before.",
+  },
+  semantic_search_model: {
+    label: "Model for search by meaning",
+    hint: "An OpenRouter embedding model, for example openai/text-embedding-3-small. Changing it starts re-indexing every page at once, in the background.",
+  },
+  semantic_search_daily_cap: {
+    label: "New search phrases a day",
+    hint: "Each new phrase a visitor types costs one small request; the same phrase again costs nothing for 30 days. Past this number, search uses words only until tomorrow.",
+  },
   /* The site health centre (0.181.0, docs/health.md). */
   health_external_links: {
     label: "Check links to other websites",
@@ -1088,6 +1101,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Events",
     blurb: "What every event shares: where a new registration is announced, when the reminder goes out, and how many seats one registration may take unless the event says otherwise. The wording of each email is under System → Email templates.",
   },
+  semantic_search: {
+    title: "Search by meaning",
+    blurb: "Whether the site search and the website assistant also find pages by what they mean, which embedding model reads them, and how many new search phrases a day may be sent to it. Switched off, search works on words alone and nothing leaves the server.",
+  },
   health: {
     title: "Site health",
     blurb: "Whether links to other websites are checked, and how long each kind of record may go without an edit before Site health lists it as out of date. Zero means never.",
@@ -1312,6 +1329,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
   visits: ["visits_enabled", "visit_windows", "visit_days", "visit_min_notice_days", "visit_max_days", "visit_holidays",
            "visits_email", "visit_default_minutes"],
   events: ["events_email", "event_reminder_hours", "event_max_seats"],
+  semantic_search: ["semantic_search_enabled", "semantic_search_model", "semantic_search_daily_cap", "semantic_search_floor", "semantic_search_error"],
   health: ["health_external_links", "health_stale_page", "health_stale_solution", "health_stale_service", "health_stale_product",
            "health_stale_store_product", "health_stale_knowledge_article", "health_stale_landing_page", "health_stale_event",
            "health_stale_blog_post", "health_stale_case_study", "health_stale_tender", "health_stale_job_opening", "health_stale_entry"],
@@ -1335,6 +1353,8 @@ export const FIELD_ORDER: Record<string, string[]> = {
  * "correct"; the Verification screen is where they are read.
  */
 export const HIDDEN = new Set([
+  // Semantic search: the floor is tuned, not chosen; the error is written by the system and shown by the panel.
+  "semantic_search_floor", "semantic_search_error",
   // Delivery charges: the mode and the default weight are written from /admin/store/shipping,
   // which refuses "zones" until a default zone with a slab exists (0.142.0).
   "store_shipping_mode", "store_default_weight_grams",
@@ -1440,7 +1460,7 @@ export const SCREENS: SettingsScreen[] = [
         one provider, so it cannot be half-rotated — which is why it is not
         filed under SEO or the assistant.
       */
-      { label: "Infrastructure", groups: ["mail", "integrations"] },
+      { label: "Infrastructure", groups: ["mail", "integrations", "semantic_search"] },
       { label: "Privacy", groups: ["security"] },
     ],
   },
