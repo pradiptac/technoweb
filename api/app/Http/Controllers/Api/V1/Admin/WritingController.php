@@ -6,6 +6,7 @@ use App\Enums\WritingMode;
 use App\Enums\WritingTone;
 use App\Http\Controllers\Controller;
 use App\Support\Writing\Surface;
+use App\Support\Writing\Surfaces\BodySurface;
 use App\Support\Writing\Surfaces\SummarySurface;
 use App\Support\Writing\Writer;
 use App\Support\Writing\WritingInput;
@@ -23,6 +24,7 @@ class WritingController extends Controller
     /** @var array<string, class-string<Surface>> */
     public const SURFACES = [
         'summary' => SummarySurface::class,
+        'body' => BodySurface::class,
     ];
 
     public function status(): JsonResponse
