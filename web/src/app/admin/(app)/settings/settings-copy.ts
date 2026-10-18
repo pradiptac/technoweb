@@ -1269,7 +1269,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
   motion: ["motion_reveal", "motion_buttons", "motion_cards", "motion_headline", "motion_micro", "motion_page", "motion_loader", "motion_progress",
            "motion_splash", "motion_hero"],
   seo: ["default_meta_description", "default_og_image", "landing_page_cap",
-        "seo_ai_enabled", "seo_ai_daily_cap",
+        "seo_ai_enabled", "seo_ai_daily_cap", "ai_writing_daily_cap", "ai_writing_style", "ai_writing_avoid",
         "seo_ai_business_type", "seo_ai_audience", "seo_ai_locations", "seo_ai_context"],
   banners: ["banner_enabled", "banner_default_path", "banner_solutions_path", "banner_products_path",
             "banner_services_path", "banner_industries_path", "banner_store_path", "banner_support_path",
