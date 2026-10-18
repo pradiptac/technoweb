@@ -5931,6 +5931,91 @@ public `/settings` map.
 
 ---
 
+## Admin — digest and alerts
+
+A digest of the copilot's figures, sent daily or weekly. Alerts tell somebody once
+that something needs them (0.185.0, `docs/digest-alerts.md`). The routes are
+**staff-wide, not role-gated**, and each person chooses their own. An administrator
+may read and change anybody's choices through `?user=<id>`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/notifications/preferences` | The caller's choices, or with `?user=<id>` an administrator's view of somebody else's. Anybody else gets a **403** for `?user=` naming another person; an unknown id is a 404 |
+| `PATCH` | `/admin/notifications/preferences` | The `data` fields below, each optional, with the same `?user=` rule. The first save writes the row. Answers the same shape |
+| `POST` | `/admin/notifications/digest/send` | Sends the caller's digest now. **202** `{message}`. Throttled 6/min. Does not touch `last_digest_at` or the stored figures, so the scheduled digest still arrives and still compares with the last scheduled one |
+| `POST` | `/admin/notifications/alerts/test` | Sends the caller one test alert by email and push, ignoring quiet hours. **202** `{message}`. Throttled 6/min |
+| `POST` | `/admin/push/subscribe` | `token` (an FCM registration token, 20–512 characters). Stores this browser for the caller's alerts; the same token again re-points and refreshes it. 200 `{data: {id, label, last_seen_at, failed}}`. `label` reads like "Chrome on Windows" and never holds the whole agent string. **422 on `token`** while browser push is not set up. Throttled 20/min |
+| `DELETE` | `/admin/push/{id}` | Removes one of the caller's own browsers. **204**; a browser that is not yours is a **404** |
+
+**The answer** to `GET` and `PATCH`:
+
+```
+{data: {digest, digest_hour, digest_weekday, digest_skip_quiet, alerts: {<rule>: bool},
+        alert_email, alert_push, quiet_start, quiet_end, last_digest_at},
+ meta: {user: {id, name}, self: bool,
+        rules: [{key, label, threshold_label, site_enabled}],
+        push_live: bool, browsers: [{id, label, last_seen_at, failed: bool}],
+        digests: [{value, label}]}}
+```
+
+**The fields:**
+
+- `digest`: `off`, `daily` or `weekly`.
+- `digest_hour`: 0–23, in the site's timezone.
+- `digest_weekday`: 1–7, Monday first; used only for a weekly digest.
+- `digest_skip_quiet`: boolean; set, a digest with every figure zero is not sent.
+- `alerts`: a map from rule key to boolean, merged into what is stored. A missing key means on. A key outside the rules this person's roles hold is a **422 on `alerts`**.
+- `alert_email` and `alert_push`: booleans.
+- `quiet_start` and `quiet_end`: `HH:MM`, outside which push alerts wait. Quiet hours may cross midnight; equal times mean never quiet. Email is never held back.
+
+Until someone saves, the answer is the defaults: the site's `alerts_default_digest` at 08:00 on Mondays, every alert on, email and push on, and quiet hours 21:00–08:00.
+
+**The rules:**
+
+- `meta.rules` is only the rules this person holds, in the console's order.
+- `threshold_label` is the API's words, e.g. "after 30 minutes".
+- `site_enabled` is false when an administrator has switched the rule off for the whole site.
+
+**The eight rules:**
+
+| Key | Who gets it |
+|---|---|
+| `ticket_critical_unassigned` | Support |
+| `ticket_overdue` | Support |
+| `lead_hot_untouched` | Sales |
+| `order_not_dispatched` | Store |
+| `return_waiting` | Store |
+| `mail_stalled` | Administrators |
+| `backup_failed` | Administrators |
+| `health_drop` | Administrators |
+
+An administrator holds every rule. Each fires once per thing until that thing clears, and a check's new alerts arrive in one email and one push.
+
+**The settings** are the private `alerts` group, saved through `PATCH /admin/settings` (`role:admin`):
+
+- **`alerts_default_digest`**: `off`, `daily` or `weekly`; default `weekly`; offered as `options`. Anything else is a 422 on the row.
+- **`alert_<rule>_enabled`**: one switch for each of the eight keys, all on.
+- **The six thresholds**, each a whole number, with anything outside its range a 422 on the row ("A whole number from {min} to {max}."):
+
+| Key | Default | Range |
+|---|---|---|
+| `alert_ticket_critical_minutes` | 30 | 5–1,440 |
+| `alert_lead_hot_hours` | 2 | 1–168 |
+| `alert_order_dispatch_days` | 2 | 1–30 |
+| `alert_return_days` | 2 | 1–30 |
+| `alert_mail_minutes` | 10 | 5–1,440 |
+| `alert_health_points` | 10 | 1–100 |
+
+None of these settings is on the public `/settings` map.
+
+**The commands** are the scheduler's:
+
+- `technoware:check-alerts` runs every five minutes.
+- `technoware:send-digests` runs hourly at :05 and sends each person's digest at their hour, once a day.
+- `technoware:prune-alert-fires` runs at 03:25 and deletes alert records that cleared more than 30 days ago.
+
+---
+
 ## Admin — site health
 
 A worklist of broken links, out-of-date records and accessibility mistakes in
@@ -6208,6 +6293,8 @@ failure to queue it never fails the request.
 | `technoware:remind-events` | Each confirmed registrant, once | `EventReminder` |
 | a stock movement fills a saved shelf | The wishlist holder, once, inside the quiet hours | `WishlistBackInStock` |
 | a saved product's price falls far enough | The wishlist holder, once per drop, inside the quiet hours | `WishlistPriceDrop` |
+| `technoware:check-alerts` finds something new | Each staff member it concerns, one email per check (and push outside their quiet hours) | `StaffAlerts` |
+| `technoware:send-digests`, at the person's hour | The staff member, daily or weekly | `StaffDigest` |
 
 **A send failure never fails the request.** `App\Support\Notifier` logs and
 swallows: a committed ticket must still answer 201 when mail is down.

@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\CopilotController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
+use App\Http\Controllers\Api\V1\Admin\NotificationsController;
 use App\Http\Controllers\Api\V1\Admin\SearchController;
+use App\Http\Controllers\Api\V1\Admin\StaffPushController;
 use App\Http\Controllers\Api\V1\Admin\WritingController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +49,17 @@ Route::post('copilot/ask', [CopilotController::class, 'ask'])
 Route::get('writing/status', [WritingController::class, 'status'])->name('writing.status');
 Route::post('writing', [WritingController::class, 'write'])->middleware('throttle:20,1')->name('writing.write');
 Route::post('writing/subjects', [WritingController::class, 'subjects'])->middleware('throttle:20,1')->name('writing.subjects');
+
+/*
+ * Digest and alerts (0.185.0, docs/digest-alerts.md). Staff-wide: everybody
+ * chooses their own; the controller lets an administrator address anybody.
+ */
+Route::get('notifications/preferences', [NotificationsController::class, 'show'])->name('notifications.show');
+Route::patch('notifications/preferences', [NotificationsController::class, 'update'])->name('notifications.update');
+Route::post('notifications/digest/send', [NotificationsController::class, 'sendDigest'])->middleware('throttle:6,1')->name('notifications.digest');
+Route::post('notifications/alerts/test', [NotificationsController::class, 'testAlert'])->middleware('throttle:6,1')->name('notifications.test');
+Route::post('push/subscribe', [StaffPushController::class, 'subscribe'])->middleware('throttle:20,1')->name('push.subscribe');
+Route::delete('push/{id}', [StaffPushController::class, 'destroy'])->whereNumber('id')->name('push.destroy');
 
 // Outside every role: a support engineer must be able to change
 // their own password without asking an administrator to do it for
