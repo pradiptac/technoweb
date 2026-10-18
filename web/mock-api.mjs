@@ -6310,6 +6310,32 @@ createServer(async (req, res) => {
     if ((p === '/admin/writing' || p === '/admin/writing/subjects') && req.method === 'POST') {
       return json(res, 422, { message: MOCK_WRITING_OFF, errors: { writing: [MOCK_WRITING_OFF] } });
     }
+    /* Digest and alerts (0.185.0): the defaults, push not set up, no browsers. */
+    if (p === '/admin/notifications/preferences' && (req.method === 'GET' || req.method === 'PATCH')) {
+      const sent = req.method === 'PATCH' ? await readJsonBody(req) : {};
+      const data = {
+        digest: 'weekly', digest_hour: 8, digest_weekday: 1, digest_skip_quiet: false,
+        alert_email: true, alert_push: true, quiet_start: '21:00', quiet_end: '08:00', last_digest_at: null,
+        ...sent,
+        alerts: { ticket_critical_unassigned: true, ticket_overdue: true, ...(sent.alerts ?? {}) },
+      };
+      return json(res, 200, { data, meta: {
+        user: { id: 1, name: 'Mock Admin' }, self: true,
+        rules: [
+          { key: 'ticket_critical_unassigned', label: 'A critical ticket nobody has taken', threshold_label: 'after 30 minutes', site_enabled: true },
+          { key: 'ticket_overdue', label: 'A ticket past its due time', threshold_label: null, site_enabled: true },
+        ],
+        push_live: false, browsers: [],
+        digests: [{ value: 'off', label: 'Off' }, { value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }],
+      } });
+    }
+    if ((p === '/admin/notifications/digest/send' || p === '/admin/notifications/alerts/test') && req.method === 'POST') {
+      return json(res, 202, { message: p.endsWith('send') ? 'Your digest is on its way.' : 'A test alert is on its way.' });
+    }
+    if (p === '/admin/push/subscribe' && req.method === 'POST') {
+      const m = 'Browser notifications are not set up on this site.';
+      return json(res, 422, { message: m, errors: { token: [m] } });
+    }
     /* AI images (0.184.0): "switched off" too, so no tab is drawn against the mock. */
     if (p === '/admin/media/ai-image/status') {
       return json(res, 200, { data: {

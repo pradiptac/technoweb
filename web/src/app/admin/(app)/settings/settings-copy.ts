@@ -293,6 +293,22 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "New search phrases a day",
     hint: "Each new phrase a visitor types costs one small request; the same phrase again costs nothing for 30 days. Past this number, search uses words only until tomorrow.",
   },
+  /* Digest and alerts (0.185.0, docs/digest-alerts.md). Each person chooses their own on their profile. */
+  alerts_default_digest: { label: "Digest for new staff", hint: "What a staff member who has never chosen gets: off, a daily digest, or a weekly one on Monday mornings." },
+  alert_ticket_critical_unassigned_enabled: { label: "Alert: a critical ticket nobody has taken" },
+  alert_ticket_critical_minutes: { label: "…after (minutes)", hint: "5 to 1,440." },
+  alert_ticket_overdue_enabled: { label: "Alert: a ticket past its due time" },
+  alert_lead_hot_untouched_enabled: { label: "Alert: a hot lead with no reply" },
+  alert_lead_hot_hours: { label: "A hot lead with no reply — after (hours)", hint: "1 to 168." },
+  alert_order_not_dispatched_enabled: { label: "Alert: a paid order not sent" },
+  alert_order_dispatch_days: { label: "A paid order not sent — after (days)", hint: "1 to 30." },
+  alert_return_waiting_enabled: { label: "Alert: a return nobody has answered" },
+  alert_return_days: { label: "A return not answered — after (days)", hint: "1 to 30." },
+  alert_mail_stalled_enabled: { label: "Alert: email is not leaving" },
+  alert_mail_minutes: { label: "Email not leaving — after (minutes)", hint: "5 to 1,440." },
+  alert_backup_failed_enabled: { label: "Alert: a backup failed or none ran" },
+  alert_health_drop_enabled: { label: "Alert: the site health score fell" },
+  alert_health_points: { label: "Health score fell by (points)", hint: "1 to 100, against the best score of the week before." },
   /* The site health centre (0.181.0, docs/health.md). */
   health_external_links: {
     label: "Check links to other websites",
@@ -1129,6 +1145,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Search by meaning",
     blurb: "Whether the site search and the website assistant also find pages by what they mean, which embedding model reads them, and how many new search phrases a day may be sent to it. Switched off, search works on words alone and nothing leaves the server.",
   },
+  alerts: {
+    title: "Alerts and digests",
+    blurb: "Which alerts the console sends, after how long, and the digest new staff start with. Each person chooses their own on their profile; an administrator can change anybody's on the Staff screen.",
+  },
   health: {
     title: "Site health",
     blurb: "Whether links to other websites are checked, and how long each kind of record may go without an edit before Site health lists it as out of date. Zero means never.",
@@ -1355,6 +1375,10 @@ export const FIELD_ORDER: Record<string, string[]> = {
            "visits_email", "visit_default_minutes"],
   events: ["events_email", "event_reminder_hours", "event_max_seats"],
   semantic_search: ["semantic_search_enabled", "semantic_search_model", "semantic_search_daily_cap", "semantic_search_floor", "semantic_search_error"],
+  alerts: ["alerts_default_digest", "alert_ticket_critical_unassigned_enabled", "alert_ticket_critical_minutes",
+           "alert_ticket_overdue_enabled", "alert_lead_hot_untouched_enabled", "alert_lead_hot_hours",
+           "alert_order_not_dispatched_enabled", "alert_order_dispatch_days", "alert_return_waiting_enabled", "alert_return_days",
+           "alert_mail_stalled_enabled", "alert_mail_minutes", "alert_backup_failed_enabled", "alert_health_drop_enabled", "alert_health_points"],
   health: ["health_external_links", "health_stale_page", "health_stale_solution", "health_stale_service", "health_stale_product",
            "health_stale_store_product", "health_stale_knowledge_article", "health_stale_landing_page", "health_stale_event",
            "health_stale_blog_post", "health_stale_case_study", "health_stale_tender", "health_stale_job_opening", "health_stale_entry"],
@@ -1486,6 +1510,7 @@ export const SCREENS: SettingsScreen[] = [
         filed under SEO or the assistant.
       */
       { label: "Infrastructure", groups: ["mail", "integrations", "semantic_search"] },
+      { label: "Notifications", groups: ["alerts"] },
       { label: "Privacy", groups: ["security"] },
     ],
   },

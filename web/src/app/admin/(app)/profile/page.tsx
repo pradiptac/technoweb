@@ -7,6 +7,10 @@ import { PasswordForm } from "./password-form";
 import { MotionChoice } from "./motion-choice";
 import { Card } from "@/components/ui/card";
 import { requireScreen } from "@/lib/admin-screen";
+import { NotificationsPanel } from "@/components/admin/notifications-panel";
+import { getNotificationSettings } from "@/lib/admin";
+import { getSiteSettings } from "@/lib/settings";
+import { pushConfigFrom } from "@/lib/push";
 
 export const metadata = buildMetadata({ title: "Your account", path: "/admin/profile", seo: noIndex });
 
@@ -19,7 +23,9 @@ export const metadata = buildMetadata({ title: "Your account", path: "/admin/pro
  */
 export default async function AdminProfilePage() {
   await requireScreen();
-  const staff = await getCurrentStaff();
+  const [staff, notifications, settings] = await Promise.all([
+    getCurrentStaff(), getNotificationSettings().catch(() => null), getSiteSettings(),
+  ]);
 
   return (
     <>
@@ -59,6 +65,16 @@ export default async function AdminProfilePage() {
         </p>
         <PasswordForm />
       </Card>
+
+      {notifications && (
+        <Card as="section" interactive={false} padding="md" className="mt-6">
+          <h2 className="mb-1 text-15 font-semibold">Notifications</h2>
+          <p className="measure mb-5 text-13 text-muted">
+            A digest of what needs you, and an alert the moment something does. Email always; browser notifications when you want them.
+          </p>
+          <NotificationsPanel prefs={notifications.data} meta={notifications.meta} pushConfig={pushConfigFrom(settings)} />
+        </Card>
+      )}
 
       <MotionChoice />
     </>
