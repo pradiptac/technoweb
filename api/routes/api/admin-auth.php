@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\CopilotController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\SearchController;
+use App\Http\Controllers\Api\V1\Admin\WritingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,6 +39,13 @@ Route::get('new-since', [DashboardController::class, 'newSince'])->name('new-sin
 Route::get('copilot/questions', [CopilotController::class, 'index'])->name('copilot.questions');
 Route::post('copilot/ask', [CopilotController::class, 'ask'])
     ->middleware('throttle:30,1')->name('copilot.ask');
+
+/*
+ * Writing help (0.183.0, docs/ai-writing.md). Staff-wide like the copilot;
+ * every surface narrows by role in the controller.
+ */
+Route::get('writing/status', [WritingController::class, 'status'])->name('writing.status');
+Route::post('writing', [WritingController::class, 'write'])->middleware('throttle:20,1')->name('writing.write');
 
 // Outside every role: a support engineer must be able to change
 // their own password without asking an administrator to do it for
