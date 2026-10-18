@@ -44,6 +44,7 @@ use App\Notifications\ReturnStatusChanged;
 use App\Notifications\ReviewRequested;
 use App\Notifications\SignInCodeIssued;
 use App\Notifications\StaffAlerts;
+use App\Notifications\StaffDigest;
 use App\Notifications\TicketAcknowledged;
 use App\Notifications\TicketCreated;
 use App\Notifications\TicketMerged;
@@ -1238,6 +1239,21 @@ IFSC HDFC0001234</pre><p>Quote <strong>ORD-2026-00117</strong> as the reference 
                 'body' => '<p>Hello {{name}},</p>{{alerts}}<p><a href="{{url}}">Choose which alerts you get</a></p>',
             ],
 
+            /* The digest (0.185.0, docs/digest-alerts.md): the copilot's figures for this person's roles. */
+            'staff_digest' => [
+                'label' => 'Digest — to a staff member',
+                'description' => 'Each staff member’s summary of what needs them, daily or weekly at the hour they choose on their profile.',
+                'audience' => self::INTERNAL,
+                'class' => StaffDigest::class,
+                'variables' => [
+                    'name' => ['about' => 'The staff member’s name.', 'sample' => 'Priya Sharma'],
+                    'figures' => self::details('Each figure that is not zero, with its change since the last digest.', '<ul><li><a href="https://www.example.com/admin/tickets?open=1">4 tickets are open. <em>(up 2)</em></a></li></ul>'),
+                    'clear' => ['about' => 'The questions whose answer is zero, in one line.', 'sample' => 'All clear: Which tickets are overdue?.'],
+                    'url' => ['about' => 'Where to change when the digest arrives.', 'sample' => 'https://www.example.com/admin/profile'],
+                ],
+                'subject' => 'Your digest',
+                'body' => '<p>Hello {{name}},</p>{{figures}}<p>{{clear}}</p><p><a href="{{url}}">Change when your digest arrives</a></p>',
+            ],
             'block_lead_captured' => [
                 'label' => 'Download or webinar sign-up from a banner — to the desk',
                 'description' => 'Sent when somebody downloads a gated file or registers for a webinar through a CTA banner.',
