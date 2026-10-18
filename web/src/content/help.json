@@ -2431,6 +2431,86 @@
    "title": "Limits of this release",
    "html": "<ul><li>Replacing just a <strong>selection</strong> in the body editor is the part most worth checking by eye the first time you use it.</li><li><strong>Suggest subject lines</strong> does not see changes you have not saved.</li><li>The buttons notice a change to the switch or the limit when a page is next opened, not while it is open.</li><li>It writes in the language it is given; it does not translate, and it does not write SEO titles or descriptions (use the AI SEO assistant, chapter 13).</li></ul>",
    "text": "Replacing just a selection in the body editor is the part most worth checking by eye the first time you use it. Suggest subject lines does not see changes you have not saved. The buttons notice a change to the switch or the limit when a page is next opened, not while it is open. It writes in the language it is given; it does not translate, and it does not write SEO titles or descriptions (use the AI SEO assistant, chapter 13)."
+  },
+  {
+   "id": "34-ai-images#overview",
+   "chapter": "34-ai-images",
+   "chapterTitle": "Pictures made with AI",
+   "title": "Overview",
+   "html": "<p><em>Who can use this: Administrators switch it on. Anyone who can use the media library makes pictures.</em></p><p><strong>Make with AI</strong> turns a few sentences into a picture, inside the same window you already use to choose an image. It makes <strong>one picture per press</strong>, shows it to you first, and adds nothing to your media library until you press <strong>Use this picture</strong>.</p>",
+   "text": "Who can use this: Administrators switch it on. Anyone who can use the media library makes pictures. Make with AI turns a few sentences into a picture, inside the same window you already use to choose an image. It makes one picture per press , shows it to you first, and adds nothing to your media library until you press Use this picture ."
+  },
+  {
+   "id": "34-ai-images#where-it-is",
+   "chapter": "34-ai-images",
+   "chapterTitle": "Pictures made with AI",
+   "title": "Where it is",
+   "html": "<ul><li>In any picture field - a cover, a banner, a gallery - open the picture picker and press <strong>Make with AI</strong> beside your library.</li><li>On <strong>Media</strong>, the <strong>Make with AI</strong> button beside Upload.</li></ul><p>If you cannot see it, pictures are switched off, there is no key, or today's limit is used up. The tab is not drawn at all in that case.</p>",
+   "text": "In any picture field - a cover, a banner, a gallery - open the picture picker and press Make with AI beside your library. On Media , the Make with AI button beside Upload. If you cannot see it, pictures are switched off, there is no key, or today's limit is used up. The tab is not drawn at all in that case."
+  },
+  {
+   "id": "34-ai-images#switching-it-on",
+   "chapter": "34-ai-images",
+   "chapterTitle": "Pictures made with AI",
+   "title": "Switching it on",
+   "html": "<p>Pictures use the same switch and the same <strong>OpenRouter key</strong> as the AI SEO assistant and writing help (chapters 13, 18 and 33), so there is nothing new to connect.</p><ol><li>Save the OpenRouter key on <strong>Settings → API keys</strong>.</li><li>Open <strong>SEO → Settings</strong> and turn on <strong>AI SEO assistant</strong>.</li><li>On the same screen set the three things for pictures:<ul><li><strong>AI pictures per day</strong> - its own ceiling, separate from writing help and the SEO assistant. The default is 30. <strong>0 switches pictures off.</strong></li><li><strong>House picture style</strong> - a line or two every picture follows, for example &quot;Clean, bright photography in a modern Indian office or data centre.&quot; Up to 500 characters. This is what keeps your pictures looking like one set.</li><li><strong>Picture model</strong> - leave blank for the default, or paste another OpenRouter image model's id. Save, then press <strong>Test this model</strong> underneath: it makes one small picture and tells you if the model answers.</li></ul></li><li><strong>Save SEO settings.</strong></li></ol>",
+   "text": "Pictures use the same switch and the same OpenRouter key as the AI SEO assistant and writing help (chapters 13, 18 and 33), so there is nothing new to connect. Save the OpenRouter key on Settings → API keys . Open SEO → Settings and turn on AI SEO assistant . On the same screen set the three things for pictures: AI pictures per day - its own ceiling, separate from writing help and the SEO assistant. The default is 30. 0 switches pictures off. House picture style - a line or two every picture follows, for example \"Clean, bright photography in a modern Indian office or data centre.\" Up to 500 characters. This is what keeps your pictures looking like one set. Picture model - leave blank for the default, or paste another OpenRouter image model's id. Save, then press Test this model underneath: it makes one small picture and tells you if the model answers. Save SEO settings."
+  },
+  {
+   "id": "34-ai-images#making-a-picture",
+   "chapter": "34-ai-images",
+   "chapterTitle": "Pictures made with AI",
+   "title": "Making a picture",
+   "html": "<ol><li><strong>Describe the picture</strong> - what is in it, where, in what light. Ten characters at least, 1,000 at most. &quot;A server rack in a bright, tidy room, seen from the corridor&quot; works better than &quot;servers&quot;.</li><li>Choose a <strong>Style</strong>: Photo, Illustration, 3D render or Flat graphic.</li><li>Choose a <strong>Shape</strong>: Wide 16:9, Landscape 4:3, Square, Portrait 3:4 or Banner 21:9. The shape closest to the field you opened it from is already chosen.</li><li>Press <strong>Make picture</strong>. It takes up to a minute.</li><li>Look at it, then:<ul><li><strong>Use this picture</strong> - saves it to your media library and puts it in the field. You can change its <strong>Alt text</strong> (what a screen reader says in place of the picture) first; if you leave it, the first sentence of your description is used.</li><li><strong>Try again</strong> - throws this one away and keeps your words so you can adjust them.</li><li><strong>Discard</strong> - throws it away.</li></ul></li></ol><p>A picture you do not use is deleted automatically after ten minutes, and when you close the window. Nobody else can see it.</p>",
+   "text": "Describe the picture - what is in it, where, in what light. Ten characters at least, 1,000 at most. \"A server rack in a bright, tidy room, seen from the corridor\" works better than \"servers\". Choose a Style : Photo, Illustration, 3D render or Flat graphic. Choose a Shape : Wide 16:9, Landscape 4:3, Square, Portrait 3:4 or Banner 21:9. The shape closest to the field you opened it from is already chosen. Press Make picture . It takes up to a minute. Look at it, then: Use this picture - saves it to your media library and puts it in the field. You can change its Alt text (what a screen reader says in place of the picture) first; if you leave it, the first sentence of your description is used. Try again - throws this one away and keeps your words so you can adjust them. Discard - throws it away. A picture you do not use is deleted automatically after ten minutes, and when you close the window. Nobody else can see it."
+  },
+  {
+   "id": "34-ai-images#the-three-standing-rules",
+   "chapter": "34-ai-images",
+   "chapterTitle": "Pictures made with AI",
+   "title": "The three standing rules",
+   "html": "<p>Every picture is asked for with three rules you cannot switch off:</p><ul><li><strong>No real people.</strong> No recognisable person or real face.</li><li><strong>No other companies' logos.</strong> No logo, trademark or brand mark.</li><li><strong>No lettering.</strong> No words, letters or numbers - a picture model cannot spell reliably, and a wrong word on your website is worse than none.</li></ul><p>Do not ask for them in your description; the rules win. If you need a logo or a photo of your own team, upload it instead.</p>",
+   "text": "Every picture is asked for with three rules you cannot switch off: No real people. No recognisable person or real face. No other companies' logos. No logo, trademark or brand mark. No lettering. No words, letters or numbers - a picture model cannot spell reliably, and a wrong word on your website is worse than none. Do not ask for them in your description; the rules win. If you need a logo or a photo of your own team, upload it instead."
+  },
+  {
+   "id": "34-ai-images#what-is-kept",
+   "chapter": "34-ai-images",
+   "chapterTitle": "Pictures made with AI",
+   "title": "What is kept",
+   "html": "<p>A picture you keep is in the library like any other file and is checked by the same rules (types, size). It is tagged <strong><code>ai-generated</code></strong> and its description records the model and the words it was made from, so you can always find them (search the library for the tag) and tell them from photographs.</p><p>If the library refuses it - it is larger than your upload limit - you are told why and the preview stays, so you can <strong>Discard</strong> it and make a smaller one.</p>",
+   "text": "A picture you keep is in the library like any other file and is checked by the same rules (types, size). It is tagged ai-generated and its description records the model and the words it was made from, so you can always find them (search the library for the tag) and tell them from photographs. If the library refuses it - it is larger than your upload limit - you are told why and the preview stays, so you can Discard it and make a smaller one."
+  },
+  {
+   "id": "34-ai-images#the-cost-and-the-limit",
+   "chapter": "34-ai-images",
+   "chapterTitle": "Pictures made with AI",
+   "title": "The cost and the limit",
+   "html": "<p>Every picture is one request to OpenRouter, billed to your account at the model's rate. The tab shows &quot;<strong>N of M</strong> pictures used today&quot;. A picture that fails does not count; only one that appears does. At the limit the tab goes quiet until midnight - raise <strong>AI pictures per day</strong> if the default does not suit.</p>",
+   "text": "Every picture is one request to OpenRouter, billed to your account at the model's rate. The tab shows \" N of M pictures used today\". A picture that fails does not count; only one that appears does. At the limit the tab goes quiet until midnight - raise AI pictures per day if the default does not suit."
+  },
+  {
+   "id": "34-ai-images#what-is-sent-to-openrouter",
+   "chapter": "34-ai-images",
+   "chapterTitle": "Pictures made with AI",
+   "title": "What is sent to OpenRouter",
+   "html": "<p>Only your <strong>description</strong>, your <strong>house picture style</strong>, the style you chose and the three rules. No pictures, no records, no customer information.</p><p>Choose a paid model rather than a free one: free models may keep what they are sent.</p>",
+   "text": "Only your description , your house picture style , the style you chose and the three rules. No pictures, no records, no customer information. Choose a paid model rather than a free one: free models may keep what they are sent."
+  },
+  {
+   "id": "34-ai-images#if-something-looks-wrong",
+   "chapter": "34-ai-images",
+   "chapterTitle": "Pictures made with AI",
+   "title": "If something looks wrong",
+   "html": "<table><thead><tr><th>You see</th><th>What it means</th></tr></thead><tbody><tr><td>No <strong>Make with AI</strong> tab</td><td>Pictures are off, there is no key, or the limit is 0. Check <strong>SEO → Settings</strong> and <strong>API keys</strong>, then reload.</td></tr><tr><td>&quot;AI help is switched off&quot;</td><td>The <strong>AI SEO assistant</strong> switch is off.</td></tr><tr><td>&quot;Today's limit of N pictures has been reached&quot;</td><td>Wait until midnight or raise <strong>AI pictures per day</strong>.</td></tr><tr><td>&quot;The image service did not answer in time&quot;</td><td>OpenRouter or the model is busy. Try again shortly.</td></tr><tr><td>&quot;The image service would not make that picture&quot;</td><td>The model declined that description. Describe it differently.</td></tr><tr><td>&quot;That preview has expired. Make the picture again.&quot;</td><td>More than ten minutes passed. Make it again.</td></tr></tbody></table>",
+   "text": "You see What it means No Make with AI tab Pictures are off, there is no key, or the limit is 0. Check SEO → Settings and API keys , then reload. \"AI help is switched off\" The AI SEO assistant switch is off. \"Today's limit of N pictures has been reached\" Wait until midnight or raise AI pictures per day . \"The image service did not answer in time\" OpenRouter or the model is busy. Try again shortly. \"The image service would not make that picture\" The model declined that description. Describe it differently. \"That preview has expired. Make the picture again.\" More than ten minutes passed. Make it again."
+  },
+  {
+   "id": "34-ai-images#limits-of-this-release",
+   "chapter": "34-ai-images",
+   "chapterTitle": "Pictures made with AI",
+   "title": "Limits of this release",
+   "html": "<ul><li>One picture at a time; no editing of an existing picture and no starting from a photo of your own.</li><li>Two people pressing Use on the same preview at the same moment can save it twice; delete the extra from the library.</li><li>Several people making pictures at once can take the day slightly past the limit.</li></ul>",
+   "text": "One picture at a time; no editing of an existing picture and no starting from a photo of your own. Two people pressing Use on the same preview at the same moment can save it twice; delete the extra from the library. Several people making pictures at once can take the day slightly past the limit."
   }
  ]
 }

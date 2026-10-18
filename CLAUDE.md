@@ -171,6 +171,7 @@ Contents:
   - Site health — `docs/health.md`
   - Search by meaning — `docs/semantic-search.md`
   - AI writing everywhere — `docs/ai-writing.md`
+  - AI images — `docs/ai-images.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -3171,6 +3172,15 @@ Write / Rewrite / Shorten / Expand / Fix grammar / Change tone on rich-text bodi
 - One switch (`seo_ai_enabled`), writing's **own** cap (`ai_writing_daily_cap`, counter `ai:writing:runs:<date>`), a house style and words to avoid sent outside the fence; a run is counted only when a result is returned. The three rows are drawn on SEO → Settings.
 - A ticket draft reads the latest 12 `publicMessages` only, skips sensitive messages, attachments and a sensitive ticket's description, masks emails, mobiles, landlines and 10-digit-plus runs (never references, IPs, dates or versions) — the engineer's own text included — refuses a closed or merged ticket, and cites only published KB articles by `[Sn]` (by meaning when it is on, else a word search). The three locked email messages are refused; an email is written one field at a time (`ref {key, field}`) and its placeholders are the catalogue's and no others.
 - The console's controls live in `web/src/components/admin/writing/`: one status fetch a page (`useWritingStatus`), a row *above* the field (`AiRow` — never inside a `Field` hint, which is its `aria-describedby`), the panel portalled to `document.body`, and a bubbling `input` after every apply so the leave guard and `FormDraft` hear it. The mock answers writing as unavailable. Known limits: a selection's Replace has never run in a browser, subject lines read the saved campaign, and the status is cached for the life of a page.
+
+### AI images — `docs/ai-images.md`
+
+A picture made from a description inside the media picker (0.184.0): one per press, in a chosen shape and style, previewed before it is kept.
+
+- `AppSupportImagesImageMaker` calls OpenRouter's `POST /api/v1/images` with the existing key, pinned like the text calls; the house picture style, the style instruction and the standing rules (no real people, no other companies' logos, no lettering) sit outside a `---DESCRIPTION---` fence and the editor's words inside it. Only JPEG, PNG or WebP bytes up to 8 MB are accepted.
+- A made picture is a **private preview** (`ImagePreviews`: `ai-images/{token}` on the local disk, 64-hex token, the maker's alone, ten minutes, swept by `technoware:prune-ai-images`) until **Use** sends it through `MediaUploader` — so a picture is checked, limited and blurred like any upload — tagged `ai-generated` with the model and prompt in its description. A rejected attempt never reaches the library.
+- One switch (`seo_ai_enabled`), its **own** cap (`ai_image_daily_cap`, default 30, counter `ai:image:runs:<date>`, atomic), counted only when a picture decodes; every refusal is one sentence and OpenRouter's words go only to the log and the admin's model test.
+- The tab is in `MediaBrowser`, so every image field has it; the nearest shape to the field's image spec is pre-selected; `role:content_manager`, the library's own.
 
 ## Conventions
 

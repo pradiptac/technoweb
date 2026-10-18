@@ -21,6 +21,14 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.184.0 — 2026-10-18
+
+**AI images** — make a picture from a description, inside the media picker.
+
+- Open any picture field, choose "Make with AI", describe the picture, pick a style and a shape, and press Make picture. The picture opens in a preview; nothing is added to the media library until you press Use this picture.
+- Pictures never show real people, other companies' logos or any lettering, and every picture you keep is tagged `ai-generated` with the description it was made from.
+- A house picture style keeps every picture in one look (SEO → Settings). Pictures have their own daily limit — 30 by default — so they cannot use up the writing help's or the SEO assistant's.
+
 ## 0.183.0 — 2026-10-18
 
 **AI writing everywhere** — writing help in every editor, on ticket replies, in newsletter campaigns and in the system emails.

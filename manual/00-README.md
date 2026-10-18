@@ -43,6 +43,7 @@ update. `config/` and `storage/` are yours: an update never touches them.
 | Finding broken links and other things to fix | [31 — Site health](31-site-health.md) |
 | Letting search find pages by what they mean | [32 — Search by meaning](32-semantic-search.md) |
 | Getting help writing pages, replies and emails | [33 — Writing help](33-ai-writing.md) |
+| Making a picture from a description | [34 — Pictures made with AI](34-ai-images.md) |
 
 ## The two addresses
 

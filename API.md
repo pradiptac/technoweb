@@ -5881,6 +5881,52 @@ lines of 40 characters). The switch, key and model are the SEO assistant's
 
 ---
 
+## Admin — AI images
+
+A picture made from a description, inside the media picker (0.184.0,
+`docs/ai-images.md`). **`role:content_manager`**, the library's own, except the
+model test. Nothing here writes to the media library until `keep`. All routes sit
+in `routes/api/admin-content-manager.php` above `media/{medium}`, or `{medium}`
+binds the literal `"ai-image"`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/media/ai-image/status` | `{data: {available, reason, used, cap, styles[{value,label}], shapes[{value,label,ratio}]}}`. `available` is false with the sentence in `reason` when AI help is off, has no key, the limit is 0 or the day's limit is reached. Not throttled |
+| `POST` | `/admin/media/ai-image` | Body: `prompt` (10-1,000 characters), `style` (`photo`, `illustration`, `render`, `flat`), `shape` (`wide` 16:9, `landscape` 4:3, `square`, `portrait` 3:4, `banner` 21:9). Throttled 10/min. **201** `{data: {token, width, height, model, mime}}` |
+| `GET` | `/admin/media/ai-image/{token}` | The preview's bytes (`Cache-Control: private, no-store`, `nosniff`). `{token}` is 64 lower-case hex or a 404 before any controller runs; someone else's, an unknown and an expired token are the same 404. Not throttled |
+| `POST` | `/admin/media/ai-image/{token}/keep` | `alt_text?` (255), `folder_id?` (an existing folder). Throttled 10/min. Sends the preview through `MediaUploader::storeFromPath()`, tags it `ai-generated`, sets its description to "Made with AI (model) from: prompt", forgets the preview. **201** with the media resource. Without `alt_text` the description's first sentence is used (125 characters) |
+| `DELETE` | `/admin/media/ai-image/{token}` | **204** whether or not it was there. Not throttled |
+| `POST` | `/admin/media/ai-image/test` | `role:admin`, throttled 6/min, in `admin-admin.php`. Makes one small square picture (counted), deletes it. **200** `{data: {model, ok: true}}`, or a 422 in **OpenRouter's own words** |
+
+**A preview is private**: bytes and a sidecar on the local disk
+(`ai-images/{token}.{ext}`), the maker's alone, ten minutes; `technoware:prune-ai-images`
+sweeps the rest every ten minutes. It has no public address.
+
+**The refusals** (422, `{message, errors: {image: [message]}}`; one sentence, never
+the provider's words): AI help is off; no OpenRouter key; the limit is 0; "Today's
+limit of N pictures has been reached. It resets at midnight."; "The image service did
+not answer in time. Try again." (no connection, a 429 or any 5xx); "The image service
+would not make that picture. Try describing it differently." (any other 4xx);
+"The image service answered without a picture. Try again." (no image, an `error`
+object, bad base64, over 8 MB, not a JPEG, PNG or WebP). A validation error on the
+make is the ordinary 422 keyed by field. **A `keep` that the library's own upload
+rule refuses** (over the size or megapixel limit, a type it does not take) is
+Laravel's 422 on `errors.file` and **leaves the preview in place**. A `keep` on a
+preview that has gone is a **404** (the console says "That preview has expired.
+Make the picture again."). **A run is counted only when a picture decodes.**
+
+**The settings** are three rows in the private `seo` group, saved through
+`PATCH /admin/settings` (`role:admin`) and drawn on SEO → Settings:
+`ai_image_daily_cap` (a whole number 0-1,000, default 30, 0 switches pictures off;
+a 422 on the row otherwise), `ai_image_style` (at most 500 characters) and
+`ai_image_model` (an OpenRouter id by shape, at most 100 characters; blank is
+`google/gemini-2.5-flash-image`). The switch, key and attribution are the SEO
+assistant's (`seo_ai_enabled`, `openrouter_api_key`). The counter is
+`ai:image:runs:<date>`, apart from writing's and the SEO assistant's. None is on the
+public `/settings` map.
+
+---
+
 ## Admin — site health
 
 A worklist of broken links, out-of-date records and accessibility mistakes in

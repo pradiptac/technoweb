@@ -89,7 +89,7 @@ export const HELP_ROUTES: { prefix: string; sections: string[] }[] = [
   { prefix: "/admin/seo/settings", sections: ["33-ai-writing#switching-it-on", "13-seo#the-ai-seo-assistant"] },
   { prefix: "/admin/redirects", sections: ["13-seo#redirects"] },
   { prefix: "/admin/not-found", sections: ["13-seo#missing-pages"] },
-  { prefix: "/admin/media", sections: ["14-media#uploading", "14-media#working-with-a-file", "14-media#the-bin"] },
+  { prefix: "/admin/media", sections: ["14-media#uploading", "14-media#working-with-a-file", "14-media#the-bin", "34-ai-images#making-a-picture"] },
   { prefix: "/admin/chat", sections: ["16-assistant#the-overview", "16-assistant#unanswered-questions", "16-assistant#conversations"] },
   { prefix: "/admin/chat/settings", sections: ["16-assistant#settings", "15-appearance#the-chat-assistant-s-look"] },
 
