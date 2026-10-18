@@ -15,6 +15,9 @@ use App\Support\Alerts\Rules\TicketOverdue;
 /** The one list of alerts (docs/digest-alerts.md). Adding one is a class here and two settings rows. */
 final class Rules
 {
+    /** At most this many hits a rule; a rule that returns this many may have more it did not show. */
+    public const CAP = 50;
+
     /** @return list<AlertRule> */
     public static function all(): array
     {

@@ -14,6 +14,7 @@ use App\Models\Ticket;
 use App\Models\TicketCategory;
 use App\Notifications\StaffAlerts;
 use App\Support\Alerts\AlertCheck;
+use App\Support\Alerts\Rules;
 use App\Support\Messaging\Providers\Fcm;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -157,6 +158,20 @@ class AlertCheckTest extends TestCase
         AlertCheck::run();
 
         $this->assertSame(0, AlertFire::query()->whereNull('cleared_at')->count());
+    }
+
+    public function test_a_rule_at_its_cap_clears_nothing_it_did_not_see(): void
+    {
+        $user = $this->staff(RoleEnum::SupportEngineer);
+        $tickets = collect(range(1, Rules::CAP + 1))->map(fn () => $this->overdue());
+        $seen = Rules::all()[1]->current()->pluck('subject')->all();
+        $unseen = $tickets->map(fn (Ticket $t) => 'ticket:'.$t->id)->first(fn (string $s) => ! in_array($s, $seen, true));
+        $this->assertNotNull($unseen);
+        AlertFire::query()->create(['rule' => 'ticket_overdue', 'subject' => $unseen, 'user_id' => $user->id, 'fired_at' => now()]);
+
+        AlertCheck::run();
+
+        $this->assertNull(AlertFire::query()->where('subject', $unseen)->value('cleared_at'), 'A subject past the cap is still wrong, so its alert stays open.');
     }
 
     public function test_inactive_staff_get_nothing(): void

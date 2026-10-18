@@ -6,6 +6,7 @@ use App\Models\StaffPreference;
 use App\Models\User;
 use App\Support\Copilot\Questions;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -16,8 +17,26 @@ use Throwable;
  */
 final class DigestBuilder
 {
-    /** @param array<string, int>|null $previous */
+    /**
+     * A question about "me" (`tickets_mine`) reads the signed-in user, and the
+     * scheduler signs nobody in — so the person is signed in for the asking
+     * and whoever was before is put back.
+     *
+     * @param  array<string, int>|null  $previous
+     */
     public static function build(User $user, ?array $previous): Digest
+    {
+        $before = Auth::user();
+        Auth::setUser($user);
+        try {
+            return self::compose($user, $previous);
+        } finally {
+            $before === null ? Auth::forgetUser() : Auth::setUser($before);
+        }
+    }
+
+    /** @param array<string, int>|null $previous */
+    private static function compose(User $user, ?array $previous): Digest
     {
         $items = [];
         $clear = [];

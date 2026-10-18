@@ -37,9 +37,12 @@ final class AlertCheck
 
                 continue; // nothing cleared for a rule that could not be read
             }
-            AlertFire::query()->where('rule', $key)->whereNull('cleared_at')
-                ->when($hits !== [], fn ($q) => $q->whereNotIn('subject', array_keys($hits)))
-                ->update(['cleared_at' => now()]);
+            // A rule at its cap may have more it did not return; clearing those would re-alert them later.
+            if (count($hits) < Rules::CAP) {
+                AlertFire::query()->where('rule', $key)->whereNull('cleared_at')
+                    ->when($hits !== [], fn ($q) => $q->whereNotIn('subject', array_keys($hits)))
+                    ->update(['cleared_at' => now()]);
+            }
             $live[$key] = ['rule' => $rule, 'hits' => $hits];
         }
 

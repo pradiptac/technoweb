@@ -146,6 +146,25 @@ class AlertRulesTest extends TestCase
         $this->assertSame('/admin/store/orders/'.$late->order_number, $this->rule('order_not_dispatched')->current()->first()->href);
     }
 
+    public function test_an_undispatched_parcel_is_found_behind_many_digital_orders_and_a_completed_one_is_not(): void
+    {
+        $with = function (OrderStatus $status, ProductType $type, int $days): Order {
+            $order = $this->order($status, $days);
+            $order->items()->create([
+                'name' => 'Thing', 'type' => $type, 'quantity' => 1, 'unit_price_paise' => 100, 'line_total_paise' => 100, 'returnable' => true,
+            ]);
+
+            return $order;
+        };
+        foreach (range(1, 55) as $i) {
+            $with(OrderStatus::Paid, ProductType::Digital, 20);
+        }
+        $with(OrderStatus::Completed, ProductType::Physical, 10);
+        $parcel = $with(OrderStatus::Paid, ProductType::Physical, 5);
+
+        $this->assertSame(['order:'.$parcel->id], $this->hits('order_not_dispatched'));
+    }
+
     public function test_a_return_waiting_past_the_threshold(): void
     {
         $order = $this->order(OrderStatus::Dispatched, 0);
@@ -169,6 +188,8 @@ class AlertRulesTest extends TestCase
         $this->assertSame([], $this->hits('backup_failed'), 'Backups switched off: no alert.');
         Setting::put('backup_enabled', '1');
         Setting::flushCache();
+        $this->assertSame([], $this->hits('backup_failed'), 'Just switched on: no run has been due yet.');
+        $this->travel(37)->hours();
         $this->assertSame(['stale'], $this->hits('backup_failed'), 'On and never completed.');
 
         $this->backup('completed');
@@ -176,6 +197,19 @@ class AlertRulesTest extends TestCase
 
         $bad = $this->backup('failed');
         $this->assertSame(['backup:'.$bad->id], $this->hits('backup_failed'));
+    }
+
+    public function test_a_weekly_schedule_is_stale_only_after_its_week(): void
+    {
+        foreach (['backup_enabled' => '1', 'backup_full_day' => 'sun', 'backup_incremental_every' => 'off'] as $key => $value) {
+            $this->assertTrue(Setting::put($key, $value));
+        }
+        Setting::flushCache();
+        $this->backup('completed', now()->subDays(5)->toDateTimeString());
+        $this->assertSame([], $this->hits('backup_failed'), 'Five days after a weekly backup is on time.');
+
+        $this->travel(4)->days();
+        $this->assertSame(['stale'], $this->hits('backup_failed'), 'Nine days is a missed week.');
     }
 
     public function test_the_health_score_falls_by_the_threshold(): void

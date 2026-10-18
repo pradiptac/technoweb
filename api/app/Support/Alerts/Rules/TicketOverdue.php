@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Models\Ticket;
 use App\Support\Alerts\AlertHit;
 use App\Support\Alerts\AlertRule;
+use App\Support\Alerts\Rules;
 use Illuminate\Support\Collection;
 
 final class TicketOverdue implements AlertRule
@@ -32,7 +33,7 @@ final class TicketOverdue implements AlertRule
 
     public function current(): Collection
     {
-        return Ticket::query()->overdue()->orderBy('due_at')->limit(50)->get(['id', 'reference', 'due_at'])
+        return Ticket::query()->overdue()->orderBy('due_at')->limit(Rules::CAP)->get(['id', 'reference', 'due_at'])
             ->map(fn (Ticket $t) => new AlertHit('ticket:'.$t->id, "{$t->reference} is past its due time.", '/admin/tickets/'.$t->reference))
             ->values();
     }

@@ -4,8 +4,13 @@ namespace Tests\Feature;
 
 use App\Enums\LeadStatus;
 use App\Enums\Role as RoleEnum;
+use App\Enums\TicketPriority;
+use App\Enums\TicketStatus;
+use App\Models\Customer;
 use App\Models\Lead;
 use App\Models\StaffPreference;
+use App\Models\Ticket;
+use App\Models\TicketCategory;
 use App\Notifications\StaffDigest;
 use App\Support\Digest\DigestBuilder;
 use Carbon\Carbon;
@@ -138,6 +143,24 @@ class StaffDigestTest extends TestCase
 
         Notification::assertNotSentTo($a, StaffDigest::class);
         Notification::assertSentTo($b, StaffDigest::class);
+    }
+
+    public function test_the_scheduled_digest_counts_what_is_assigned_to_the_person(): void
+    {
+        $this->at('2026-10-26 08:05');
+        $support = $this->staff(RoleEnum::SupportEngineer);
+        $customer = new Customer;
+        $customer->forceFill(['name' => 'C', 'email' => 'c@example.test', 'password' => 'x', 'status' => 'active', 'email_verified_at' => now()])->save();
+        $cat = TicketCategory::firstOrCreate(['slug' => 'general'], ['name' => 'General', 'sort_order' => 1]);
+        Ticket::create([
+            'customer_id' => $customer->id, 'ticket_category_id' => $cat->id, 'subject' => 'S', 'description' => 'D',
+            'status' => TicketStatus::Assigned, 'priority' => TicketPriority::Normal, 'assigned_to' => $support->id,
+        ]);
+
+        $this->artisan('technoware:send-digests')->assertSuccessful();
+
+        $this->assertSame(1, StaffPreference::first()->last_digest_figures['tickets_mine'] ?? null, 'Run in the console, "mine" is still this person.');
+        $this->assertNull(auth()->user(), 'Nobody is left signed in after the run.');
     }
 
     public function test_inactive_staff_get_none(): void

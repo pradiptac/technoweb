@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { ApiError } from "@/lib/api";
 import { removeStaffPush, saveNotificationSettings, sendTestAlert, sendTestDigest, subscribeStaffPush } from "@/lib/admin";
 import type { NotificationPrefs } from "@/types/notifications";
 
@@ -31,15 +32,31 @@ export async function saveNotificationsAction(_prev: NotificationsState, form: F
   return { ok: "Saved." };
 }
 
-export async function sendTestDigestAction(): Promise<string> { return sendTestDigest(); }
-export async function sendTestAlertAction(): Promise<string> { return sendTestAlert(); }
+export type Outcome = { ok?: string; error?: string };
 
-export async function subscribePushAction(pushToken: string): Promise<void> {
-  await subscribeStaffPush(pushToken);
-  revalidatePath("/admin/profile");
+/** An action that throws reaches the error boundary and replaces the screen; these say what went wrong instead. */
+async function outcome(run: () => Promise<string | void>): Promise<Outcome> {
+  try {
+    return { ok: (await run()) ?? "Done." };
+  } catch (error) {
+    if (error instanceof ApiError) return { error: error.status === 429 ? "Too many tries. Wait a minute and press it again." : error.message };
+    throw error;
+  }
 }
 
-export async function removePushAction(id: number): Promise<void> {
-  await removeStaffPush(id);
-  revalidatePath("/admin/profile");
+export async function sendTestDigestAction(): Promise<Outcome> { return outcome(sendTestDigest); }
+export async function sendTestAlertAction(): Promise<Outcome> { return outcome(sendTestAlert); }
+
+export async function subscribePushAction(pushToken: string): Promise<Outcome> {
+  const result = await outcome(() => subscribeStaffPush(pushToken));
+  if (result.ok) revalidatePath("/admin/profile");
+
+  return result;
+}
+
+export async function removePushAction(id: number): Promise<Outcome> {
+  const result = await outcome(() => removeStaffPush(id));
+  if (result.ok) revalidatePath("/admin/profile");
+
+  return result;
 }

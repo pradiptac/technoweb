@@ -8,6 +8,7 @@ use App\Models\Ticket;
 use App\Support\Alerts\AlertHit;
 use App\Support\Alerts\AlertRule;
 use App\Support\Alerts\AlertSettings;
+use App\Support\Alerts\Rules;
 use Illuminate\Support\Collection;
 
 final class TicketCriticalUnassigned implements AlertRule
@@ -37,7 +38,7 @@ final class TicketCriticalUnassigned implements AlertRule
         $minutes = AlertSettings::threshold('alert_ticket_critical_minutes');
 
         return Ticket::query()->open()->where('priority', TicketPriority::Critical)->whereNull('assigned_to')
-            ->where('created_at', '<=', now()->subMinutes($minutes))->oldest()->limit(50)->get(['id', 'reference', 'created_at'])
+            ->where('created_at', '<=', now()->subMinutes($minutes))->oldest()->limit(Rules::CAP)->get(['id', 'reference', 'created_at'])
             ->map(fn (Ticket $t) => new AlertHit(
                 'ticket:'.$t->id,
                 "{$t->reference} is critical and nobody has taken it (".(int) $t->created_at->diffInMinutes(now(), true).' min).',

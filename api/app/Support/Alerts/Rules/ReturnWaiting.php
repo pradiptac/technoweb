@@ -7,6 +7,7 @@ use App\Models\OrderReturn;
 use App\Support\Alerts\AlertHit;
 use App\Support\Alerts\AlertRule;
 use App\Support\Alerts\AlertSettings;
+use App\Support\Alerts\Rules;
 use Illuminate\Support\Collection;
 
 final class ReturnWaiting implements AlertRule
@@ -35,7 +36,7 @@ final class ReturnWaiting implements AlertRule
     {
         return OrderReturn::query()->waiting()
             ->where('created_at', '<=', now()->subDays(AlertSettings::threshold('alert_return_days')))
-            ->oldest()->limit(50)->get(['id', 'reference', 'created_at'])
+            ->oldest()->limit(Rules::CAP)->get(['id', 'reference', 'created_at'])
             ->map(fn (OrderReturn $r) => new AlertHit(
                 'return:'.$r->id,
                 "Return {$r->reference} has waited ".(int) $r->created_at->diffInDays(now(), true).' days for an answer.',

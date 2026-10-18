@@ -12,7 +12,7 @@ import type { PushConfig } from "@/lib/push";
 import type { NotificationMeta, NotificationPrefs } from "@/types/notifications";
 import {
   removePushAction, saveNotificationsAction, sendTestAlertAction, sendTestDigestAction, subscribePushAction,
-  type NotificationsState,
+  type NotificationsState, type Outcome,
 } from "@/app/admin/(app)/profile/notifications-actions";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
@@ -125,8 +125,10 @@ function ThisBrowser({ pushConfig }: { pushConfig: PushConfig | null }) {
           onClick={() => start(async () => {
             try {
               const { subscribe } = await import("@/lib/push-client");
-              await subscribePushAction(await subscribe(pushConfig));
-              setOutcome({ tone: "ok", text: "This browser will show your alerts." });
+              const result = await subscribePushAction(await subscribe(pushConfig));
+              setOutcome(result.error
+                ? { tone: "err", text: result.error }
+                : { tone: "ok", text: "This browser will show your alerts." });
             } catch (e) {
               setOutcome({ tone: "err", text: e instanceof Error ? e.message : "Something went wrong." });
             }
@@ -141,11 +143,13 @@ function ThisBrowser({ pushConfig }: { pushConfig: PushConfig | null }) {
 
 function Browsers({ meta }: { meta: NotificationMeta }) {
   const [busy, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   if (meta.browsers.length === 0) return null;
 
   return (
     <section className="grid gap-2">
       <h3 className="text-13-5 font-semibold text-ink">Browsers</h3>
+      {error && <Alert tone="err" title="Could not remove it">{error}</Alert>}
       <ul className="grid gap-2">
         {meta.browsers.map((b) => (
           <li key={b.id} className="flex flex-wrap items-center gap-3 text-13">
@@ -154,7 +158,7 @@ function Browsers({ meta }: { meta: NotificationMeta }) {
             {b.failed && <Badge tone="urgent">Not reachable</Badge>}
             {/* Never unsubscribe(): a customer subscription in the same browser shares the token. */}
             {meta.self && (
-              <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => start(() => removePushAction(b.id))}>
+              <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => start(async () => { setError((await removePushAction(b.id)).error ?? null); })}>
                 Remove
               </Button>
             )}
@@ -168,16 +172,17 @@ function Browsers({ meta }: { meta: NotificationMeta }) {
 function TryIt() {
   const [busy, start] = useTransition();
   const [which, setWhich] = useState<"digest" | "alert" | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const run = (kind: "digest" | "alert", send: () => Promise<string>) => {
+  const [result, setResult] = useState<Outcome | null>(null);
+  const run = (kind: "digest" | "alert", send: () => Promise<Outcome>) => {
     setWhich(kind);
-    start(async () => { setMessage(await send()); });
+    start(async () => { setResult(await send()); });
   };
 
   return (
     <section className="grid gap-2">
       <h3 className="text-13-5 font-semibold text-ink">Try it</h3>
-      {message && <Alert tone="ok" title="Sent">{message}</Alert>}
+      {result?.ok && <Alert tone="ok" title="Sent">{result.ok}</Alert>}
+      {result?.error && <Alert tone="err" title="Not sent">{result.error}</Alert>}
       <div className="flex flex-wrap gap-3">
         <Button type="button" size="sm" variant="secondary" disabled={busy} pending={busy && which === "digest"} onClick={() => run("digest", sendTestDigestAction)}>
           Send me today&rsquo;s digest
