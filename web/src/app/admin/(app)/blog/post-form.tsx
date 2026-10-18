@@ -7,6 +7,7 @@ import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { SummaryAi } from "@/components/admin/writing/summary-ai";
 import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
 import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
@@ -116,14 +117,14 @@ export function PostForm({
             </Field>
 
             <Field label="Excerpt" htmlFor="excerpt" error={err("excerpt")}
-              hint="Shown on the blog index and used as the meta description when no SEO override is set. Max 500 characters.">
+              hint={<>Shown on the blog index and used as the meta description when no SEO override is set. Max 500 characters. <SummaryAi fieldId="excerpt" type="blog_post" id={post?.id} max={500} /></>}>
               <Textarea id="excerpt" name="excerpt" rows={3} defaultValue={post?.excerpt ?? ""}
                 maxLength={500} aria-invalid={Boolean(err("excerpt"))} />
             </Field>
 
             <BodyReplacedNote state={body} />
 
-            <EditorField name="body" defaultValue={post?.body ?? ""} error={err("body")} />
+            <EditorField ai={{ surface: "body", ref: { type: "blog_post", id: post?.id } }} name="body" defaultValue={post?.body ?? ""} error={err("body")} />
           </div>
 
           <aside className="grid content-start gap-0">

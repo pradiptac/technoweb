@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { writingStatusAction } from "@/app/admin/(app)/writing-actions";
 import { IconSparkle } from "@/components/icons-ui";
 import type { WritingModeKey, WritingStatus, WritingSurface } from "@/types/writing";
@@ -29,7 +30,7 @@ export function useWritingStatus(): WritingStatus | null {
 }
 
 export function AiWriteButton({
-  label, surface, ref_, getInput, onApply, html, max, modes,
+  label, surface, ref_, getInput, onApply, html, max, modes, format,
 }: {
   label?: string;
   surface: WritingSurface;
@@ -39,6 +40,7 @@ export function AiWriteButton({
   html?: boolean;
   max?: number;
   modes?: WritingModeKey[];
+  format?: (output: string) => string;
 }) {
   const status = useWritingStatus();
   const [open, setOpen] = useState(false);
@@ -56,6 +58,8 @@ export function AiWriteButton({
       >
         <IconSparkle className="size-4" />
       </button>
+      {/* In the body: a button often sits in a field's hint (a paragraph), and a dialog's heading is not allowed there. */}
+      {createPortal(
       <WritingPanel
         open={open}
         onClose={() => setOpen(false)}
@@ -65,9 +69,13 @@ export function AiWriteButton({
         html={html}
         max={max}
         modes={modes}
+        draftLabel={surface === "ticket_reply" ? label : undefined}
         status={status}
         onApply={onApply}
-      />
+        format={format}
+      />,
+      document.body,
+      )}
     </>
   );
 }

@@ -7,6 +7,7 @@ import { FormDraft } from "@/components/admin/form-draft";
 import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { SummaryAi } from "@/components/admin/writing/summary-ai";
 import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
@@ -173,14 +174,14 @@ export function EventForm({ event, meta, builder }: {
             </Field>
 
             <Field label="Summary" htmlFor="summary" error={err("summary")}
-              hint="A sentence or two. Shown on the Events page and under the heading, and used as the meta description when no SEO override is set. Max 300 characters.">
+              hint={<>A sentence or two. Shown on the Events page and under the heading, and used as the meta description when no SEO override is set. Max 300 characters. <SummaryAi fieldId="summary" type="event" id={event?.id} max={300} /></>}>
               <Textarea id="summary" name="summary" rows={3} defaultValue={event?.summary ?? ""}
                 maxLength={300} aria-invalid={Boolean(err("summary"))} />
             </Field>
 
             <BodyReplacedNote state={body} />
 
-            <EditorField name="body" label="About the event" defaultValue={event?.body ?? ""} error={err("body")}
+            <EditorField ai={{ surface: "body", ref: { type: "event", id: event?.id } }} name="body" label="About the event" defaultValue={event?.body ?? ""} error={err("body")}
               hint="What it is, who it is for and what they will leave with. The agenda and the speakers have a panel of their own." />
           </div>
 

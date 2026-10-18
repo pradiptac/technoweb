@@ -10,6 +10,9 @@ import { MediaBrowser } from "./media-browser";
 import { LayoutPicker, type LayoutOption } from "./layout-picker";
 import { MaterialIconGrid } from "./material-icon-grid";
 import { Modal } from "@/components/ui/modal";
+import type { BodyAi } from "@/types/writing";
+import { useWritingStatus } from "./writing/ai-write-button";
+import { WritingPanel } from "./writing/writing-panel";
 
 /*
  * The eight layouts the Insert-layout dropdown writes.
@@ -126,17 +129,34 @@ function altFromFilename(name: string): string {
   return name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim();
 }
 
+/** The HTML of a Summernote range, or null for a caret. */
+function rangeHtml(range: { isCollapsed(): boolean; nativeRange(): Range } | undefined): string | null {
+  if (!range || range.isCollapsed()) return null;
+  const box = document.createElement("div");
+  box.appendChild(range.nativeRange().cloneContents());
+  return box.innerHTML;
+}
+
 export function RichTextEditor({
-  value, onChange, id, icons = true,
+  value, onChange, id, icons = true, ai,
 }: {
   value: string;
   onChange: (html: string) => void;
   id?: string;
   /** The Icon button. Off for a body that never renders through `Prose` (an email, the info bar), where the shortcode would arrive as literal text. */
   icons?: boolean;
+  /** Writing help (0.183.0): absent means no AI button. Drawn only while the API says it is available. */
+  ai?: BodyAi;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const [browsing, setBrowsing] = useState(false);
+  const [writing, setWriting] = useState(false);
+  const status = useWritingStatus();
+  // The toolbar is built once, so what it needs is read through refs.
+  const aiRef = useRef(ai);
+  useEffect(() => { aiRef.current = ai; });
+  // The selection's markup when the panel was opened; null for a caret.
+  const selectionRef = useRef<string | null>(null);
   const [pickingLayout, setPickingLayout] = useState(false);
   const [pickingIcon, setPickingIcon] = useState(false);
 
@@ -302,7 +322,7 @@ export function RichTextEditor({
         ["height", ["height"]],
         ["table", ["table"]],
         ["insert", ["link", "picture", "library", ...(withIcons.current ? ["icon"] : []), "layouts", "video", "hr"]],
-        ["view", ["fullscreen", "codeview", "help"]],
+        ["view", [...(aiRef.current ? ["ai"] : []), "fullscreen", "codeview", "help"]],
       ],
 
       /*
@@ -392,6 +412,23 @@ export function RichTextEditor({
           }).render();
         },
 
+        ai: (context: SummernoteContext) => {
+          restoreRange.current = () => context.invoke("editor.restoreRange");
+
+          return context.ui.button({
+            contents: '<i class="note-icon-magic"></i><span class="note-library-label">AI</span>',
+            tooltip: "Writing help",
+            className: "note-btn-ai",
+            // Required, for the reason the Library button below gives.
+            container: context.options.container,
+            click: () => {
+              context.invoke("editor.saveRange");
+              selectionRef.current = rangeHtml(context.invoke("editor.createRange") as Parameters<typeof rangeHtml>[0]);
+              setWriting(true);
+            },
+          }).render();
+        },
+
         library: (context: SummernoteContext) => {
           restoreRange.current = () => context.invoke("editor.restoreRange");
 
@@ -462,9 +499,41 @@ export function RichTextEditor({
     };
   }, []);
 
+  // The button is built with the toolbar, before the status is known; it is simply not shown until writing help is available.
+  useEffect(() => {
+    host.current?.closest(".cms-editor")?.querySelector<HTMLElement>(".note-btn-ai")?.toggleAttribute("hidden", !status);
+  }, [status]);
+
+  const applyWriting = useCallback((output: string, how: "replace" | "below") => {
+    const el = host.current;
+    if (!el) return;
+    const $el = $(el);
+    const selected = selectionRef.current;
+    if (selected !== null) {
+      restoreRange.current();
+      $el.summernote("pasteHTML", how === "below" ? selected + output : output);
+    } else {
+      $el.summernote("code", how === "below" ? $el.summernote("code") + output : output);
+    }
+    // `code` does not always fire Summernote's own onChange.
+    onChangeRef.current($el.summernote("code"));
+  }, []);
+
   return (
     <div id={id} className="cms-editor">
       <div ref={host} />
+      {ai && status && (
+        <WritingPanel
+          open={writing}
+          onClose={() => setWriting(false)}
+          surface={ai.surface}
+          ref_={ai.ref}
+          html
+          status={status}
+          getInput={() => selectionRef.current ?? (host.current ? $(host.current).summernote("code") : "")}
+          onApply={applyWriting}
+        />
+      )}
       <MediaBrowser open={browsing} onClose={() => setBrowsing(false)} onPick={insertImage} />
       <Modal open={pickingIcon} onClose={() => setPickingIcon(false)} title="Insert a Google icon" size="lg">
         {pickingIcon && <MaterialIconGrid onPick={(name) => { insertIcon(name); setPickingIcon(false); }} />}
@@ -491,6 +560,7 @@ type SummernoteContext = {
     button: (options: {
       contents: string;
       tooltip: string;
+      className?: string;
       container: unknown;
       click: () => void;
     }) => { render: () => unknown };

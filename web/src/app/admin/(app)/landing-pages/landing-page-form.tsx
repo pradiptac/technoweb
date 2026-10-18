@@ -115,7 +115,7 @@ export function LandingPageForm({ record, saved, drafted }: {
                 only part that makes it a page rather than a query result, and
                 it is what the duplicate check reads.
               */}
-              <EditorField name="intro" label="Introduction" defaultValue={record.intro ?? ""} />
+              <EditorField ai={{ surface: "body", ref: { type: "landing_page", id: record.id } }} name="intro" label="Introduction" defaultValue={record.intro ?? ""} />
               <p className="measure -mt-2 mb-5 text-12-5 text-muted">
                 What is true about this combination and nothing else — what you have
                 actually fitted, what tends to go wrong, what you would say on the
@@ -123,7 +123,7 @@ export function LandingPageForm({ record, saved, drafted }: {
                 with one word changed.
               </p>
 
-              <EditorField name="body" label="Body (optional)" defaultValue={record.body ?? ""} />
+              <EditorField ai={{ surface: "body", ref: { type: "landing_page", id: record.id } }} name="body" label="Body (optional)" defaultValue={record.body ?? ""} />
             </div>
 
             <aside className="min-w-0">

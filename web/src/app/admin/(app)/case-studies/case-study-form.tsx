@@ -7,6 +7,7 @@ import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { SummaryAi } from "@/components/admin/writing/summary-ai";
 import { EditorField } from "@/components/admin/editor-field";
 import { ResultsField } from "@/components/admin/results-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
@@ -98,7 +99,7 @@ export function CaseStudyForm({
             </Field>
 
             <Field label="Summary" htmlFor="summary" error={err("summary")}
-              hint="Shown on the case-studies index and used as the meta description when no SEO override is set. Max 500 characters.">
+              hint={<>Shown on the case-studies index and used as the meta description when no SEO override is set. Max 500 characters. <SummaryAi fieldId="summary" type="case_study" id={study?.id} max={500} /></>}>
               <Textarea id="summary" name="summary" rows={3} defaultValue={study?.summary ?? ""}
                 maxLength={500} aria-invalid={Boolean(err("summary"))} />
             </Field>
@@ -107,7 +108,7 @@ export function CaseStudyForm({
 
             <BodyReplacedNote state={body} />
 
-            <EditorField name="body" defaultValue={study?.body ?? ""} error={err("body")} />
+            <EditorField ai={{ surface: "body", ref: { type: "case_study", id: study?.id } }} name="body" defaultValue={study?.body ?? ""} error={err("body")} />
           </div>
 
           <aside className="grid content-start gap-0">

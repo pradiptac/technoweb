@@ -8,6 +8,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
+import { SummaryAi } from "@/components/admin/writing/summary-ai";
 import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
 import { IconField } from "@/components/admin/icon-field-lazy";
@@ -113,7 +114,7 @@ export function SolutionForm({
             </Field>
 
             <Field label="Summary" htmlFor="summary" error={err("summary")}
-              hint="One or two sentences, shown on the solutions index and as the meta description. Max 500 characters.">
+              hint={<>One or two sentences, shown on the solutions index and as the meta description. Max 500 characters. <SummaryAi fieldId="summary" type="solution" id={solution?.id} max={500} /></>}>
               <Textarea id="summary" name="summary" rows={3} defaultValue={solution?.summary ?? ""}
                 maxLength={500} aria-invalid={Boolean(err("summary"))} />
             </Field>
@@ -127,7 +128,7 @@ export function SolutionForm({
                 aria-invalid={Boolean(err("problem_statement"))} />
             </Field>
 
-            <EditorField name="overview" label="Overview" defaultValue={solution?.overview ?? ""} error={err("overview")} />
+            <EditorField ai={{ surface: "body", ref: { type: "solution", id: solution?.id } }} name="overview" label="Overview" defaultValue={solution?.overview ?? ""} error={err("overview")} />
 
             <StringListField
               name="benefits"

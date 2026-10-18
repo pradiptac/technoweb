@@ -7,6 +7,8 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Select, Textarea } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";
+import { AiWriteButton } from "@/components/admin/writing/ai-write-button";
+import { setFieldValue } from "@/components/admin/writing/apply";
 import { TICKET_ATTACHMENT_ACCEPT, TICKET_ATTACHMENT_HINT, TICKET_ATTACHMENT_MAX, TICKET_ATTACHMENT_MAX_BYTES } from "@/lib/ticket-attachments";
 import { replyAction, type ReplyState } from "./actions";
 import type { CannedReply } from "@/types/api";
@@ -96,7 +98,20 @@ export function ReplyForm({ reference, savedReplies = [] }: { reference: string;
         </Field>
       )}
 
-      <Field label="Message" htmlFor="body" error={state.fieldErrors?.body?.[0]}>
+      <Field label="Message" htmlFor="body" error={state.fieldErrors?.body?.[0]}
+        hint={internal ? undefined : (
+          <AiWriteButton
+            label="Draft a reply"
+            surface="ticket_reply"
+            ref_={{ reference }}
+            modes={["write", "rewrite", "shorten", "grammar", "tone"]}
+            getInput={() => bodyRef.current?.value ?? ""}
+            onApply={(out, how) => {
+              const box = bodyRef.current;
+              if (box) setFieldValue(box, how === "below" && box.value ? box.value + "\n\n" + out : out);
+            }}
+          />
+        )}>
         <Textarea ref={bodyRef} id="body" name="body" rows={4} required
           aria-invalid={Boolean(state.fieldErrors?.body)} />
       </Field>

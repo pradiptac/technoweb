@@ -11,7 +11,7 @@ import type { WritingModeKey, WritingStatus, WritingSurface, WritingToneKey } fr
 const number = new Intl.NumberFormat("en-IN");
 
 export function WritingPanel({
-  open, onClose, surface, ref_, getInput, html = false, max, draftLabel, modes, status, onApply,
+  open, onClose, surface, ref_, getInput, html = false, max, draftLabel, modes, status, onApply, format,
 }: {
   open: boolean;
   onClose: () => void;
@@ -25,6 +25,8 @@ export function WritingPanel({
   modes?: WritingModeKey[];
   status: WritingStatus;
   onApply: (output: string, how: "replace" | "below") => void;
+  /** What to show of the answer when it is not itself readable (a campaign block comes back as JSON). */
+  format?: (output: string) => string;
 }) {
   const id = useId();
   const offered = status.modes.filter((m) => !modes || modes.includes(m.value));
@@ -108,9 +110,9 @@ export function WritingPanel({
         {output !== null && (
           <>
             {html ? (
-              <Prose html={output} className="rounded-lg border border-line bg-card p-3" />
+              <Prose html={format ? format(output) : output} className="rounded-lg border border-line bg-card p-3" />
             ) : (
-              <p className="whitespace-pre-wrap [overflow-wrap:anywhere] rounded-lg border border-line bg-card p-3 text-14 text-ink">{output}</p>
+              <p className="whitespace-pre-wrap [overflow-wrap:anywhere] rounded-lg border border-line bg-card p-3 text-14 text-ink">{format ? format(output) : output}</p>
             )}
             {output.includes("[CHECK:") && (
               <Alert tone="warn" title="Unchecked facts" dismissible={false}>Check every [CHECK: …] before you save or send.</Alert>

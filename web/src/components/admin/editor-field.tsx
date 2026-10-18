@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Prose } from "@/components/ui/prose";
 import { cn } from "@/lib/utils";
+import type { BodyAi } from "@/types/writing";
 
 /**
  * The body field: a rich-text editor with a preview that renders through the
@@ -28,7 +29,7 @@ const RichTextEditor = dynamic(
 );
 
 export function EditorField({
-  name, label = "Body", defaultValue = "", error, hint, onChange, icons,
+  name, label = "Body", defaultValue = "", error, hint, onChange, icons, ai,
 }: {
   name: string;
   /** Solutions call this field "Overview"; most entities call it "Body". */
@@ -41,6 +42,8 @@ export function EditorField({
   onChange?: (html: string) => void;
   /** Passed to the editor: false where the body is not rendered through `Prose`. */
   icons?: boolean;
+  /** Writing help: the surface and the record it is about. Absent, no AI button. */
+  ai?: BodyAi;
 }) {
   const [html, setHtml] = useState(defaultValue);
   const [preview, setPreview] = useState(false);
@@ -101,7 +104,7 @@ export function EditorField({
             : <p className="text-14 text-muted">Nothing to preview yet.</p>}
         </div>
       ) : (
-        <RichTextEditor key={epoch} value={epoch ? html : defaultValue} onChange={(v) => { setHtml(v); onChange?.(v); }} icons={icons} />
+        <RichTextEditor key={epoch} value={epoch ? html : defaultValue} onChange={(v) => { setHtml(v); onChange?.(v); }} icons={icons} ai={ai} />
       )}
 
       {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}

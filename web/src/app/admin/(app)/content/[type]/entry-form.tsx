@@ -8,6 +8,7 @@ import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
+import { SummaryAi } from "@/components/admin/writing/summary-ai";
 import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
 import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
@@ -85,13 +86,13 @@ export function EntryForm({
             </Field>
 
             <Field label="Summary" htmlFor="summary" error={err("summary")}
-              hint="A sentence or two: the archive tile, the page's lede and the meta description.">
+              hint={<>A sentence or two: the archive tile, the page&apos;s lede and the meta description. <SummaryAi fieldId="summary" type="entry" id={entry?.id} max={1000} /></>}>
               <Textarea id="summary" name="summary" rows={3} maxLength={1000} defaultValue={entry?.summary ?? ""} />
             </Field>
 
             {type.has_body && <BodyReplacedNote state={body} />}
 
-            {type.has_body && <EditorField name="body" defaultValue={entry?.body ?? ""} error={err("body")} />}
+            {type.has_body && <EditorField ai={{ surface: "body", ref: { type: "entry", id: entry?.id } }} name="body" defaultValue={entry?.body ?? ""} error={err("body")} />}
           </div>
 
           <aside className="grid content-start gap-0">

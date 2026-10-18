@@ -22,4 +22,10 @@ export interface WritingRequest {
   max?: number;
 }
 
+/** What a rich-text editor needs to offer writing help: the surface and what the API needs to find the record. */
+export interface BodyAi {
+  surface: "body" | "email_template";
+  ref: Record<string, unknown>;
+}
+
 export type WritingOutcome = { ok: true; output: string } | { ok: false; error: string };

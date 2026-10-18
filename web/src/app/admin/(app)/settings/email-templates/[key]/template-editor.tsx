@@ -8,6 +8,8 @@ import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
 import { Switch } from "@/components/ui/switch";
+import { AiWriteButton } from "@/components/admin/writing/ai-write-button";
+import { setFieldValue } from "@/components/admin/writing/apply";
 import { cn } from "@/lib/utils";
 import {
   previewTemplateAction,
@@ -145,7 +147,23 @@ export function TemplateEditor({
           <Field
             label="Subject"
             htmlFor="subject"
-            hint="Placeholders work here too. A line break is refused — it would be a mail header."
+            hint={<>
+              Placeholders work here too. A line break is refused — it would be a mail header.
+              {!locked && (
+                <AiWriteButton
+                  surface="email_template"
+                  ref_={{ key: templateKey, field: "subject" }}
+                  max={200}
+                  getInput={() => subject}
+                  onApply={(out) => {
+                    // Through the input, so the form's draft and leave guard hear of it.
+                    const el = document.getElementById("subject") as HTMLInputElement | null;
+                    if (el) setFieldValue(el, out);
+                    else setSubject(out);
+                  }}
+                />
+              )}
+            </>}
           >
             <Input
               id="subject" name="subject" required maxLength={200}
@@ -158,7 +176,8 @@ export function TemplateEditor({
             <p className="measure mb-2 text-12-5 text-muted">
               Just the message. The logo, colours, footer and address are added around it.
             </p>
-            <RichTextEditor id="body_html" value={html} onChange={setHtml} icons={false} />
+            <RichTextEditor id="body_html" value={html} onChange={setHtml} icons={false}
+              ai={locked ? undefined : { surface: "email_template", ref: { key: templateKey, field: "body" } }} />
             {/* The editor holds its HTML in state so the preview can see it;
                 this is what keeps the `<Form>` posting a value. */}
             <input type="hidden" name="body_html" value={html} />

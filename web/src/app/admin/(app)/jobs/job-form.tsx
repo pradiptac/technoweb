@@ -7,6 +7,7 @@ import { useActionState } from "react";
 import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { SummaryAi } from "@/components/admin/writing/summary-ai";
 import { EditorField } from "@/components/admin/editor-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
@@ -98,13 +99,13 @@ export function JobForm({
             </Field>
 
             <Field label="Summary" htmlFor="summary" error={err("summary")}
-              hint="One or two lines. This is what the careers list shows.">
+              hint={<>One or two lines. This is what the careers list shows. <SummaryAi fieldId="summary" type="job_opening" id={job?.id} /></>}>
               <Textarea id="summary" name="summary" rows={2} defaultValue={job?.summary ?? ""} />
             </Field>
 
             <BodyReplacedNote state={body} />
 
-            <EditorField name="description" label="About the role" defaultValue={job?.description ?? ""} error={err("description")} />
+            <EditorField ai={{ surface: "body", ref: { type: "job_opening", id: job?.id } }} name="description" label="About the role" defaultValue={job?.description ?? ""} error={err("description")} />
           </div>
 
           <aside>

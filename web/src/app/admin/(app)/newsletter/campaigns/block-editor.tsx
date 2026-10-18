@@ -8,6 +8,29 @@ import { IconLayers } from "@/components/icons-ui";
 import { MediaBrowser } from "@/components/admin/media-browser";
 import type { NewsletterBlock } from "@/types/api";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";
+import { AiWriteButton } from "@/components/admin/writing/ai-write-button";
+
+/** The block types the writing help understands, and the keys of each that hold words. */
+const WORD_KEYS: Record<string, string[]> = { heading: ["text"], text: ["html"], button: ["label"], columns: ["columns"] };
+
+/** Only the words of the answer, laid over the block: the rest of the block is what the editor set. */
+function wordsOf(block: NewsletterBlock, answer: string): Partial<NewsletterBlock> {
+  const out = JSON.parse(answer) as NewsletterBlock;
+  return Object.fromEntries((WORD_KEYS[block.type] ?? []).filter((k) => k in out).map((k) => [k, out[k]]));
+}
+
+/** The answer is the whole block as JSON; the panel shows the words. */
+function readable(answer: string): string {
+  try {
+    const out = JSON.parse(answer) as NewsletterBlock;
+    if (out.type === "columns" && Array.isArray(out.columns)) {
+      return (out.columns as Record<string, string>[]).map((c) => [c.heading, c.text].filter(Boolean).join("\n")).join("\n\n");
+    }
+    return String(out.html ?? out.text ?? out.label ?? "");
+  } catch {
+    return answer;
+  }
+}
 
 /**
  * The email body, as an ordered list of blocks.
@@ -40,10 +63,12 @@ const TYPES: { value: string; label: string; hint: string }[] = [
 ];
 
 export function BlockEditor({
-  blocks, disabled, onChange, templates,
+  blocks, disabled, onChange, templates, campaignId,
 }: {
   blocks: NewsletterBlock[];
   disabled?: boolean;
+  /** Writing help for a block needs the campaign it belongs to. */
+  campaignId?: number;
   onChange: (blocks: NewsletterBlock[]) => void;
   templates: { id: number; name: string }[];
 }) {
@@ -116,6 +141,16 @@ export function BlockEditor({
                   dense index={i} count={blocks.length} subject={`block ${i + 1}`} disabled={disabled}
                   onMove={(by) => move(i, i + by)} onRemove={() => onChange(blocks.filter((_, j) => j !== i))}
                 >
+                  {!disabled && campaignId !== undefined && block.type in WORD_KEYS && (
+                    <AiWriteButton
+                      surface="campaign_block"
+                      ref_={{ campaign_id: campaignId }}
+                      html={block.type === "text"}
+                      getInput={() => JSON.stringify(block)}
+                      format={readable}
+                      onApply={(out) => patch(i, wordsOf(block, out))}
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => setOpen(open === i ? null : i)}

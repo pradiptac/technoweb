@@ -7,6 +7,7 @@ import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea, Select } from "@/components/ui/input";
+import { SummaryAi } from "@/components/admin/writing/summary-ai";
 import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
 import { DocumentField } from "@/components/admin/document-field";
@@ -118,14 +119,14 @@ export function ProductForm({
             </Field>
 
             <Field label="Short description" htmlFor="short_description" error={err("short_description")}
-              hint="One line, used on catalogue cards and as the search-result description. Plain text, max 500 characters.">
+              hint={<>One line, used on catalogue cards and as the search-result description. Plain text, max 500 characters. <SummaryAi fieldId="short_description" type="product" id={product?.id} max={500} /></>}>
               <Textarea id="short_description" name="short_description" rows={3}
                 defaultValue={product?.short_description ?? ""} maxLength={500} />
             </Field>
 
             <BodyReplacedNote state={body} />
 
-            <EditorField name="description" label="Description"
+            <EditorField ai={{ surface: "body", ref: { type: "product", id: product?.id } }} name="description" label="Description"
               defaultValue={product?.description ?? ""} error={err("description")} />
 
             <SpecField defaultValue={product?.specifications ?? {}} error={rowErr("specifications")} />

@@ -165,7 +165,7 @@ export function PageForm({
               </p>
             )}
             <div hidden={isBuilder}>
-              <EditorField name="body" defaultValue={page?.body ?? ""} error={err("body")} />
+              <EditorField ai={{ surface: "body", ref: { type: "page", id: page?.id } }} name="body" defaultValue={page?.body ?? ""} error={err("body")} />
             </div>
           </div>
 

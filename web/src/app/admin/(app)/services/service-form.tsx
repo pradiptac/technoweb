@@ -7,6 +7,7 @@ import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { SummaryAi } from "@/components/admin/writing/summary-ai";
 import { EditorField } from "@/components/admin/editor-field";
 import { StringListField } from "@/components/admin/string-list-field";
 import { FaqField } from "@/components/admin/faq-field";
@@ -101,7 +102,7 @@ export function ServiceForm({
             </Field>
 
             <Field label="Summary" htmlFor="summary" error={err("summary")}
-              hint="One or two sentences, shown on the services index and in the header menu. Max 500 characters.">
+              hint={<>One or two sentences, shown on the services index and in the header menu. Max 500 characters. <SummaryAi fieldId="summary" type="service" id={service?.id} max={500} /></>}>
               <Textarea id="summary" name="summary" rows={3} defaultValue={service?.summary ?? ""} maxLength={500} />
             </Field>
 
@@ -118,7 +119,7 @@ export function ServiceForm({
 
             <BodyReplacedNote state={body} />
 
-            <EditorField name="body" defaultValue={service?.body ?? ""} error={err("body")} />
+            <EditorField ai={{ surface: "body", ref: { type: "service", id: service?.id } }} name="body" defaultValue={service?.body ?? ""} error={err("body")} />
           </div>
 
           <aside className="grid content-start gap-0">

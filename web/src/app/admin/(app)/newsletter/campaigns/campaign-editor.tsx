@@ -11,6 +11,7 @@ import {
   audienceAction, deleteCampaignAction, duplicateCampaignAction, healthAction, previewAction,
   queueStatusAction, saveCampaignAction, sendCampaignAction, testAction,
 } from "../actions";
+import { SubjectLines } from "@/components/admin/writing/subject-lines";
 import { BlockEditor } from "./block-editor";
 import { DeliveryStatus } from "./delivery-status";
 import { SubjectTestPanel } from "./subject-test-panel";
@@ -249,7 +250,10 @@ export function CampaignEditor({
             </Field>
 
             <Field label="Subject" htmlFor="subject" variant="float"
-              hint={`${subject.length} characters. Most clients truncate past 70, and a phone nearer 35.`}>
+              hint={<>
+                {subject.length} characters. Most clients truncate past 70, and a phone nearer 35.
+                {editable && <SubjectLines campaignId={campaign.id} onPick={(s) => { patchCopy({ subject: s }); touch(); }} />}
+              </>}>
               <Input id="subject" value={subject} disabled={!editable}
                 onChange={edit} />
             </Field>
@@ -345,6 +349,7 @@ export function CampaignEditor({
             <BlockEditor
               blocks={blocks}
               disabled={!editable}
+              campaignId={campaign.id}
               onChange={change(setBlocks)}
               templates={templates}
             />

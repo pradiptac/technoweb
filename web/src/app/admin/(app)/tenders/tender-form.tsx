@@ -8,6 +8,7 @@ import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
 import { FormDraft } from "@/components/admin/form-draft";
+import { SummaryAi } from "@/components/admin/writing/summary-ai";
 import { EditorField } from "@/components/admin/editor-field";
 import { RecordSwitch } from "@/components/admin/record-switch";
 import { SeoPanel } from "@/components/admin/seo-panel";
@@ -109,12 +110,13 @@ export function TenderForm({ tender, meta }: { tender?: AdminTender; meta: Tende
 
             <Field
               label="Summary" htmlFor="summary" error={err("summary")}
-              hint="A sentence or two, shown on the Tenders page and used as the meta description when no SEO override is set. Max 300 characters."
+              hint={<>A sentence or two, shown on the Tenders page and used as the meta description when no SEO override is set. Max 300 characters. <SummaryAi fieldId="summary" type="tender" id={tender?.id} max={300} /></>}
             >
               <Textarea id="summary" name="summary" rows={3} defaultValue={tender?.summary ?? ""} maxLength={300} aria-invalid={Boolean(err("summary"))} />
             </Field>
 
             <EditorField
+              ai={{ surface: "body", ref: { type: "tender", id: tender?.id } }}
               name="description" label="Scope of work" defaultValue={tender?.description ?? ""} error={err("description")}
               hint="What is being bought, the quantities, the standards and the conditions. The dates, the fees and the documents have panels of their own."
             />
