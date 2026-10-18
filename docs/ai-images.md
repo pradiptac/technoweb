@@ -111,7 +111,12 @@ Every refusal is **one sentence**, a 422 `{message, errors: {image: [message]}}`
 (`ImageRefused`): AI help is switched off; no OpenRouter key; the limit is 0; the
 day's limit is reached; "The image service did not answer in time. Try again."
 (no connection, a 429 or any 5xx); "The image service would not make that
-picture. Try describing it differently." (any other 4xx - the maker declined);
+picture. Try describing it differently." (a 400 or 403 - the maker declined);
+"The image service would not accept this site's AI settings. Ask an
+administrator to check the OpenRouter key and the picture model (SEO → Settings →
+Test this model)." (a 401, 402 or 404 - a bad key, no credit, or a model with no
+image endpoint: a fault only an administrator can mend, so the editor is not told
+to rewrite the description; `ImageMaker::ACCOUNT_FAULT`);
 "The image service answered without a picture. Try again." (no image, an `error`
 object, bad base64, over 8 MB or not a JPEG, PNG or WebP). OpenRouter's own words
 go to the log (`warning`) and, in `ImageRefused::$detail`, to **the
@@ -123,7 +128,8 @@ administrator's model test alone**. Validation errors on the make (`prompt`,
 ## What leaves the server
 
 The key, the model id, the house style, the style's instruction, the standing
-rules and the editor's description. **No picture, no record, no customer data**
+rules and the editor's description, and the attribution headers every text call
+carries (`HTTP-Referer`, the frontend URL; `X-Title`, the company name). **No picture, no record, no customer data**
 is sent. The picture that comes back is the provider's and is stored here.
 
 ---
@@ -145,7 +151,11 @@ Three rows in the private `seo` group, drawn on **SEO → Settings**
 (`settings/ai-image-test.tsx`, drawn by `settings-form.tsx`): `POST
 /admin/media/ai-image/test` (`routes/api/admin-admin.php`, `role:admin`,
 throttled 6/min) makes one small square picture, counts it, deletes it, and
-answers `{model, ok: true}` or OpenRouter's own words. None of the rows is on the
+answers `{model, ok: true}` or OpenRouter's own words. **It goes through
+`ImageMaker::make()`, so it is not like the text model test**: with AI help
+switched off, the limit at 0 or the day's limit reached it is refused with the
+editor's sentence (nothing is spent), and a provider refusal that carries no
+`error.message` comes back as the sentence too. None of the rows is on the
 public `/settings` map. `SettingsSeeder` adds them (additive); no migration.
 
 ---
@@ -172,6 +182,12 @@ public `/settings` map. `SettingsSeeder` adds them (additive); no migration.
 - **The cap is checked, then counted after the call**, so parallel makes can go
   slightly past it.
 - **Two simultaneous keeps of one preview can make two media rows.**
+- **A proxy or PHP-FPM timeout under 90 seconds can bill a picture nobody sees**:
+  the request to OpenRouter waits up to 90 seconds, and a front proxy that cuts
+  the request sooner (a typical `proxy_read_timeout` is 60) leaves PHP to finish,
+  OpenRouter to bill and the run to be counted, while the editor sees "Picture
+  help is not available right now." and may press again. Keep the timeout above
+  90 seconds on the API domain.
 - A preview is on the web server's local disk: a multi-server install would need
   a shared disk.
 

@@ -87,7 +87,8 @@ midnight - raise **AI pictures per day** if the default does not suit.
 ## What is sent to OpenRouter
 
 Only your **description**, your **house picture style**, the style you chose and
-the three rules. No pictures, no records, no customer information.
+the three rules, with your site's address and your company name so OpenRouter
+can tell which site is asking. No pictures, no records, no customer information.
 
 Choose a paid model rather than a free one: free models may keep what they are
 sent.
@@ -96,18 +97,17 @@ sent.
 
 | You see | What it means |
 |---|---|
-| No **Make with AI** tab | Pictures are off, there is no key, or the limit is 0. Check **SEO → Settings** and **API keys**, then reload. |
+| No **Make with AI** tab | Pictures are off, there is no key, the limit is 0, or today's limit is used up. Check **SEO → Settings** and **API keys**, then close and reopen the picker. |
 | "AI help is switched off" | The **AI SEO assistant** switch is off. |
 | "Today's limit of N pictures has been reached" | Wait until midnight or raise **AI pictures per day**. |
 | "The image service did not answer in time" | OpenRouter or the model is busy. Try again shortly. |
 | "The image service would not make that picture" | The model declined that description. Describe it differently. |
+| "The image service would not accept this site's AI settings" | The key, the credit or the picture model is wrong. Ask an administrator to check the OpenRouter key and press **Test this model** on **SEO → Settings**. |
 | "That preview has expired. Make the picture again." | More than ten minutes passed. Make it again. |
 
 ## Limits of this release
 
 - One picture at a time; no editing of an existing picture and no starting from a
   photo of your own.
-- Two people pressing Use on the same preview at the same moment can save it
-  twice; delete the extra from the library.
 - Several people making pictures at once can take the day slightly past the
   limit.

@@ -101,6 +101,7 @@ at `warning` with status and body excerpt):
 - "Pictures are switched off (the daily limit is 0)."
 - "Today's limit of N pictures has been reached. It resets at midnight."
 - "The image service would not make that picture. Try describing it differently." (a 400/403 or a content refusal)
+- "The image service would not accept this site's AI settings. Ask an administrator to check the OpenRouter key and the picture model (SEO → Settings → Test this model)." (a 401, 402 or 404)
 - "The image service did not answer in time. Try again." (timeout, 5xx)
 - "The image service answered without a picture. Try again." (no image, bad bytes, too large)
 

@@ -29,6 +29,8 @@ final class ImageMaker
 
     private const NO_PICTURE = 'The image service answered without a picture. Try again.';
 
+    public const ACCOUNT_FAULT = "The image service would not accept this site's AI settings. Ask an administrator to check the OpenRouter key and the picture model (SEO → Settings → Test this model).";
+
     /**
      * @return array{token: string, width: int, height: int, model: string, mime: string}
      *
@@ -93,6 +95,10 @@ final class ImageMaker
         // A 429 is a rate limit, not a refusal of the picture: try again.
         if ($response->serverError() || $response->status() === 429) {
             throw $this->refused($response, 'The image service did not answer in time. Try again.');
+        }
+        // 401/402/404 are the account's or the model's fault, which only an administrator can mend.
+        if (in_array($response->status(), [401, 402, 404], true)) {
+            throw $this->refused($response, self::ACCOUNT_FAULT);
         }
         if ($response->clientError()) {
             throw $this->refused($response, 'The image service would not make that picture. Try describing it differently.');

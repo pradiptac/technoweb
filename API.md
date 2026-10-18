@@ -5896,7 +5896,7 @@ binds the literal `"ai-image"`.
 | `GET` | `/admin/media/ai-image/{token}` | The preview's bytes (`Cache-Control: private, no-store`, `nosniff`). `{token}` is 64 lower-case hex or a 404 before any controller runs; someone else's, an unknown and an expired token are the same 404. Not throttled |
 | `POST` | `/admin/media/ai-image/{token}/keep` | `alt_text?` (255), `folder_id?` (an existing folder). Throttled 10/min. Sends the preview through `MediaUploader::storeFromPath()`, tags it `ai-generated`, sets its description to "Made with AI (model) from: prompt", forgets the preview. **201** with the media resource. Without `alt_text` the description's first sentence is used (125 characters) |
 | `DELETE` | `/admin/media/ai-image/{token}` | **204** whether or not it was there. Not throttled |
-| `POST` | `/admin/media/ai-image/test` | `role:admin`, throttled 6/min, in `admin-admin.php`. Makes one small square picture (counted), deletes it. **200** `{data: {model, ok: true}}`, or a 422 in **OpenRouter's own words** |
+| `POST` | `/admin/media/ai-image/test` | `role:admin`, throttled 6/min, in `admin-admin.php`. Makes one small square picture (counted), deletes it. **200** `{data: {model, ok: true}}`, or a 422 in **OpenRouter's own words** — but it goes through the maker, so with AI help off, the limit at 0 or the day's limit reached it is refused with the editor's sentence (nothing spent), and a provider refusal with no `error.message` also comes back as the sentence |
 
 **A preview is private**: bytes and a sidecar on the local disk
 (`ai-images/{token}.{ext}`), the maker's alone, ten minutes; `technoware:prune-ai-images`
@@ -5906,7 +5906,11 @@ sweeps the rest every ten minutes. It has no public address.
 the provider's words): AI help is off; no OpenRouter key; the limit is 0; "Today's
 limit of N pictures has been reached. It resets at midnight."; "The image service did
 not answer in time. Try again." (no connection, a 429 or any 5xx); "The image service
-would not make that picture. Try describing it differently." (any other 4xx);
+would not make that picture. Try describing it differently." (a 400 or 403);
+"The image service would not accept this site's AI settings. Ask an administrator
+to check the OpenRouter key and the picture model (SEO → Settings → Test this
+model)." (a 401, 402 or 404 — a bad key, no credit, or a model with no image
+endpoint);
 "The image service answered without a picture. Try again." (no image, an `error`
 object, bad base64, over 8 MB, not a JPEG, PNG or WebP). A validation error on the
 make is the ordinary 422 keyed by field. **A `keep` that the library's own upload

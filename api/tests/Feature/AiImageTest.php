@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Media;
 use App\Models\Setting;
 use App\Models\User;
+use App\Support\Images\ImageMaker;
 use App\Support\Images\ImageSettings;
 use App\Support\Writing\WritingSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -99,6 +100,9 @@ class AiImageTest extends TestCase
             'no data' => [['data' => []], 200, $none],
             'not a picture' => [['data' => [['b64_json' => base64_encode('<html>not a picture</html>')]]], 200, $none],
             'refused' => [['error' => ['message' => 'safety']], 400, 'The image service would not make that picture. Try describing it differently.'],
+            'bad key' => [['error' => ['message' => 'No auth']], 401, ImageMaker::ACCOUNT_FAULT],
+            'no credit' => [['error' => ['message' => 'credits']], 402, ImageMaker::ACCOUNT_FAULT],
+            'unknown model' => [['error' => ['message' => 'no endpoint']], 404, ImageMaker::ACCOUNT_FAULT],
             'down' => [['error' => ['message' => 'down']], 503, 'The image service did not answer in time. Try again.'],
         ];
     }

@@ -104,15 +104,21 @@ export function MakeWithAi({ status, initialShape, folderId, onKept }: {
     if (!image) return;
     setBusy("keep");
     setError(null);
+    // Taken before the await: closing the dialog mid-keep must not discard the file being kept.
+    const token = open.current;
+    open.current = null;
     try {
       const res = await keepImageAction(image.token, alt.trim(), folderId);
       if (res.ok) {
-        open.current = null;
         setImage(null);
         onKept(res.file);
       } else {
+        open.current = token;
         setError(res.error);
       }
+    } catch (e) {
+      open.current = token;
+      throw e;
     } finally {
       setBusy(null);
     }

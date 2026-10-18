@@ -138,7 +138,7 @@ export function MediaBrowser({
 
     if (uploaded.length === 1 && failed.length === 0) {
       onPick(uploaded[0]);
-      onClose();
+      close();
 
       return;
     }
@@ -281,7 +281,7 @@ export function MediaBrowser({
         >
           {items.map((item) => (
             <li key={item.id}>
-              <MediaTile item={item} onPick={() => { onPick(pickedFile(item)); onClose(); }} />
+              <MediaTile item={item} onPick={() => { onPick(pickedFile(item)); close(); }} />
             </li>
           ))}
         </ul>
