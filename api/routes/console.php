@@ -69,6 +69,9 @@ Schedule::command('technoware:prune-not-found')->dailyAt('03:40');
 // docs/page-builder.md "Page history"); the cap of thirty is applied on insert.
 Schedule::command('technoware:prune-revisions')->dailyAt('03:42');
 
+// AI picture previews nobody kept (0.184.0, docs/ai-images.md): they live ten minutes.
+Schedule::command('technoware:prune-ai-images')->everyTenMinutes();
+
 /*
  * The inbound email ledger, which is what stops a redelivered message
  * opening a second ticket. Six months, so a row outlives any plausible

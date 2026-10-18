@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AiImageController;
 use App\Http\Controllers\Api\V1\Admin\BlogCategoryController as AdminBlogCategoryController;
 use App\Http\Controllers\Api\V1\Admin\BlogCommentController as AdminBlogCommentController;
 use App\Http\Controllers\Api\V1\Admin\BlogPostController as AdminBlogPostController;
@@ -419,6 +420,13 @@ Route::middleware('role:content_manager')->group(function () {
     Route::get('media-folders', [MediaFolderController::class, 'index'])->name('media-folders.index');
     Route::post('media-folders', [MediaFolderController::class, 'store'])->name('media-folders.store');
     Route::delete('media-folders/{mediaFolder:id}', [MediaFolderController::class, 'destroy'])->name('media-folders.destroy');
+
+    // AI images (0.184.0, docs/ai-images.md). Above media/{medium}, or {medium} would bind "ai-image".
+    Route::get('media/ai-image/status', [AiImageController::class, 'status'])->name('media.ai-image.status');
+    Route::post('media/ai-image', [AiImageController::class, 'make'])->middleware('throttle:10,1')->name('media.ai-image.make');
+    Route::get('media/ai-image/{token}', [AiImageController::class, 'show'])->where('token', '[a-f0-9]{64}')->name('media.ai-image.show');
+    Route::post('media/ai-image/{token}/keep', [AiImageController::class, 'keep'])->where('token', '[a-f0-9]{64}')->middleware('throttle:10,1')->name('media.ai-image.keep');
+    Route::delete('media/ai-image/{token}', [AiImageController::class, 'discard'])->where('token', '[a-f0-9]{64}')->name('media.ai-image.discard');
 
     Route::get('media', [MediaController::class, 'index'])->name('media.index');
     Route::post('media', [MediaController::class, 'store'])->name('media.store');

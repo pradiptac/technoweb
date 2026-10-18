@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\ActivityController;
+use App\Http\Controllers\Api\V1\Admin\AiImageController;
 use App\Http\Controllers\Api\V1\Admin\ChatAdminController;
 use App\Http\Controllers\Api\V1\Admin\ClientErrorController as AdminClientErrorController;
 use App\Http\Controllers\Api\V1\Admin\CustomFontController;
@@ -185,6 +186,9 @@ Route::middleware('role:admin')->group(function () {
     // address and compared with this server's copy.
     Route::post('settings/media-cdn/test', [MediaCdnController::class, 'test'])
         ->middleware('throttle:6,1')->name('settings.media-cdn.test');
+    // AI images' model test (0.184.0): one small picture, counted and deleted; the provider's own words on a refusal.
+    Route::post('media/ai-image/test', [AiImageController::class, 'test'])
+        ->middleware('throttle:6,1')->name('media.ai-image.test');
     // Same shape as the mail test: one real call, the provider's
     // own words on a refusal, a success clears the last failure.
     Route::post('settings/integrations/hunter/test', [IntegrationsController::class, 'hunter'])
