@@ -88,8 +88,8 @@ you save or send** — they will otherwise be published as written.
 ## Drafting a ticket reply
 
 On an open ticket, **Draft a reply** (above the reply box, for public replies,
-not internal notes) writes a reply for the engineer to read, edit and send. Type
-a line first if you want it to say something particular — "offer a visit
+not internal notes) writes a reply for the engineer to read, edit and send. In
+**Write**, type a line first if you want it to say something particular — "offer a visit
 tomorrow" — or leave it blank and the conversation is the brief.
 
 **What it reads:** the subject, what the customer wrote, the last twelve public

@@ -87,6 +87,42 @@ class WritingCampaignTest extends TestCase
         $this->ask(['type' => 'heading', 'text' => 'Big news, {{first_name}}', 'level' => 2])->assertStatus(422);
     }
 
+    public function test_a_non_string_block_answer_is_a_refusal(): void
+    {
+        $this->writerOn();
+        $this->fakeModel(['block' => ['text' => ['an', 'array']]]);
+
+        $this->ask(['type' => 'heading', 'text' => 'Big news', 'level' => 1])
+            ->assertStatus(422)->assertJsonPath('errors.writing.0', fn ($m) => str_contains($m, 'form we could not use'));
+    }
+
+    public function test_an_invented_placeholder_is_refused_in_a_heading_a_button_and_columns(): void
+    {
+        $this->writerOn();
+
+        $this->fakeModel(['block' => ['text' => 'Big news, {{first_name}}']]);
+        $this->ask(['type' => 'heading', 'text' => 'Big news', 'level' => 1])
+            ->assertStatus(422)->assertJsonPath('errors.writing.0', fn ($m) => str_contains($m, 'first_name'));
+
+        $this->fakeModel(['block' => ['label' => 'Use {{code}} now']]);
+        $this->ask(['type' => 'button', 'label' => 'Shop', 'href' => 'https://example.test/x'])
+            ->assertStatus(422)->assertJsonPath('errors.writing.0', fn ($m) => str_contains($m, 'code'));
+
+        $this->fakeModel(['block' => ['columns' => [['heading' => 'Fast', 'text' => 'Quicker for {{company}}.']]]]);
+        $this->ask(['type' => 'columns', 'columns' => [['heading' => 'Fast', 'text' => 'Links.']]])
+            ->assertStatus(422)->assertJsonPath('errors.writing.0', fn ($m) => str_contains($m, 'company'));
+    }
+
+    public function test_a_placeholder_the_block_already_had_is_kept(): void
+    {
+        $this->writerOn();
+        $this->fakeModel(['block' => ['text' => 'Good news, {{first_name}}']]);
+
+        $out = json_decode($this->ask(['type' => 'heading', 'text' => 'Big news, {{first_name}}', 'level' => 1])->assertOk()->json('data.output'), true);
+
+        $this->assertSame('Good news, {{first_name}}', $out['text']);
+    }
+
     public function test_a_button_label_is_cut_to_sixty_and_its_link_kept(): void
     {
         $this->writerOn();

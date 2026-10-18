@@ -5,6 +5,7 @@ namespace App\Support\Writing\Surfaces;
 use App\Models\User;
 use App\Support\Writing\Prepared;
 use App\Support\Writing\Surface;
+use App\Support\Writing\Writer;
 use App\Support\Writing\WritingInput;
 
 /** An excerpt, summary or short description: plain text, cut to the field's own length. */
@@ -44,7 +45,7 @@ final class SummarySurface implements Surface
 
     public function rebuild(array $answer, Prepared $prepared, WritingInput $input): string
     {
-        $text = trim(strip_tags((string) ($answer['text'] ?? '')));
+        $text = trim(strip_tags(Writer::text($answer['text'] ?? null)));
         $text = preg_replace('/\s+/u', ' ', $text) ?? '';
 
         return self::cut($text, $this->max($input));

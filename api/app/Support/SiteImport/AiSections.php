@@ -82,7 +82,7 @@ final class AiSections
     public static function reason(): ?string
     {
         if (! SeoAiSettings::enabled()) {
-            return 'The AI SEO assistant is switched off (Settings → SEO defaults).';
+            return 'The AI SEO assistant is switched off (SEO → Settings).';
         }
 
         return filled(SeoAiSettings::apiKey()) ? null : 'No OpenRouter key is configured (Settings → API keys).';

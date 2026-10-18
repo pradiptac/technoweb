@@ -167,6 +167,28 @@ class WritingOutlineTest extends TestCase
         Outline::rebuild([['kind' => 'p', 'text' => 'Look [L1]here[/L1]']], $o);
     }
 
+    public function test_an_embed_inside_a_paragraph_survives_unchanged_and_reworded(): void
+    {
+        $iframe = '<iframe src="https://www.youtube.com/embed/abc"></iframe>';
+        $o = Outline::fromHtml('<p>Watch.'.$iframe.'</p>');
+        $this->assertSame('Watch.[P1]', $o->lines()[0]['text']);
+        $this->assertStringContainsString($iframe, Outline::rebuild([['kind' => 'p', 'text' => 'Watch.[P1]']], $o));
+        $this->assertStringContainsString($iframe, Outline::rebuild([['kind' => 'p', 'text' => 'Have a look. [P1]']], $o));
+        $this->expectException(WritingRefused::class);
+        Outline::rebuild([['kind' => 'p', 'text' => 'Have a look.']], $o);
+    }
+
+    public function test_an_inline_shortcode_is_held_back_from_the_model(): void
+    {
+        $o = Outline::fromHtml('<p>Our <b>switch</b> [icon name="ms:router"] is fast.</p>');
+        $this->assertStringNotContainsString('icon', $o->toPrompt());
+        $this->assertStringContainsString('[P1]', $o->toPrompt());
+        $html = Outline::rebuild([['kind' => 'p', 'text' => 'The [P1] **switch** is quick.']], $o);
+        $this->assertStringContainsString('[icon name="ms:router"]', $html);
+        $this->expectException(WritingRefused::class);
+        Outline::rebuild([['kind' => 'p', 'text' => 'The switch is quick.']], $o);
+    }
+
     public function test_content_after_a_stray_close_tag_survives(): void
     {
         $o = Outline::fromHtml('<p>a</p></div><p>kept</p>');

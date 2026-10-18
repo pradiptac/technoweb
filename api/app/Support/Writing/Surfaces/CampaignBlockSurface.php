@@ -9,6 +9,7 @@ use App\Support\HtmlSanitiser;
 use App\Support\Writing\Outline;
 use App\Support\Writing\Prepared;
 use App\Support\Writing\Surface;
+use App\Support\Writing\Writer;
 use App\Support\Writing\WritingInput;
 use App\Support\Writing\WritingRefused;
 
@@ -95,7 +96,7 @@ final class CampaignBlockSurface implements Surface
 
     private static function cutWords(mixed $value, int $max): string
     {
-        return SummarySurface::cut(trim(strip_tags((string) $value)), $max);
+        return SummarySurface::cut(trim(strip_tags(Writer::text($value))), $max);
     }
 
     private static function words(mixed $value, int $max, string $original): string
@@ -110,9 +111,16 @@ final class CampaignBlockSurface implements Surface
     private static function keepsPlaceholders(string $in, string $out): void
     {
         $found = Outline::placeholdersIn($out);
-        foreach (Outline::placeholdersIn($in) as $name) {
+        $had = Outline::placeholdersIn($in);
+        foreach ($had as $name) {
             if (! in_array($name, $found, true)) {
                 throw new WritingRefused('The assistant dropped the {{'.$name.'}} placeholder. Try again.');
+            }
+        }
+        // EmailRenderer strips an unknown {{name}} at send, which would leave a gap in a real mailing.
+        foreach ($found as $name) {
+            if (! in_array($name, $had, true)) {
+                throw new WritingRefused('The assistant used {{'.$name.'}}, which this block does not have. Try again.');
             }
         }
     }

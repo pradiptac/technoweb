@@ -549,7 +549,7 @@ const storeProducts = [
  * constants, because the mock proves the shape of the wire and not the
  * arithmetic. `words` is the vocabulary the asking is scored against.
  */
-const MOCK_WRITING_OFF = 'AI help is switched off. Turn it on in Settings → SEO defaults.';
+const MOCK_WRITING_OFF = 'AI help is switched off. Turn it on in SEO → Settings.';
 
 const MOCK_COPILOT = [
   { key: 'tickets_open', label: 'How many tickets are open?', words: 'ticket open outstanding queue support', figure: 7, sentence: '7 tickets are open.', href: '/admin/tickets?open=1' },
@@ -2647,7 +2647,7 @@ const SECTION_TYPES = [
   { value: 'theme_section', label: 'From the theme', blurb: 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.' },
 ];
 /* The AI page builder's refusal while the AI SEO assistant is off (0.116.0) — the API's sentence. */
-const AI_DRAFT_OFF = 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.';
+const AI_DRAFT_OFF = 'The AI SEO assistant is switched off. Turn it on in SEO → Settings.';
 const SECTION_PRESETS = [
   { value: 'landing', label: 'Landing page', blurb: 'A hero, three reasons, a live list of solutions, questions and a close.', sections: [
     { type: 'hero', hidden: false, background: null, data: { heading: 'The promise, in one line', layout: 'centered', primary: { label: 'Talk to us', href: '/contact' } } },

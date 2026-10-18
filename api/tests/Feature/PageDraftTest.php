@@ -329,7 +329,7 @@ class PageDraftTest extends TestCase
         $fake = $this->fakeProvider(self::reply(self::goodSections()));
 
         $this->draft()->assertStatus(422)
-            ->assertJsonPath('errors.brief.0', 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.');
+            ->assertJsonPath('errors.brief.0', 'The AI SEO assistant is switched off. Turn it on in SEO → Settings.');
 
         $this->assertSame(0, $fake->calls);
         $this->assertSame(0, Page::count());
@@ -388,7 +388,7 @@ class PageDraftTest extends TestCase
         $this->setting('seo_ai_enabled', '0', 'boolean');
         $this->actingAs($this->user(), 'sanctum')->getJson('/api/v1/admin/pages')->assertOk()
             ->assertJsonPath('meta.ai_draft.available', false)
-            ->assertJsonPath('meta.ai_draft.reason', 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.');
+            ->assertJsonPath('meta.ai_draft.reason', 'The AI SEO assistant is switched off. Turn it on in SEO → Settings.');
 
         $this->enable();
         $this->actingAs($this->user(), 'sanctum')->getJson('/api/v1/admin/pages')->assertOk()

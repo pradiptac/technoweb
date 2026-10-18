@@ -242,7 +242,7 @@ export function CampaignEditor({
             { id: "send", label: "Send" },
           ]}
         >
-          {[<div key="content" id="content" className="grid gap-2.5">
+          {[<div key="content" id="content" className="grid grid-cols-[minmax(0,1fr)] gap-2.5">
             <Field label="Campaign name" htmlFor="name" variant="float"
               hint="For you, not for readers — it never appears in the email.">
               <Input id="name" value={name} disabled={!editable}

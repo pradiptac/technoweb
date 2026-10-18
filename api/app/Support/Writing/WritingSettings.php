@@ -56,7 +56,9 @@ final class WritingSettings
 
     public static function countRun(): void
     {
-        Cache::put(self::counterKey(), self::runsToday() + 1, now()->endOfDay());
+        // add() makes the key with its expiry once; increment() is then atomic, so parallel requests cannot lose a count.
+        Cache::add(self::counterKey(), 0, now()->endOfDay());
+        Cache::increment(self::counterKey());
     }
 
     public static function underCap(): bool

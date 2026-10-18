@@ -28,7 +28,7 @@ final class Writer
     public static function refusal(): ?string
     {
         if (! SeoAiSettings::enabled()) {
-            return 'AI help is switched off. Turn it on in Settings → SEO defaults.';
+            return 'AI help is switched off. Turn it on in SEO → Settings.';
         }
         if (! filled(SeoAiSettings::apiKey())) {
             return 'No OpenRouter key is configured. Add one in Settings → API keys.';
@@ -41,6 +41,23 @@ final class Writer
         }
 
         return null;
+    }
+
+    /**
+     * An answer field as a string: null is empty, anything but a string is a refusal.
+     *
+     * @throws WritingRefused
+     */
+    public static function text(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+        if (! is_string($value)) {
+            throw new WritingRefused('The assistant answered in a form we could not use. Try again.');
+        }
+
+        return $value;
     }
 
     /** Strips the fence marker until nothing changes, so a nested one cannot rebuild itself. */

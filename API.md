@@ -5822,7 +5822,7 @@ console to preview and put in a field, and the record's own endpoint saves it.
 | `tone` | `default` (the house style alone), `formal`, `friendly`, `plain`. `mode: tone` with `default` is refused |
 | `brief` | at most 600 characters. Required for `write` — except on a ticket reply, whose thread is the brief |
 | `input` | at most 60,000 characters. What to work on; required for every mode but `write`. A campaign block is JSON-encoded |
-| `ref` | object, per surface (below) |
+| `ref` | object, per surface (below). Its keys are checked as scalars: `type`, `reference`, `key`, `field` strings and `id`, `campaign_id` integers, so an array there is a 422 on `ref.<key>` |
 | `max` | 20–5,000; a summary's field length, the answer is cut to it at a word boundary (600 at most) |
 
 **Answers.** 200 `{data: {output, changed: true}}`, where `output` is plain text
@@ -5832,7 +5832,7 @@ or the block as JSON (`campaign_block`). `POST …/subjects` answers
 `{data: {subjects: [string, string, string]}}`. **A refusal is one sentence**,
 never the provider's words: `{message, errors: {writing: [message]}}` with 422
 (switched off, no key, limit reached, "The AI service did not answer. Try again
-shortly.", unreadable or unusable answer, the assistant changed or dropped
+shortly.", unreadable or unusable answer (an answer field that is not a string is "…answered in a form we could not use"), a `{{placeholder}}` the answer dropped or, in a campaign block or an email, invented, the assistant changed or dropped
 something it was told to keep, **"The assistant suggested no change."**), 403
 (the surface is not this role's) or 404 (the record, ticket, campaign or email
 is not there). A validation error is the ordinary 422 `errors` keyed by field.

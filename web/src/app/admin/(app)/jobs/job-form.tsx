@@ -98,7 +98,7 @@ export function JobForm({
               <Input id="slug" name="slug" defaultValue={job?.slug} />
             </Field>
 
-            <SummaryAi fieldId="summary" type="job_opening" id={job?.id} />
+            <SummaryAi fieldId="summary" type="job_opening" id={job?.id} max={500} />
             <Field label="Summary" htmlFor="summary" error={err("summary")}
               hint="One or two lines. This is what the careers list shows.">
               <Textarea id="summary" name="summary" rows={2} defaultValue={job?.summary ?? ""} />

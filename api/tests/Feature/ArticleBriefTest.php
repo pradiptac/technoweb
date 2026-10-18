@@ -160,7 +160,7 @@ class ArticleBriefTest extends TestCase
         $this->actingAs($this->staff('admin'))
             ->postJson('/api/v1/admin/chat/unanswered/brief', ['ids' => $ids])
             ->assertStatus(422)
-            ->assertJsonPath('errors.ai.0', 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.');
+            ->assertJsonPath('errors.ai.0', 'The AI SEO assistant is switched off. Turn it on in SEO → Settings.');
 
         $this->assertSame(0, $fake->calls);
         $this->assertSame(0, KnowledgeArticle::count());

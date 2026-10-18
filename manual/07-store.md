@@ -410,7 +410,7 @@ typed three different ways — and "Wi-Fi 6", "wi-fi 6" and "WIFI 6" are treated
 as one tag anyway. A product holds up to 12 tags of up to 32 characters.
 
 **Suggest tags** proposes some to press. When the AI assistant is switched on
-(Settings → SEO defaults), has a key and has not used up the day's allowance,
+(SEO → Settings), has a key and has not used up the day's allowance,
 it reads the product and suggests five to eight, reusing the shop's existing
 tags where one fits. Otherwise it suggests the product's brand, its category
 and its key specifications ("24 Ports"). Nothing is added until you press it.

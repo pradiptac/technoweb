@@ -252,7 +252,7 @@ class SectionDraftTest extends TestCase
         $hero = ['mode' => 'rewrite', 'type' => 'hero', 'data' => ['heading' => 'Something']];
 
         // Switched off; no key; nothing written; a type that is a claim; write without a brief.
-        $this->ask($hero)->assertStatus(422)->assertJsonPath('errors.section.0', 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.');
+        $this->ask($hero)->assertStatus(422)->assertJsonPath('errors.section.0', 'The AI SEO assistant is switched off. Turn it on in SEO → Settings.');
         $this->setting('seo_ai_enabled', '1', 'boolean');
         $this->ask($hero)->assertStatus(422)->assertJsonPath('errors.section.0', 'No OpenRouter key is configured. Add one in Settings → API keys.');
         $this->enable();

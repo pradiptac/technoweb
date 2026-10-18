@@ -12,6 +12,7 @@ use App\Support\HtmlSanitiser;
 use App\Support\Search\Semantic;
 use App\Support\Writing\Prepared;
 use App\Support\Writing\Surface;
+use App\Support\Writing\Writer;
 use App\Support\Writing\WritingInput;
 use App\Support\Writing\WritingRefused;
 
@@ -77,7 +78,7 @@ final class TicketReplySurface implements Surface
 
     public function rebuild(array $answer, Prepared $prepared, WritingInput $input): string
     {
-        $text = trim(strip_tags((string) ($answer['text'] ?? '')));
+        $text = trim(strip_tags(Writer::text($answer['text'] ?? null)));
         $sources = $prepared->state['sources'];
         $text = preg_replace_callback('/\[S(\d+)\]/', function (array $m) use ($sources) {
             $s = $sources[(int) $m[1]] ?? null;
@@ -106,7 +107,9 @@ final class TicketReplySurface implements Surface
     /** @return array<int, array{title: string, excerpt: string, url: string}> */
     private function sources(Ticket $ticket, string $last): array
     {
-        $phrase = trim($ticket->subject.' '.HtmlSanitiser::toText($last));
+        // This phrase goes to the embeddings endpoint, so it is masked and cut like everything else that leaves.
+        $subject = self::mask(mb_substr((string) $ticket->subject, 0, 100));
+        $phrase = self::mask(trim($subject.' '.mb_substr(HtmlSanitiser::toText($last), 0, 600)));
         $ids = [];
         foreach (Semantic::passages($phrase, ['knowledge_article'], 6) as $hit) {
             $ids[] = (int) $hit['subject_id'];
@@ -114,7 +117,7 @@ final class TicketReplySurface implements Surface
         $query = KnowledgeArticle::query()->published();
         $articles = $ids !== []
             ? $query->whereKey(array_unique($ids))->get()->sortBy(fn (KnowledgeArticle $a) => array_search($a->id, $ids, true))
-            : $query->search(mb_substr((string) $ticket->subject, 0, 100))->limit(3)->get();
+            : $query->search($subject)->limit(3)->get();
 
         $out = [];
         foreach ($articles->take(3)->values() as $i => $a) {

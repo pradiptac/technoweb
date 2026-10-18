@@ -61,7 +61,7 @@ class SeoAssistant
     public function run(SeoAiAction $action, Model $record, ?int $userId = null, array $input = []): SeoAiResult
     {
         if (! SeoAiSettings::enabled()) {
-            return SeoAiResult::failed('The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.');
+            return SeoAiResult::failed('The AI SEO assistant is switched off. Turn it on in SEO → Settings.');
         }
 
         if (! filled(SeoAiSettings::apiKey())) {

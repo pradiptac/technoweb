@@ -83,7 +83,7 @@ could not tell apart from furniture do not come across as sections.
      it;
    - **Menus found** — which of the header and footer menus to bring;
    - **Use AI to place what the rules could not** — on only when the AI
-     assistant is switched on with a key (Settings → SEO defaults and API
+     assistant is switched on with a key (SEO → Settings and API
      keys); off, those blocks stay ordinary text. See below;
    - **Colours and fonts** — the six colours and two typefaces the old site
      used, with a **Preview** of your site wearing them. Off until you tick

@@ -22,6 +22,9 @@ final class Outline
 
     private const SHORTCODE = '/^\s*\[[a-z_]+(\s[^\]]*)?\]\s*$/i';
 
+    // A capturing group, so preg_split hands the shortcode back at the odd indexes.
+    private const INLINE_SHORTCODE = '/(\[(?:icon|slider|form|gallery|block)\b[^\]]*\])/i';
+
     private const OPEN = "\u{E000}";
 
     private const CLOSE = "\u{E001}";
@@ -103,7 +106,7 @@ final class Outline
     private function block(DOMNode $node, DOMDocument $doc, int $depth = 1): void
     {
         if ($node instanceof DOMText) {
-            $this->add('p', $this->escapeTokens($node->textContent));
+            $this->add('p', $this->words($node->textContent));
 
             return;
         }
@@ -161,20 +164,39 @@ final class Outline
     private function inlineNode(DOMNode $node, DOMDocument $doc): string
     {
         if ($node instanceof DOMText) {
-            return $this->escapeTokens($node->textContent);
+            return $this->words($node->textContent);
         }
         if (! $node instanceof DOMElement) {
             return '';
         }
+        $tag = strtolower($node->tagName);
 
-        return match (strtolower($node->tagName)) {
-            'strong', 'b' => '**'.$this->inline($node, $doc).'**',
-            'em', 'i' => '*'.$this->inline($node, $doc).'*',
-            'br' => ' ',
-            'img' => $this->picture($node, $doc),
-            'a' => $this->link($node, $doc),
+        return match (true) {
+            in_array($tag, ['strong', 'b'], true) => '**'.$this->inline($node, $doc).'**',
+            in_array($tag, ['em', 'i'], true) => '*'.$this->inline($node, $doc).'*',
+            $tag === 'br' => ' ',
+            // An embed inside a paragraph (Summernote's Video button) has no words, so it travels like a picture.
+            $tag === 'img', in_array($tag, self::LOCK_TAGS, true) => $this->picture($node, $doc),
+            $tag === 'a' => $this->link($node, $doc),
             default => $this->inline($node, $doc),
         };
+    }
+
+    /** Text with its shortcodes held back as [Pn] tokens, so the model never sees one as words. */
+    private function words(string $text): string
+    {
+        $out = '';
+        foreach (preg_split(self::INLINE_SHORTCODE, $text, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [] as $i => $piece) {
+            if ($i % 2 === 1) {
+                $n = count($this->pictures) + 1;
+                $this->pictures[$n] = htmlspecialchars($piece, ENT_NOQUOTES | ENT_HTML5, 'UTF-8');
+                $out .= "[P{$n}]";
+            } else {
+                $out .= $this->escapeTokens($piece);
+            }
+        }
+
+        return $out;
     }
 
     private function link(DOMElement $a, DOMDocument $doc): string

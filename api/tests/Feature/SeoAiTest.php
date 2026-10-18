@@ -641,7 +641,7 @@ class SeoAiTest extends TestCase
         $this->actingAs($this->seoManager())
             ->postJson('/api/v1/admin/seo/ai/bulk', ['action' => 'generate', 'type' => 'solution', 'ids' => [$a->id]])
             ->assertStatus(422)
-            ->assertJsonPath('errors.ai.0', 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.');
+            ->assertJsonPath('errors.ai.0', 'The AI SEO assistant is switched off. Turn it on in SEO → Settings.');
 
         Queue::assertNotPushed(RunSeoSuggestion::class);
     }

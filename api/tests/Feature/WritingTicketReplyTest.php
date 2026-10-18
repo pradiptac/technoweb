@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Support\Writing\Surfaces\TicketReplySurface;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\FakesEmbeddings;
 use Tests\Concerns\FakesWriter;
@@ -197,6 +198,29 @@ class WritingTicketReplyTest extends TestCase
         $this->fakeModel(['text' => 'Thanks for getting in touch.']);
 
         $this->ask($this->staff(Role::Admin), $ticket)->assertOk();
+    }
+
+    public function test_the_embeddings_request_carries_no_address_or_number(): void
+    {
+        Storage::fake('local');
+        $this->seed(SettingsSeeder::class);
+        $this->enableSemanticSearch();
+        $this->writerOn();
+        [$ticket] = $this->ticketWithThread(
+            [['customer', 'My network keeps dropping. Call 9876543210 or mail neil@example.in. '.str_repeat('More detail. ', 100), false, false]],
+            ['subject' => 'network keeps dropping, ring +91 98765 43210'],
+        );
+        KnowledgeArticle::create(['title' => 'Wireless', 'slug' => 'wireless', 'excerpt' => 'x', 'body' => '<p>Wireless signal.</p>', 'status' => PublishStatus::Published, 'published_at' => now()]);
+        $this->fakeModel(['text' => 'See [S1].']);
+
+        $this->ask($this->staff(Role::SupportEngineer), $ticket)->assertOk();
+
+        $bodies = Http::recorded(fn ($request) => str_contains($request->url(), '/embeddings'))->map(fn ($pair) => json_encode($pair[0]->data()))->implode("\n");
+        $this->assertStringContainsString('network keeps dropping', $bodies);
+        $this->assertStringNotContainsString('example.in', $bodies);
+        $this->assertStringNotContainsString('9876543210', $bodies);
+        $this->assertStringNotContainsString('98765 43210', $bodies);
+        $this->assertLessThan(1000, strlen($bodies));
     }
 
     public function test_sources_keep_the_semantic_order(): void

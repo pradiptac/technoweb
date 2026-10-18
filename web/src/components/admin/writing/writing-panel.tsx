@@ -20,7 +20,7 @@ export function WritingPanel({
   getInput: () => string;
   html?: boolean;
   max?: number;
-  /** "Draft a reply": shows the brief box whatever the mode. */
+  /** "Draft a reply": the label of the Write button. */
   draftLabel?: string;
   modes?: WritingModeKey[];
   status: WritingStatus;
@@ -40,7 +40,8 @@ export function WritingPanel({
   const [error, setError] = useState<string | null>(null);
   const [used, setUsed] = useState(status.used);
 
-  const needsBrief = Boolean(draftLabel) || (offered.find((m) => m.value === mode)?.needs_brief ?? false);
+  // Only the modes the API reads a brief for: it ignores the box in any other, so showing it would swallow what was typed.
+  const needsBrief = offered.find((m) => m.value === mode)?.needs_brief ?? false;
 
   async function suggest() {
     setPending(true);

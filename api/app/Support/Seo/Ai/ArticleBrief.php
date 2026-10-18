@@ -65,7 +65,7 @@ class ArticleBrief
         }
 
         if (! SeoAiSettings::enabled()) {
-            return ['ok' => false, 'error' => 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.'];
+            return ['ok' => false, 'error' => 'The AI SEO assistant is switched off. Turn it on in SEO → Settings.'];
         }
 
         if (! filled(SeoAiSettings::apiKey())) {

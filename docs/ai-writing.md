@@ -74,6 +74,10 @@ becomes a 404, anything else a 422).
   plain. Change tone with the default tone is refused ("Choose a tone first.").
   Write needs a brief ("Say in a line what it should say.") except on a ticket,
   where the thread is the brief; every other mode needs something written.
+- **An answer field that is not a string** is a refusal ("…answered in a form we
+  could not use. Try again."), never a server error (`Writer::text()`).
+- **The count is atomic.** `WritingSettings::countRun()` adds the day's key with
+  its expiry once and then increments it, so parallel requests cannot lose a count.
 - **One sentence for every refusal**, never the provider's words (they carry
   model names, quota messages and organisation ids): switched off, no key,
   limit reached, "The AI service did not answer. Try again shortly.", "…answered
@@ -103,7 +107,12 @@ A rich-text body is never sent as HTML and never read back as HTML.
   kept whole and returned **byte-identical**. A locked line the answer omits,
   repeats or moves refuses the answer ("changed part of the content it was
   asked to keep"). A `[K1]` written inside a sentence is a refusal when it names
-  a real lock.
+  a real lock. **An embed or a shortcode inside a sentence** is not a locked
+  line: an `<iframe>`, `<video>`, `<audio>`, `<embed>`, `<object>` (Summernote's
+  Video button puts one inside a paragraph) or a `[icon …]`, `[slider …]`,
+  `[form …]`, `[gallery …]` or `[block …]` among words travels as a `[Pn]` token
+  like a picture, so the model never sees it as words and it comes back as
+  stored; an answer that drops it is refused.
 - **Invented tokens are stripped.** A `[K9]`, `[S3]`, `[L5]` or `[P2]` the
   source never had is removed, and text that merely *looks* like one in the
   source (`[L 3]`-style) is neutralised on the way in so it cannot be mistaken
@@ -121,7 +130,8 @@ A rich-text body is never sent as HTML and never read back as HTML.
 - **Placeholders.** An input `{{name}}` must survive the answer (repeats are
   allowed). In a **body** an invented `{{name}}` is dropped quietly; in an
   **email template** it is refused. In a **campaign** heading, button and
-  columns block a dropped placeholder is refused. A text block treats its
+  columns block a dropped placeholder is refused, and so is an invented one
+  (the mailing would otherwise go out with a gap where `{{code}}` was). A text block treats its
   placeholders as an email body does.
 - A body answer over 40,000 characters is refused ("Try Shorten, or a smaller
   selection").
@@ -156,7 +166,10 @@ what the customer can already see and the published knowledge base:
   run of ten or more digits become `[phone]`. **References, IP addresses, dates
   and version numbers are left alone** (`TW-2026-00007`, `192.168.1.10`,
   `2026-10-18`, `v7.2.1`), because a draft that cannot say which ticket it is
-  about is useless. The engineer's own text in the reply box is masked too.
+  about is useless. The engineer's own text in the reply box is masked too, and so is the phrase
+  looked up for knowledge-base sources (subject, and the customer's last message
+  cut to 600 characters): when search by meaning is on, that phrase is sent to
+  OpenRouter's embeddings endpoint, so it carries no address or number either.
   `shortcut:` a short extension, or a landline with no area code, is not
   caught; tighten `TicketReplySurface::mask()` if a desk needs it.
 - **Refused:** a closed ticket, and one merged into another ("This ticket is
@@ -208,7 +221,7 @@ button on them. An unknown key is a 404. Role: `admin`.
 
 - `writing-panel.tsx` — the preview. A `Modal size="side"`, **portalled to
   `document.body`** (the button often sits in a field's hint, a paragraph, where
-  a dialog's heading is not allowed). Modes, tone, a brief box, **Suggest**, then
+  a dialog's heading is not allowed). Modes, tone, a brief box (shown only in the modes that send one: Write, on a ticket too), **Suggest**, then
   the answer with **Replace**, **Insert below** (where it means something) and
   **Discard**, and a line "N of M writing requests used today". A
   `[CHECK: …]` in the answer raises an "Unchecked facts" alert.

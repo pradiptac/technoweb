@@ -137,7 +137,7 @@ class SeoAiController extends Controller
         $action = SeoAiAction::from($data['action']);
 
         $refusal = match (true) {
-            ! SeoAiSettings::enabled() => 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.',
+            ! SeoAiSettings::enabled() => 'The AI SEO assistant is switched off. Turn it on in SEO → Settings.',
             ! filled(SeoAiSettings::apiKey()) => 'No OpenRouter key is configured. Add one in Settings → API keys.',
             ! SeoAssistant::underDailyCap() => 'The daily limit of '.SeoAiSettings::dailyCap().' AI requests has been reached. It resets at midnight.',
             default => null,

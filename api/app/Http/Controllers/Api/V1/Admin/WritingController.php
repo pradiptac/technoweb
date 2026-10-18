@@ -56,6 +56,13 @@ class WritingController extends Controller
             'brief' => ['nullable', 'string', 'max:600'],
             'input' => ['nullable', 'string', 'max:60000'],
             'ref' => ['nullable', 'array'],
+            // Surfaces read these keys as scalars, so an array value is a 422 here and never a 500 there.
+            'ref.type' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'ref.id' => ['sometimes', 'nullable', 'integer'],
+            'ref.reference' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'ref.campaign_id' => ['sometimes', 'nullable', 'integer'],
+            'ref.key' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'ref.field' => ['sometimes', 'nullable', 'string', 'max:20'],
             'max' => ['nullable', 'integer', 'min:20', 'max:5000'],
         ]);
 

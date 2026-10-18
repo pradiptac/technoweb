@@ -81,7 +81,7 @@ final class PageDraft
     public static function refusal(): ?string
     {
         if (! SeoAiSettings::enabled()) {
-            return 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.';
+            return 'The AI SEO assistant is switched off. Turn it on in SEO → Settings.';
         }
 
         if (! filled(SeoAiSettings::apiKey())) {

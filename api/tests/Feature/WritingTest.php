@@ -88,6 +88,25 @@ class WritingTest extends TestCase
         $this->ask($this->summary())->assertStatus(422);
     }
 
+    public function test_a_non_string_answer_is_a_refusal_not_a_server_error(): void
+    {
+        $this->writerOn();
+        $fake = $this->fakeModel(['text' => ['not', 'a', 'string']]);
+        $this->ask($this->summary())->assertStatus(422)->assertJsonPath('errors.writing.0', fn ($m) => str_contains($m, 'form we could not use'));
+        $this->assertSame(0, WritingSettings::runsToday());
+        $this->assertSame(1, $fake->calls);
+    }
+
+    public function test_an_array_where_a_ref_value_belongs_is_a_422(): void
+    {
+        $this->writerOn();
+        $fake = $this->fakeModel(['text' => 'x']);
+        foreach (['type' => ['a'], 'id' => ['1'], 'reference' => ['a'], 'campaign_id' => ['1'], 'key' => ['a'], 'field' => ['a']] as $key => $value) {
+            $this->ask($this->summary(['ref' => [$key => $value]]))->assertStatus(422)->assertJsonValidationErrors(["ref.$key"]);
+        }
+        $this->assertSame(0, $fake->calls);
+    }
+
     public function test_the_house_style_tone_and_avoid_list_are_sent_outside_the_fence(): void
     {
         $this->writerOn();
