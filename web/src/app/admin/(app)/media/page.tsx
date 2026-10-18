@@ -10,7 +10,7 @@ import { getMediaFolders, getMediaList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
-import { Upload, UploadStatus } from "./media-uploader";
+import { MakeWithAiButton, Upload, UploadStatus } from "./media-uploader";
 import { emptyTrashAction } from "./actions";
 import { LibraryInfo } from "./library-info";
 import { FolderRail } from "./folder-rail";
@@ -365,6 +365,8 @@ export default async function AdminMediaPage({
               {filtered && <ButtonLink href={tabHref(kind)} variant="ghost" size="sm">Clear</ButtonLink>}
             </div>
           </FilterBar>}
+
+          {!trashed && kind !== "file" && <MakeWithAiButton folderId={params.folder} />}
 
           {/* Nothing while idle — see its docblock. */}
           {!trashed && <UploadStatus />}

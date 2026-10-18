@@ -6310,6 +6310,25 @@ createServer(async (req, res) => {
     if ((p === '/admin/writing' || p === '/admin/writing/subjects') && req.method === 'POST') {
       return json(res, 422, { message: MOCK_WRITING_OFF, errors: { writing: [MOCK_WRITING_OFF] } });
     }
+    /* AI images (0.184.0): "switched off" too, so no tab is drawn against the mock. */
+    if (p === '/admin/media/ai-image/status') {
+      return json(res, 200, { data: {
+        available: false, reason: 'AI help is switched off. Turn it on in SEO → Settings.', used: 0, cap: 30,
+        styles: [
+          { value: 'photo', label: 'Photo' }, { value: 'illustration', label: 'Illustration' },
+          { value: 'render', label: '3D render' }, { value: 'flat', label: 'Flat graphic' },
+        ],
+        shapes: [
+          { value: 'wide', label: 'Wide 16:9', ratio: '16:9' }, { value: 'landscape', label: 'Landscape 4:3', ratio: '4:3' },
+          { value: 'square', label: 'Square', ratio: '1:1' }, { value: 'portrait', label: 'Portrait 3:4', ratio: '3:4' },
+          { value: 'banner', label: 'Banner 21:9', ratio: '21:9' },
+        ],
+      } });
+    }
+    if ((p === '/admin/media/ai-image' || p === '/admin/media/ai-image/test') && req.method === 'POST') {
+      const off = 'AI help is switched off. Turn it on in SEO → Settings.';
+      return json(res, 422, { message: off, errors: { image: [off] } });
+    }
     if (p === '/admin/system/status') {
       return json(res, 200, { data: {
         version: { version: '0.128.0', commit: null, built_at: null },

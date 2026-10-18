@@ -1,8 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/file-drop";
+import { Modal } from "@/components/ui/modal";
+import { MakeWithAi } from "@/components/admin/media/make-with-ai";
+import type { ImageStatus } from "@/types/media-ai";
+import { imageStatusAction } from "./ai-image-actions";
 import { cn } from "@/lib/utils";
 import { useUpload } from "./upload-context";
 
@@ -128,6 +133,42 @@ export function UploadStatus() {
           {message.text}
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * "Make with AI" beside the library's toolbar (0.184.0): nothing at all unless
+ * the API says pictures can be made. It stands outside the filter form —
+ * a dialog's fields inside it would submit the search — and a kept picture
+ * lands in the folder being looked at, then the grid is re-read like an upload.
+ */
+export function MakeWithAiButton({ folderId }: { folderId?: string }) {
+  const router = useRouter();
+  const [status, setStatus] = useState<ImageStatus | null>(null);
+  const [open, setOpen] = useState(false);
+  const folder = folderId && /^[0-9]+$/.test(folderId) ? Number(folderId) : null;
+
+  useEffect(() => {
+    let live = true;
+    void imageStatusAction().then((s) => { if (live && s?.available) setStatus(s); });
+    return () => { live = false; };
+  }, []);
+
+  if (!status) return null;
+
+  return (
+    <div className="mb-3">
+      <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(true)}>Make with AI</Button>
+      <Modal open={open} onClose={() => setOpen(false)} title="Make a picture with AI" description="Describe it, make it, and keep it in the library.">
+        {open && (
+          <MakeWithAi
+            status={status}
+            folderId={folder}
+            onKept={() => { setOpen(false); router.refresh(); }}
+          />
+        )}
+      </Modal>
     </div>
   );
 }

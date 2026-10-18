@@ -8,7 +8,12 @@ import { browseMediaAction, type MediaBrowse } from "@/components/admin/media-br
 import { uploadMediaFile } from "@/lib/media-upload";
 import { FileDrop, type UploadProgress } from "@/components/ui/file-drop";
 import { useCropBeforeUpload } from "@/components/admin/crop-before-upload";
-import { imageHint, type ImageSpec, type ImageSpecKey } from "@/lib/image-specs";
+import { imageHint, specFor, type ImageSpec, type ImageSpecKey } from "@/lib/image-specs";
+import { pickedFile } from "@/lib/media-pick";
+import { imageStatusAction } from "@/app/admin/(app)/media/ai-image-actions";
+import { MakeWithAi, nearestShape } from "@/components/admin/media/make-with-ai";
+import { Button } from "@/components/ui/button";
+import type { ImageStatus } from "@/types/media-ai";
 import type { MediaItem } from "@/types/api";
 import { cn } from "@/lib/utils";
 
@@ -66,6 +71,16 @@ export function MediaBrowser({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
   const { prepare, limits } = useCropBeforeUpload();
+  // "Make with AI" is a third view, drawn for pictures only and only when the API says it is available.
+  const [view, setView] = useState<"library" | "ai">("library");
+  const [ai, setAi] = useState<ImageStatus | null>(null);
+
+  useEffect(() => {
+    if (!open || kind !== "image" || ai) return;
+    let live = true;
+    void imageStatusAction().then((s) => { if (live && s?.available) setAi(s); });
+    return () => { live = false; };
+  }, [open, kind, ai]);
 
   /*
     Uploading from inside the picker.
@@ -106,7 +121,7 @@ export function MediaBrowser({
           const media = await uploadMediaFile(file, {
             onProgress: (percent) => setUploading({ done: i, total: files.length, label: file.name, percent }),
           });
-          uploaded.push({ url: media.url, alt: media.alt_text ?? "", path: media.path, name: media.filename, bytes: media.size });
+          uploaded.push(pickedFile(media));
         } catch (error) {
           failed.push(`${file.name} — ${error instanceof Error ? error.message : "That upload failed."}`);
         }
@@ -168,11 +183,12 @@ export function MediaBrowser({
   const filter = (value: string) => { setFolder(value); setPage(1); };
 
   const items = result?.items ?? [];
+  const close = () => { setView("library"); onClose(); };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={close}
       title={title ?? "Insert from the media library"}
       description={kind === "file"
         ? "Choose a document. It is attached under the name shown here."
@@ -182,6 +198,23 @@ export function MediaBrowser({
             ? "Choose a 3D model (.glb)."
             : "Choose an image to place at the cursor. Alt text comes with the file."}
     >
+      {ai && (
+        <div className="mb-4 flex gap-2" role="group" aria-label="Where the picture comes from">
+          <Button type="button" size="sm" variant={view === "library" ? "primary" : "secondary"} aria-pressed={view === "library"} onClick={() => setView("library")}>Library</Button>
+          <Button type="button" size="sm" variant={view === "ai" ? "primary" : "secondary"} aria-pressed={view === "ai"} onClick={() => setView("ai")}>Make with AI</Button>
+        </div>
+      )}
+
+      {ai && view === "ai" ? (
+        open && (
+          <MakeWithAi
+            status={ai}
+            initialShape={nearestShape(specFor(spec)?.ratio)}
+            onKept={(file) => { onPick(file); close(); }}
+          />
+        )
+      ) : (
+      <>
       <div className="mb-4 flex flex-wrap gap-2">
         <Input
           value={q}
@@ -247,7 +280,7 @@ export function MediaBrowser({
         >
           {items.map((item) => (
             <li key={item.id}>
-              <MediaTile item={item} onPick={() => { onPick({ url: item.url, alt: item.alt_text ?? "", path: item.path, name: item.filename, bytes: item.size }); onClose(); }} />
+              <MediaTile item={item} onPick={() => { onPick(pickedFile(item)); onClose(); }} />
             </li>
           ))}
         </ul>
@@ -277,6 +310,8 @@ export function MediaBrowser({
             </button>
           </div>
         </div>
+      )}
+      </>
       )}
     </Modal>
   );

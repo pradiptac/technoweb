@@ -22,6 +22,7 @@ import { PaymentsPanel } from "./payments-panel";
 import { BannersPanel } from "./banners-panel";
 import { HunterTest } from "./hunter-test";
 import { OpenRouterTest } from "./openrouter-test";
+import { AiImageTest } from "./ai-image-test";
 import { SemanticSearchPanel } from "./semantic-search-panel";
 import { GscTest } from "./gsc-test";
 import { Ga4Test } from "./ga4-test";
@@ -510,7 +511,7 @@ function GroupPanel({
             );
           }
 
-          return (
+          const plain = (
             <div key={row.key} className={isLong ? "sm:col-span-2" : undefined}>
               <Field label={meta.label} htmlFor={id} hint={meta.hint}>
                 {isLong ? (
@@ -524,6 +525,9 @@ function GroupPanel({
               </Field>
             </div>
           );
+
+          // "Test this model" stands directly under the picture model's field.
+          return row.key === "ai_image_model" ? [plain, <AiImageTest key="ai-image-test" />] : plain;
         })}
 
         {/*

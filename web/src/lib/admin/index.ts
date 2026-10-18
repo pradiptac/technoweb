@@ -29,6 +29,7 @@ export * from "./forms";
 export * from "./knowledge-base";
 export * from "./leads";
 export * from "./media";
+export * from "./media-ai";
 export * from "./messaging";
 export * from "./newsletter";
 export * from "./pages";
