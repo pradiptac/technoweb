@@ -84,4 +84,92 @@ class WritingOutlineTest extends TestCase
         $html = Outline::rebuild([['kind' => 'p', 'text' => 'Ready in [CHECK: how many days].']], $o);
         $this->assertStringContainsString('[CHECK: how many days]', $html);
     }
+
+    public function test_a_repeated_lock_refuses(): void
+    {
+        $o = Outline::fromHtml('<table><tr><td>x</td></tr></table>');
+        $this->expectException(WritingRefused::class);
+        Outline::rebuild([['kind' => 'locked', 'text' => '[K1]'], ['kind' => 'locked', 'text' => '[K1]']], $o);
+    }
+
+    public function test_a_lock_in_the_middle_of_a_sentence_refuses(): void
+    {
+        $o = Outline::fromHtml('<table><tr><td>x</td></tr></table>');
+        $this->expectException(WritingRefused::class);
+        Outline::rebuild([['kind' => 'p', 'text' => 'See [K1] here.'], ['kind' => 'locked', 'text' => '[K1]']], $o);
+    }
+
+    public function test_tokens_and_placeholders_the_source_did_not_have_never_reach_the_output(): void
+    {
+        $o = Outline::fromHtml('<p>Plain {{name}}.</p>');
+        $html = Outline::rebuild([['kind' => 'p', 'text' => 'a [K9] [S3] [L9]x[/L9] {{evil}} {{name}} [/L4] [P2] b']], $o);
+        foreach (['[K9]', '[S3]', 'L9', '{{evil}}', '[/L4]', 'P2'] as $bad) {
+            $this->assertStringNotContainsString($bad, $html);
+        }
+        $this->assertStringContainsString('{{name}}', $html);
+        $this->assertStringContainsString('x', $html);
+    }
+
+    public function test_a_repeated_input_placeholder_is_fine_but_a_missing_one_refuses(): void
+    {
+        $o = Outline::fromHtml('<p>Hi {{name}}.</p>', true);
+        $this->assertStringContainsString('{{name}} {{name}}', Outline::rebuild([['kind' => 'p', 'text' => 'Hi {{name}} {{name}}']], $o));
+        $this->assertSame(['name'], Outline::placeholdersIn('{{name}} and {{ name }}'));
+    }
+
+    public function test_the_source_html_is_not_touched_by_marks_or_tokens(): void
+    {
+        $o = Outline::fromHtml('<p><img src="/a.jpg" alt="a *b"> and <a href="/q?[P1]">t</a></p>');
+        $html = Outline::rebuild([['kind' => 'p', 'text' => '[P1] is *great* [L1]t[/L1]']], $o);
+        $this->assertStringContainsString('alt="a *b"', $html);
+        $this->assertStringContainsString('<em>great</em>', $html);
+        $this->assertStringContainsString('<a href="/q?[P1]">t</a>', $html);
+    }
+
+    public function test_marks_work_inside_link_words(): void
+    {
+        $o = Outline::fromHtml('<p><a href="/a">x</a></p>');
+        $this->assertStringContainsString('<a href="/a"><strong>bold</strong> words</a>', Outline::rebuild([['kind' => 'p', 'text' => '[L1]**bold** words[/L1]']], $o));
+    }
+
+    public function test_a_malformed_answer_is_a_refusal_not_a_crash(): void
+    {
+        $o = Outline::fromHtml('<p>A</p>');
+        foreach ([[['kind' => 'p', 'text' => ['x']]], [['kind' => ['p'], 'text' => 'x']], ['nope']] as $lines) {
+            try {
+                Outline::rebuild($lines, $o);
+                $this->fail('expected a refusal');
+            } catch (WritingRefused) {
+                $this->addToAssertionCount(1);
+            }
+        }
+        $this->assertStringContainsString('<p>x</p>', Outline::rebuild([['kind' => 'weird', 'text' => 'x']], $o));
+    }
+
+    public function test_nested_lists_round_trip_nested(): void
+    {
+        $src = '<ul><li>A<ul><li>A1</li></ul></li><li>B<ol><li>B1</li></ol></li></ul>';
+        $o = Outline::fromHtml($src);
+        $this->assertSame(['ul', 'ul2', 'ul', 'ol2'], array_column($o->lines(), 'kind'));
+        $this->assertSame($src, Outline::rebuild($o->lines(), $o));
+    }
+
+    public function test_text_after_a_nested_list_keeps_its_place(): void
+    {
+        $o = Outline::fromHtml('<ul><li>A<ul><li>B</li></ul>C</li></ul>');
+        $this->assertSame(['A', 'B', 'C'], array_column($o->lines(), 'text'));
+    }
+
+    public function test_a_dropped_picture_or_link_refuses(): void
+    {
+        $o = Outline::fromHtml('<p>Look <img src="/a.jpg" alt="x"> <a href="/a">here</a></p>');
+        $this->expectException(WritingRefused::class);
+        Outline::rebuild([['kind' => 'p', 'text' => 'Look [L1]here[/L1]']], $o);
+    }
+
+    public function test_content_after_a_stray_close_tag_survives(): void
+    {
+        $o = Outline::fromHtml('<p>a</p></div><p>kept</p>');
+        $this->assertSame(['a', 'kept'], array_column($o->lines(), 'text'));
+    }
 }

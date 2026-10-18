@@ -13,12 +13,20 @@ use DOMText;
  * tokens whose real HTML stays here; tables, embeds, code and shortcode
  * paragraphs become locked [Kn] lines returned byte-identical. The answer is
  * rebuilt from escaped words, so nothing the model writes is ever HTML.
+ * Alignment, underline, strike, sub/superscript, colours and h5/h6 are not
+ * carried through a rewrite.
  */
 final class Outline
 {
     private const LOCK_TAGS = ['table', 'iframe', 'figure', 'pre', 'video', 'audio', 'object', 'embed', 'hr', 'div', 'section'];
 
     private const SHORTCODE = '/^\s*\[[a-z_]+(\s[^\]]*)?\]\s*$/i';
+
+    private const OPEN = "\u{E000}";
+
+    private const CLOSE = "\u{E001}";
+
+    private const KINDS = ['h2', 'h3', 'h4', 'p', 'quote', 'ul', 'ol', 'ul2', 'ol2'];
 
     /** @var list<array{n:int, kind:string, text:string}> */
     private array $lines = [];
@@ -37,21 +45,33 @@ final class Outline
 
     private function __construct(private bool $countPlaceholders) {}
 
+    /** @param bool $placeholders require every {{name}} of the input to come back (an email template) */
     public static function fromHtml(string $html, bool $placeholders = false): self
     {
         $self = new self($placeholders);
         $doc = new DOMDocument;
         $doc->loadHTML('<?xml encoding="utf-8"?><div id="root">'.$html.'</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NOERROR | LIBXML_NOWARNING);
-        $root = $doc->getElementById('root') ?? $doc->documentElement;
-        foreach ($root->childNodes as $node) {
-            $self->block($node, $doc);
+        // A stray close tag ends the wrapper early, so whatever follows is a sibling: read it too.
+        foreach ($doc->childNodes as $top) {
+            if ($top instanceof DOMElement && $top->getAttribute('id') === 'root') {
+                foreach ($top->childNodes as $node) {
+                    $self->block($node, $doc);
+                }
+            } else {
+                $self->block($top, $doc);
+            }
         }
-        if ($placeholders) {
-            preg_match_all('/\{\{\s*([a-z_]+)\s*\}\}/', $html, $m);
-            $self->placeholders = array_values(array_unique($m[1]));
-        }
+        $self->placeholders = self::placeholdersIn($html);
 
         return $self;
+    }
+
+    /** @return list<string> the {{names}} in a piece of text, once each */
+    public static function placeholdersIn(string $text): array
+    {
+        preg_match_all('/\{\{\s*([a-z_]+)\s*\}\}/', $text, $m);
+
+        return array_values(array_unique($m[1]));
     }
 
     /** @return list<array{n:int, kind:string, text:string}> */
@@ -113,19 +133,18 @@ final class Outline
             if (! $li instanceof DOMElement || strtolower($li->tagName) !== 'li') {
                 continue;
             }
-            $nested = [];
+            $kind = $depth >= 2 ? $tag.'2' : $tag;
             $own = '';
             foreach ($li->childNodes as $child) {
                 if ($child instanceof DOMElement && in_array(strtolower($child->tagName), ['ul', 'ol'], true)) {
-                    $nested[] = $child;
+                    $this->add($kind, $own);
+                    $own = '';
+                    $this->list($child, $doc, strtolower($child->tagName), min(2, $depth + 1));
                 } else {
                     $own .= $this->inlineNode($child, $doc);
                 }
             }
-            $this->add($depth >= 2 ? $tag.'2' : $tag, $own);
-            foreach ($nested as $n) {
-                $this->list($n, $doc, strtolower($n->tagName), min(2, $depth + 1));
-            }
+            $this->add($kind, $own); // words after a nested list come next, as an item of their own
         }
     }
 
@@ -181,7 +200,7 @@ final class Outline
     }
 
     /**
-     * @param  list<array<string, mixed>>  $lines
+     * @param  list<mixed>  $lines
      *
      * @throws WritingRefused
      */
@@ -189,55 +208,92 @@ final class Outline
     {
         $html = '';
         $usedLocks = [];
-        $openList = '';
+        $used = ['L' => [], 'P' => []];
+        $open = ['list' => '', 'sub' => '', 'li' => false];
 
         foreach ($lines as $line) {
-            $kind = (string) ($line['kind'] ?? 'p');
-            $text = trim((string) ($line['text'] ?? ''));
+            if (! is_array($line)) {
+                throw new WritingRefused('The assistant answered in a form we could not use. Try again.');
+            }
+            $kind = $line['kind'] ?? 'p';
+            $text = $line['text'] ?? '';
+            if (! is_string($kind) || ! is_string($text)) {
+                throw new WritingRefused('The assistant answered in a form we could not use. Try again.');
+            }
+            $text = trim($text);
             if ($text === '') {
                 continue;
             }
 
-            if ($kind === 'locked' || preg_match('/^\[K(\d+)\]$/', $text) === 1) {
-                $k = preg_match('/^\[K(\d+)\]$/', $text, $km) === 1 ? (int) $km[1] : 0;
+            $isLock = preg_match('/^\[K(\d+)\]$/', $text, $km) === 1;
+            if ($kind === 'locked' || $isLock) {
+                $k = $isLock ? (int) $km[1] : 0;
                 if (! isset($source->locked[$k]) || isset($usedLocks[$k])) {
                     throw new WritingRefused('The assistant changed part of the content it was asked to keep. Try again.');
                 }
                 $usedLocks[$k] = true;
-                self::closeList($html, $openList);
+                self::closeLists($html, $open);
                 $html .= $source->locked[$k];
 
                 continue;
             }
-
-            $inner = self::inlineHtml($text, $source);
-            $base = rtrim($kind, '2');
-            if (in_array($base, ['ul', 'ol'], true)) {
-                if ($openList !== $base) {
-                    self::closeList($html, $openList);
-                    $html .= "<{$base}>";
-                    $openList = $base;
+            // A real lock token inside a sentence would print as text; an invented one is stripped below.
+            if (preg_match_all('/\[K(\d+)\]/', $text, $all) > 0) {
+                foreach ($all[1] as $n) {
+                    if (isset($source->locked[(int) $n])) {
+                        throw new WritingRefused('The assistant changed part of the content it was asked to keep. Try again.');
+                    }
                 }
-                $html .= "<li>{$inner}</li>";
+            }
+
+            $inner = self::inlineHtml($text, $source, $used);
+            $kind = in_array($kind, self::KINDS, true) ? $kind : 'p';
+            $base = rtrim($kind, '2');
+
+            if (in_array($base, ['ul', 'ol'], true)) {
+                if ($kind !== $base && $open['li']) { // a nested item goes inside the previous item
+                    if ($open['sub'] !== $base) {
+                        self::closeSub($html, $open);
+                        $html .= "<{$base}>";
+                        $open['sub'] = $base;
+                    }
+                    $html .= "<li>{$inner}</li>";
+
+                    continue;
+                }
+                self::closeSub($html, $open);
+                if ($open['li']) {
+                    $html .= '</li>';
+                    $open['li'] = false;
+                }
+                if ($open['list'] !== $base) {
+                    $html .= ($open['list'] !== '' ? "</{$open['list']}>" : '')."<{$base}>";
+                    $open['list'] = $base;
+                }
+                $html .= "<li>{$inner}";
+                $open['li'] = true;
 
                 continue;
             }
-            self::closeList($html, $openList);
+            self::closeLists($html, $open);
             $html .= match ($kind) {
                 'h2', 'h3', 'h4' => "<{$kind}>{$inner}</{$kind}>",
                 'quote' => "<blockquote><p>{$inner}</p></blockquote>",
                 default => "<p>{$inner}</p>",
             };
         }
-        self::closeList($html, $openList);
+        self::closeLists($html, $open);
 
         if (count($usedLocks) !== count($source->locked)) {
             throw new WritingRefused('The assistant left out part of the content it was asked to keep. Try again.');
         }
+        if (count($used['L']) < count($source->links) || count($used['P']) < count($source->pictures)) {
+            throw new WritingRefused('The assistant left out a link or a picture. Try again.');
+        }
         if ($source->countPlaceholders) {
-            preg_match_all('/\{\{\s*([a-z_]+)\s*\}\}/', $html, $m);
+            $found = self::placeholdersIn($html);
             foreach ($source->placeholders as $p) {
-                if (! in_array($p, $m[1], true)) {
+                if (! in_array($p, $found, true)) {
                     throw new WritingRefused('The assistant dropped the {{'.$p.'}} placeholder. Try again.');
                 }
             }
@@ -246,30 +302,74 @@ final class Outline
         return $html;
     }
 
-    private static function closeList(string &$html, string &$open): void
+    /** @param array{list: string, sub: string, li: bool} $open */
+    private static function closeSub(string &$html, array &$open): void
     {
-        if ($open !== '') {
-            $html .= "</{$open}>";
-            $open = '';
+        if ($open['sub'] !== '') {
+            $html .= "</{$open['sub']}>";
+            $open['sub'] = '';
         }
     }
 
-    private static function inlineHtml(string $text, self $source): string
+    /** @param array{list: string, sub: string, li: bool} $open */
+    private static function closeLists(string &$html, array &$open): void
     {
+        self::closeSub($html, $open);
+        if ($open['li']) {
+            $html .= '</li>';
+            $open['li'] = false;
+        }
+        if ($open['list'] !== '') {
+            $html .= "</{$open['list']}>";
+            $open['list'] = '';
+        }
+    }
+
+    /**
+     * Words in, HTML out. Links and pictures travel as opaque sentinels while the
+     * marks run, and the source's own HTML goes in last, so nothing the model wrote
+     * can reach it and no mark can reach into it.
+     *
+     * @param  array{L: array<int, true>, P: array<int, true>}  $used
+     */
+    private static function inlineHtml(string $text, self $source, array &$used): string
+    {
+        $text = str_replace([self::OPEN, self::CLOSE], '', $text);
         $e = htmlspecialchars($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        // Links by number; an unknown number keeps its words and loses the link.
-        $e = preg_replace_callback('/\[L(\d+)\](.*?)\[\/L\1\]/u', function ($m) use ($source) {
-            $href = $source->links[(int) $m[1]] ?? null;
+        // An unknown number keeps its words and loses the link.
+        $e = preg_replace_callback('/\[L(\d+)\](.*?)\[\/L\1\]/u', function ($m) use ($source, &$used) {
+            $n = (int) $m[1];
+            if (! isset($source->links[$n])) {
+                return $m[2];
+            }
+            $used['L'][$n] = true;
 
-            return $href === null ? $m[2] : '<a href="'.htmlspecialchars($href, ENT_QUOTES | ENT_HTML5, 'UTF-8').'">'.$m[2].'</a>';
+            return self::OPEN.'L'.$n.self::CLOSE.$m[2].self::OPEN.'/L'.$n.self::CLOSE;
         }, $e) ?? $e;
-        $e = preg_replace('/\[\/?L\d+\]/', '', $e) ?? $e;
+        $e = preg_replace_callback('/\[P(\d+)\]/', function ($m) use ($source, &$used) {
+            $n = (int) $m[1];
+            if (! isset($source->pictures[$n])) {
+                return '';
+            }
+            $used['P'][$n] = true;
 
-        $e = preg_replace_callback('/\[P(\d+)\]/', fn ($m) => $source->pictures[(int) $m[1]] ?? '', $e) ?? $e;
-        $e = preg_replace('/\*\*(.+?)\*\*/u', '<strong>$1</strong>', $e) ?? $e;
-        $e = preg_replace('/(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])/u', '<em>$1</em>', $e) ?? $e;
+            return self::OPEN.'P'.$n.self::CLOSE;
+        }, $e) ?? $e;
+        // Whatever token is left was never ours to hand out.
+        $e = preg_replace('/\[\/?L\d+\]|\[[SK]\d+\]/', '', $e) ?? $e;
+        $e = preg_replace_callback('/\{\{\s*([a-z_]+)\s*\}\}/', fn ($m) => in_array($m[1], $source->placeholders, true) ? $m[0] : '', $e) ?? $e;
 
-        return $e;
+        $e = preg_replace('/\*\*((?:(?!\*\*)[^\n]){1,1000}?)\*\*/u', '<strong>$1</strong>', $e) ?? $e;
+        $e = preg_replace('/(?<![\w*])\*(?!\s)([^*\n]{1,1000}?)(?<!\s)\*(?![\w*])/u', '<em>$1</em>', $e) ?? $e;
+
+        return preg_replace_callback('/\x{E000}(\/?)([LP])(\d+)\x{E001}/u', function ($m) use ($source) {
+            $n = (int) $m[3];
+            if ($m[2] === 'P') {
+                return $source->pictures[$n] ?? '';
+            }
+
+            return $m[1] === '/' ? '</a>' : '<a href="'.htmlspecialchars($source->links[$n] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8').'">';
+        }, $e) ?? $e;
     }
 }
