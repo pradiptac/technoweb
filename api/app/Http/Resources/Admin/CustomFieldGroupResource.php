@@ -36,6 +36,8 @@ class CustomFieldGroupResource extends JsonResource
                 'options' => $f->options ?? [],
                 'settings' => (object) ($f->settings ?? []),
                 'sort_order' => (int) $f->sort_order,
+                // A preset's layout reads it by key (docs/content-presets.md).
+                'locked' => (bool) $f->locked,
                 // How many records hold a value, so the console can say what
                 // deleting the field or changing its type would cost.
                 'values_count' => (int) ($f->getAttribute('values_count') ?? 0),

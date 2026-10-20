@@ -123,6 +123,11 @@ final class CustomFields
             switch ($field->kind) {
                 case CustomFieldKind::Text:
                     $rules[$path] = [...$base, 'string', 'max:'.min((int) ($field->setting('max_length') ?: 255), 255)];
+                    // A shape a preset sets (a financial year as 2025-26); the
+                    // field builder offers no way to write one.
+                    if (is_string($field->setting('pattern'))) {
+                        $rules[$path][] = 'regex:/'.$field->setting('pattern').'/';
+                    }
                     break;
                 case CustomFieldKind::Textarea:
                     $rules[$path] = [...$base, 'string', 'max:5000'];

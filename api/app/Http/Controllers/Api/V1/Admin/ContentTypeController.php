@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ContentTypeRequest;
 use App\Http\Resources\Admin\ContentTypeResource;
 use App\Models\ContentType;
+use App\Models\CustomFieldGroup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -77,6 +78,12 @@ class ContentTypeController extends Controller
                 'message' => "This type still holds {$count} ".($count === 1 ? 'entry' : 'entries').'. Delete them first, or switch the type off instead.',
                 'errors' => ['content_type' => ['Delete its entries first, or switch it off.']],
             ], 422);
+        }
+
+        // A preset's own field group goes with it, so the preset can be
+        // installed again (docs/content-presets.md).
+        if ($contentType->preset) {
+            CustomFieldGroup::query()->where('slug', 'preset-'.$contentType->preset)->delete();
         }
 
         $contentType->delete();

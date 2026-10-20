@@ -98,6 +98,13 @@ class CustomFieldGroupController extends Controller
      */
     public function destroy(CustomFieldGroup $customFieldGroup): JsonResponse
     {
+        if ($customFieldGroup->fields()->where('locked', true)->exists()) {
+            return response()->json([
+                'message' => 'This group belongs to a preset — its layout reads these fields. Delete the content type instead.',
+                'errors' => ['group' => ['A preset’s field group cannot be deleted on its own.']],
+            ], 422);
+        }
+
         $customFieldGroup->delete();
 
         return response()->json(null, 204);
@@ -158,6 +165,12 @@ class CustomFieldGroupController extends Controller
             $existing = filled($field['id'] ?? null) ? $group->fields()->whereKey((int) $field['id'])->first() : null;
 
             if ($existing) {
+                // A preset's lock and its shape rule are the preset's, never
+                // the form's (docs/content-presets.md).
+                $attributes['locked'] = $existing->locked;
+                if ($existing->setting('pattern') !== null) {
+                    $attributes['settings'] = [...($attributes['settings'] ?? []), 'pattern' => $existing->setting('pattern')];
+                }
                 $existing->update($attributes);
             } else {
                 $group->fields()->create($attributes);

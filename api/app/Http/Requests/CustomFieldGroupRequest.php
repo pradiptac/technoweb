@@ -7,6 +7,7 @@ use App\Models\CustomField;
 use App\Models\CustomFieldGroup;
 use App\Support\CustomFields\CustomFields;
 use App\Support\CustomFields\Targets;
+use App\Support\Presets\Presets;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -92,7 +93,57 @@ class CustomFieldGroupRequest extends FormRequest
             }
 
             $this->checkKeyCollisions($v, $group);
+            $this->checkLocked($v, $group);
         });
+    }
+
+    /**
+     * A preset's layout reads these fields by key (docs/content-presets.md),
+     * so their key and kind are fixed and they cannot be removed, and the
+     * group stays attached to the preset's type. The label, the help and
+     * whether a field is required stay the editor's.
+     */
+    private function checkLocked(Validator $v, ?CustomFieldGroup $group): void
+    {
+        if ($group === null) {
+            return;
+        }
+
+        $locked = $group->fields()->where('locked', true)->get()->keyBy('id');
+        if ($locked->isEmpty()) {
+            return;
+        }
+
+        $preset = Presets::forType(str_replace('preset-', '', (string) $group->slug));
+        $label = $preset['defaults']['plural'] ?? 'preset';
+
+        if ($this->has('fields')) {
+            $sent = collect((array) $this->input('fields'))->values();
+
+            foreach ($locked as $id => $field) {
+                $i = $sent->search(fn ($f) => (int) ($f['id'] ?? 0) === (int) $id);
+                if ($i === false) {
+                    $v->errors()->add('fields', "“{$field->label}” is part of the {$label} layout and cannot be removed.");
+
+                    continue;
+                }
+                $row = $sent[$i];
+                if (($row['key'] ?? null) !== $field->key) {
+                    $v->errors()->add("fields.$i.key", "The {$label} layout reads this field as “{$field->key}”, so its key cannot change.");
+                }
+                if (($row['kind'] ?? null) !== $field->kind->value) {
+                    $v->errors()->add("fields.$i.kind", "The {$label} layout reads this field as {$field->kind->label()}, so its type cannot change.");
+                }
+            }
+        }
+
+        if ($this->has('targets')) {
+            foreach ((array) $group->targets as $t) {
+                if (! in_array($t, (array) $this->input('targets'), true)) {
+                    $v->errors()->add('targets', "This group belongs to the {$label} preset and must stay attached to it.");
+                }
+            }
+        }
     }
 
     /** @param array<int, array<string, mixed>> $fields */
