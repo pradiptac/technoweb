@@ -13,9 +13,11 @@ use App\Http\Requests\EntryRequest;
 use App\Http\Resources\Admin\ContentTypeResource;
 use App\Http\Resources\Admin\EntryResource;
 use App\Models\ContentType;
+use App\Jobs\SendInvestorAlertsJob;
 use App\Models\Entry;
 use App\Support\CustomFields\CustomFields;
 use App\Support\PageSections\RecordSections;
+use App\Support\Presets\InvestorAlerts;
 use App\Support\PublishStamp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -98,6 +100,8 @@ class EntryController extends Controller
             return $entry;
         });
 
+        $this->afterSave($contentType, $entry);
+
         return (new EntryResource($entry->load(self::DETAIL)))->response()->setStatusCode(201);
     }
 
@@ -123,7 +127,47 @@ class EntryController extends Controller
             $this->saveCustomFields($entry, $custom);
         });
 
+        $this->afterSave($contentType, $entry);
+
         return new EntryResource($entry->fresh(self::DETAIL) ?? $entry);
+    }
+
+    /**
+     * Send this investor document's alert now (docs/content-presets.md).
+     * Once: a second press, a draft and any other type are refused with the
+     * sentence `InvestorAlerts` gives.
+     */
+    public function alert(ContentType $contentType, Entry $entry): JsonResponse
+    {
+        abort_unless($entry->content_type_id === $contentType->id, 404);
+
+        if ($contentType->preset !== 'investors') {
+            $why = 'Only investor documents send an email alert.';
+        } else {
+            $why = InvestorAlerts::send($entry);
+        }
+
+        if ($why !== null) {
+            return response()->json(['message' => $why, 'errors' => ['alert' => [$why]]], 422);
+        }
+
+        return response()->json(['message' => 'The alert is on its way to the investor list.'], 202);
+    }
+
+    /**
+     * An investor document saved: a refusal written by an earlier attempt is
+     * cleared (the save is the editor's "try again"), and the sweep runs
+     * after commit, so a document published now is announced within the
+     * minute rather than at the next ten-minute run.
+     */
+    private function afterSave(ContentType $contentType, Entry $entry): void
+    {
+        if ($contentType->preset !== 'investors') {
+            return;
+        }
+
+        Entry::query()->whereKey($entry->id)->whereNotNull('alert_error')->update(['alert_error' => null]);
+        SendInvestorAlertsJob::dispatch()->afterCommit();
     }
 
     /**

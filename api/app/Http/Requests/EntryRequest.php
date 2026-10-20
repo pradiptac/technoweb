@@ -71,6 +71,13 @@ class EntryRequest extends FormRequest
             'status' => [$required, Rule::enum(PublishStatus::class)],
             'published_at' => ['sometimes', 'nullable', 'date'],
             'sort_order' => ['sometimes', 'integer', 'min:0', 'max:100000'],
+            // "Email subscribers when published" — an investor document's only
+            // (docs/content-presets.md).
+            'alert_on_publish' => ['sometimes', 'boolean', function (string $attribute, mixed $value, \Closure $fail) {
+                if ($this->type()->preset !== 'investors') {
+                    $fail('Only investor documents send an email alert.');
+                }
+            }],
 
             ...CmsFieldRules::faqs(),
             ...CmsFieldRules::answerBlocks(),

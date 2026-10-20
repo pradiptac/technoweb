@@ -16,6 +16,7 @@ use App\Models\Setting;
 use App\Support\Newsletter\BounceWebhook;
 use App\Support\Newsletter\Rejoin;
 use App\Support\Newsletter\SubscriberIntake;
+use App\Support\Presets\Presets;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -50,6 +51,8 @@ class NewsletterController extends Controller
             // The honeypot, the same field name the contact form uses so
             // there is one convention rather than two.
             'website' => ['nullable', 'string', 'max:200'],
+            // Which list: the newsletter, or the investors page's band (docs/content-presets.md).
+            'list' => ['nullable', 'string', 'in:general,investors'],
         ]);
 
         $answer = response()->json([
@@ -69,7 +72,19 @@ class NewsletterController extends Controller
             return response()->json(['message' => 'Newsletter signup is closed.'], 403);
         }
 
-        $group = NewsletterGroup::where('slug', 'general-newsletter')->first();
+        /*
+         * `list: investors` is the investors page's signup band: the same
+         * intake, into the standing group the preset made. With the preset
+         * not installed nothing is written and the answer is the same.
+         */
+        if (($data['list'] ?? 'general') === 'investors') {
+            $group = NewsletterGroup::where('source', Presets::INVESTOR_GROUP_SOURCE)->first();
+            if ($group === null) {
+                return $answer;
+            }
+        } else {
+            $group = NewsletterGroup::where('slug', 'general-newsletter')->first();
+        }
         $groupIds = $group ? [$group->id] : [];
 
         $outcome = SubscriberIntake::take($data['email'], $data, $groupIds, 'signup');

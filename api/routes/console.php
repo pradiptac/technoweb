@@ -73,6 +73,7 @@ Schedule::command('technoware:prune-revisions')->dailyAt('03:42');
 Schedule::command('technoware:prune-ai-images')->everyTenMinutes();
 
 // Digest and alerts (0.185.0, docs/digest-alerts.md).
+Schedule::command('technoware:send-investor-alerts')->everyTenMinutes()->withoutOverlapping();
 Schedule::command('technoware:check-alerts')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('technoware:prune-alert-fires')->dailyAt('03:25');
 Schedule::command('technoware:send-digests')->hourlyAt(5)->withoutOverlapping();

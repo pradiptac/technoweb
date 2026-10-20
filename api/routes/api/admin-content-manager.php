@@ -375,6 +375,8 @@ Route::middleware('role:content_manager')->group(function () {
         Route::get('content-types/{content_type:slug}/entries/{entry:id}', [EntryController::class, 'show'])->name('entries.show');
         Route::patch('content-types/{content_type:slug}/entries/{entry:id}', [EntryController::class, 'update'])->name('entries.update');
         Route::delete('content-types/{content_type:slug}/entries/{entry:id}', [EntryController::class, 'destroy'])->name('entries.destroy');
+        Route::post('content-types/{content_type:slug}/entries/{entry:id}/alert', [EntryController::class, 'alert'])
+            ->middleware('throttle:6,1')->name('entries.alert');
     });
 
     // Index doubles as the parent picker and the product form's

@@ -35,6 +35,11 @@ class EntryResource extends JsonResource
             'status_label' => $this->status->label(),
             'published_at' => $this->published_at?->toIso8601String(),
             'sort_order' => (int) $this->sort_order,
+            // An investor document's email alert (docs/content-presets.md).
+            'alert_on_publish' => (bool) $this->alert_on_publish,
+            'alert_sent_at' => $this->alert_sent_at?->toIso8601String(),
+            'alert_error' => $this->alert_error,
+            'alert_campaign_id' => $this->alert_campaign_id,
             'faqs' => $this->adminFaqs(),
             'answer_blocks' => $this->adminAnswerBlocks(),
             ...$this->adminCustomFields(),
