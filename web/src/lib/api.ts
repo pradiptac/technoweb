@@ -632,10 +632,21 @@ export const publicApi = {
   contentTypes: () =>
     apiFetch<Collection<ContentTypeSummary>>("/content-types", { revalidate: 600, tags: ["content-types"] }),
   /** A type's archive: a page of its published entries, and the type in `meta.type`. */
-  contentArchive: (type: string, query = "") =>
-    apiFetch<Paginated<ContentEntry> & { meta: Paginated<ContentEntry>["meta"] & { type: ContentTypeSummary } }>(
+  /**
+   * A filtered view (an investor document type, a year) is never ISR-cached:
+   * `cache: false`, the catalogue search's rule. A preset's archive also
+   * carries `meta.newsroom_kit` and `meta.document_types` (docs/content-presets.md).
+   */
+  contentArchive: (type: string, query = "", cache = true) =>
+    apiFetch<Paginated<ContentEntry> & {
+      meta: Paginated<ContentEntry>["meta"] & {
+        type: ContentTypeSummary;
+        newsroom_kit?: import("@/types/downloads").Download[];
+        document_types?: import("@/types/presets").PresetOption[];
+      };
+    }>(
       `/types/${type}${query}`,
-      { revalidate: 600, tags: ["content-types", `entries:${type}`] },
+      cache ? { revalidate: 600, tags: ["content-types", `entries:${type}`] } : {},
     ),
   entry: (type: string, slug: string) =>
     previewOr<ContentEntry>("entry", `${type}/${slug}`, () =>

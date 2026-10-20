@@ -27,6 +27,7 @@ use App\Models\StoreCategory;
 use App\Models\SupportCentre;
 use App\Support\Countries;
 use App\Support\CustomFields\CustomFields;
+use App\Support\Presets\Presets;
 use App\Support\PageSections\BodySections;
 use App\Support\PageSections\LayoutRules;
 use App\Support\PageSections\RecordSections;
@@ -190,9 +191,7 @@ class PageController extends Controller
                 ->map(fn (ContentType $t) => array_filter([
                     'value' => $t->preset,
                     'label' => $t->plural,
-                    'document_types' => $t->preset === 'investors'
-                        ? array_values((CustomFields::fieldsFor($t->target())['document_type'] ?? null)?->options ?? [])
-                        : null,
+                    'document_types' => $t->preset === 'investors' ? Presets::documentTypes($t) : null,
                 ], fn ($v) => $v !== null))->values()->all(),
             'testimonials_installed' => ContentType::query()->where('preset', 'testimonials')->exists(),
             // Custom code (0.158.0): whether this account may choose to run it

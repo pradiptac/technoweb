@@ -59,6 +59,21 @@ class PresetSectionsTest extends TestCase
             ->assertJsonPath('data.sections.0.data.items.0.custom_data.awarding_body', 'Cisco');
     }
 
+    public function test_an_investors_list_names_its_document_types(): void
+    {
+        $as = $this->actingAs($this->staff(), 'sanctum');
+        $as->postJson('/api/v1/admin/content-types/presets/investors')->assertCreated();
+        $pdf = \App\Models\Media::create(['filename' => 'a.pdf', 'path' => 'media/a.pdf', 'mime' => 'application/pdf', 'size' => 10, 'disk' => 'public']);
+        $as->postJson('/api/v1/admin/content-types/investors/entries', [
+            'title' => 'Q2', 'status' => 'published',
+            'custom_fields' => ['document_type' => 'annual_report', 'financial_year' => '2026-27', 'document' => $pdf->path],
+        ])->assertCreated();
+        $this->page(['type' => 'preset_list', 'data' => ['preset' => 'investors']])->assertCreated();
+
+        $this->getJson('/api/v1/pages/about-us')->assertOk()
+            ->assertJsonPath('data.sections.0.data.document_types.1.label', 'Annual report');
+    }
+
     public function test_the_builder_options_list_installed_presets(): void
     {
         $as = $this->actingAs($this->staff(), 'sanctum');

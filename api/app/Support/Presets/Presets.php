@@ -2,7 +2,9 @@
 
 namespace App\Support\Presets;
 
+use App\Models\ContentType;
 use App\Models\NewsletterGroup;
+use App\Support\CustomFields\CustomFields;
 use Illuminate\Support\Str;
 
 /**
@@ -64,6 +66,22 @@ final class Presets
         }
 
         return null;
+    }
+
+    /**
+     * An investors type's document types, as `[{value, label}]`, read from
+     * its locked field — the editor may rename or add options.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    public static function documentTypes(ContentType $type): array
+    {
+        $field = CustomFields::fieldsFor($type->target())['document_type'] ?? null;
+
+        return array_values(array_filter(array_map(
+            fn ($o) => is_array($o) && is_string($o['value'] ?? null) ? ['value' => $o['value'], 'label' => (string) ($o['label'] ?? $o['value'])] : null,
+            $field?->options ?? [],
+        )));
     }
 
     /**

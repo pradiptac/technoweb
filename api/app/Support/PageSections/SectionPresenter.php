@@ -37,6 +37,7 @@ use App\Support\Downloads\DownloadFiles;
 use App\Support\Events\EventText;
 use App\Support\CustomFields\CustomFields;
 use App\Support\MediaMeta;
+use App\Support\Presets\Presets;
 use App\Support\MediaUrl;
 use App\Support\Money;
 use App\Support\Store\Tax;
@@ -364,6 +365,10 @@ final class SectionPresenter
         $entries = $query->limit((int) ($data['limit'] ?? 6))->get();
         if ($entries->isEmpty()) {
             return null;
+        }
+
+        if ($type->preset === 'investors') {
+            $data['document_types'] = Presets::documentTypes($type);
         }
 
         return [...$data, 'index_path' => $type->publicPath(), 'items' => $entries->map(function ($entry) use ($type) {

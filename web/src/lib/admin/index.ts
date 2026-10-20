@@ -33,6 +33,7 @@ export * from "./media-ai";
 export * from "./messaging";
 export * from "./newsletter";
 export * from "./pages";
+export * from "./presets";
 export * from "./detail-templates";
 export * from "./preview-links";
 export * from "./revisions";

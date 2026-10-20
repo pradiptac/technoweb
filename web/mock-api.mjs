@@ -3261,12 +3261,92 @@ const ENTRIES = [
     custom_fields: [{ key: 'venue', label: 'Venue', kind: 'text', value: 'Online', display: 'Online' }],
     custom_data: { venue: 'Online' } },
 ];
-const publicType = ({ name, plural, slug, path, icon, description, archive_enabled, per_page, sort, schema_type, updated_at }) =>
-  ({ name, plural, slug, path, icon, description, archive_enabled, per_page, sort, schema_type, updated_at });
+const publicType = ({ name, plural, slug, path, icon, description, archive_enabled, per_page, sort, schema_type, updated_at, preset = null, entry_pages = true }) =>
+  ({ name, plural, slug, path, icon, description, archive_enabled, preset, entry_pages, per_page, sort, schema_type, updated_at });
 const publicEntry = (e, t = CONTENT_TYPES[0]) => ({
-  ...e, path: `${t.path}/${e.slug}`,
-  type: { name: t.name, plural: t.plural, slug: t.slug, path: t.path, icon: t.icon, archive_enabled: t.archive_enabled },
+  ...e, path: t.entry_pages === false ? t.path : `${t.path}/${e.slug}`,
+  type: { name: t.name, plural: t.plural, slug: t.slug, path: t.path, icon: t.icon, archive_enabled: t.archive_enabled,
+    preset: t.preset ?? null, entry_pages: t.entry_pages ?? true },
 });
+
+/* Content-type presets (docs/content-presets.md): all four installed in the
+ * mock, so every archive draws in development and under the audit. */
+const presetType = (id, preset, name, plural, slug, schema, pages, sort = 'newest') => ({
+  id, name, plural, slug, path: `/${slug}`, icon: null, description: `${plural} — sample.`, has_body: preset === 'newsroom_releases',
+  has_image: preset === 'newsroom_releases', archive_enabled: true, preset, entry_pages: pages, per_page: 24, sort, schema_type: schema,
+  sort_order: id, is_active: true, entries_count: 2, published_count: 2, target: `entry:${slug}`, field_groups: [],
+  created_at: '2026-10-20T00:00:00Z', updated_at: '2026-10-20T00:00:00Z',
+});
+CONTENT_TYPES.push(
+  presetType(11, 'newsroom_releases', 'Press release', 'Press releases', 'newsroom', 'Article', true),
+  presetType(12, 'newsroom_coverage', 'Coverage', 'In the news', 'in-the-news', 'WebPage', false),
+  presetType(13, 'investors', 'Investor document', 'Investors', 'investors', 'WebPage', false),
+  presetType(14, 'testimonials', 'Testimonial', 'Testimonials', 'testimonials', 'WebPage', false, 'manual'),
+  presetType(15, 'awards', 'Award', 'Awards', 'awards', 'WebPage', false),
+);
+const PRESET_DOCUMENT_TYPES = [
+  ['financial_results', 'Financial results'], ['annual_report', 'Annual report'], ['shareholding_pattern', 'Shareholding pattern'],
+  ['board_meeting_outcome', 'Board meeting outcome'], ['notice_of_meeting', 'Notice of meeting'], ['corporate_governance', 'Corporate governance'],
+  ['policy', 'Policy'], ['stock_exchange_filing', 'Stock exchange filing'], ['other', 'Other'],
+].map(([value, label]) => ({ value, label }));
+const mockPdf = (name) => ({ url: `http://127.0.0.1:8899/storage/media/${name}`, name, mime: 'application/pdf' });
+const presetEntry = (id, title, published_at, custom_data, extra = {}) => ({
+  id, title, slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), summary: extra.summary ?? null,
+  body: extra.body ?? null, image: null, image_alt: null, image_focus: null, published_at, updated_at: published_at,
+  custom_fields: [], custom_data,
+});
+const PRESET_ENTRIES = {
+  newsroom: [
+    presetEntry(101, 'Technoware opens a NOC in Pune', '2026-10-12T10:00:00+05:30', { dateline: 'Pune', release_pdf: mockPdf('noc-pune.pdf') },
+      { summary: 'A second network operations centre, staffed around the clock.', body: '<p>The centre opens on Monday.</p>' }),
+    presetEntry(102, 'Technoware becomes a Fortinet Expert Partner', '2025-11-03T10:00:00+05:30', { dateline: 'Kolkata' },
+      { summary: 'The highest tier of the partner programme.', body: '<p>Awarded after two years of certified deployments.</p>' }),
+  ],
+  'in-the-news': [
+    presetEntry(111, 'How mid-size firms are rebuilding their networks', '2026-10-01T09:00:00+05:30',
+      { publication: 'The Sample Times', article_url: 'https://example.com/article', coverage_date: '2026-09-30' },
+      { summary: '“A support desk that picks up” — on our AMC model.' }),
+    presetEntry(112, 'Ten IT partners to watch', '2026-06-15T09:00:00+05:30',
+      { publication: 'Sample Business Weekly', article_url: 'https://example.com/list', coverage_date: '2026-06-14' }),
+  ],
+  investors: [
+    presetEntry(121, 'Results for the quarter ended 30 September 2026', '2026-10-15T18:00:00+05:30',
+      { document_type: 'financial_results', financial_year: '2026-27', document: mockPdf('q2-results.pdf'), document_date: '2026-10-15' }),
+    presetEntry(122, 'Annual report 2025-26', '2026-07-30T18:00:00+05:30',
+      { document_type: 'annual_report', financial_year: '2025-26', document: mockPdf('annual-report.pdf'), document_date: '2026-07-30' }),
+  ],
+  testimonials: [
+    presetEntry(131, 'A. Sen', '2026-10-01T09:00:00+05:30', { quote: 'They documented a network nobody else could explain.', role: 'Head of IT', company: 'Sample Foods', featured: true }),
+    presetEntry(132, 'B. Roy', '2026-09-01T09:00:00+05:30', { quote: 'The first support desk that rings back.', role: 'CIO', company: 'Sample Logistics' }),
+  ],
+  awards: [
+    presetEntry(141, 'Partner of the year', '2026-08-01T09:00:00+05:30', { awarding_body: 'Sample Vendor', year: 2026, category: 'East region' }),
+    presetEntry(142, 'Best managed-services provider', '2025-12-01T09:00:00+05:30', { awarding_body: 'Sample Industry Awards', year: 2025 }),
+  ],
+};
+const PRESET_TILES = [
+  ['newsroom', 'Newsroom', 'newsroom_releases', 'Press releases', 'newsroom', 11],
+  ['investors', 'Investors', 'investors', 'Investors', 'investors', 13],
+  ['testimonials', 'Testimonials', 'testimonials', 'Testimonials', 'testimonials', null],
+  ['awards', 'Awards', 'awards', 'Awards', 'awards', 15],
+].map(([key, label, preset, plural, slug, id]) => ({
+  key, label, blurb: `${label} — sample.`, slug,
+  types: [{ preset, plural, slug, fields: [{ key: 'example', label: 'Example field', kind: 'text' }] }],
+  installed: id ? { id, slug } : null, clash: null,
+}));
+const PRESET_SETTINGS = {
+  11: [{ key: 'newsroom_boilerplate', value: '<p>Technoware is a sample company.</p>', type: 'text' },
+    { key: 'newsroom_contact_name', value: 'Press office', type: 'string' }, { key: 'newsroom_contact_email', value: 'press@example.com', type: 'string' },
+    { key: 'newsroom_contact_phone', value: null, type: 'string' }, { key: 'newsroom_kit_category_id', value: null, type: 'string' }],
+  13: [{ key: 'investors_contact_name', value: 'Company secretary', type: 'string' }, { key: 'investors_contact_email', value: 'investors@example.com', type: 'string' },
+    { key: 'investors_contact_phone', value: null, type: 'string' }, { key: 'investors_signup_line', value: null, type: 'string' }],
+};
+/* The builder's preset choices (docs/content-presets.md): all four installed in the mock. */
+BUILDER_OPTIONS.presets = [
+  { value: 'newsroom_releases', label: 'Press releases' }, { value: 'newsroom_coverage', label: 'In the news' },
+  { value: 'investors', label: 'Investors', document_types: PRESET_DOCUMENT_TYPES }, { value: 'awards', label: 'Awards' },
+];
+BUILDER_OPTIONS.testimonials_installed = true;
 const adminEntry = (e) => ({
   id: e.id, content_type_id: 1, title: e.title, slug: e.slug, path: `/open-days/${e.slug}`, summary: e.summary, body: e.body,
   image_path: null, image: null, status: 'published', status_label: 'Published', published_at: e.published_at, sort_order: 0,
@@ -3572,6 +3652,7 @@ createServer(async (req, res) => {
      varied by address would let that rule be broken here and only fail in
      production. */
   if (p === '/newsletter/subscribe' && req.method === 'POST') {
+    // `list: investors` is the investors page's band; the answer is the same either way.
     return json(res, 202, { message: 'Thank you. If that address is not already on the list, you will hear from us soon.' });
   }
   {
@@ -4826,6 +4907,36 @@ createServer(async (req, res) => {
       sorts: [{ value: 'newest', label: 'Newest first' }, { value: 'title', label: 'By title' }, { value: 'manual', label: 'By sort order' }],
       schema_types: [{ value: 'Article', label: 'Article' }, { value: 'WebPage', label: 'Web page' }],
     };
+    if (p === '/admin/content-types/presets' && req.method === 'GET') return json(res, 200, { data: PRESET_TILES });
+    {
+      const m = p.match(/^\/admin\/content-types\/presets\/(newsroom|investors|testimonials|awards)$/);
+      if (m && req.method === 'POST') {
+        const tile = PRESET_TILES.find((x) => x.key === m[1]);
+        if (tile.installed) return json(res, 422, { message: `The ${tile.label} preset is already installed.`, errors: { key: [`The ${tile.label} preset is already installed.`] } });
+        return json(res, 201, { data: [{ ...CONTENT_TYPES[0], id: 20, preset: tile.types[0].preset, slug: tile.slug, path: `/${tile.slug}`, plural: tile.types[0].plural }] });
+      }
+    }
+    {
+      const m = p.match(/^\/admin\/content-types\/(\d+)\/preset-settings$/);
+      if (m) {
+        const rows = PRESET_SETTINGS[Number(m[1])];
+        if (!rows) return json(res, 404, { message: 'Not found.' });
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          for (const row of body.settings ?? []) {
+            const hit = rows.find((x) => x.key === row.key);
+            if (!hit) return json(res, 422, { message: 'That setting is not part of this preset.', errors: { 'settings.0.key': ['Not part of this preset.'] } });
+            hit.value = row.value ?? null;
+          }
+          return json(res, 200, { message: 'Saved.', data: rows, meta: { download_categories: [{ id: 1, name: 'Media kit' }] } });
+        }
+        return json(res, 200, { data: rows, meta: Number(m[1]) === 11 ? { download_categories: [{ id: 1, name: 'Media kit' }] } : {} });
+      }
+    }
+    {
+      const m = p.match(/^\/admin\/content-types\/investors\/entries\/(\d+)\/alert$/);
+      if (m && req.method === 'POST') return json(res, 202, { message: 'The alert is on its way to the investor list.' });
+    }
     if (p === '/admin/content-types' && req.method === 'GET') {
       const page = paginate(CONTENT_TYPES);
       Object.assign(page.meta, TYPE_META);
@@ -7303,12 +7414,21 @@ createServer(async (req, res) => {
     if (m) {
       const t = CONTENT_TYPES.find((x) => x.slug === m[1]);
       if (!t) return json(res, 404, { message: 'Not found.' });
+      const pool = t.preset ? PRESET_ENTRIES[t.slug] ?? [] : ENTRIES;
       if (!m[2]) {
-        const page = paginate(ENTRIES.map(({ body, ...e }) => { void body; return publicEntry(e, t); }));
+        const q = new URL(req.url, 'http://x').searchParams;
+        let rows = pool;
+        if (t.preset === 'investors' && q.get('type')) rows = rows.filter((e) => e.custom_data.document_type === q.get('type'));
+        if (t.preset === 'investors' && q.get('year')) rows = rows.filter((e) => e.custom_data.financial_year === q.get('year'));
+        if (t.preset === 'testimonials' && q.get('featured')) rows = rows.filter((e) => e.custom_data.featured);
+        const page = paginate(rows.map(({ body, ...e }) => { void body; return publicEntry(e, t); }));
         page.meta.type = publicType(t);
+        if (t.preset === 'investors') page.meta.document_types = PRESET_DOCUMENT_TYPES;
+        if (t.preset === 'newsroom_releases') page.meta.newsroom_kit = [];
         return json(res, 200, page);
       }
-      const e = ENTRIES.find((x) => x.slug === m[2]);
+      if (t.entry_pages === false) return json(res, 404, { message: 'Not found.' });
+      const e = pool.find((x) => x.slug === m[2]);
       if (!e) return json(res, 404, { message: 'Not found.' });
       const path = `${t.path}/${e.slug}`;
       return json(res, 200, { data: { ...publicEntry(e, t), ...answerContent([], [], {}),

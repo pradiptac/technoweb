@@ -196,6 +196,15 @@ class ContentPresetsTest extends TestCase
         $this->getJson('/api/v1/types/investors?year=2026-27')->assertJsonCount(1, 'data');
     }
 
+    public function test_the_investors_archive_names_its_document_types(): void
+    {
+        $this->install('investors');
+
+        $this->getJson('/api/v1/types/investors')->assertOk()
+            ->assertJsonPath('meta.document_types.0.value', 'financial_results')
+            ->assertJsonPath('meta.document_types.0.label', 'Financial results');
+    }
+
     public function test_a_financial_year_is_held_to_its_shape(): void
     {
         $this->install('investors');

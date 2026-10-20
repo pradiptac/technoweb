@@ -779,7 +779,8 @@ export type AdminCustomFieldGroup = {
   sort_order: number;
   is_active: boolean;
   fields_count?: number;
-  fields?: (Omit<CustomFieldDefinition, "choices"> & { sort_order: number; values_count: number })[];
+  /** `locked`: a preset's layout reads it, so its key and kind are fixed (docs/content-presets.md). */
+  fields?: (Omit<CustomFieldDefinition, "choices"> & { sort_order: number; values_count: number; locked?: boolean })[];
   created_at: string;
   updated_at: string;
 };
@@ -800,6 +801,10 @@ export type ContentTypeSummary = {
   icon: string | null;
   description: string | null;
   archive_enabled: boolean;
+  /** Installed from a preset (docs/content-presets.md); its archive draws that preset's layout. */
+  preset: import("./presets").PresetKey | null;
+  /** False: entries are drawn on the archive only and have no page of their own. */
+  entry_pages: boolean;
   per_page: number;
   sort: ContentTypeSort;
   schema_type: "Article" | "WebPage";
@@ -814,7 +819,10 @@ export type ContentEntry = PublicCustomFields & AnswerContent & import("./page-s
   slug: string;
   /** `/{type}/{slug}`, composed by the API. */
   path: string;
-  type?: { name: string; plural: string; slug: string; path: string; icon: string | null; archive_enabled: boolean };
+  type?: {
+    name: string; plural: string; slug: string; path: string; icon: string | null; archive_enabled: boolean;
+    preset?: import("./presets").PresetKey | null; entry_pages?: boolean;
+  };
   summary: string | null;
   /** Detail only. */
   body?: string | null;
@@ -851,6 +859,10 @@ export type AdminContentType = {
   field_groups?: { id: number; name: string; fields_count: number }[];
   /** `entry:<slug>` — the key field groups are attached by. */
   target: string;
+  /** Installed from a preset (docs/content-presets.md); fixed. */
+  preset?: import("./presets").PresetKey | null;
+  /** False: entries are drawn on the archive only. */
+  entry_pages?: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -875,6 +887,11 @@ export type AdminEntry = AdminCustomFields & import("./page-sections").AdminReco
   status_label: string;
   published_at: string | null;
   sort_order: number;
+  /** An investor document's email alert (docs/content-presets.md). */
+  alert_on_publish?: boolean;
+  alert_sent_at?: string | null;
+  alert_error?: string | null;
+  alert_campaign_id?: number | null;
   faqs?: FaqItem[];
   answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;

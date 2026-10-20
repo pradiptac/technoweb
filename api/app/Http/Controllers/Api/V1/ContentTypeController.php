@@ -10,6 +10,7 @@ use App\Models\ContentType;
 use App\Models\Download;
 use App\Models\Entry;
 use App\Models\Setting;
+use App\Support\Presets\Presets;
 use App\Support\EntityLinks;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -84,6 +85,12 @@ class ContentTypeController extends Controller
         $entries->getCollection()->each(fn ($e) => $e->setRelation('contentType', $contentType));
 
         $meta = ['type' => new ContentTypeResource($contentType)];
+
+        // The words each document type is shown as, for the type chips and the
+        // rows: `custom_data` carries the stored value only.
+        if ($contentType->preset === 'investors') {
+            $meta['document_types'] = Presets::documentTypes($contentType);
+        }
 
         // The newsroom's media kit: a downloads category chosen on the type's
         // Preset tab, drawn on the archive (docs/content-presets.md).

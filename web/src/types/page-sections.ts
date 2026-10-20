@@ -432,6 +432,10 @@ export type PageBuilderOptions = {
   store_categories: { id: number; name: string; slug: string }[];
   /** The downloads centre's shelves a downloads section may name (0.131.0). Optional for an older API. */
   download_categories?: { id: number; name: string; slug: string }[];
+  /** Installed presets a "From a preset" section may read (docs/content-presets.md). */
+  presets?: { value: import("./presets").PresetKey; label: string; document_types?: import("./presets").PresetOption[] }[];
+  /** Whether the Testimonials section may read its quotes from the preset. */
+  testimonials_installed?: boolean;
   /** The countries with a support centre, for a support network section (0.170.0). */
   support_countries?: { value: string; label: string }[];
   /** The section library and the page templates (0.106.0). Optional for an older API. */
