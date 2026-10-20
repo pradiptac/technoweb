@@ -31,6 +31,8 @@ class ContentTypeResource extends JsonResource
             'icon' => $this->icon,
             'description' => $this->description,
             'archive_enabled' => (bool) $this->archive_enabled,
+            'preset' => $this->preset,
+            'entry_pages' => (bool) $this->entry_pages,
             'per_page' => (int) $this->per_page,
             'sort' => $this->sort,
             'schema_type' => $this->schema_type,

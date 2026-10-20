@@ -19,7 +19,7 @@ class CustomField extends Model
 {
     protected $fillable = [
         'custom_field_group_id', 'key', 'label', 'kind', 'help', 'required',
-        'options', 'settings', 'show_on_page', 'sort_order',
+        'options', 'settings', 'show_on_page', 'sort_order', 'locked',
     ];
 
     protected function casts(): array
@@ -28,6 +28,7 @@ class CustomField extends Model
             'kind' => CustomFieldKind::class,
             'required' => 'boolean',
             'show_on_page' => 'boolean',
+            'locked' => 'boolean',
             'options' => 'array',
             'settings' => 'array',
             'sort_order' => 'integer',

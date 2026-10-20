@@ -64,6 +64,8 @@ class ContentTypeController extends Controller
     public function show(string $type, string $slug): JsonResource
     {
         $contentType = ContentType::active()->where('slug', $type)->firstOrFail();
+        // An entry drawn only on its archive has no page to read (`entry_pages`).
+        abort_unless($contentType->entry_pages, 404);
         $entry = $contentType->entries()->published()->where('slug', $slug)->firstOrFail();
 
         return $this->present($entry, $contentType);

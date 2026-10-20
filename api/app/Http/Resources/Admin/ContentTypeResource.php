@@ -25,6 +25,8 @@ class ContentTypeResource extends JsonResource
             'has_body' => (bool) $this->has_body,
             'has_image' => (bool) $this->has_image,
             'archive_enabled' => (bool) $this->archive_enabled,
+            'preset' => $this->preset,
+            'entry_pages' => (bool) $this->entry_pages,
             'per_page' => (int) $this->per_page,
             'sort' => $this->sort,
             'schema_type' => $this->schema_type,

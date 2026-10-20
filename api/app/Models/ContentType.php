@@ -30,7 +30,11 @@ class ContentType extends Model
     protected $fillable = [
         'name', 'plural', 'slug', 'icon', 'description', 'has_body', 'has_image',
         'archive_enabled', 'per_page', 'sort', 'schema_type', 'sort_order', 'is_active',
+        'preset', 'entry_pages',
     ];
+
+    /** Every preset a type can carry (docs/content-presets.md). */
+    public const PRESETS = ['newsroom_releases', 'newsroom_coverage', 'investors', 'testimonials', 'awards'];
 
     protected function casts(): array
     {
@@ -38,6 +42,7 @@ class ContentType extends Model
             'has_body' => 'boolean',
             'has_image' => 'boolean',
             'archive_enabled' => 'boolean',
+            'entry_pages' => 'boolean',
             'is_active' => 'boolean',
             'per_page' => 'integer',
             'sort_order' => 'integer',
@@ -66,6 +71,19 @@ class ContentType extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * The type installed from a preset — found by `preset`, never by slug:
+     * an editor may rename the address, and every layout, the feed and the
+     * investor alerts must follow it.
+     *
+     * @param  Builder<ContentType>  $query
+     * @return Builder<ContentType>
+     */
+    public function scopePreset(Builder $query, string $preset): Builder
+    {
+        return $query->where('preset', $preset);
     }
 
     public function publicPath(): string

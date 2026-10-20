@@ -40,13 +40,15 @@ class Entry extends Model implements Answerable, Faqable
     protected $fillable = [
         'content_type_id', 'title', 'slug', 'summary', 'body', 'image_path',
         'status', 'published_at', 'sort_order',
-        'body_layout', 'blocks',
+        'body_layout', 'blocks', 'alert_on_publish',
     ];
 
     /** In memory as in the column: a new record's page draws its written body. */
     protected $attributes = ['body_layout' => 'body'];
 
     private ?string $typeSlugCache = null;
+
+    private ?bool $ownPageCache = null;
 
     protected function casts(): array
     {
@@ -55,6 +57,8 @@ class Entry extends Model implements Answerable, Faqable
             'published_at' => 'datetime',
             'sort_order' => 'integer',
             'blocks' => 'array',
+            'alert_on_publish' => 'boolean',
+            'alert_sent_at' => 'datetime',
         ];
     }
 
@@ -104,6 +108,26 @@ class Entry extends Model implements Answerable, Faqable
     public function urlPrefix(): string
     {
         return '/'.$this->typeSlug();
+    }
+
+    /**
+     * Whether this entry has a page of its own. A testimonial, an award, a
+     * piece of coverage or an investor document is drawn on its type's
+     * archive and nowhere else (`entry_pages`), so its address is the
+     * archive's — search, menus, share paths and site health all link there.
+     */
+    public function hasOwnPage(): bool
+    {
+        if ($this->relationLoaded('contentType') && $this->contentType !== null) {
+            return (bool) $this->contentType->entry_pages;
+        }
+
+        return $this->ownPageCache ??= (bool) (ContentType::query()->whereKey($this->content_type_id)->value('entry_pages') ?? true);
+    }
+
+    public function publicPath(): string
+    {
+        return $this->hasOwnPage() ? $this->urlPrefix().'/'.$this->slug : $this->urlPrefix();
     }
 
     public function customFieldTarget(): string

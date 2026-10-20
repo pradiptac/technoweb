@@ -43,6 +43,8 @@ class EntryResource extends JsonResource
                 'path' => $this->contentType->publicPath(),
                 'icon' => $this->contentType->icon,
                 'archive_enabled' => (bool) $this->contentType->archive_enabled,
+                'preset' => $this->contentType->preset,
+                'entry_pages' => (bool) $this->contentType->entry_pages,
             ]),
             'summary' => $this->summary,
             'body' => $this->when($detail, $this->body),

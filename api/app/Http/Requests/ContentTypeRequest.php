@@ -52,6 +52,10 @@ class ContentTypeRequest extends FormRequest
             'has_body' => ['sometimes', 'boolean'],
             'has_image' => ['sometimes', 'boolean'],
             'archive_enabled' => ['sometimes', 'boolean'],
+            'entry_pages' => ['sometimes', 'boolean'],
+            // Set by installing a preset, never by the form: a preset is a
+            // promise that its locked fields exist, which a form cannot keep.
+            'preset' => ['prohibited'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:60'],
             'sort' => ['sometimes', Rule::in(ContentType::SORTS)],
             'schema_type' => ['sometimes', Rule::in(ContentType::SCHEMA_TYPES)],
@@ -77,6 +81,7 @@ class ContentTypeRequest extends FormRequest
             'slug.regex' => 'The address must start with a letter and use only lowercase letters, numbers and hyphens.',
             'slug.not_in' => 'That address belongs to a part of the site that already exists. Choose another.',
             'slug.unique' => 'Another content type or a page already uses that address.',
+            'preset.prohibited' => 'A preset is chosen by installing it from the presets strip, not on this form.',
         ];
     }
 }
