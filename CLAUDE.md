@@ -3198,11 +3198,11 @@ A scheduled digest of each person's copilot figures and immediate alerts by emai
 Newsroom (press releases + In the news), Investors, Testimonials and Awards, installed with one press on top of custom content types (0.186.0).
 
 - A preset is found by `content_types.preset`, never by its slug (`ContentType::scopePreset`); `Presets` is the one list, `PresetInstaller` makes the type(s) and a `preset-<preset>` hidden field group in one transaction, and `preset` is prohibited on the type form.
-- A `locked` field keeps its key and kind and cannot be removed (422 naming the preset); the lock and `settings.pattern` are kept by the API on every save, never taken from the form.
+- A `locked` field keeps its key and kind and cannot be removed (422 naming the preset), and its group cannot be switched off or re-slugged; deleting the type deletes those groups by target; the lock and `settings.pattern` are kept by the API on every save, never taken from the form.
 - `entry_pages: false` (testimonials, coverage, investors, awards) makes the detail read a 404 and `Entry::publicPath()` the archive; the sitemap and `llms.txt` list the archive only.
 - Investors' `meta.document_types` lists only types a published document uses, read before `?type=`; a filtered archive read is never ISR-cached.
 - The `newsroom`/`investors` settings groups are edited through `/admin/content-types/{id}/preset-settings` (named keys, boilerplate sanitised), because settings are `role:admin`.
-- `testimonial_source: preset` puts the newest featured testimonial onto the three `testimonial_*` keys in `PublicSettings::build()`, so no theme changes; a testimonial save purges `settings`.
+- `testimonial_source: preset` puts the newest featured testimonial onto the three `testimonial_*` keys in `PublicSettings::build()`, so no theme changes (the role sent blank rather than dropped); **only** a testimonial's save purges `settings` (`lib/entry-tags.ts`) — that tag re-renders every public page.
 - Investor alerts claim `alert_sent_at` with a conditional UPDATE and go as an ordinary campaign through `CampaignSender` — no header logo (the image-ratio health check), a refusal writes `alert_error` and is not retried until a save; `technoware:send-investor-alerts` every ten minutes catches scheduled documents.
 - `preset_list` rows are a light shape built in `SectionPresenter` (never `EntryResource`, which sends the body on any `*.show` route); `blankData` takes the builder options so a new section starts on an installed preset.
 

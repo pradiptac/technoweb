@@ -55,7 +55,9 @@ deletes that group, and the preset can be installed again.
 A field the layout reads by key is `custom_fields.locked`. Its key and its
 kind cannot change and it cannot be removed — a 422 on `fields.N.key`,
 `fields.N.kind` or `fields`, naming the preset — and the group cannot be
-deleted on its own or detached from its type. The label, the help, whether
+deleted on its own, detached from its type, switched off (every layout would
+read empty custom data) or given another slug. Deleting the preset type
+deletes the groups holding its locked fields, found by target, never by slug. The label, the help, whether
 it is required and a dropdown's options stay the editor's. The lock and the
 financial year's shape (`settings.pattern`, `^\d{4}-\d{2}$`) are kept by the
 API on every save, whatever the form sends; the field builder offers no way
@@ -111,8 +113,13 @@ the type's form, never inside it.
 `PublicSettings::build()` puts the newest published, featured testimonial
 onto the three keys every theme's `WhyUs` already reads —
 `testimonial_quote`, `_author`, `_role` — so no theme changes; with none
-featured, the typed quote stands. A testimonial's save purges the website's
-`settings` tag.
+featured, the typed quote stands. The role is sent even when blank, so the
+typed role is never drawn under somebody else's quote. Only a testimonial's
+save purges the website's `settings` tag (`lib/entry-tags.ts`, pinned by
+`scripts/entry-tags.check.mjs`): that tag is read by the marketing layout, so
+purging it for every entry would re-render every cached public page. The
+boilerplate is cleaned at both doors — the preset-settings one and
+`PATCH /admin/settings`.
 
 ## The builder
 
@@ -151,6 +158,11 @@ setting is not retried every ten minutes. It never throws to its caller.
 catches a document scheduled for later; a save of an investors entry
 dispatches the same sweep after commit. `POST
 /admin/content-types/{type}/entries/{id}/alert` is the button.
+
+An exception after the campaign has left Draft and Ready keeps the claim
+(the newsletter is sending it; releasing it would let a save and the sweep
+send a second email); one before that deletes the draft campaign and
+releases the claim with `alert_error`.
 
 ## The newsroom feed
 

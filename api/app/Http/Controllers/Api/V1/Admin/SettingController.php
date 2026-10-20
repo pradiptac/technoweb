@@ -432,6 +432,9 @@ class SettingController extends Controller
         // The coming-soon page's message: a paragraph or two and perhaps a
         // list of what is on its way, so the `cms` profile.
         'coming_soon_message' => HtmlSanitiser::PROFILE,
+        // The newsroom's "about the company" paragraph, drawn through Prose on
+        // every press release. Cleaned at the preset-settings door as well.
+        'newsroom_boilerplate' => HtmlSanitiser::PROFILE,
     ];
 
     public function update(Request $request): JsonResponse

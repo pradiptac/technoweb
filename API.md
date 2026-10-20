@@ -1339,9 +1339,10 @@ the preset.
 
 **Locked fields.** A preset's fields carry `locked: true` on the group
 resource. A `PATCH /admin/custom-field-groups/{id}` that removes one, changes
-its `key` or its `kind`, or detaches the group from its type is a 422 on
-`fields`, `fields.N.key`, `fields.N.kind` or `targets`, naming the preset;
-`DELETE` on the group is a 422. The label, help, `required` and options stay
+its `key` or its `kind`, detaches the group from its type, switches it off
+or changes its slug is a 422 on `fields`, `fields.N.key`, `fields.N.kind`,
+`targets`, `is_active` or `slug`, naming the preset; `DELETE` on the group is
+a 422. The label, help, `required` and options stay
 editable. A text field's `settings.pattern` (set by a preset only: the
 financial year, `^\d{4}-\d{2}$`) is enforced on `custom_fields.<key>`.
 
@@ -1357,8 +1358,10 @@ category's published downloads, in `GET /downloads`' row shape).
 `testimonial_source` (`typed`, the default, or `preset`; options from the
 API, anything else a 422): with `preset`, the public `/settings` map carries
 the newest published featured testimonial as `testimonial_quote`,
-`testimonial_author` and `testimonial_role`, and the typed quote while none is
-featured.
+`testimonial_author` and `testimonial_role` (sent blank when the testimonial
+has no role or company, never the typed role), and the typed quote while none
+is featured. `newsroom_boilerplate` is cleaned on write through
+`PATCH /admin/settings` too.
 
 **Investor signup.** `POST /newsletter/subscribe` takes `list` (`general`,
 the default, or `investors`); `investors` joins the `source: investors` group

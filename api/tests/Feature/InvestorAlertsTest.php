@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CampaignStatus;
 use App\Enums\Role as RoleEnum;
 use App\Models\Entry;
 use App\Models\Media;
@@ -134,6 +135,39 @@ class InvestorAlertsTest extends TestCase
         $this->assertNull($fresh->alert_sent_at);
         $this->assertNotNull($fresh->alert_error);
         $this->assertSame(0, InvestorAlerts::due()->count());
+        $this->assertSame(0, NewsletterCampaign::query()->count());
+    }
+
+    public function test_a_failure_after_the_campaign_was_queued_never_frees_a_second_send(): void
+    {
+        $this->subscriber();
+        $entry = $this->document();
+        NewsletterCampaign::updated(function (NewsletterCampaign $c) {
+            if ($c->status !== CampaignStatus::Draft && $c->status !== CampaignStatus::Ready) {
+                throw new \RuntimeException('boom after queueing');
+            }
+        });
+
+        InvestorAlerts::send($entry->fresh());
+
+        $this->assertNotNull($entry->fresh()->alert_sent_at);
+        $this->assertSame(InvestorAlerts::ALREADY_SENT, InvestorAlerts::send($entry->fresh()));
+        $this->assertSame(1, NewsletterCampaign::query()->count());
+    }
+
+    public function test_a_failure_before_anything_was_queued_leaves_no_campaign_behind(): void
+    {
+        $this->subscriber();
+        $entry = $this->document();
+        NewsletterCampaign::updated(function (NewsletterCampaign $c) {
+            if ($c->status === CampaignStatus::Ready) {
+                throw new \RuntimeException('boom before queueing');
+            }
+        });
+
+        $this->assertNotNull(InvestorAlerts::send($entry->fresh()));
+
+        $this->assertNull($entry->fresh()->alert_sent_at);
         $this->assertSame(0, NewsletterCampaign::query()->count());
     }
 

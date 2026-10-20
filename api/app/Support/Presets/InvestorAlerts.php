@@ -48,6 +48,8 @@ final class InvestorAlerts
     /** Null when the alert is on its way; otherwise the sentence saying why not. */
     public static function send(Entry $entry): ?string
     {
+        $campaign = null;
+
         try {
             if (! $entry->isPublic()) {
                 return 'Only a published document can be announced.';
@@ -76,10 +78,39 @@ final class InvestorAlerts
             return null;
         } catch (Throwable $e) {
             Log::warning('Investor alert failed', ['entry' => $entry->id, 'error' => $e->getMessage()]);
-            Entry::query()->whereKey($entry->id)->update(['alert_sent_at' => null, 'alert_error' => 'The alert could not be sent. Try again.']);
 
-            return 'The alert could not be sent. Try again.';
+            return self::failed($entry, $campaign);
         }
+    }
+
+    /**
+     * Once the campaign has left Draft and Ready it is the newsletter's to
+     * send, so the claim is kept — releasing it would let a save and the
+     * sweep send a second email. Before that, nothing went out: the draft is
+     * deleted and the claim released.
+     */
+    private static function failed(Entry $entry, ?NewsletterCampaign $campaign): ?string
+    {
+        try {
+            if ($campaign !== null) {
+                $status = NewsletterCampaign::query()->whereKey($campaign->id)->value('status');
+                $status = $status instanceof CampaignStatus ? $status : CampaignStatus::tryFrom((string) $status);
+
+                if ($status !== null && $status !== CampaignStatus::Draft && $status !== CampaignStatus::Ready) {
+                    Entry::query()->whereKey($entry->id)->update(['alert_campaign_id' => $campaign->id, 'alert_error' => null]);
+
+                    return null;
+                }
+
+                $campaign->groups()->detach();
+                NewsletterCampaign::query()->whereKey($campaign->id)->delete();
+            }
+            Entry::query()->whereKey($entry->id)->update(['alert_sent_at' => null, 'alert_error' => 'The alert could not be sent. Try again.']);
+        } catch (Throwable $e) {
+            Log::warning('Investor alert cleanup failed', ['entry' => $entry->id, 'error' => $e->getMessage()]);
+        }
+
+        return 'The alert could not be sent. Try again.';
     }
 
     private static function refuse(Entry $entry, NewsletterCampaign $campaign, string $why): string

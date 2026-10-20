@@ -174,6 +174,57 @@ class ContentPresetsTest extends TestCase
         $as->postJson('/api/v1/admin/content-types/presets/awards')->assertCreated();
     }
 
+    public function test_a_preset_group_cannot_be_switched_off_or_given_another_slug(): void
+    {
+        $as = $this->actingAs($this->staff(), 'sanctum');
+        $as->postJson('/api/v1/admin/content-types/presets/testimonials')->assertCreated();
+        $group = CustomFieldGroup::query()->forTarget('entry:testimonials')->firstOrFail();
+
+        $as->patchJson("/api/v1/admin/custom-field-groups/{$group->id}", ['is_active' => false])
+            ->assertStatus(422)->assertJsonValidationErrors('is_active');
+        $as->patchJson("/api/v1/admin/custom-field-groups/{$group->id}", ['slug' => 'quotes'])
+            ->assertStatus(422)->assertJsonValidationErrors('slug');
+        $as->patchJson("/api/v1/admin/custom-field-groups/{$group->id}", ['name' => 'Quote details', 'slug' => $group->slug, 'is_active' => true])
+            ->assertOk();
+    }
+
+    public function test_deleting_a_preset_type_deletes_its_group_whatever_the_group_is_called(): void
+    {
+        $as = $this->actingAs($this->staff(), 'sanctum');
+        $id = $as->postJson('/api/v1/admin/content-types/presets/awards')->json('data.0.id');
+        CustomFieldGroup::query()->forTarget('entry:awards')->update(['slug' => 'renamed-by-hand']);
+
+        $as->deleteJson("/api/v1/admin/content-types/{$id}")->assertNoContent();
+        $this->assertSame(0, CustomFieldGroup::query()->where('slug', 'renamed-by-hand')->count());
+    }
+
+    public function test_the_general_settings_door_cleans_the_newsroom_boilerplate(): void
+    {
+        $this->seed(SettingsSeeder::class);
+        $this->actingAs($this->staff(RoleEnum::Admin), 'sanctum')->patchJson('/api/v1/admin/settings', [
+            'settings' => [['key' => 'newsroom_boilerplate', 'value' => '<p>About us</p><img src=x onerror="alert(1)"><script>alert(2)</script>']],
+        ])->assertOk();
+
+        $stored = (string) Setting::query()->where('key', 'newsroom_boilerplate')->value('value');
+        $this->assertStringContainsString('About us', $stored);
+        $this->assertStringNotContainsString('onerror', $stored);
+        $this->assertStringNotContainsString('<script', $stored);
+    }
+
+    public function test_a_featured_testimonial_with_no_role_does_not_borrow_the_typed_one(): void
+    {
+        $this->seed(SettingsSeeder::class);
+        $this->install('testimonials');
+        $this->entry('testimonials', 'A. Sen', ['quote' => 'Calm and quick.', 'featured' => true]);
+        Setting::query()->where('key', 'testimonial_source')->update(['value' => 'preset']);
+        Setting::query()->where('key', 'testimonial_role')->update(['value' => 'Somebody Else, Elsewhere']);
+        Setting::flushCache();
+
+        $this->getJson('/api/v1/settings')->assertOk()
+            ->assertJsonPath('data.testimonial_author', 'A. Sen')
+            ->assertJsonPath('data.testimonial_role', '');
+    }
+
     /* ------------------------------------------------------------ public reads */
 
     private function install(string $key): void

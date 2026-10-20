@@ -192,6 +192,7 @@ export function EntryForm({
       {/* A draft in localStorage, offered back after a refresh or a crash. */}
       <FormDraft />
       <input type="hidden" name="type" value={type.slug} />
+      <input type="hidden" name="type_preset" value={type.preset ?? ""} />
       {editing && <input type="hidden" name="id" value={entry!.id} />}
       {editing && <input type="hidden" name="previous_slug" value={entry!.slug} />}
 

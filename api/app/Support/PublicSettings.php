@@ -371,11 +371,13 @@ class PublicSettings
             return [];
         }
 
-        return array_filter([
+        // The role is sent even when blank: dropped, the typed role would be
+        // drawn under somebody else's words.
+        return [
             'testimonial_quote' => $value('quote'),
             'testimonial_author' => (string) $entry->title,
             'testimonial_role' => implode(', ', array_filter([$value('role'), $value('company')])),
-        ], fn ($v) => $v !== '');
+        ];
     }
 
     /**

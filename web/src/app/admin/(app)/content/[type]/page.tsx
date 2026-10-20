@@ -78,7 +78,7 @@ export default async function EntriesPage({
           action={<ButtonLink href={`${base}/new`} size="sm">New {type.name.toLowerCase()}</ButtonLink>} />
       ) : (
         <>
-          <BulkBar scope="entries" ids={result.data.map((e) => e.id)} noun={{ one: type.name.toLowerCase(), many: type.plural.toLowerCase() }} action={bulkEntriesAction} hidden={{ type: type.slug }} />
+          <BulkBar scope="entries" ids={result.data.map((e) => e.id)} noun={{ one: type.name.toLowerCase(), many: type.plural.toLowerCase() }} action={bulkEntriesAction} hidden={{ type: type.slug, type_preset: type.preset ?? "" }} />
         <div className="overflow-x-auto">
           <table className="admin-table w-full min-w-[620px] text-13-5">
             <thead>

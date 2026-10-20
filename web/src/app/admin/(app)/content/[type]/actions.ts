@@ -5,6 +5,7 @@ import { runBulkAction } from "@/lib/admin/bulk";
 import type { BulkState } from "@/types/bulk";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
+import { entryTags } from "@/lib/entry-tags";
 import { createEntry, deleteEntry, sendInvestorAlert, updateEntry, type EntryPayload } from "@/lib/admin";
 import { customFieldsFromFormData, jsonListFromFormData, sectionsFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
@@ -53,14 +54,8 @@ function toState(error: unknown): EntryFormState {
  * slug's on a rename; `content-types` because the archive's `lastmod`
  * moves; `menu` because a menu may link to the entry.
  */
-function tag(type: string, slugs: (string | null | undefined)[]) {
-  updateTag(`entries:${type}`);
-  updateTag("content-types");
-  updateTag("menu");
-  for (const slug of new Set(slugs.filter(Boolean))) updateTag(`entry:${type}:${slug}`);
-  // A testimonial may be the homepage's quote, which arrives through the
-  // settings map (docs/content-presets.md). Cheap to purge for any type.
-  updateTag("settings");
+function tag(type: string, slugs: (string | null | undefined)[], formData: FormData) {
+  for (const t of entryTags(type, slugs, str(formData, "type_preset"))) updateTag(t);
 }
 
 /**
@@ -97,7 +92,7 @@ export async function createEntryAction(_prev: EntryFormState, formData: FormDat
     return toState(error);
   }
 
-  tag(type, [slug]);
+  tag(type, [slug], formData);
   revalidatePath(`/admin/content/${type}`);
   redirect(`/admin/content/${type}/${id}?saved=1`);
 }
@@ -114,7 +109,7 @@ export async function updateEntryAction(_prev: EntryFormState, formData: FormDat
     return toState(error);
   }
 
-  tag(type, [slug, str(formData, "previous_slug")]);
+  tag(type, [slug, str(formData, "previous_slug")], formData);
   revalidatePath(`/admin/content/${type}`);
   revalidatePath(`/admin/content/${type}/${id}`);
   redirect(`/admin/content/${type}/${id}?saved=1`);
@@ -129,7 +124,7 @@ export async function deleteEntryAction(formData: FormData) {
   // purge the caches and report "deleted".
   const deleted = await deleteEntry(type, id).then(() => true, () => false);
   if (!deleted) redirect(`/admin/content/${type}?done=not-deleted`);
-  tag(type, [str(formData, "previous_slug")]);
+  tag(type, [str(formData, "previous_slug")], formData);
   revalidatePath(`/admin/content/${type}`);
   redirect(`/admin/content/${type}?done=entry-deleted`);
 }
@@ -146,7 +141,7 @@ export async function bulkEntriesAction(_prev: BulkState, formData: FormData): P
   return runBulkAction(formData, {
     path: `content-types/${type}/entries`,
     noun: ["entry", "entries"],
-    tags: [`entries:${type}`, "content-types", "menu"],
+    tags: entryTags(type, [], str(formData, "type_preset")),
     paths: [`/admin/content/${type}`],
   });
 }

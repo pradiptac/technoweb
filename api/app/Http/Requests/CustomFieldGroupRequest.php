@@ -137,6 +137,16 @@ class CustomFieldGroupRequest extends FormRequest
             }
         }
 
+        // Switched off, every preset layout reads empty custom data — the same
+        // outcome as deleting the fields. The slug is how the preset is named
+        // in the sentences above, so it stays too.
+        if ($this->has('is_active') && ! $this->boolean('is_active')) {
+            $v->errors()->add('is_active', "This group holds the fields the {$label} layout reads, so it cannot be switched off.");
+        }
+        if ($this->has('slug') && (string) $this->input('slug') !== (string) $group->slug) {
+            $v->errors()->add('slug', "This group belongs to the {$label} preset, so its slug cannot change.");
+        }
+
         if ($this->has('targets')) {
             foreach ((array) $group->targets as $t) {
                 if (! in_array($t, (array) $this->input('targets'), true)) {

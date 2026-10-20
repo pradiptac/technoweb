@@ -83,7 +83,9 @@ class ContentTypeController extends Controller
         // A preset's own field group goes with it, so the preset can be
         // installed again (docs/content-presets.md).
         if ($contentType->preset) {
-            CustomFieldGroup::query()->where('slug', 'preset-'.$contentType->preset)->delete();
+            CustomFieldGroup::query()->forTarget($contentType->target())
+                ->whereHas('fields', fn ($q) => $q->where('locked', true))
+                ->delete();
         }
 
         $contentType->delete();
