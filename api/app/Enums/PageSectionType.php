@@ -58,6 +58,8 @@ enum PageSectionType: string
      */
     case Team = 'team';
     case Downloads = 'downloads';
+    /** A live list from an installed preset (docs/content-presets.md). */
+    case PresetList = 'preset_list';
     case Countdown = 'countdown';
     case Columns = 'columns';
     case Map = 'map';
@@ -174,6 +176,7 @@ enum PageSectionType: string
             self::Testimonials => 'Testimonials',
             self::Team => 'Team',
             self::Downloads => 'Downloads',
+            self::PresetList => 'From a preset',
             self::Countdown => 'Countdown',
             self::Columns => 'Columns of text',
             self::Map => 'Map',
@@ -238,6 +241,7 @@ enum PageSectionType: string
             self::Testimonials => 'Two to nine quotations as cards, each with who said it and an optional photo.',
             self::Team => 'The people from Company → Team, as the theme draws its team cards — everybody, or one department. It follows the team as it changes.',
             self::Downloads => 'Files from the media library — brochures, datasheets, price lists — each with its size and a download button.',
+            self::PresetList => 'A live list from the newsroom, the coverage, the investors page or the awards, with a link to all of it.',
             self::Countdown => 'Days, hours, minutes and seconds to a date — a launch, an offer ending, an event — with a line for when it has passed.',
             self::Columns => 'Two or three columns side by side, each with a heading and a body from the editor.',
             self::Map => 'A Google map, loaded only when somebody presses it, with the address beside it.',

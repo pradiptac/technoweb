@@ -488,13 +488,18 @@ final class SectionRules
                 'start' => ['nullable', 'integer', 'min:10', 'max:90'],
                 'caption' => ['nullable', 'string', 'max:300'],
             ],
+            // Typed here (the default, never stored) or read from the
+            // Testimonials preset (docs/content-presets.md).
             PageSectionType::Testimonials => [
                 'kicker' => ['nullable', 'string', 'max:80'],
                 'heading' => $heading,
                 'lede' => $lede,
-                'items' => ['required', 'array', 'min:2', 'max:9'],
-                'items.*.quote' => ['required', 'string', 'max:600'],
-                'items.*.name' => ['required', 'string', 'max:120'],
+                'source' => ['nullable', Rule::in(['custom', 'preset'])],
+                'featured_only' => ['nullable', 'boolean'],
+                'limit' => ['nullable', 'integer', 'min:2', 'max:9'],
+                'items' => ["required_unless:{$at}.source,preset", 'array', 'min:2', 'max:9'],
+                'items.*.quote' => ["required_unless:{$at}.source,preset", 'nullable', 'string', 'max:600'],
+                'items.*.name' => ["required_unless:{$at}.source,preset", 'nullable', 'string', 'max:120'],
                 'items.*.role' => ['nullable', 'string', 'max:160'],
                 'items.*.photo_path' => ['nullable', 'string', 'max:255'],
             ],
@@ -510,6 +515,15 @@ final class SectionRules
             // Its files are typed in here, or — since 0.131.0 — read live
             // from the downloads centre (`source: centre`), optionally one
             // shelf of it. Nothing is stored for the typed list's default.
+            // A live list from an installed preset (docs/content-presets.md).
+            PageSectionType::PresetList => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'preset' => ['required', Rule::in(['newsroom_releases', 'newsroom_coverage', 'investors', 'awards'])],
+                'limit' => ['nullable', 'integer', 'min:1', 'max:12'],
+                'document_type' => ['nullable', 'string', 'max:60'],
+            ],
             PageSectionType::Downloads => [
                 'kicker' => ['nullable', 'string', 'max:80'],
                 'heading' => $heading,
@@ -1106,6 +1120,11 @@ final class SectionRules
             case PageSectionType::Testimonials:
                 $itemPictures('photo_path');
                 break;
+            case PageSectionType::PresetList:
+                if (filled($data['preset'] ?? null) && ! ContentType::query()->where('preset', (string) $data['preset'])->exists()) {
+                    $validator->errors()->add("{$at}.preset", 'That preset is not installed. Install it from Content → Content types first.');
+                }
+                break;
             case PageSectionType::Downloads:
                 if (($data['source'] ?? null) === 'centre') {
                     $category = $data['category_id'] ?? null;
@@ -1282,6 +1301,15 @@ final class SectionRules
                     unset($data['items']);
                 } else {
                     unset($data['source'], $data['category_id'], $data['limit']);
+                }
+            }
+            // Testimonials likewise: from the preset it keeps no typed quotes,
+            // typed it keeps nothing of the preset's (docs/content-presets.md).
+            if ($type === PageSectionType::Testimonials) {
+                if (($data['source'] ?? null) === 'preset') {
+                    unset($data['items']);
+                } else {
+                    unset($data['source'], $data['featured_only'], $data['limit']);
                 }
             }
             // A percentage belongs to rings and bars, and is a number.

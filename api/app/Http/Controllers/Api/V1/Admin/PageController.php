@@ -18,6 +18,7 @@ use App\Models\ContentBlock;
 use App\Models\DownloadCategory;
 use App\Models\Form;
 use App\Models\Gallery;
+use App\Models\ContentType;
 use App\Models\Page;
 use App\Models\ProductCategory;
 use App\Models\SavedSection;
@@ -180,6 +181,20 @@ class PageController extends Controller
         return response()->json(['data' => [
             'section_types' => PageSectionType::options(),
             'section_presets' => SectionPresets::all(),
+            // The presets a "From a preset" section may read, installed ones
+            // only, and whether Testimonials can read its quotes from one
+            // (docs/content-presets.md).
+            'presets' => ContentType::query()
+                ->whereIn('preset', ['newsroom_releases', 'newsroom_coverage', 'investors', 'awards'])
+                ->orderBy('sort_order')->orderBy('name')->get()
+                ->map(fn (ContentType $t) => array_filter([
+                    'value' => $t->preset,
+                    'label' => $t->plural,
+                    'document_types' => $t->preset === 'investors'
+                        ? array_values((CustomFields::fieldsFor($t->target())['document_type'] ?? null)?->options ?? [])
+                        : null,
+                ], fn ($v) => $v !== null))->values()->all(),
+            'testimonials_installed' => ContentType::query()->where('preset', 'testimonials')->exists(),
             // Custom code (0.158.0): whether this account may choose to run it
             // on the page itself (`CustomCodeGuard`) — the console shows the
             // choice to administrators and a note to everyone else.

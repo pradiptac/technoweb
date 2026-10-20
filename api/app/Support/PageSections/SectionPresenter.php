@@ -35,6 +35,7 @@ use App\Models\TeamMember;
 use App\Models\Tender;
 use App\Support\Downloads\DownloadFiles;
 use App\Support\Events\EventText;
+use App\Support\CustomFields\CustomFields;
 use App\Support\MediaMeta;
 use App\Support\MediaUrl;
 use App\Support\Money;
@@ -261,10 +262,13 @@ final class SectionPresenter
                 fn ($item) => is_array($item) ? self::picture($item, 'image') : [],
                 array_values((array) ($data['items'] ?? [])),
             )],
-            PageSectionType::Testimonials => [...$data, 'items' => array_map(
-                fn ($item) => is_array($item) ? self::picture($item, 'photo') : [],
-                array_values((array) ($data['items'] ?? [])),
-            )],
+            PageSectionType::Testimonials => ($data['source'] ?? null) === 'preset'
+                ? self::presetTestimonials($data)
+                : [...$data, 'items' => array_map(
+                    fn ($item) => is_array($item) ? self::picture($item, 'photo') : [],
+                    array_values((array) ($data['items'] ?? [])),
+                )],
+            PageSectionType::PresetList => self::presetList($data),
             PageSectionType::BeforeAfter => self::picture(self::picture($data, 'before'), 'after'),
             PageSectionType::Team => self::team($data),
             PageSectionType::Downloads => self::downloads($data),
@@ -329,6 +333,101 @@ final class SectionPresenter
         $row = is_string($path) && $path !== '' ? Media::query()->where('path', $path)->first() : null;
 
         return $row && str_starts_with((string) $row->mime, $mimePrefix) ? $row : null;
+    }
+
+    /**
+     * A preset's published entries, in its type's own order
+     * (docs/content-presets.md), each in a light row shape — the title, the
+     * address, the dates, the picture and `custom_data` — never the body.
+     * Dropped when the preset is not installed, is switched off, or has
+     * nothing published: a dead reference's rule.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private static function presetList(array $data): ?array
+    {
+        $type = ContentType::active()->where('preset', (string) ($data['preset'] ?? ''))->first();
+        if ($type === null) {
+            return null;
+        }
+
+        $query = $type->entries()->published()->with('customValues.field.group');
+        if ($type->preset === 'investors' && filled($data['document_type'] ?? null)) {
+            $query->whereHas('customValues', fn ($q) => $q->whereHas('field', fn ($f) => $f->where('key', 'document_type'))
+                ->whereJsonContains('value', (string) $data['document_type']));
+        }
+        $type->sort === 'manual'
+            ? $query->orderBy('sort_order')->orderBy('title')
+            : ($type->sort === 'title' ? $query->orderBy('title') : $query->orderByDesc('published_at')->orderByDesc('id'));
+
+        $entries = $query->limit((int) ($data['limit'] ?? 6))->get();
+        if ($entries->isEmpty()) {
+            return null;
+        }
+
+        return [...$data, 'index_path' => $type->publicPath(), 'items' => $entries->map(function ($entry) use ($type) {
+            $entry->setRelation('contentType', $type);
+
+            return [
+                'id' => $entry->id,
+                'title' => $entry->title,
+                'slug' => $entry->slug,
+                'path' => $entry->publicPath(),
+                'summary' => $entry->summary,
+                'published_at' => $entry->published_at?->toIso8601String(),
+                'image' => self::url($entry->image_path),
+                'image_alt' => MediaMeta::alt($entry->image_path),
+                'image_focus' => MediaMeta::focus($entry->image_path),
+                'image_blur' => MediaMeta::blur($entry->image_path),
+                'custom_data' => (object) (CustomFields::publicData($entry) ?? []),
+            ];
+        })->all()];
+    }
+
+    /**
+     * The Testimonials preset in the typed section's shape, so the website's
+     * component cannot tell where the quotes came from. Fewer than two drops
+     * the section, the typed section's own minimum.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private static function presetTestimonials(array $data): ?array
+    {
+        $type = ContentType::active()->where('preset', 'testimonials')->first();
+        if ($type === null) {
+            return null;
+        }
+
+        $query = $type->entries()->published()->with('customValues.field')->orderBy('sort_order')->orderBy('title');
+        if (! empty($data['featured_only'])) {
+            $query->whereHas('customValues', fn ($q) => $q->whereHas('field', fn ($f) => $f->where('key', 'featured'))
+                ->whereJsonContains('value', true));
+        }
+
+        $items = $query->limit((int) ($data['limit'] ?? 6))->get()->map(function ($entry) {
+            $value = fn (string $key) => $entry->customValues->first(fn ($v) => $v->field?->key === $key)?->value;
+            $role = implode(', ', array_filter([trim((string) $value('role')), trim((string) $value('company'))]));
+            $item = ['quote' => trim((string) $value('quote')), 'name' => (string) $entry->title, 'role' => $role !== '' ? $role : null];
+            if (is_string($photo = $value('photo')) && $photo !== '') {
+                $item['photo_path'] = $photo;
+            }
+            $item = self::picture($item, 'photo');
+            if (is_string($logo = $value('company_logo')) && $logo !== '') {
+                $item['company_logo'] = self::url($logo);
+            }
+
+            return $item;
+        })->filter(fn (array $item) => $item['quote'] !== '')->values()->all();
+
+        if (count($items) < 2) {
+            return null;
+        }
+
+        unset($data['source'], $data['featured_only'], $data['limit']);
+
+        return [...$data, 'items' => $items];
     }
 
     private static function url(?string $path): ?string
