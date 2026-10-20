@@ -17,7 +17,7 @@ export function PresetListSection({ data, reveal }: { data: PresetListSectionDat
   const rows = (data.items ?? []) as PresetEntry[];
   if (rows.length === 0) return null;
   // A heading on the section makes each row a level below it. Card rows size to
-  // how many cards there are, so two awards do not sit in a grid of four.
+  // how many cards there are, so two awards do not sit in a grid of four, aligned with the heading.
   const rowHeading = data.heading ? "h3" : "h2";
 
   const body = (() => {
@@ -26,7 +26,7 @@ export function PresetListSection({ data, reveal }: { data: PresetListSectionDat
         return <ul>{rows.map((e) => <ReleaseRow key={e.id} entry={e} headingAs={rowHeading} />)}</ul>;
       case "newsroom_coverage":
         return (
-          <ul className="grid grid-cols-1 justify-center gap-6 sm:grid-cols-[repeat(auto-fit,minmax(16rem,22rem))]">
+          <ul className="grid grid-cols-1 justify-start gap-6 sm:grid-cols-[repeat(auto-fit,minmax(16rem,22rem))]">
             {rows.map((e) => <CoverageCard key={e.id} entry={e} headingAs={rowHeading} />)}
           </ul>
         );
@@ -34,7 +34,7 @@ export function PresetListSection({ data, reveal }: { data: PresetListSectionDat
         return <ul className="border-t border-line">{rows.map((e) => <InvestorRow key={e.id} entry={e} types={data.document_types} />)}</ul>;
       case "awards":
         return (
-          <ul className="grid grid-cols-1 justify-center gap-6 min-[420px]:grid-cols-[repeat(auto-fit,minmax(12rem,16rem))]">
+          <ul className="grid grid-cols-1 justify-start gap-6 min-[420px]:grid-cols-[repeat(auto-fit,minmax(12rem,16rem))]">
             {rows.map((e) => <AwardBadge key={e.id} entry={e} headingAs={rowHeading} />)}
           </ul>
         );

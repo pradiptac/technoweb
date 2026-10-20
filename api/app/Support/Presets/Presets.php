@@ -80,7 +80,7 @@ final class Presets
 
         return array_values(array_filter(array_map(
             fn ($o) => is_array($o) && is_string($o['value'] ?? null) ? ['value' => $o['value'], 'label' => (string) ($o['label'] ?? $o['value'])] : null,
-            $field?->options ?? [],
+            $field->options ?? [],
         )));
     }
 

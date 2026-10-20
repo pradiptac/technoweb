@@ -40,7 +40,7 @@ export const HELP_ROUTES: { prefix: string; sections: string[] }[] = [
   { prefix: "/admin/galleries", sections: ["05-content#sliders-and-galleries"] },
   { prefix: "/admin/forms", sections: ["05-content#forms"] },
   { prefix: "/admin/custom-fields", sections: ["05-content#custom-fields"] },
-  { prefix: "/admin/content-types", sections: ["05-content#custom-content-types"] },
+  { prefix: "/admin/content-types", sections: ["05-content#custom-content-types", "36-presets#the-newsroom", "36-presets#investors"] },
   { prefix: "/admin/content", sections: ["05-content#custom-content-types"] },
   { prefix: "/admin/detail-templates", sections: ["05-content#pages"] },
 

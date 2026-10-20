@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\Role as RoleEnum;
+use App\Models\Media;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -63,7 +64,7 @@ class PresetSectionsTest extends TestCase
     {
         $as = $this->actingAs($this->staff(), 'sanctum');
         $as->postJson('/api/v1/admin/content-types/presets/investors')->assertCreated();
-        $pdf = \App\Models\Media::create(['filename' => 'a.pdf', 'path' => 'media/a.pdf', 'mime' => 'application/pdf', 'size' => 10, 'disk' => 'public']);
+        $pdf = Media::create(['filename' => 'a.pdf', 'path' => 'media/a.pdf', 'mime' => 'application/pdf', 'size' => 10, 'disk' => 'public']);
         $as->postJson('/api/v1/admin/content-types/investors/entries', [
             'title' => 'Q2', 'status' => 'published',
             'custom_fields' => ['document_type' => 'annual_report', 'financial_year' => '2026-27', 'document' => $pdf->path],

@@ -343,9 +343,7 @@ class PublicSettings
          * leaves the typed quote standing.
          */
         if (($values['testimonial_source'] ?? 'typed') === 'preset') {
-            foreach (self::featuredTestimonial() as $key => $value) {
-                $values[$key] = $value;
-            }
+            $values = $values->merge(self::featuredTestimonial());
         }
 
         return $values->all();

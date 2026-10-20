@@ -12,6 +12,7 @@ use App\Models\Page;
 use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
+use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -241,7 +242,7 @@ class ContentPresetsTest extends TestCase
 
     public function test_presets_are_found_by_preset_not_slug(): void
     {
-        $this->seed(\Database\Seeders\SettingsSeeder::class);
+        $this->seed(SettingsSeeder::class);
         $this->install('testimonials');
         $type = ContentType::query()->preset('testimonials')->firstOrFail();
         $this->actingAs($this->staff(), 'sanctum')->patchJson("/api/v1/admin/content-types/{$type->id}", ['slug' => 'kind-words'])->assertOk();
@@ -258,7 +259,7 @@ class ContentPresetsTest extends TestCase
 
     public function test_the_homepage_quote_falls_back_to_the_typed_one(): void
     {
-        $this->seed(\Database\Seeders\SettingsSeeder::class);
+        $this->seed(SettingsSeeder::class);
         Setting::query()->where('key', 'testimonial_source')->update(['value' => 'preset']);
         Setting::flushCache();
         $typed = Setting::query()->where('key', 'testimonial_quote')->value('value');
@@ -268,7 +269,7 @@ class ContentPresetsTest extends TestCase
 
     public function test_preset_settings_accept_only_their_own_keys(): void
     {
-        $this->seed(\Database\Seeders\SettingsSeeder::class);
+        $this->seed(SettingsSeeder::class);
         $this->install('newsroom');
         $type = ContentType::query()->preset('newsroom_releases')->firstOrFail();
         $as = $this->actingAs($this->staff(), 'sanctum');

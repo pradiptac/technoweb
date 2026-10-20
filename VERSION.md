@@ -21,6 +21,15 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.186.0 — 2026-10-21
+
+**Content-type presets** — a newsroom, an investors page, testimonials and awards, each ready with one press.
+
+- Content → Content types now starts with four presets. Installing one makes the content type, its fields and a page laid out for it: press releases by year with "In the news" coverage and a media kit; investor documents grouped by financial year with a chip for each kind; testimonials as quote cards; awards by year with their badges.
+- Each press release has its dateline, a downloadable PDF, the company's boilerplate and a media contact, and the newsroom has an RSS feed at `/newsroom/feed.xml`.
+- Visitors can ask to be emailed about investor documents. Each document has an "Email subscribers when published" switch and a "Send alert now" button, and each alert goes once.
+- A new builder section, "From a preset", puts the latest of any of them on any page. The Testimonials section and the homepage quote can read from the testimonials preset.
+
 ## 0.185.0 — 2026-10-18
 
 **Digest and alerts** — the console tells each staff member what needs them, without their having to open it.

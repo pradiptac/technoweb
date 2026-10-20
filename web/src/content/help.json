@@ -2551,6 +2551,62 @@
    "title": "For administrators",
    "html": "<ul><li><strong>Settings → Notifications</strong> sets:<ul><li>the digest new staff start with;</li><li>which alerts the site sends at all;</li><li>how long each one waits. An alert switched off there is off for everybody, and shows as such on each person's card.</li></ul></li><li><strong>Staff → (a person)</strong> shows that person's Notifications card. You can change their digest and alerts there. You cannot add a browser for them; each person does that on their own account.</li></ul>",
    "text": "Settings → Notifications sets: the digest new staff start with; which alerts the site sends at all; how long each one waits. An alert switched off there is off for everybody, and shows as such on each person's card. Staff → (a person) shows that person's Notifications card. You can change their digest and alerts there. You cannot add a browser for them; each person does that on their own account."
+  },
+  {
+   "id": "36-presets#overview",
+   "chapter": "36-presets",
+   "chapterTitle": "Newsroom, investors, testimonials and awards",
+   "title": "Overview",
+   "html": "<p><em>Who can use this: Content managers and administrators.</em></p><p>Four kinds of content that most companies need come ready-made. Installing one gives you the right fields and a page laid out for it, so you can start adding entries at once.</p><p>Go to <strong>Content → Content types</strong>. The four presets are at the top of the screen, under <strong>Start from a preset</strong>. Press <strong>Install</strong> on the one you want.</p><p>If the address it uses is already taken (say you already have a page at <code>/awards</code>), you are asked to choose another.</p><p>Once installed, a preset is an ordinary content type. You can rename it, change its address, switch it off or add more fields to it. Its entries are under <strong>Content → Custom content</strong>.</p>",
+   "text": "Who can use this: Content managers and administrators. Four kinds of content that most companies need come ready-made. Installing one gives you the right fields and a page laid out for it, so you can start adding entries at once. Go to Content → Content types . The four presets are at the top of the screen, under Start from a preset . Press Install on the one you want. If the address it uses is already taken (say you already have a page at /awards ), you are asked to choose another. Once installed, a preset is an ordinary content type. You can rename it, change its address, switch it off or add more fields to it. Its entries are under Content → Custom content ."
+  },
+  {
+   "id": "36-presets#the-newsroom",
+   "chapter": "36-presets",
+   "chapterTitle": "Newsroom, investors, testimonials and awards",
+   "title": "The newsroom",
+   "html": "<p>Installing the newsroom makes two kinds of content:</p><ul><li><strong>Press releases</strong>, at <code>/newsroom</code>. Each has a headline, a summary, the body, a picture, the <strong>dateline</strong> (the city it is issued from) and, if you have one, the release as a PDF. You can name a media contact for one release; otherwise the newsroom's own is shown.</li><li><strong>In the news</strong>, at <code>/in-the-news</code>. Each is an article someone else wrote about you: its headline, the publication, the link to the article, the publication's logo and the date. These have no page of their own; the card links to the article.</li></ul><p>The newsroom page shows the newest release first, then the others by year, then the latest coverage and a <strong>media kit</strong>.</p><p>Fill in the media kit on the press releases' content type (<strong>Content → Content types → Press releases</strong>), in the <strong>Newsroom</strong> panel below the form:</p><ul><li><strong>About the company</strong>: the paragraph at the end of every release.</li><li><strong>Press contact</strong>: a name, an email address and a telephone number.</li><li><strong>Media kit files</strong>: a category from the downloads centre. Put your logos and photographs in that category and they are listed in the media kit.</li></ul><p>The newsroom has an RSS feed at <code>/newsroom/feed.xml</code> for journalists who follow you.</p>",
+   "text": "Installing the newsroom makes two kinds of content: Press releases , at /newsroom . Each has a headline, a summary, the body, a picture, the dateline (the city it is issued from) and, if you have one, the release as a PDF. You can name a media contact for one release; otherwise the newsroom's own is shown. In the news , at /in-the-news . Each is an article someone else wrote about you: its headline, the publication, the link to the article, the publication's logo and the date. These have no page of their own; the card links to the article. The newsroom page shows the newest release first, then the others by year, then the latest coverage and a media kit . Fill in the media kit on the press releases' content type ( Content → Content types → Press releases ), in the Newsroom panel below the form: About the company : the paragraph at the end of every release. Press contact : a name, an email address and a telephone number. Media kit files : a category from the downloads centre. Put your logos and photographs in that category and they are listed in the media kit. The newsroom has an RSS feed at /newsroom/feed.xml for journalists who follow you."
+  },
+  {
+   "id": "36-presets#investors",
+   "chapter": "36-presets",
+   "chapterTitle": "Newsroom, investors, testimonials and awards",
+   "title": "Investors",
+   "html": "<p>Investor documents are at <code>/investors</code>. Each has a name, a <strong>document type</strong> (financial results, annual report, shareholding pattern and the rest — you can rename these or add your own), the <strong>financial year</strong> written like <code>2025-26</code>, the file, and the date of the document.</p><p>The page groups the documents by financial year, newest first. Visitors can pick one kind of document with the buttons above the list.</p><h3>The email alert</h3><p>Visitors can ask to be emailed when you publish a document. They join a list called <strong>Investor updates</strong>, which you will find under <strong>Campaign → Groups</strong>.</p><p>On each document:</p><ul><li>Switch on <strong>Email subscribers when published</strong>, and the email goes out by itself once the document is live. A document dated for later is sent on that day.</li><li>Or, on a document already published, press <strong>Send alert now</strong>.</li></ul><p>Each document is announced once, however often either is pressed. If the email cannot go — usually because the postal address is missing from <strong>Settings</strong> — the document says why. Fix it and save the document, and it is sent on the next run, within ten minutes.</p><p>The investor contact and the line above the signup are in the <strong>Investors page</strong> panel on the content type.</p>",
+   "text": "Investor documents are at /investors . Each has a name, a document type (financial results, annual report, shareholding pattern and the rest — you can rename these or add your own), the financial year written like 2025-26 , the file, and the date of the document. The page groups the documents by financial year, newest first. Visitors can pick one kind of document with the buttons above the list. The email alert Visitors can ask to be emailed when you publish a document. They join a list called Investor updates , which you will find under Campaign → Groups . On each document: Switch on Email subscribers when published , and the email goes out by itself once the document is live. A document dated for later is sent on that day. Or, on a document already published, press Send alert now . Each document is announced once, however often either is pressed. If the email cannot go — usually because the postal address is missing from Settings — the document says why. Fix it and save the document, and it is sent on the next run, within ten minutes. The investor contact and the line above the signup are in the Investors page panel on the content type."
+  },
+  {
+   "id": "36-presets#testimonials",
+   "chapter": "36-presets",
+   "chapterTitle": "Newsroom, investors, testimonials and awards",
+   "title": "Testimonials",
+   "html": "<p>Testimonials are at <code>/testimonials</code>, as quote cards. Each has the person's name, the quote, their role and company, their photo and their company's logo. Switch on <strong>Featured</strong> for the ones you want on the homepage.</p><p>To show them elsewhere:</p><ul><li><strong>On the homepage</strong>: in <strong>Site → Settings → Homepage</strong>, set <strong>Which quote</strong> to <strong>The newest featured testimonial</strong>. While none is featured, the quote typed there stays.</li><li><strong>On any page</strong>: add a <strong>Testimonials</strong> section and set <strong>Which quotes</strong> to <strong>From Testimonials</strong>.</li></ul>",
+   "text": "Testimonials are at /testimonials , as quote cards. Each has the person's name, the quote, their role and company, their photo and their company's logo. Switch on Featured for the ones you want on the homepage. To show them elsewhere: On the homepage : in Site → Settings → Homepage , set Which quote to The newest featured testimonial . While none is featured, the quote typed there stays. On any page : add a Testimonials section and set Which quotes to From Testimonials ."
+  },
+  {
+   "id": "36-presets#awards",
+   "chapter": "36-presets",
+   "chapterTitle": "Newsroom, investors, testimonials and awards",
+   "title": "Awards",
+   "html": "<p>Awards are at <code>/awards</code>, grouped by year. Each has the award's name, who gave it, the year, a category and the badge. The awards page and the certifications page link to each other.</p>",
+   "text": "Awards are at /awards , grouped by year. Each has the award's name, who gave it, the year, a category and the badge. The awards page and the certifications page link to each other."
+  },
+  {
+   "id": "36-presets#putting-them-on-other-pages",
+   "chapter": "36-presets",
+   "chapterTitle": "Newsroom, investors, testimonials and awards",
+   "title": "Putting them on other pages",
+   "html": "<p>The <strong>From a preset</strong> section shows the newest entries from the newsroom, the coverage, the investors page or the awards on any page, with a link to all of them. For investors, you can show just one kind of document.</p>",
+   "text": "The From a preset section shows the newest entries from the newsroom, the coverage, the investors page or the awards on any page, with a link to all of them. For investors, you can show just one kind of document."
+  },
+  {
+   "id": "36-presets#fields-you-cannot-change",
+   "chapter": "36-presets",
+   "chapterTitle": "Newsroom, investors, testimonials and awards",
+   "title": "Fields you cannot change",
+   "html": "<p>The fields a preset's page reads are marked <strong>Used by the preset's layout</strong> on <strong>Content → Custom fields</strong>. You can change their labels and help text, but not their keys or types, and you cannot remove them. Add new fields beside them freely.</p>",
+   "text": "The fields a preset's page reads are marked Used by the preset's layout on Content → Custom fields . You can change their labels and help text, but not their keys or types, and you cannot remove them. Add new fields beside them freely."
   }
  ]
 }

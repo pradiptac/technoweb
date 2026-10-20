@@ -2159,3 +2159,16 @@ the provider, the test control and the upgrade step. See
 `docs/chatbot-architecture.md` ("The provider is OpenRouter"),
 `docs/chatbot-deployment.md`, `docs/seo-ai.md` and `docs/distribution.md`
 ("Upgrade steps").
+
+## Content-type presets (0.186.0)
+
+Content → Content types now offers four presets — a newsroom (press releases
+and coverage, with a media kit and an RSS feed), investors (documents by
+financial year with an email alert), testimonials and awards — each a custom
+content type with locked fields and a page laid out for it. See
+`docs/content-presets.md` and the manual's chapter 36.
+
+Setup: `php artisan migrate --force` and `php artisan db:seed --class=SettingsSeeder`
+(the `newsroom`, `investors` and `homepage.testimonial_source` rows). Investor
+alerts are sent by `technoware:send-investor-alerts`, on the scheduler every ten
+minutes, so the cron entry mail already needs is all it takes.

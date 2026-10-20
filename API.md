@@ -1315,6 +1315,81 @@ content") and the chatbot's retrieval; `entry` and `content_type` (an
 archive) in the menu item types, with `/admin/menu-targets?type=entry`
 labelling each entry with its type.
 
+## Content-type presets
+
+A newsroom (press releases and coverage), an investors page, testimonials and
+awards, installed with one press on top of custom content types (0.186.0). See
+`docs/content-presets.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/content-types/presets` | `role:content_manager`. `[{key, label, blurb, slug, types: [{preset, plural, slug, fields: [{key, label, kind}]}], installed: {id, slug} \| null, clash}]`, the newsroom one row of two types. `clash` is the sentence saying why the default address cannot be used, or null. Declared above `content-types/{id}` |
+| `POST` | `/admin/content-types/presets/{key}` | `key` of `newsroom`, `investors`, `testimonials`, `awards`. `slug?`, `coverage_slug?` (the newsroom's second type). One transaction: the type(s), a `preset-<preset>` field group (`hidden`), and for investors the "Investor updates" newsletter group (`source: investors`). **201** with the type(s). 422 on `key` when already installed; on `slug`/`coverage_slug` for a bad shape, a reserved address, a page's or another type's (named) |
+| `GET`/`PATCH` | `/admin/content-types/{id}/preset-settings` | `role:content_manager`. The preset type's own settings, `{data: [{key, value, type}], meta}` — `newsroom_boilerplate` (rich text, sanitised), `newsroom_contact_name|email|phone`, `newsroom_kit_category_id` (a downloads category; `meta.download_categories`) for press releases; `investors_contact_name|email|phone`, `investors_signup_line` (≤ 200) for investors. `PATCH` takes `settings: [{key, value}]` and refuses any other key; 404 for a type with no preset settings |
+| `POST` | `/admin/content-types/{type-slug}/entries/{id}/alert` | Send an investor document's email alert now. Throttled 6/min. **202**; 422 on `alert` when the type is not investors, the document is not live, or an alert has already gone |
+
+**`content_types.preset`** (`newsroom_releases`, `newsroom_coverage`,
+`investors`, `testimonials`, `awards`, unique) is set only by installing:
+`PATCH /admin/content-types/{id}` prohibits it (422). Both type resources
+carry `preset` and **`entry_pages`** (boolean, default true, editable). With
+`entry_pages` false the entry's `GET /types/{type}/{slug}` is a 404 and its
+`path` — in every resource, search result and menu item — is the archive's.
+Deleting a preset type (only while empty) deletes its field group and frees
+the preset.
+
+**Locked fields.** A preset's fields carry `locked: true` on the group
+resource. A `PATCH /admin/custom-field-groups/{id}` that removes one, changes
+its `key` or its `kind`, or detaches the group from its type is a 422 on
+`fields`, `fields.N.key`, `fields.N.kind` or `targets`, naming the preset;
+`DELETE` on the group is a 422. The label, help, `required` and options stay
+editable. A text field's `settings.pattern` (set by a preset only: the
+financial year, `^\d{4}-\d{2}$`) is enforced on `custom_fields.<key>`.
+
+**Archive reads.** `GET /types/{type}` for a preset type adds `custom_data`
+to every row and `preset`/`entry_pages` to `meta.type`. Investors accepts
+`?type=<document_type>` and `?year=<financial_year>` and carries
+`meta.document_types` (`[{value, label}]`, only the types a published
+document uses, the same on every filtered view); testimonials accept
+`?featured=1`; press releases carry `meta.newsroom_kit` (the chosen
+category's published downloads, in `GET /downloads`' row shape).
+
+**Settings.** `newsroom` and `investors` are public groups. `homepage` gains
+`testimonial_source` (`typed`, the default, or `preset`; options from the
+API, anything else a 422): with `preset`, the public `/settings` map carries
+the newest published featured testimonial as `testimonial_quote`,
+`testimonial_author` and `testimonial_role`, and the typed quote while none is
+featured.
+
+**Investor signup.** `POST /newsletter/subscribe` takes `list` (`general`,
+the default, or `investors`); `investors` joins the `source: investors` group
+through the same intake and the same 202. With the preset not installed the
+answer is the same and nothing is written.
+
+**Investor alerts.** `POST`/`PATCH .../entries` on an investors type takes
+`alert_on_publish` (boolean; a 422 on any other type). The admin entry
+resource carries `alert_on_publish`, `alert_sent_at`, `alert_error`,
+`alert_campaign_id`. An alert is an ordinary campaign to the investor group,
+sent once (`alert_sent_at` claimed with a conditional UPDATE) once the
+document is live — by `technoware:send-investor-alerts` every ten minutes, a
+save, or the button. A blocking health check writes `alert_error`, which
+holds the document back until a save clears it.
+
+**The builder.** `PageSectionType::PresetList` (`preset_list`): `preset`
+(`newsroom_releases`, `newsroom_coverage`, `investors`, `awards`; installed,
+422 on `blocks.N.data.preset` otherwise), `limit` 1–12, `document_type?`,
+`kicker?`, `heading?`, `lede?`. Presented with `index_path`, `items`
+(`{id, title, slug, path, summary, published_at, image, image_alt,
+image_focus, image_blur, custom_data}`) and, for investors, `document_types`;
+dropped when the preset is missing, off or empty. `testimonials` takes
+`source` (`custom`, default, not stored, or `preset`), `featured_only`,
+`limit` 2–9; from the preset its `items` are the typed shape plus
+`company_logo`, and it is dropped under two. `GET /admin/pages/builder` adds
+`presets` (installed: `[{value, label, document_types?}]`) and
+`testimonials_installed`.
+
+**The newsroom feed** is the website's `/{type}/feed.xml` (RSS 2.0, the 30
+newest releases), a 404 under any other type.
+
 ## Messaging channels — WhatsApp, RCS, push
 
 Phase 2 (2026-09-25). See `docs/messaging.md`. Every event's email is

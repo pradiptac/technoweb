@@ -151,3 +151,12 @@ An embargo beyond scheduled publishing; review or quotation markup; stock ticker
 ## Release
 
 0.186.0 — `VERSION.md`, `web/src/lib/version.ts`, `docs/content-presets.md`, a module line in `CLAUDE.md`, `API.md`, `manual/36-presets.md`.
+
+## Changes made while building (2026-10-21)
+
+- **The homepage quote is resolved by the API**, in `PublicSettings::build()`, onto the three `testimonial_*` keys every theme already reads — not by `loadHome()` reading the testimonials index. No theme changes, and no `?featured=1` round trip from the homepage.
+- **The preset settings have a door of their own**, `GET|PATCH /admin/content-types/{id}/preset-settings`, because settings are `role:admin` and a content manager owns these types. The console draws them as a panel below the type form, not as a tab inside it (a form cannot nest another).
+- **`meta.document_types`** (investors archive) and `data.document_types` (the builder section) carry the labels: the preset groups are `hidden`, so `custom_fields` (which carries `display`) is empty. The archive lists only the types a published document uses.
+- **The investor alert carries no header logo**: the newsletter's image-to-text health check refuses a short message with a picture.
+- **The investors preset installs at 60 a page**, the type form's ceiling (100 made the type unsavable).
+- **No placeholder** for a release lead without a picture or an award without a badge.

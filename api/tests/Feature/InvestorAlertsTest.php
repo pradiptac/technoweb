@@ -12,6 +12,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Support\Presets\InvestorAlerts;
 use App\Support\Presets\Presets;
+use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -26,7 +27,7 @@ class InvestorAlertsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\SettingsSeeder::class);
+        $this->seed(SettingsSeeder::class);
         // A postal address and a sender, so the campaign passes its blocking checks.
         Setting::query()->where('key', 'address')->update(['value' => '1 Park Street, Kolkata 700016']);
         Setting::query()->where('key', 'newsletter_from_name')->update(['value' => 'Technoware']);
