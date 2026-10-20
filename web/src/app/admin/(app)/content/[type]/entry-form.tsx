@@ -15,6 +15,7 @@ import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
 import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
+import { RecordSwitch } from "@/components/admin/record-switch";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, useRecordSections } from "../../pages/builder/record-sections";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
@@ -69,7 +70,7 @@ export function EntryForm({
 
   const panels: { tab: TabGroup; node: ReactNode }[] = [
     {
-      tab: { id: "content", label: "Content", fields: ["title", "slug", "summary", "body", "status", "published_at", "sort_order"] },
+      tab: { id: "content", label: "Content", fields: ["title", "slug", "summary", "body", "status", "published_at", "sort_order", "alert_on_publish"] },
       node: (
         <div key="content" className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
           <div className="min-w-0">
@@ -78,9 +79,12 @@ export function EntryForm({
             </Field>
 
             <Field label="Slug" htmlFor="slug" error={err("slug")}
-              hint={editing
-                ? `This is the URL: ${where}. Changing it leaves a 301 behind automatically.`
-                : `Leave blank to build one from the title. It will live at ${where}.`}>
+              hint={type.entry_pages === false
+                // No page of its own (docs/content-presets.md): the slug only names it.
+                ? `Leave blank to build one from the title. Entries of this type have no page of their own; they are listed at ${type.path}.`
+                : editing
+                  ? `This is the URL: ${where}. Changing it leaves a 301 behind automatically.`
+                  : `Leave blank to build one from the title. It will live at ${where}.`}>
               <Input id="slug" name="slug" defaultValue={entry?.slug} className="font-mono text-14"
                 aria-invalid={Boolean(err("slug"))} />
             </Field>
@@ -115,6 +119,13 @@ export function EntryForm({
               hint={type.sort === "manual" ? "Lower numbers come first in the archive." : "Used when the archive is ordered by sort order."}>
               <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={entry?.sort_order ?? 0} />
             </Field>
+
+            {/* An investor document's email alert (docs/content-presets.md). */}
+            {type.preset === "investors" && (
+              <RecordSwitch className="mb-[18px]" name="alert_on_publish" defaultChecked={entry?.alert_on_publish ?? false}
+                label="Email subscribers when published"
+                hint={entry?.alert_sent_at ? "An alert has already gone for this document." : "Sent once, to the Investor updates list, when the document is live."} />
+            )}
           </aside>
         </div>
       ),

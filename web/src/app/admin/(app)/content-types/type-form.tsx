@@ -86,6 +86,7 @@ export function TypeForm({
           <aside className="grid content-start gap-0">
             {check("is_active", "Switched on", "Off, the archive and every entry answer 404. Nothing is deleted.", type?.is_active ?? true)}
             {check("archive_enabled", "Has an archive page", "Off, only the entries have pages; the list at the address answers 404.", type?.archive_enabled ?? true)}
+            {check("entry_pages", "Entries have pages of their own", "Off, entries are drawn on the archive only — a quote, an award — and their addresses lead to it.", type?.entry_pages ?? true)}
 
             <Field label="Archive order" htmlFor="sort" error={err("sort")} variant="float-static">
               <Select id="sort" name="sort" defaultValue={type?.sort ?? "newest"}>

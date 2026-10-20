@@ -109,6 +109,11 @@ const OUTCOMES: Record<string, Message> = {
     title: "Field group deleted",
     body: "Its fields, and every value typed into them, went with it.",
   },
+  "preset-installed": {
+    tone: "ok",
+    title: "Preset installed",
+    body: "Add the first entry here. Its page layout is ready.",
+  },
   "content-type-deleted": {
     tone: "ok",
     title: "Content type deleted",

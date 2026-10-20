@@ -142,6 +142,22 @@ class ContentPresetsTest extends TestCase
         $as->deleteJson("/api/v1/admin/custom-field-groups/{$group->id}")->assertStatus(422);
     }
 
+    public function test_every_installed_preset_type_saves_unchanged_through_its_form(): void
+    {
+        $as = $this->actingAs($this->staff(), 'sanctum');
+        foreach (['newsroom', 'investors', 'testimonials', 'awards'] as $key) {
+            $as->postJson("/api/v1/admin/content-types/presets/{$key}")->assertCreated();
+        }
+
+        foreach (ContentType::query()->whereNotNull('preset')->get() as $type) {
+            $row = $as->getJson("/api/v1/admin/content-types/{$type->id}")->json('data');
+            $as->patchJson("/api/v1/admin/content-types/{$type->id}", array_intersect_key($row, array_flip([
+                'name', 'plural', 'slug', 'icon', 'description', 'has_body', 'has_image', 'archive_enabled',
+                'entry_pages', 'per_page', 'sort', 'schema_type', 'sort_order', 'is_active',
+            ])))->assertOk();
+        }
+    }
+
     public function test_installing_needs_a_content_manager(): void
     {
         $this->actingAs($this->staff(RoleEnum::SupportEngineer), 'sanctum')

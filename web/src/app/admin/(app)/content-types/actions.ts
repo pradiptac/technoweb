@@ -22,6 +22,7 @@ function payload(formData: FormData): ContentTypePayload {
     has_body: formData.get("has_body") === "1",
     has_image: formData.get("has_image") === "1",
     archive_enabled: formData.get("archive_enabled") === "1",
+    entry_pages: formData.get("entry_pages") === "1",
     is_active: formData.get("is_active") === "1",
     per_page: perPage ? Number(perPage) : 12,
     sort: str(formData, "sort") ?? "newest",

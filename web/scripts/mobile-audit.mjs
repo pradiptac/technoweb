@@ -200,9 +200,21 @@ const EMBED_ROUTES = ["/embed/forms/contact"];
 
 const requested = process.argv.slice(2);
 const portalConfigured = Boolean(PORTAL_EMAIL && PORTAL_PASSWORD);
+/*
+  The content-type presets' archives (docs/content-presets.md): they exist only
+  once a preset is installed, so each joins the run when it answers 200.
+*/
+const PRESET_ROUTES = [];
+if (!requested.length) {
+  for (const route of ["/newsroom", "/in-the-news", "/investors", "/testimonials", "/awards"]) {
+    const ok = await fetch(BASE + route, { redirect: "manual" }).then((r) => r.status === 200).catch(() => false);
+    if (ok) PRESET_ROUTES.push(route);
+  }
+}
+
 const routes = requested.length
   ? requested
-  : [...PUBLIC_ROUTES, ...STORE_ROUTES, ...EMBED_ROUTES, ...(portalConfigured ? PORTAL_ROUTES : []), ...ADMIN_ROUTES];
+  : [...PUBLIC_ROUTES, ...PRESET_ROUTES, ...STORE_ROUTES, ...EMBED_ROUTES, ...(portalConfigured ? PORTAL_ROUTES : []), ...ADMIN_ROUTES];
 if (!requested.length && !portalConfigured) {
   console.log("note: PORTAL_LOGIN_EMAIL/PORTAL_LOGIN_PASSWORD unset — skipping the signed-in portal" + String.fromCharCode(10));
 }

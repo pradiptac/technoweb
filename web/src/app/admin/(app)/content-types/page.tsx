@@ -6,7 +6,8 @@ import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconGrid } from "@/components/icons";
-import { getContentTypeList } from "@/lib/admin";
+import { getContentTypeList, getPresets } from "@/lib/admin";
+import { PresetStrip } from "./preset-strip";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { requireScreen } from "@/lib/admin-screen";
@@ -32,6 +33,9 @@ export default async function ContentTypesPage({
     );
   }
 
+  // The presets strip (docs/content-presets.md); a failure draws no strip, never a broken screen.
+  const presets = await getPresets().catch(() => []);
+
   return (
     <>
       <PageHeader
@@ -44,6 +48,8 @@ export default async function ContentTypesPage({
       >
         <div className="ml-auto"><ButtonLink href="/admin/content-types/new" size="sm">New content type</ButtonLink></div>
       </PageHeader>
+
+      {presets.length > 0 && <PresetStrip presets={presets} />}
 
       {result.data.length === 0 ? (
         <EmptyState icon={<IconGrid />} title="No content types yet" action={<EmptyListAction filtered={false} clearHref="/admin/content-types" newHref="/admin/content-types/new" noun="content type" />}>

@@ -153,7 +153,7 @@ final class Presets
         $types = ['Financial results', 'Annual report', 'Shareholding pattern', 'Board meeting outcome', 'Notice of meeting',
             'Corporate governance', 'Policy', 'Stock exchange filing', 'Other'];
 
-        return self::type('investors', 'Investor document', 'Investors', 'investors', 'ms:monitoring', 'WebPage', false, false, false, 'newest', 100, [
+        return self::type('investors', 'Investor document', 'Investors', 'investors', 'ms:monitoring', 'WebPage', false, false, false, 'newest', 60, [
             self::field('document_type', 'Document type', 'select', true, true, ['options' => array_map(
                 fn ($l) => ['value' => Str::slug($l, '_'), 'label' => $l], $types)]),
             self::field('financial_year', 'Financial year', 'text', true, true, [

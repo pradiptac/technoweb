@@ -5,7 +5,7 @@ import { runBulkAction } from "@/lib/admin/bulk";
 import type { BulkState } from "@/types/bulk";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
-import { createEntry, deleteEntry, updateEntry, type EntryPayload } from "@/lib/admin";
+import { createEntry, deleteEntry, sendInvestorAlert, updateEntry, type EntryPayload } from "@/lib/admin";
 import { customFieldsFromFormData, jsonListFromFormData, sectionsFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
@@ -30,6 +30,8 @@ function payloadFrom(formData: FormData): EntryPayload {
     status: (str(formData, "status") ?? "draft") as PublishStatus,
     published_at: str(formData, "published_at"),
     sort_order: sortOrder ? Number(sortOrder) : 0,
+    // Drawn on an investor document's form only; absent everywhere else.
+    ...(formData.has("alert_on_publish") ? { alert_on_publish: formData.get("alert_on_publish") === "1" } : {}),
     faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),
     answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
     ...(seo ? { seo: seo as EntryPayload["seo"] } : {}),
@@ -56,6 +58,29 @@ function tag(type: string, slugs: (string | null | undefined)[]) {
   updateTag("content-types");
   updateTag("menu");
   for (const slug of new Set(slugs.filter(Boolean))) updateTag(`entry:${type}:${slug}`);
+  // A testimonial may be the homepage's quote, which arrives through the
+  // settings map (docs/content-presets.md). Cheap to purge for any type.
+  updateTag("settings");
+}
+
+/**
+ * "Send alert now" on an investor document (docs/content-presets.md). The API
+ * sends once and says why not otherwise; the screen is redrawn either way.
+ */
+export async function sendInvestorAlertAction(_prev: { ok?: string; error?: string }, formData: FormData): Promise<{ ok?: string; error?: string }> {
+  const type = str(formData, "type") ?? "";
+  const id = Number(str(formData, "id"));
+  try {
+    const res = await sendInvestorAlert(type, id);
+    revalidatePath(`/admin/content/${type}/${id}`);
+    return { ok: res.message };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) redirect("/admin/login");
+      if (error.status === 422) return { error: error.errors?.alert?.[0] ?? error.message };
+    }
+    return { error: "We could not send the alert. Try again shortly." };
+  }
 }
 
 export async function createEntryAction(_prev: EntryFormState, formData: FormData): Promise<EntryFormState> {

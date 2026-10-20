@@ -19,6 +19,8 @@ export type ContentTypePayload = Partial<{
   icon: string | null;
   description: string | null;
   has_body: boolean;
+  /** False: entries are drawn on the archive only (docs/content-presets.md). */
+  entry_pages: boolean;
   has_image: boolean;
   archive_enabled: boolean;
   per_page: number;
@@ -83,6 +85,8 @@ export type EntryPayload = Partial<{
   status: PublishStatus;
   published_at: string | null;
   sort_order: number;
+  /** An investor document's "Email subscribers when published" (docs/content-presets.md). */
+  alert_on_publish: boolean;
   faqs: FaqItem[];
   answer_blocks: AnswerBlock[];
   seo: SeoOverride;

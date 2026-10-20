@@ -9,6 +9,7 @@ import { getEntries, getEntry, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { EntryForm } from "../entry-form";
+import { InvestorAlertPanel } from "../investor-alert-panel";
 import { requireScreen } from "@/lib/admin-screen";
 
 export async function generateMetadata({ params }: { params: Promise<{ type: string; id: string }> }) {
@@ -57,6 +58,8 @@ export default async function EditEntryPage({
       </PageHeader>
 
       <EntryForm type={meta.type} entry={entry} kinds={meta.answer_block_kinds} saved={Boolean(saved)} builder={await getPageBuilderOptions()} />
+
+      {meta.type.preset === "investors" && <InvestorAlertPanel typeSlug={meta.type.slug} entry={entry} />}
     </>
   );
 }

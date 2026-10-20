@@ -320,6 +320,9 @@ const DEFAULT_ROUTES = [
   ...(PORTAL_EMAIL && PORTAL_PASSWORD ? PORTAL_ROUTES : []),
 ];
 
+/** The presets' archives (docs/content-presets.md), audited when installed. */
+const PRESET_ROUTES = ["/newsroom", "/in-the-news", "/investors", "/testimonials", "/awards"];
+
 /** Routes whose correct answer is 404 rather than 200. */
 const EXPECT_404 = new Set(["/this-page-does-not-exist"]);
 
@@ -1113,6 +1116,17 @@ if (!process.argv.slice(2).length) {
   if (discovered.length) {
     console.log(`note  ${String(discovered.length).padStart(2)} record route(s) discovered\n`);
     routes.push(...discovered);
+  }
+
+  /*
+    The content-type presets' archives at their default addresses
+    (docs/content-presets.md). They exist only once a preset is installed, so
+    each joins the run when it answers 200 — the mock installs all four.
+  */
+  for (const route of PRESET_ROUTES) {
+    const ok = await fetch(BASE + route, { redirect: "manual" }).then((r) => r.status === 200).catch(() => false);
+    if (ok) routes.push(route);
+    else console.log(`note  ${route.padEnd(38)} preset not installed, not audited`);
   }
 }
 

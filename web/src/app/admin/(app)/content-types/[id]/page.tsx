@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getContentType } from "@/lib/admin";
+import { getContentType, getPresetSettings } from "@/lib/admin";
+import { PresetSettingsPanel } from "../preset-settings-panel";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { TypeForm } from "../type-form";
@@ -33,6 +34,10 @@ export default async function EditContentTypePage({
   }
 
   const type = res.data;
+  // A newsroom or an investors type carries settings of its own (docs/content-presets.md).
+  const presetSettings = type.preset === "newsroom_releases" || type.preset === "investors"
+    ? await getPresetSettings(type.id).catch(() => null)
+    : null;
 
   return (
     <>
@@ -46,6 +51,10 @@ export default async function EditContentTypePage({
       </PageHeader>
 
       <TypeForm type={type} meta={res.meta} saved={Boolean(saved)} />
+
+      {presetSettings && type.preset ? (
+        <PresetSettingsPanel typeId={type.id} preset={type.preset} rows={presetSettings.data} meta={presetSettings.meta} />
+      ) : null}
     </>
   );
 }

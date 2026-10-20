@@ -23,6 +23,8 @@ type Row = {
   options: { value: string; label: string }[];
   settings: CustomFieldSettings;
   values_count: number;
+  /** A preset's layout reads it (docs/content-presets.md): key, type and the field itself are fixed. */
+  locked: boolean;
 };
 
 /**
@@ -55,6 +57,7 @@ export function FieldBuilder({
       options: f.options ?? [],
       settings: f.settings ?? {},
       values_count: f.values_count,
+      locked: Boolean(f.locked),
     })),
   );
   const [counter, setCounter] = useState(0);
@@ -106,6 +109,7 @@ export function FieldBuilder({
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="text-13 font-semibold text-muted">Field {i + 1}</span>
               <code className="font-mono text-12 text-faint">{row.key || "—"}</code>
+              {row.locked && <span className="text-12 font-semibold text-brand-ink">Used by the preset’s layout</span>}
               {row.values_count > 0 && (
                 <span className="text-12 text-faint">
                   {row.values_count} record{row.values_count === 1 ? "" : "s"} hold a value
@@ -114,7 +118,7 @@ export function FieldBuilder({
               <ReorderButtons
                 className="ml-auto" index={i} count={rows.length} subject={`field ${i + 1}`}
                 onMove={(by) => move(i, by)}
-                onRemove={() => {
+                onRemove={row.locked ? undefined : () => {
                   if (row.values_count > 0 && !window.confirm(
                     `Remove "${row.label}"? The values on ${row.values_count} record${row.values_count === 1 ? "" : "s"} go with it when you save.`,
                   )) return;
@@ -138,17 +142,17 @@ export function FieldBuilder({
               </Field>
 
               <Field label="Key" htmlFor={`key-${row.rowKey}`}
-                hint="What templates and the API read it by. Renaming keeps the values.">
-                <Input id={`key-${row.rowKey}`} className="font-mono" value={row.key}
+                hint={row.locked ? "Fixed: the preset's layout reads this field by its key." : "What templates and the API read it by. Renaming keeps the values."}>
+                <Input id={`key-${row.rowKey}`} className="font-mono" value={row.key} disabled={row.locked}
                   onChange={(e) => patch(i, { key: keyFrom(e.target.value) })} />
               </Field>
 
               <Field label="Type" htmlFor={`kind-${row.rowKey}`} variant="float-static"
-                hint={row.values_count > 0 ? "Fixed: this field already holds values." : kinds.find((k) => k.value === row.kind)?.blurb}>
+                hint={row.locked ? "Fixed: the preset's layout reads it as this type." : row.values_count > 0 ? "Fixed: this field already holds values." : kinds.find((k) => k.value === row.kind)?.blurb}>
                 <Select
                   id={`kind-${row.rowKey}`}
                   value={row.kind}
-                  disabled={row.values_count > 0}
+                  disabled={row.locked || row.values_count > 0}
                   onChange={(e) => patch(i, { kind: e.target.value as CustomFieldKind })}
                 >
                   {kinds.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
@@ -236,7 +240,7 @@ export function FieldBuilder({
           setCounter((c) => c + 1);
           setRows((r) => [...r, {
             rowKey: `new-${counter}`, key: "", label: "", kind: "text", help: "",
-            required: false, show_on_page: true, options: [], settings: {}, values_count: 0,
+            required: false, show_on_page: true, options: [], settings: {}, values_count: 0, locked: false,
           }]);
         }}
       >
