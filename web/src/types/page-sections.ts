@@ -23,7 +23,7 @@ export type PageSectionType =
   /** The four of 0.109.0. */
   | "comparison" | "timeline" | "before_after" | "testimonials"
   /** The five of 0.111.0. */
-  | "team" | "downloads" | "countdown" | "columns" | "map"
+  | "team" | "downloads" | "preset_list" | "countdown" | "columns" | "map"
   /** One of the active theme's homepage sections, by its `HOME_SECTIONS` id (0.113.0). */
   | "theme_section"
   /** Rows and columns of widgets, arranged by hand (0.147.0). */
@@ -140,8 +140,17 @@ export type TimelineSectionData = Head & { items: { date: string; title: string;
 export type BeforeAfterSectionData = Picture<"before"> & Picture<"after"> & {
   heading?: string; lede?: string; before_label?: string; after_label?: string; start?: number; caption?: string;
 };
-export type TestimonialItem = Picture<"photo"> & { quote: string; name: string; role?: string };
+export type TestimonialItem = Picture<"photo"> & { quote: string; name: string; role?: string; /** From the Testimonials preset (docs/content-presets.md). */ company_logo?: string | null };
 export type TestimonialsSectionData = Head & { items: TestimonialItem[] };
+/** A live list from an installed preset (docs/content-presets.md): the newest rows and where "See all" goes. */
+export type PresetListSectionData = Head & {
+  preset: "newsroom_releases" | "newsroom_coverage" | "investors" | "awards";
+  limit?: number;
+  document_type?: string;
+  index_path?: string;
+  items?: import("./presets").PresetRow[];
+  document_types?: import("./presets").PresetOption[];
+};
 /** The team as a live list — the public read carries `members` in `/team`'s shape. */
 export type TeamSectionData = Head & { department?: string; limit?: number; group?: boolean; members?: TeamMember[] };
 /**
@@ -390,6 +399,7 @@ export type PageSection =
   | Of<"testimonials", TestimonialsSectionData>
   | Of<"team", TeamSectionData>
   | Of<"downloads", DownloadsSectionData>
+  | Of<"preset_list", PresetListSectionData>
   | Of<"countdown", CountdownSectionData>
   | Of<"columns", ColumnsSectionData>
   | Of<"map", MapSectionData>

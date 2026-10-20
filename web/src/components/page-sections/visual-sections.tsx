@@ -503,10 +503,16 @@ export function TestimonialsSection({ data, reveal }: { data: TestimonialsSectio
                       {item.name.trim().charAt(0).toUpperCase()}
                     </span>
                   )}
-                  <span className="min-w-0">
+                  <span className="min-w-0 flex-1">
                     <span className="block text-14-5 font-semibold text-ink">{item.name}</span>
                     {item.role && <span className="block text-13 text-muted">{item.role}</span>}
                   </span>
+                  {/* The company's mark, from the Testimonials preset (docs/content-presets.md). */}
+                  {item.company_logo ? (
+                    <span className="relative block h-7 w-20 shrink-0">
+                      <Image src={item.company_logo} alt="" fill sizes="80px" className="object-contain object-right" />
+                    </span>
+                  ) : null}
                 </figcaption>
               </figure>
             </li>

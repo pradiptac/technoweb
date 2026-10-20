@@ -22,6 +22,7 @@ import {
   TestimonialsSection, TimelineSection,
 } from "./visual-sections";
 import { ColumnsSection, CountdownSection, DownloadsSection, MapSection, TeamSection } from "./people-sections";
+import { PresetListSection } from "./preset-sections";
 import { ThemeSectionSlot } from "./theme-section";
 import { StorySection } from "./story-section";
 import { FlowSection } from "./flow-section";
@@ -263,6 +264,7 @@ function renderSection(
     case "testimonials": return <TestimonialsSection data={section.data} reveal={reveal} />;
     case "team": return <TeamSection data={section.data} reveal={reveal} />;
     case "downloads": return <DownloadsSection data={section.data} reveal={reveal} />;
+    case "preset_list": return <PresetListSection data={section.data} reveal={reveal} />;
     case "countdown": return <CountdownSection data={section.data} reveal={reveal} />;
     case "columns": return <ColumnsSection data={section.data} reveal={reveal} />;
     case "map": return <MapSection data={section.data} reveal={reveal} />;

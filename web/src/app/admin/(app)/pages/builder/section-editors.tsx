@@ -28,8 +28,10 @@ import { LayoutEditor, blankLayout, layoutSummary } from "./layout-editor";
  */
 
 /** What a freshly added section starts with: the choices a type needs made, made. */
-export function blankData(type: PageSectionType): Record<string, unknown> {
+export function blankData(type: PageSectionType, options?: PageBuilderOptions): Record<string, unknown> {
   switch (type) {
+    // The first installed preset, so the section saves as added (docs/content-presets.md).
+    case "preset_list": return { preset: options?.presets?.[0]?.value ?? "awards", limit: 6 };
     case "hero": return { layout: "centered" };
     case "rich_text": return {};
     case "media_text": return { media: "image", side: "right" };
@@ -752,22 +754,41 @@ export function SectionEditor({ type, sectionId, options }: {
         </>
       );
 
-    case "testimonials":
+    case "testimonials": {
+      // Typed here, or read from the Testimonials preset (docs/content-presets.md).
+      const fromPreset = content.source === "preset";
       return (
         <>
           <Head />
-          <Repeater path={["items"]} label="Quotations" subject="Quotation" min={2} max={9} blank={() => ({})} row={(p) => (
+          {options.testimonials_installed || fromPreset ? (
+            <Choice path={["source"]} label="Which quotes" fallback="custom"
+              options={[{ value: "custom", label: "Quotes typed here" }, { value: "preset", label: "From Testimonials" }]} />
+          ) : null}
+          {fromPreset ? (
             <>
-              <Text path={[...p, "quote"]} label="Quotation" multiline required />
               <Row>
-                <Text path={[...p, "name"]} label="Who said it" required />
-                <Text path={[...p, "role"]} label="Their role" />
+                <Toggle path={["featured_only"]} label="Only those marked Featured" />
+                <NumberInput path={["limit"]} label="How many, at most" min={2} max={9} hint="Six when left blank." />
               </Row>
-              <ImagePath path={[...p, "photo_path"]} label="Photo" spec="team" hint="Optional. Without one, their initial is drawn." />
+              <p className="-mt-2 mb-4 text-12-5 text-faint">
+                A live list from <Link href="/admin/content" className="font-semibold text-brand-ink underline">Testimonials</Link>, in their own order. Drawn nothing with fewer than two.
+              </p>
             </>
-          )} />
+          ) : (
+            <Repeater path={["items"]} label="Quotations" subject="Quotation" min={2} max={9} blank={() => ({})} row={(p) => (
+              <>
+                <Text path={[...p, "quote"]} label="Quotation" multiline required />
+                <Row>
+                  <Text path={[...p, "name"]} label="Who said it" required />
+                  <Text path={[...p, "role"]} label="Their role" />
+                </Row>
+                <ImagePath path={[...p, "photo_path"]} label="Photo" spec="team" hint="Optional. Without one, their initial is drawn." />
+              </>
+            )} />
+          )}
         </>
       );
+    }
 
     case "team":
       return (
@@ -863,6 +884,35 @@ export function SectionEditor({ type, sectionId, options }: {
           </p>
         </>
       );
+
+    case "preset_list": {
+      // A live list from an installed preset (docs/content-presets.md).
+      const presets = options.presets ?? [];
+      const investors = presets.find((p) => p.value === "investors");
+      return (
+        <>
+          <Head />
+          {presets.length === 0 ? (
+            <p className="mb-4 text-12-5 text-faint">
+              No preset is installed yet. <Link href="/admin/content-types" className="font-semibold text-brand-ink underline">Install one from Content types</Link>.
+            </p>
+          ) : (
+            <Row>
+              <Choice path={["preset"]} label="Which list" fallback={presets[0].value}
+                options={presets.map((p) => ({ value: p.value, label: p.label }))} />
+              <NumberInput path={["limit"]} label="How many, at most" min={1} max={12} hint="Six when left blank." />
+            </Row>
+          )}
+          {content.preset === "investors" && investors?.document_types?.length ? (
+            <Choice path={["document_type"]} label="Only one kind of document" fallback=""
+              options={[{ value: "", label: "Every kind" }, ...investors.document_types]} />
+          ) : null}
+          <p className="-mt-2 mb-4 text-12-5 text-faint">
+            A live list: what is published there now, newest first, with a link to all of it. Drawn nothing while it is empty.
+          </p>
+        </>
+      );
+    }
 
     case "support_network":
       // The support network (0.170.0): the map and the centres, live.

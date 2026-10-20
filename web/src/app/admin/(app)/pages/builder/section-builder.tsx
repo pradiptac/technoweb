@@ -303,7 +303,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
   }, []);
 
   const add = (type: PageSectionType | string) => {
-    const section: StoredSection = { id: crypto.randomUUID(), type, hidden: false, background: null, data: kind?.blocks.some((b) => b.value === type) ? {} : blankData(type as PageSectionType) };
+    const section: StoredSection = { id: crypto.randomUUID(), type, hidden: false, background: null, data: kind?.blocks.some((b) => b.value === type) ? {} : blankData(type as PageSectionType, options) };
     apply((prev) => [...prev, section]);
     joinTidy(section.id);
     toggle(section.id, true);
