@@ -25,6 +25,8 @@ export async function subscribeAction(
         // The honeypot, named `website` like every other form on this site so
         // there is one convention rather than two.
         website: String(form.get("website") ?? ""),
+        // The investors page's band posts `investors` (docs/content-presets.md).
+        list: form.get("list") === "investors" ? "investors" : undefined,
       }),
       cache: "no-store",
     });

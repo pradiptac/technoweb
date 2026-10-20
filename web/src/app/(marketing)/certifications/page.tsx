@@ -6,6 +6,7 @@ import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { IconShield } from "@/components/icons";
 import { CertificationCards } from "@/components/company/certification-cards";
 import { publicApi } from "@/lib/api";
+import { ArrowLink } from "@/components/ui/button";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
 import type { Brand, Certification } from "@/types/api";
@@ -39,6 +40,10 @@ export default async function CertificationsPage() {
   }
 
   const partners: Brand[] = await publicApi.partnerBrands().then((r) => r.data).catch(() => []);
+  const awardsType = await publicApi.contentTypes().then((r) => r.data.find((t) => t.preset === "awards")).catch(() => undefined);
+  const awards = awardsType
+    ? await publicApi.contentArchive(awardsType.slug, "?per_page=1").then((r) => (r.data.length > 0 ? awardsType.path : null)).catch(() => null)
+    : null;
 
   return (
     <>
@@ -90,6 +95,9 @@ export default async function CertificationsPage() {
             </ul>
           </section>
         )}
+
+        {/* The awards preset's page, once it holds an award (docs/content-presets.md). */}
+        {awards ? <p className="mt-12"><ArrowLink href={awards}>See our awards</ArrowLink></p> : null}
       </Container>
 
       <CtaBand />

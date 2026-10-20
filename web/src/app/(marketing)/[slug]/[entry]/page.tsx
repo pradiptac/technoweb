@@ -11,7 +11,9 @@ import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { ApiError, publicApi } from "@/lib/api";
 import { formatDate } from "@/lib/dates";
-import { JsonLd, buildMetadata } from "@/lib/seo";
+import { JsonLd, SITE, buildMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/settings";
+import { ReleaseFrame } from "@/components/presets/release-frame";
 import { noIndex } from "@/lib/no-index";
 import type { ContentEntry } from "@/types/api";
 
@@ -76,6 +78,9 @@ export default async function EntryPage({ params }: { params: Promise<{ slug: st
 
   // Builder sections in place of the written body (0.130.0).
   const laidOut = laidOutAsSections(record);
+  // A press release's frame (docs/content-presets.md); settings are a cached read.
+  const release = type?.preset === "newsroom_releases";
+  const settings = release ? await getSiteSettings() : {};
 
   const picture = record.image ? (
     <div className="relative mb-10 aspect-[1200/630] overflow-hidden rounded-lg border border-line">
@@ -141,7 +146,11 @@ export default async function EntryPage({ params }: { params: Promise<{ slug: st
       ) : (
         <Container data-aos="fade-up" className="section-y">
           {picture}
-          {record.body ? <ProseWithShortcodes html={record.body} /> : null}
+          {release ? (
+            <ReleaseFrame record={record} settings={settings} company={settings.company_name ?? SITE.name}>
+              {record.body ? <ProseWithShortcodes html={record.body} /> : null}
+            </ReleaseFrame>
+          ) : record.body ? <ProseWithShortcodes html={record.body} /> : null}
           {rest}
         </Container>
       )}

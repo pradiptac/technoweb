@@ -40,7 +40,16 @@ import { cn } from "@/lib/utils";
  * the static heart is the reduced-motion state. Its red is `err-fill`, not
  * `err`: the latter inverts to a pale pink on this dark footer.
  */
-export function NewsletterSignup({ onDark = false }: { onDark?: boolean }) {
+export function NewsletterSignup({
+  onDark = false, list, label = "Your email address, to receive occasional notes on infrastructure",
+}: {
+  onDark?: boolean;
+  /** `investors`: the investors page's band, into its own list (docs/content-presets.md). */
+  list?: "investors";
+  label?: string;
+}) {
+  // Its own id when it is not the footer's, which sits on the same page.
+  const inputId = list ? `newsletter-email-${list}` : "newsletter-email";
   const [state, action, pending] = useActionState(subscribeAction, {});
 
   if (state.ok) {
@@ -70,13 +79,14 @@ export function NewsletterSignup({ onDark = false }: { onDark?: boolean }) {
         itself — an input labelled only by a heading two elements away is one
         announced as "edit text, blank".
       */}
-      <label htmlFor="newsletter-email" className="sr-only">
-        Your email address, to receive occasional notes on infrastructure
+      <label htmlFor={inputId} className="sr-only">
+        {label}
       </label>
+      {list ? <input type="hidden" name="list" value={list} /> : null}
 
       <div className="flex flex-col gap-2.5 sm:flex-row">
         <input
-          id="newsletter-email"
+          id={inputId}
           name="email"
           type="email"
           required

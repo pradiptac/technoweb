@@ -273,7 +273,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...included(otherPages).map((p) => entry(`/${p.slug}`, 0.4, "yearly", when(p.updated_at))),
       ...custom.flatMap(({ type, entries }) => [
         ...(type.archive_enabled ? [entry(type.path, 0.6, "weekly", when(type.updated_at))] : []),
-        ...included(entries).map((e) => entry(e.path, 0.6, "monthly", when(e.updated_at ?? e.published_at))),
+        // An entry with no page of its own is drawn on the archive (docs/content-presets.md).
+        ...(type.entry_pages === false ? [] : included(entries).map((e) => entry(e.path, 0.6, "monthly", when(e.updated_at ?? e.published_at)))),
       ]),
     ];
   } catch {

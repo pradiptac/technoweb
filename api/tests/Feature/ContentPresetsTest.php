@@ -196,13 +196,21 @@ class ContentPresetsTest extends TestCase
         $this->getJson('/api/v1/types/investors?year=2026-27')->assertJsonCount(1, 'data');
     }
 
-    public function test_the_investors_archive_names_its_document_types(): void
+    public function test_the_investors_archive_names_the_document_types_in_use(): void
     {
         $this->install('investors');
+        $pdf = $this->pdf('b.pdf');
+        $this->entry('investors', 'Annual report', ['document_type' => 'annual_report', 'financial_year' => '2025-26', 'document' => $pdf->path]);
+        $this->entry('investors', 'Draft notice', ['document_type' => 'policy', 'financial_year' => '2025-26', 'document' => $pdf->path], ['status' => 'draft']);
 
-        $this->getJson('/api/v1/types/investors')->assertOk()
-            ->assertJsonPath('meta.document_types.0.value', 'financial_results')
-            ->assertJsonPath('meta.document_types.0.label', 'Financial results');
+        // Only what a published document uses, so the chips never lead to an
+        // empty list — and the same chips on a filtered view.
+        foreach (['/api/v1/types/investors', '/api/v1/types/investors?type=annual_report'] as $url) {
+            $this->getJson($url)->assertOk()
+                ->assertJsonCount(1, 'meta.document_types')
+                ->assertJsonPath('meta.document_types.0.value', 'annual_report')
+                ->assertJsonPath('meta.document_types.0.label', 'Annual report');
+        }
     }
 
     public function test_a_financial_year_is_held_to_its_shape(): void

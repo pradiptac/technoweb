@@ -1,6 +1,6 @@
 import "server-only";
 import { ApiError, publicApi } from "@/lib/api";
-import type { ContentEntry, ContentTypeSummary, Paginated } from "@/types/api";
+import type { ContentTypeSummary } from "@/types/api";
 
 /**
  * The second thing a top-level slug can be: a custom content type's archive
@@ -12,13 +12,23 @@ import type { ContentEntry, ContentTypeSummary, Paginated } from "@/types/api";
  * A type with its archive switched off answers here as `null`, so the route
  * 404s while its entries stay reachable at `/{type}/{entry}`.
  */
-export type Archive = { type: ContentTypeSummary; entries: Paginated<ContentEntry> };
+export type Archive = { type: ContentTypeSummary; entries: Awaited<ReturnType<typeof publicApi.contentArchive>> };
 
-export async function loadArchive(slug: string, pageParam?: string): Promise<Archive | null> {
+/**
+ * `filters` is a preset's (docs/content-presets.md): the investors page's
+ * `?type=` and `?year=`. A filtered read is never ISR-cached — the key space
+ * is open, and a cached empty answer would outlive the document that fills it.
+ */
+export async function loadArchive(slug: string, pageParam?: string, filters: { type?: string; year?: string } = {}): Promise<Archive | null> {
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+  const params = new URLSearchParams();
+  if (page > 1) params.set("page", String(page));
+  if (filters.type) params.set("type", filters.type.slice(0, 60));
+  if (filters.year) params.set("year", filters.year.slice(0, 7));
+  const query = params.size > 0 ? `?${params.toString()}` : "";
 
   try {
-    const res = await publicApi.contentArchive(slug, page > 1 ? `?page=${page}` : "");
+    const res = await publicApi.contentArchive(slug, query, !filters.type && !filters.year);
     if (!res.meta.type.archive_enabled) return null;
     return { type: res.meta.type, entries: res };
   } catch (error) {

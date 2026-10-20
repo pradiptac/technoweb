@@ -7,6 +7,7 @@ use App\Http\Resources\ContentTypeResource;
 use App\Http\Resources\DownloadResource;
 use App\Http\Resources\EntryResource;
 use App\Models\ContentType;
+use App\Models\CustomFieldValue;
 use App\Models\Download;
 use App\Models\Entry;
 use App\Models\Setting;
@@ -88,8 +89,18 @@ class ContentTypeController extends Controller
 
         // The words each document type is shown as, for the type chips and the
         // rows: `custom_data` carries the stored value only.
+        // Only the types a published document uses, read before any filter, so
+        // a chip never leads to an empty list and every view shows the same chips.
         if ($contentType->preset === 'investors') {
-            $meta['document_types'] = Presets::documentTypes($contentType);
+            $used = CustomFieldValue::query()
+                ->where('fieldable_type', (new Entry)->getMorphClass())
+                ->whereIn('fieldable_id', $contentType->entries()->published()->select('entries.id'))
+                ->whereHas('field', fn ($f) => $f->where('key', 'document_type'))
+                ->get(['value'])->map(fn (CustomFieldValue $v) => (string) $v->value)->unique()->all();
+            $meta['document_types'] = array_values(array_filter(
+                Presets::documentTypes($contentType),
+                fn (array $t) => in_array($t['value'], $used, true),
+            ));
         }
 
         // The newsroom's media kit: a downloads category chosen on the type's

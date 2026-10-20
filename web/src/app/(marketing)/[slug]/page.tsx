@@ -14,6 +14,7 @@ import { getSiteSettings } from "@/lib/settings";
 import type { CmsPage } from "@/types/api";
 import { ContentArchive } from "@/components/content/content-archive";
 import { loadArchive } from "./archive";
+import { PRESET_LAYOUTS, PresetArchive } from "@/components/presets/preset-archive";
 
 /**
  * CMS-managed standalone pages — privacy, terms, downloads and anything else
@@ -43,9 +44,13 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   if (!page) {
     // A custom content type's archive, when no page answers (./archive.ts).
     const sp = await searchParams;
-    const archive = await loadArchive(slug, sp.page);
+    const archive = await loadArchive(slug, sp.page, { type: sp.type, year: sp.year });
     if (archive) {
-      return listingMetadata({ title: archive.type.plural, description: archive.type.description, path: archive.type.path, searchParams: sp });
+      const meta = listingMetadata({ title: archive.type.plural, description: archive.type.description, path: archive.type.path, searchParams: sp, filters: ["type", "year"] });
+      // The newsroom's feed (docs/content-presets.md), named where a reader can find it.
+      return archive.type.preset === "newsroom_releases"
+        ? { ...meta, alternates: { ...meta.alternates, types: { "application/rss+xml": `${archive.type.path}/feed.xml` } } }
+        : meta;
     }
     return buildMetadata({ title: "Not found", path: `/${slug}`, seo: noIndex });
   }
@@ -64,8 +69,16 @@ export default async function CmsPageRoute({ params, searchParams }: { params: P
 
   if (!page) {
     // A custom content type's archive, when no page answers (./archive.ts).
-    const archive = await loadArchive(slug, (await searchParams).page);
-    if (archive) return <ContentArchive type={archive.type} entries={archive.entries} />;
+    const sp = await searchParams;
+    const archive = await loadArchive(slug, sp.page, { type: sp.type, year: sp.year });
+    if (archive) {
+      // A preset's own layout (docs/content-presets.md); an unknown preset draws the generic archive.
+      if (archive.type.preset) {
+        const drawn = <PresetArchive archive={archive} settings={await getSiteSettings()} query={{ type: sp.type, year: sp.year }} />;
+        if (PRESET_LAYOUTS.has(archive.type.preset)) return drawn;
+      }
+      return <ContentArchive type={archive.type} entries={archive.entries} />;
+    }
     notFound();
   }
 

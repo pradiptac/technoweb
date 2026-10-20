@@ -7423,7 +7423,7 @@ createServer(async (req, res) => {
         if (t.preset === 'testimonials' && q.get('featured')) rows = rows.filter((e) => e.custom_data.featured);
         const page = paginate(rows.map(({ body, ...e }) => { void body; return publicEntry(e, t); }));
         page.meta.type = publicType(t);
-        if (t.preset === 'investors') page.meta.document_types = PRESET_DOCUMENT_TYPES;
+        if (t.preset === 'investors') page.meta.document_types = PRESET_DOCUMENT_TYPES.filter((d) => pool.some((e) => e.custom_data.document_type === d.value));
         if (t.preset === 'newsroom_releases') page.meta.newsroom_kit = [];
         return json(res, 200, page);
       }

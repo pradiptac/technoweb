@@ -210,7 +210,10 @@ function index(site: Site): string {
   for (const { type, entries } of site.custom) {
     section(type.plural, [
       ...(type.archive_enabled ? [line(`All ${type.plural.toLowerCase()}`, type.path, type.description)] : []),
-      ...entries.map((x) => line(x.title, x.path, x.summary)),
+      // The newsroom's feed (docs/content-presets.md).
+      ...(type.preset === "newsroom_releases" ? [line(`${type.plural} (RSS)`, `${type.path}/feed.xml`)] : []),
+      // An entry with no page of its own is on the archive, already listed.
+      ...(type.entry_pages === false ? [] : entries.map((x) => line(x.title, x.path, x.summary))),
     ]);
   }
   section("Company", [
@@ -300,6 +303,8 @@ export async function llmsFull(): Promise<string> {
 
   // Custom content: each entry's own read, ISR-cached like its page.
   for (const { type, entries } of site.custom) {
+    // No page to read for an entry drawn only on its archive.
+    if (type.entry_pages === false) continue;
     const full = await Promise.all(entries.map((x) => quiet(publicApi.entry(type.slug, x.slug))));
     for (const e of full) if (e) doc(e.title, e.path, [e.summary, definition(e), e.body, questions(e)]);
   }
