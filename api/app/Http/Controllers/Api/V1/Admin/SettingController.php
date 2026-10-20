@@ -175,6 +175,12 @@ class SettingController extends Controller
         ['value' => 'large', 'label' => 'Large', 'description' => 'Display-sized figures that carry the row.'],
     ];
 
+    /** Where the homepage pull-quote comes from (docs/content-presets.md). */
+    public const TESTIMONIAL_SOURCES = [
+        ['value' => 'typed', 'label' => 'The quote typed here', 'description' => 'The three rows above.'],
+        ['value' => 'preset', 'label' => 'The newest featured testimonial', 'description' => 'From the Testimonials preset; the typed quote stands while none is featured.'],
+    ];
+
     /** Which setting chooses which kind of homepage block. */
     public const HOME_BLOCKS = [
         'home_stats_block' => ContentBlockType::Stats,
@@ -332,6 +338,7 @@ class SettingController extends Controller
             'chatbot_font_size' => ChatSettings::FONT_SIZES,
             'chatbot_animation' => ChatSettings::ANIMATIONS,
             'stats_size' => self::STAT_SIZES,
+            'testimonial_source' => self::TESTIMONIAL_SOURCES,
             'social_style' => self::SOCIAL_STYLES,
             'alerts_default_digest' => AlertSettings::DIGEST_OPTIONS,
             // Zoho Books: the data centre, when an invoice is made, and the
@@ -974,6 +981,9 @@ class SettingController extends Controller
             }
             if ($key === 'coming_soon_heading' && filled($value) && mb_strlen(trim((string) $value)) > 120) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'At most 120 characters.']);
+            }
+            if ($key === 'testimonial_source' && filled($value) && ! in_array($value, array_column(self::TESTIMONIAL_SOURCES, 'value'), true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose where the quote comes from.']);
             }
             if ($key === 'stats_size' && filled($value) && ! in_array($value, array_column(self::STAT_SIZES, 'value'), true)) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a size from the list.']);

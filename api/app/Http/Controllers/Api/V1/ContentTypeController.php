@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ContentTypeResource;
+use App\Http\Resources\DownloadResource;
 use App\Http\Resources\EntryResource;
 use App\Models\ContentType;
+use App\Models\Download;
 use App\Models\Entry;
+use App\Models\Setting;
 use App\Support\EntityLinks;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -46,6 +49,30 @@ class ContentTypeController extends Controller
         // `seo` so the sitemap, which walks this, can honour `sitemap_include`.
         $query = $contentType->entries()->published()->with('seo');
 
+        // A preset's layout reads its fields on every row (docs/content-presets.md);
+        // an ordinary archive's tiles do not, and do not pay for them.
+        if ($contentType->preset) {
+            $query->with('customValues.field.group');
+        }
+
+        $byValue = function (string $key, mixed $value) use ($query) {
+            $query->whereHas('customValues', fn ($q) => $q
+                ->whereHas('field', fn ($f) => $f->where('key', $key))
+                ->whereJsonContains('value', $value));
+        };
+
+        if ($contentType->preset === 'investors') {
+            if ($request->filled('type')) {
+                $byValue('document_type', $request->string('type')->value());
+            }
+            if ($request->filled('year')) {
+                $byValue('financial_year', $request->string('year')->value());
+            }
+        }
+        if ($contentType->preset === 'testimonials' && $request->boolean('featured')) {
+            $byValue('featured', true);
+        }
+
         match ($contentType->sort) {
             'title' => $query->orderBy('title'),
             'manual' => $query->orderBy('sort_order')->orderBy('title'),
@@ -56,9 +83,18 @@ class ContentTypeController extends Controller
         // The type is the one already in hand, so no row asks for it again.
         $entries->getCollection()->each(fn ($e) => $e->setRelation('contentType', $contentType));
 
-        return EntryResource::collection($entries)->additional(['meta' => [
-            'type' => new ContentTypeResource($contentType),
-        ]]);
+        $meta = ['type' => new ContentTypeResource($contentType)];
+
+        // The newsroom's media kit: a downloads category chosen on the type's
+        // Preset tab, drawn on the archive (docs/content-presets.md).
+        if ($contentType->preset === 'newsroom_releases' && ($category = (int) Setting::get('newsroom_kit_category_id')) > 0) {
+            $meta['newsroom_kit'] = DownloadResource::collection(
+                Download::query()->published()->where('download_category_id', $category)
+                    ->orderBy('sort_order')->orderBy('title')->get()
+            )->resolve();
+        }
+
+        return EntryResource::collection($entries)->additional(['meta' => $meta]);
     }
 
     public function show(string $type, string $slug): JsonResource

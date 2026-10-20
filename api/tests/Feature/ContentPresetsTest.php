@@ -7,8 +7,10 @@ use App\Models\ContentType;
 use App\Models\CustomField;
 use App\Models\CustomFieldGroup;
 use App\Models\Entry;
+use App\Models\Media;
 use App\Models\Page;
 use App\Models\Role;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -153,5 +155,104 @@ class ContentPresetsTest extends TestCase
         $as->deleteJson("/api/v1/admin/content-types/{$id}")->assertNoContent();
         $this->assertSame(0, CustomFieldGroup::query()->forTarget('entry:awards')->count());
         $as->postJson('/api/v1/admin/content-types/presets/awards')->assertCreated();
+    }
+
+    /* ------------------------------------------------------------ public reads */
+
+    private function install(string $key): void
+    {
+        $this->actingAs($this->staff(), 'sanctum')->postJson("/api/v1/admin/content-types/presets/{$key}")->assertCreated();
+    }
+
+    /** @param array<string, mixed> $fields */
+    private function entry(string $preset, string $title, array $fields, array $extra = []): Entry
+    {
+        $type = ContentType::query()->preset($preset)->firstOrFail();
+        $id = $this->actingAs($this->staff(), 'sanctum')
+            ->postJson("/api/v1/admin/content-types/{$type->slug}/entries", [
+                'title' => $title, 'status' => 'published', 'custom_fields' => $fields, ...$extra,
+            ])->assertCreated()->json('data.id');
+
+        return Entry::findOrFail($id);
+    }
+
+    private function pdf(string $name = 'q2.pdf'): Media
+    {
+        return Media::create(['filename' => $name, 'path' => 'media/'.$name, 'mime' => 'application/pdf', 'size' => 1200, 'disk' => 'public']);
+    }
+
+    public function test_an_investors_archive_carries_custom_data_and_filters_by_type_and_year(): void
+    {
+        $this->install('investors');
+        $pdf = $this->pdf();
+        $this->entry('investors', 'Q2 results', ['document_type' => 'financial_results', 'financial_year' => '2026-27', 'document' => $pdf->path]);
+        $this->entry('investors', 'Annual report', ['document_type' => 'annual_report', 'financial_year' => '2025-26', 'document' => $pdf->path]);
+
+        $this->getJson('/api/v1/types/investors')->assertOk()->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.type.preset', 'investors')
+            ->assertJsonPath('data.0.custom_data.document.name', 'q2.pdf');
+        $this->getJson('/api/v1/types/investors?type=annual_report')->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.title', 'Annual report');
+        $this->getJson('/api/v1/types/investors?year=2026-27')->assertJsonCount(1, 'data');
+    }
+
+    public function test_a_financial_year_is_held_to_its_shape(): void
+    {
+        $this->install('investors');
+        $pdf = $this->pdf('a.pdf');
+        $this->actingAs($this->staff(), 'sanctum')->postJson('/api/v1/admin/content-types/investors/entries', [
+            'title' => 'X', 'status' => 'published',
+            'custom_fields' => ['document_type' => 'other', 'financial_year' => '2026', 'document' => $pdf->path],
+        ])->assertStatus(422)->assertJsonValidationErrors('custom_fields.financial_year');
+    }
+
+    public function test_presets_are_found_by_preset_not_slug(): void
+    {
+        $this->seed(\Database\Seeders\SettingsSeeder::class);
+        $this->install('testimonials');
+        $type = ContentType::query()->preset('testimonials')->firstOrFail();
+        $this->actingAs($this->staff(), 'sanctum')->patchJson("/api/v1/admin/content-types/{$type->id}", ['slug' => 'kind-words'])->assertOk();
+        $this->entry('testimonials', 'R. Kulkarni', ['quote' => 'They pick up.', 'featured' => true, 'role' => 'Head of IT']);
+
+        Setting::query()->where('key', 'testimonial_source')->update(['value' => 'preset']);
+        Setting::flushCache();
+
+        $this->getJson('/api/v1/settings')->assertOk()
+            ->assertJsonPath('data.testimonial_quote', 'They pick up.')
+            ->assertJsonPath('data.testimonial_author', 'R. Kulkarni')
+            ->assertJsonPath('data.testimonial_role', 'Head of IT');
+    }
+
+    public function test_the_homepage_quote_falls_back_to_the_typed_one(): void
+    {
+        $this->seed(\Database\Seeders\SettingsSeeder::class);
+        Setting::query()->where('key', 'testimonial_source')->update(['value' => 'preset']);
+        Setting::flushCache();
+        $typed = Setting::query()->where('key', 'testimonial_quote')->value('value');
+
+        $this->getJson('/api/v1/settings')->assertJsonPath('data.testimonial_quote', $typed);
+    }
+
+    public function test_preset_settings_accept_only_their_own_keys(): void
+    {
+        $this->seed(\Database\Seeders\SettingsSeeder::class);
+        $this->install('newsroom');
+        $type = ContentType::query()->preset('newsroom_releases')->firstOrFail();
+        $as = $this->actingAs($this->staff(), 'sanctum');
+
+        $as->getJson("/api/v1/admin/content-types/{$type->id}/preset-settings")->assertOk()
+            ->assertJsonPath('data.0.key', 'newsroom_boilerplate');
+        $as->patchJson("/api/v1/admin/content-types/{$type->id}/preset-settings", ['settings' => [
+            ['key' => 'newsroom_boilerplate', 'value' => '<p>About us.</p><script>x()</script>'],
+        ]])->assertOk();
+        $this->assertSame('<p>About us.</p>', Setting::query()->where('key', 'newsroom_boilerplate')->value('value'));
+        $this->getJson('/api/v1/settings')->assertJsonPath('data.newsroom_boilerplate', '<p>About us.</p>');
+
+        $as->patchJson("/api/v1/admin/content-types/{$type->id}/preset-settings", ['settings' => [
+            ['key' => 'smtp_password', 'value' => 'x'],
+        ]])->assertStatus(422);
+        $as->patchJson("/api/v1/admin/content-types/{$type->id}/preset-settings", ['settings' => [
+            ['key' => 'investors_contact_name', 'value' => 'x'],
+        ]])->assertStatus(422);
     }
 }

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Admin\ClientController as AdminClientController;
 use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBlockController;
 use App\Http\Controllers\Api\V1\Admin\ContentPresetController;
 use App\Http\Controllers\Api\V1\Admin\ContentTypeController;
+use App\Http\Controllers\Api\V1\Admin\PresetSettingsController;
 use App\Http\Controllers\Api\V1\Admin\CustomFieldGroupController;
 use App\Http\Controllers\Api\V1\Admin\DownloadCategoryController as AdminDownloadCategoryController;
 use App\Http\Controllers\Api\V1\Admin\DownloadController as AdminDownloadController;
@@ -361,6 +362,8 @@ Route::middleware('role:content_manager')->group(function () {
     Route::get('content-types/presets', [ContentPresetController::class, 'index'])->name('content-types.presets');
     Route::post('content-types/presets/{key}', [ContentPresetController::class, 'store'])
         ->whereIn('key', ['newsroom', 'investors', 'testimonials', 'awards'])->name('content-types.presets.install');
+    Route::get('content-types/{content_type:id}/preset-settings', [PresetSettingsController::class, 'show'])->name('content-types.preset-settings');
+    Route::patch('content-types/{content_type:id}/preset-settings', [PresetSettingsController::class, 'update'])->name('content-types.preset-settings.update');
     Route::get('content-types/{content_type:id}', [ContentTypeController::class, 'show'])->name('content-types.show');
     Route::patch('content-types/{content_type:id}', [ContentTypeController::class, 'update'])->name('content-types.update');
     Route::delete('content-types/{content_type:id}', [ContentTypeController::class, 'destroy'])->name('content-types.destroy');

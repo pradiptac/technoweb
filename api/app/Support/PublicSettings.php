@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\MessageChannel;
 use App\Enums\PaymentGateway;
+use App\Models\ContentType;
 use App\Models\GoogleFont;
 use App\Models\Location;
 use App\Models\Media;
@@ -34,7 +35,7 @@ class PublicSettings
      * `payments`, `newsletter`, `chatbot`, `seo`, `media`, `security` — stays
      * server-side unless a key below names it deliberately.
      */
-    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'login', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'store_promo', 'store_tiles', 'store_videos', 'store_tags', 'blog', 'embeds', 'indexnow', 'push', 'pwa', 'action_bar', 'coming_soon'];
+    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'login', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'store_promo', 'store_tiles', 'store_videos', 'store_tags', 'blog', 'embeds', 'indexnow', 'push', 'pwa', 'action_bar', 'coming_soon', 'newsroom', 'investors'];
 
     /**
      * Rows in a public group that are nobody's business on this endpoint.
@@ -334,7 +335,49 @@ class PublicSettings
             }
         }
 
+        /*
+         * The homepage pull-quote may be the newest featured testimonial
+         * (docs/content-presets.md). Resolved here, onto the same three keys
+         * every theme's `WhyUs` already reads, so no theme changes; a
+         * testimonials type that is absent, off or holds nothing featured
+         * leaves the typed quote standing.
+         */
+        if (($values['testimonial_source'] ?? 'typed') === 'preset') {
+            foreach (self::featuredTestimonial() as $key => $value) {
+                $values[$key] = $value;
+            }
+        }
+
         return $values->all();
+    }
+
+    /** @return array<string, string> */
+    private static function featuredTestimonial(): array
+    {
+        $type = ContentType::active()->preset('testimonials')->first();
+        if ($type === null) {
+            return [];
+        }
+
+        $entry = $type->entries()->published()
+            ->whereHas('customValues', fn ($q) => $q->whereHas('field', fn ($f) => $f->where('key', 'featured'))->whereJsonContains('value', true))
+            ->with('customValues.field')
+            ->orderByDesc('published_at')->orderByDesc('id')
+            ->first();
+        if ($entry === null) {
+            return [];
+        }
+
+        $value = fn (string $key) => trim((string) $entry->customValues->first(fn ($v) => $v->field?->key === $key)?->value);
+        if ($value('quote') === '') {
+            return [];
+        }
+
+        return array_filter([
+            'testimonial_quote' => $value('quote'),
+            'testimonial_author' => (string) $entry->title,
+            'testimonial_role' => implode(', ', array_filter([$value('role'), $value('company')])),
+        ], fn ($v) => $v !== '');
     }
 
     /**

@@ -124,6 +124,20 @@ Support with a real desk|A ticket portal, a named engineer and an SLA clock that
             ['group' => 'homepage', 'key' => 'testimonial_quote', 'value' => 'They inherited a network held together by guesswork. Six weeks later we had documentation, a firewall policy that made sense, and — for the first time — someone who picks up.', 'type' => 'text'],
             ['group' => 'homepage', 'key' => 'testimonial_author', 'value' => 'R. Kulkarni', 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'testimonial_role', 'value' => 'Head of IT, manufacturing group · 6 sites', 'type' => 'string'],
+            // Which quote stands there: the one typed above, or the newest
+            // testimonial marked Featured (docs/content-presets.md).
+            ['group' => 'homepage', 'key' => 'testimonial_source', 'value' => 'typed', 'type' => 'string'],
+            // A preset type's own settings, edited on its form under Preset
+            // (`PresetSettingsController`) — public, because the pages draw them.
+            ['group' => 'newsroom', 'key' => 'newsroom_boilerplate', 'value' => null, 'type' => 'text'],
+            ['group' => 'newsroom', 'key' => 'newsroom_contact_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'newsroom', 'key' => 'newsroom_contact_email', 'value' => null, 'type' => 'string'],
+            ['group' => 'newsroom', 'key' => 'newsroom_contact_phone', 'value' => null, 'type' => 'string'],
+            ['group' => 'newsroom', 'key' => 'newsroom_kit_category_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'investors', 'key' => 'investors_contact_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'investors', 'key' => 'investors_contact_email', 'value' => null, 'type' => 'string'],
+            ['group' => 'investors', 'key' => 'investors_contact_phone', 'value' => null, 'type' => 'string'],
+            ['group' => 'investors', 'key' => 'investors_signup_line', 'value' => null, 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'amc_enabled', 'value' => '1', 'type' => 'boolean'],
             ['group' => 'homepage', 'key' => 'amc_heading', 'value' => 'Every AMC contract includes', 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'amc_inclusions', 'value' => 'Defined response & resolution SLAs

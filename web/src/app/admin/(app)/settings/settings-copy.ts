@@ -1019,6 +1019,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   testimonial_quote: { label: "Testimonial", hint: "The pull-quote beside the steps." },
   testimonial_author: { label: "Testimonial author", hint: "The initials on the disc are taken from this name." },
   testimonial_role: { label: "Testimonial role", placeholder: "IT Manager, Company" },
+  testimonial_source: { label: "Which quote", hint: "The quote typed above, or the newest testimonial marked Featured in the Testimonials preset. The typed quote stands while none is featured." },
   amc_heading: { label: "AMC card heading" },
   amc_enabled: { label: "Show the AMC card", hint: "On shows the card under the testimonial; off hides it." },
   amc_inclusions: { label: "AMC card list", hint: "One line each." },
@@ -1323,7 +1324,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
             "chatbot_context_messages", "chatbot_daily_reply_cap"],
   homepage: ["homepage_page_id", "hero_kicker", "hero_heading", "hero_lede", "hero_kinetic", "hero_kinetic_words", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation", "home_stats_block", "home_stack_block", "home_pricing_block",
              "why_kicker", "why_heading", "why_lede", "why_steps",
-             "testimonial_enabled", "testimonial_quote", "testimonial_author", "testimonial_role",
+             "testimonial_enabled", "testimonial_source", "testimonial_quote", "testimonial_author", "testimonial_role",
              "amc_enabled", "amc_heading", "amc_inclusions", "amc_link_label", "amc_link_href"],
   mail: ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_encryption",
          "mail_from_address", "mail_from_name"],
@@ -1666,7 +1667,7 @@ export const SYSTEM_SCREEN = "/admin/settings";
  * than "whatever no screen names", because a group somebody forgot would
  * then be silently standalone with nowhere to be edited.
  */
-export const STANDALONE_GROUPS = new Set(["announcement", "themes", "store_promo", "store_tiles", "store_videos", "store_tags", "invoicing"]);
+export const STANDALONE_GROUPS = new Set(["announcement", "themes", "store_promo", "store_tiles", "store_videos", "store_tags", "invoicing", "newsroom", "investors"]);
 
 export function screenAt(path: string): SettingsScreen {
   const screen = SCREENS.find((s) => s.path === path);
