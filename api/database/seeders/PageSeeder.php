@@ -53,6 +53,8 @@ class PageSeeder extends Seeder
                     .'<p>Support records are retained for the life of the contract and for a defined period afterwards, so that a recurring fault can be traced against its history.</p>'
                     .'<h2>Your rights</h2>'
                     .'<p>You may ask what we hold about you, ask for it to be corrected, or ask for it to be deleted where we are not required to keep it. Contact us using the details on the contact page.</p>'
+                    .'<h2>How we count visits</h2>'
+                    .'<p>We count visits to this website ourselves, without cookies and without any third party. For each page view, search, download or enquiry we keep the page, where the visitor came from, the type of device and browser, the country and a code that changes every day, so it cannot be followed from one day to the next. We never keep your address. Because no cookie is set and nothing identifies you, this counting does not need your consent. If your browser sends “Do Not Track” or “Global Privacy Control”, we do not count the visit at all.</p>'
                     .'<h2>Cookies</h2>'
                     .'<p>This site sets a session cookie when you sign in to the support portal. It is strictly necessary — without it you cannot stay signed in. We do not use advertising or third-party analytics cookies.</p>',
             ],

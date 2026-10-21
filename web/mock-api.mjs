@@ -3725,6 +3725,8 @@ createServer(async (req, res) => {
      together, and the header reserves its space from the last two. Sending the
      URL alone reintroduces the layout shift they exist to remove. Same for
      favicon_ and login_image_. */
+  // Native analytics: the beacon is fire-and-forget; the real endpoint answers 204 always.
+  if (p === '/collect' && req.method === 'POST') { res.writeHead(204); return res.end(); }
   // Messaging: provider webhooks answer 200 always; the bell answers 202.
   if (p.startsWith('/messaging/webhooks/')) { res.writeHead(200); return res.end(); }
   if ((p === '/messaging/push/subscribe' || p === '/messaging/push/unsubscribe') && req.method === 'POST') {
@@ -3787,6 +3789,8 @@ createServer(async (req, res) => {
     // The one key published from the otherwise-private newsletter group: the
     // footer needs to know whether to draw the signup form at all.
     newsletter_signup_enabled: '1',
+    // Native analytics: on, as seeded (the beacon is cookieless, so it is not behind the consent banner).
+    native_analytics_enabled: '1',
     // On, with real copy, so the promo banner is exercised under the mock —
     // the real seeder defaults it off, which would leave it permanently
     // unauditable here otherwise.
@@ -5124,10 +5128,65 @@ createServer(async (req, res) => {
       }
       if (p === '/admin/search/semantic/test' && req.method === 'POST') return json(res, 200, { data: { model: 'openai/text-embedding-3-small', dimensions: 512 } });
       if (p === '/admin/search/semantic/reindex' && req.method === 'POST') return json(res, 202, { message: 'Indexing has started. It runs in the background.' });
-      /* Native analytics (0.188.0): the mock reports it switched off, which is the page's own empty state. */
-      if (p === '/admin/analytics/summary' && req.method === 'GET') return json(res, 200, { data: null, meta: { enabled: false } });
-      if (p.startsWith('/admin/analytics/') && req.method === 'GET') return json(res, 200, { data: p.endsWith('/search') ? { terms: [], nothing: [] } : p.endsWith('/now') ? { views: 0, pages: [] } : [], meta: { enabled: false } });
-      if (p === '/admin/leads/sources' && req.method === 'GET') return json(res, 200, { data: [] });
+      /* Native analytics (0.188.0): fixed figures in the real shapes (AnalyticsController), switched on. */
+      if (p === '/admin/analytics/summary' && req.method === 'GET') {
+        const metric = (value, previous) => ({ value, previous, change: previous ? Math.round((value - previous) / previous * 1000) / 10 : null });
+        const series = Array.from({ length: 30 }, (_, i) => {
+          const d = new Date(Date.UTC(2026, 9, 21 - 29 + i));
+          return { day: d.toISOString().slice(0, 10), label: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).replace(',', ''), views: 30 + (i * 7) % 23, visitors: 15 + (i * 5) % 11, previous_views: 28 + (i * 5) % 19 };
+        });
+        return json(res, 200, { data: {
+          range: { from: '2026-09-22', to: '2026-10-21', label: '22 Sep – 21 Oct 2026' }, compare: 'previous',
+          views: metric(1240, 1100), visits: metric(610, 540), entries: metric(590, 520), bounce_share: metric(41.5, 44.2),
+          views_per_visit: metric(2.03, 2.04), conversions: metric(18, 14), revenue_paise: metric(4500000, 3200000), series,
+        }, meta: { enabled: true } });
+      }
+      if (p === '/admin/analytics/breakdown' && req.method === 'GET') {
+        const dimension = url.searchParams.get('dimension') ?? 'page';
+        const kind = url.searchParams.get('kind') ?? 'pageview';
+        const names = { page: ['/', '/about', '/contact', '/solutions', '/store'], entry: ['/', '/blog', '/solutions', '/store', '/contact'],
+          channel: ['search', 'direct', 'social', 'referral', 'email'], source: ['google', '', 'linkedin', 'example.com', 'newsletter'],
+          campaign: ['spring', 'amc', 'launch', 'webinar', 'diwali'], device: ['desktop', 'mobile', 'tablet', 'desktop', 'mobile'],
+          browser: ['Chrome', 'Safari', 'Edge', 'Firefox', 'Samsung Internet'], os: ['Windows', 'Android', 'iOS', 'macOS', 'Linux'],
+          country: ['IN', 'US', 'AE', 'GB', 'SG'], target: ['https://example.com', 'tel', 'mailto', 'whatsapp', '/files/datasheet.pdf'] };
+        const labels = { search: 'Search', direct: 'Direct', social: 'Social', referral: 'Other websites', email: 'Email', IN: 'India', US: 'United States', AE: 'United Arab Emirates', GB: 'United Kingdom', SG: 'Singapore', '': 'Direct' };
+        const keys = names[dimension] ?? names.page;
+        const raw = [420, 260, 180, 120, 60];
+        const total = raw.reduce((a, b) => a + b, 0);
+        const rows = keys.slice(0, 5).map((key, i) => ({ key, label: labels[key] ?? key, views: raw[i], visitors: dimension === 'entry' ? null : Math.round(raw[i] * 0.6),
+          value_paise: kind === 'order_paid' ? raw[i] * 1000 : 0, share: Math.round(raw[i] / total * 1000) / 10 }));
+        return json(res, 200, { data: rows, meta: { dimension, kind, total, enabled: true } });
+      }
+      if (p === '/admin/analytics/pages' && req.method === 'GET') {
+        const path = url.searchParams.get('path') ?? '/';
+        const series = Array.from({ length: 30 }, (_, i) => {
+          const d = new Date(Date.UTC(2026, 9, 21 - 29 + i));
+          return { day: d.toISOString().slice(0, 10), label: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).replace(',', ''), views: 8 + (i * 3) % 9, visitors: 5 + (i * 2) % 6 };
+        });
+        return json(res, 200, { data: { path, series, entries: 120,
+          sources: [{ key: 'google', label: 'google', views: 90, visitors: 70 }, { key: '', label: 'Direct', views: 60, visitors: 50 }],
+          conversions: [{ kind: 'enquiry', label: 'Enquiries', count: 4, value_paise: null }] }, meta: { enabled: true } });
+      }
+      if (p === '/admin/analytics/search' && req.method === 'GET') {
+        return json(res, 200, { data: {
+          terms: [{ term: 'firewall', searches: 14, results: 6 }, { term: 'cbs350', searches: 9, results: 2 }, { term: 'zzqqxx', searches: 3, results: 0 }],
+          nothing: [{ term: 'zzqqxx', searches: 3 }],
+        }, meta: { enabled: true } });
+      }
+      if (p === '/admin/analytics/now' && req.method === 'GET') {
+        return json(res, 200, { data: { views: 4, pages: [{ path: '/', views: 2 }, { path: '/about', views: 1 }, { path: '/store', views: 1 }] }, meta: { enabled: true } });
+      }
+      if (p === '/admin/analytics/export' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'text/csv; charset=UTF-8', 'Content-Disposition': 'attachment; filename="analytics-page-2026-10-21.csv"' });
+        return res.end('Page,Views,Visitors,Value (INR),Share (%)'+String.fromCharCode(10)+'/,420,252,,42.0'+String.fromCharCode(10));
+      }
+      if (p === '/admin/leads/sources' && req.method === 'GET') {
+        return json(res, 200, { data: [
+          { channel: 'search', label: 'Search', enquiries: 9, orders_paid: 3, revenue_paise: 2400000 },
+          { channel: 'direct', label: 'Direct', enquiries: 5, orders_paid: 1, revenue_paise: 1500000 },
+          { channel: 'social', label: 'Social', enquiries: 2, orders_paid: 0, revenue_paise: 0 },
+        ] });
+      }
       if (p === '/admin/health' && req.method === 'GET') {
         const ignored = url.searchParams.get('ignored') === '1';
         const group = url.searchParams.get('group');
@@ -5280,7 +5339,7 @@ createServer(async (req, res) => {
           geo: { value: 48, band: 'poor', top_issues: topIssues(GEO_SCORES), groups: { entity: 'Entity', authority: 'Authority', content: 'Content' } } },
         ai: { enabled: false, configured: false, model: 'google/gemini-2.5-flash', models: [], actions: [], today: { runs: 0, cap: 100, remaining: 100, reached: false } },
         search: { configured: false, days: 28, error: null },
-        analytics: { configured: false, days: 28, error: null },
+        analytics: { configured: true, source: 'native', days: 28, error: null },
         types: [{ value: 'solution', label: 'Solutions' }],
       } });
     }
@@ -5610,7 +5669,7 @@ createServer(async (req, res) => {
         revenue: { total_paise: 0, period_paise: 0, gst_paise: 0, discount_paise: 0, refunded_paise: 0, average_paise: null, sample: 0 },
         catalogue: { products: 0, published: 0, out_of_stock: 0 },
         attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, reviews_pending: 1, refund_requested: 0, returns_requested: mockReturns.filter(r => r.status === 'requested').length, zoho_failed: 0, shipments_in_trouble: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
-        funnel: { product_views: null, paid_orders: 0, views_to_orders: null, views_source: null },
+        funnel: { product_views: 312, paid_orders: 0, views_to_orders: null, views_source: 'native' },
         // Null, not zeros: the mock never reminds anybody about a basket.
         recovered: null,
         series, recent: [], low_stock: [], codes_low: [],

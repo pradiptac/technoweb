@@ -21,6 +21,17 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.188.0 — 2026-10-21
+
+**Visit counting** — the site counts its own visits, without cookies, and shows them in the console.
+
+- **Site → Analytics** shows visits, page views, views per visit, the share who read one page and left, enquiries, orders and revenue, with a chart by day, a comparison with the period before (or the same dates last year), and a list of the top pages, the pages people arrived on, channels, sources, campaigns, devices, browsers, countries, searches, links to other sites, downloads and calls, emails and WhatsApp. Every list can be saved as a CSV. Press a page to see it on its own.
+- **Searches that found nothing** lists what visitors looked for on the site and in the shop and did not find.
+- Nothing is stored in the browser and the address is never kept: each visitor is a code that changes at midnight, so no consent banner is needed. Visitors who send "Do Not Track" or "Global Privacy Control", robots, the console, the portal and pages meant for one person are never counted.
+- The store's dashboard, the Leads list (which channels brought enquiries and paid orders), the SEO overview's Analytics column and the console dashboard use these counts; Google Analytics 4 is used only when counting is switched off.
+- **Site → Settings → Analytics** switches counting on or off. **Settings → Infrastructure → Visit counting** lists addresses to leave out (put the office here) and whether signed-in staff are counted.
+- The privacy policy gains a "How we count visits" paragraph, and the manual a chapter, "Analytics". Countries come from DB-IP.com's free list (CC BY 4.0).
+
 ## 0.187.0 — 2026-10-21
 
 **Working together** — a notification bell, @-mentions, team notes on every record, and a warning when somebody else is editing.

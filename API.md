@@ -6562,6 +6562,39 @@ job sitting for an hour is a broken deployment.
 
 ---
 
+## Analytics
+
+The site's own cookieless visit counts (0.188.0, `docs/analytics.md`).
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/collect` | Public. Body `{k, p, r, u, w, t}` — the kind (`pageview`, `outbound`, `download`, `contact`), the path, the referrer and UTM tags (first view only), the window width, the clicked link (a `contact` click is stored as `tel`, `mailto` or `whatsapp`, never the number or address). **Answers 204 always** and has no throttle middleware: `Collector` rate-limits per address (120 a minute, beacon kinds only) and drops silently. The browser reaches it through the website's `/api/collect`, which adds `X-Visitor-Agent` and, for a staff browser, `X-Visitor-Staff: 1` — both believed from `TRUSTED_PROXIES` only |
+| `GET` | `/admin/analytics/summary` | `admin,seo_manager,content_manager`. `?from=`, `?to=` (`Y-m-d`, default the last 30 days, never the future, a backwards pair swapped, over 400 days a 422), `?compare=previous\|year\|none` |
+| `GET` | `/admin/analytics/breakdown` | `?dimension=` (`total`, `page`, `entry`, `channel`, `source`, `campaign`, `device`, `browser`, `os`, `country`, `target`), `?kind=` (an event or conversion kind, default `pageview`), `?limit=` (1–100, default 10), and the window |
+| `GET` | `/admin/analytics/pages` | One page's view: `?path=` (required) and the window, clamped to the last 90 days |
+| `GET` | `/admin/analytics/search` | The terms searched and the ones that found nothing. `?scope=site\|shop\|all`, the window clamped to 90 days |
+| `GET` | `/admin/analytics/now` | Page views in the last 30 minutes. `Cache-Control: no-store` |
+| `GET` | `/admin/analytics/export` | A breakdown as a CSV (`?dimension=`, `?kind=`, the window): label, views, visitors, value (INR), share |
+| `GET` | `/admin/leads/sources` | `role:sales_manager`. `?from=`, `?to=` as the others. Enquiries and paid orders by channel over the window: `[{channel, label, enquiries, orders_paid, revenue_paise}]`, most enquiries first |
+
+**Shapes.** Every body carries `meta.enabled` (the `native_analytics_enabled` switch).
+
+- `summary`: `data` is `{range: {from, to, label}, compare, views, visits, entries, bounce_share, views_per_visit, conversions, revenue_paise, series}`. Each metric is `{value, previous, change}` — `previous` and `change` are null with `compare: none`, and `change` is null over a zero or missing previous (never an infinite percentage). `series` is `[{day, label, views, visitors, previous_views}]` with every day present. A figure over no data is null: `bounce_share` and `views_per_visit` are null with no visits.
+- `breakdown`: `data` is `[{key, label, views, visitors, value_paise, share}]` and `meta` `{dimension, kind, total, enabled}`. **`label` is the API's** (`Labels::of`: "Search", "India", "Direct", "Unknown", "(none)"); `visitors` is **null on `entry`**, which counts entries, not people; `share` is a percentage to one place, or null over a zero total.
+- `pages`: `data` is `{path, series: [{day, label, views, visitors}], entries, sources: [{key, label, views, visitors}], conversions: [{kind, label, count, value_paise}]}` — `value_paise` null for a kind with no money.
+- `search`: `data` is `{terms: [{term, searches, results}], nothing: [{term, searches}]}`. `results` is null when the count was never recorded, and a null count is never listed under `nothing`.
+- `now`: `data` is `{views, pages: [{path, views}]}`.
+
+**What is counted** is `Kinds::EVENTS` (`pageview`, `outbound`, `download`, `contact`, `search`) and `Kinds::CONVERSIONS` (`enquiry`, `order_placed`, `order_paid`, `visit_requested`, `meeting_booked`, `event_registered`, `newsletter_signup`). The path is a site path without its query; the console, the portal, the API and every page a secret addresses (`Collector::EXCLUDED`) are never counted. A visitor is a code that changes every day, so a "visit" is one code on one day.
+
+**Beside these.** `GET /admin/store/dashboard`'s `funnel` gains `views_source` — `native`, `ga4` or null — and `product_views` is the native count of `/store/products/*` page views while native is on; `GET /admin/seo`'s `meta.analytics` gains `source` (`native`, `ga4` or null) with `days` 28 and `error` null for native, and each row's `analytics` is `{views, users}` from the same counts.
+
+**The settings.** `native_analytics_enabled` (`analytics` group, public, `0`/`1`, seeded on) — off, `POST /collect` writes nothing and the website does not mount the beacon; `native_analytics_exclude_ips` (private `native_analytics` group, one address or CIDR range per line, a 422 on the row naming the rule otherwise) and `native_analytics_count_staff` (private, `0`/`1`, off). Saved through `PATCH /admin/settings` (`role:admin`).
+
+**Housekeeping.** `technoware:analytics-rollup` (00:20) rolls each closed day into `analytics_daily`; `technoware:prune-analytics-hits` (03:55) deletes raw hits over 90 days once rolled. Today is always read from the raw hits.
+
+---
+
 ## Not built yet
 
 Nothing outstanding in the brief. See `PROGRESS.md` for what remains before

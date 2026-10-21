@@ -31,6 +31,7 @@ export const HELP_ROUTES: { prefix: string; sections: string[] }[] = [
   { prefix: "/admin/knowledge-base", sections: ["05-content#knowledge-base", "37-notifications#team-notes", "37-notifications#when-your-save-is-refused"] },
   { prefix: "/admin/case-studies", sections: ["05-content#case-studies", "37-notifications#team-notes", "37-notifications#when-your-save-is-refused"] },
   { prefix: "/admin/faqs", sections: ["05-content#faqs"] },
+  { prefix: "/admin/analytics", sections: ["38-analytics#reading-the-screen", "38-analytics#what-a-visit-is", "38-analytics#what-is-never-counted"] },
   { prefix: "/admin/health", sections: ["31-site-health#reading-the-list", "31-site-health#ignore-and-recheck"] },
   { prefix: "/admin/health/settings", sections: ["31-site-health#the-settings-administrators"] },
   { prefix: "/admin/blocks", sections: ["05-content#content-blocks"] },

@@ -80,7 +80,7 @@ const ADMIN_ROUTES = [
   "/admin/media", "/admin/products", "/admin/products/new", "/admin/product-categories",
   "/admin/brands", "/admin/solutions", "/admin/services", "/admin/industries",
   "/admin/service-categories", "/admin/service-categories/new",
-  "/admin/sliders", "/admin/popups", "/admin/forms", "/admin/seo", "/admin/redirects", "/admin/not-found", "/admin/health", "/admin/health/settings",
+  "/admin/sliders", "/admin/popups", "/admin/forms", "/admin/seo", "/admin/redirects", "/admin/not-found", "/admin/health", "/admin/health/settings", "/admin/analytics", "/admin/analytics/page?path=/",
   // Content blocks (2026-09-24): the four lists, and the four showcases — the
   // showcases render every seeded layout, drafts included, which is the only
   // place the audit can reach all of them without a public placeholder page.

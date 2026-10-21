@@ -2663,6 +2663,78 @@
    "title": "Choosing how you are told",
    "html": "<p>On <strong>Your account</strong>, in the <strong>Notifications</strong> card, <strong>Mentions and assignments</strong> decides whether mentions and assignments also reach you by email and browser notification (the same email and browser settings your alerts use). Switched off, they still appear in the bell.</p><p>An administrator can turn these emails off for everybody in <strong>Settings → Notifications</strong>.</p>",
    "text": "On Your account , in the Notifications card, Mentions and assignments decides whether mentions and assignments also reach you by email and browser notification (the same email and browser settings your alerts use). Switched off, they still appear in the bell. An administrator can turn these emails off for everybody in Settings → Notifications ."
+  },
+  {
+   "id": "38-analytics#overview",
+   "chapter": "38-analytics",
+   "chapterTitle": "Analytics: who visits your site",
+   "title": "Overview",
+   "html": "<p><em>Who can use this: administrators, SEO managers and content managers.</em></p><p><strong>Site → Analytics</strong> shows how many people visit your website, which pages they read, where they came from, what they searched for and which of them got in touch or bought something. The website counts these itself, <strong>without cookies</strong>, so it needs no consent banner and nothing is sent to anybody else.</p>",
+   "text": "Who can use this: administrators, SEO managers and content managers. Site → Analytics shows how many people visit your website, which pages they read, where they came from, what they searched for and which of them got in touch or bought something. The website counts these itself, without cookies , so it needs no consent banner and nothing is sent to anybody else."
+  },
+  {
+   "id": "38-analytics#reading-the-screen",
+   "chapter": "38-analytics",
+   "chapterTitle": "Analytics: who visits your site",
+   "title": "Reading the screen",
+   "html": "<p>Choose a period at the top — 7, 30 or 90 days, this month, last month or dates of your own — and what to compare it with: the period just before, the same dates last year, or nothing. Each figure shows how much it has changed.</p><p>The tiles across the top:</p><ul><li><strong>Visits</strong> — how many people came (see the next section).</li><li><strong>Page views</strong> — how many pages they opened in all.</li><li><strong>Views per visit</strong> — page views divided by visits.</li><li><strong>Bounce rate</strong> — the share of visits that read one page and left.</li><li><strong>Conversions</strong> — enquiries, orders, visit and meeting requests, event registrations and newsletter sign-ups.</li><li><strong>Revenue</strong> — what the paid shop orders came to.</li><li><strong>Right now</strong> — pages opened in the last 30 minutes.</li></ul><p>Under them is a chart of views and visits for each day, with the earlier period as a dashed line, and then panels you can read down: top pages, the pages people arrived on, channels (search, social, email, other websites, campaigns, direct), sources, campaigns, devices, browsers, countries, conversions by channel, searches, <strong>searches that found nothing</strong>, links to other sites, downloads, and calls, emails and WhatsApp. Each panel has a <strong>CSV</strong> link for a spreadsheet.</p><p><strong>Searches that found nothing</strong> is the most useful list on the screen: it is what visitors wanted and did not find. It looks back up to 90 days, whatever period you chose.</p><p>Press a page in <strong>Top pages</strong> to see that page on its own: its views by day, where its visitors came from, and the enquiries or orders made from it.</p><p>Today's figures update as visitors arrive. Yesterday's and earlier days are final by about half past midnight.</p>",
+   "text": "Choose a period at the top — 7, 30 or 90 days, this month, last month or dates of your own — and what to compare it with: the period just before, the same dates last year, or nothing. Each figure shows how much it has changed. The tiles across the top: Visits — how many people came (see the next section). Page views — how many pages they opened in all. Views per visit — page views divided by visits. Bounce rate — the share of visits that read one page and left. Conversions — enquiries, orders, visit and meeting requests, event registrations and newsletter sign-ups. Revenue — what the paid shop orders came to. Right now — pages opened in the last 30 minutes. Under them is a chart of views and visits for each day, with the earlier period as a dashed line, and then panels you can read down: top pages, the pages people arrived on, channels (search, social, email, other websites, campaigns, direct), sources, campaigns, devices, browsers, countries, conversions by channel, searches, searches that found nothing , links to other sites, downloads, and calls, emails and WhatsApp. Each panel has a CSV link for a spreadsheet. Searches that found nothing is the most useful list on the screen: it is what visitors wanted and did not find. It looks back up to 90 days, whatever period you chose. Press a page in Top pages to see that page on its own: its views by day, where its visitors came from, and the enquiries or orders made from it. Today's figures update as visitors arrive. Yesterday's and earlier days are final by about half past midnight."
+  },
+  {
+   "id": "38-analytics#what-a-visit-is",
+   "chapter": "38-analytics",
+   "chapterTitle": "Analytics: who visits your site",
+   "title": "What a visit is",
+   "html": "<p>A visit is one person on one day. The website gives each visitor a code made from their address and browser and <strong>a secret that changes at midnight and is then thrown away</strong>. So the same person coming back tomorrow is counted as a new visit, and nobody — not even us — can join the two. That is why the figures are &quot;visits&quot;, not &quot;people&quot;: a person who comes on three days is three visits.</p>",
+   "text": "A visit is one person on one day. The website gives each visitor a code made from their address and browser and a secret that changes at midnight and is then thrown away . So the same person coming back tomorrow is counted as a new visit, and nobody — not even us — can join the two. That is why the figures are \"visits\", not \"people\": a person who comes on three days is three visits."
+  },
+  {
+   "id": "38-analytics#what-is-never-counted",
+   "chapter": "38-analytics",
+   "chapterTitle": "Analytics: who visits your site",
+   "title": "What is never counted",
+   "html": "<ul><li>Your <strong>address</strong> is never stored, and neither is a full description of the browser. What is kept is the page, where the visitor came from, the kind of device, browser and system, the country and the day's code.</li><li>The <strong>console</strong>, the customer portal and the pages that only one person is meant to see (an order's page, a meeting or visit link, an unsubscribe link, a draft share link) are never counted.</li><li>Visitors whose browser says <strong>Do Not Track</strong> or <strong>Global Privacy Control</strong>.</li><li>Robots and search-engine crawlers.</li><li>Search words that look like an email address or a phone number are not kept.</li><li>Staff who are signed in to the console are not counted, unless an administrator switches that on.</li></ul>",
+   "text": "Your address is never stored, and neither is a full description of the browser. What is kept is the page, where the visitor came from, the kind of device, browser and system, the country and the day's code. The console , the customer portal and the pages that only one person is meant to see (an order's page, a meeting or visit link, an unsubscribe link, a draft share link) are never counted. Visitors whose browser says Do Not Track or Global Privacy Control . Robots and search-engine crawlers. Search words that look like an email address or a phone number are not kept. Staff who are signed in to the console are not counted, unless an administrator switches that on."
+  },
+  {
+   "id": "38-analytics#switching-it-off",
+   "chapter": "38-analytics",
+   "chapterTitle": "Analytics: who visits your site",
+   "title": "Switching it off",
+   "html": "<p>An administrator can switch counting on or off in <strong>Site → Settings → Analytics</strong>, with <strong>Count visits on this site</strong>. Off, nothing new is counted and the Analytics screen says so; what was counted before stays.</p>",
+   "text": "An administrator can switch counting on or off in Site → Settings → Analytics , with Count visits on this site . Off, nothing new is counted and the Analytics screen says so; what was counted before stays."
+  },
+  {
+   "id": "38-analytics#leaving-the-office-out",
+   "chapter": "38-analytics",
+   "chapterTitle": "Analytics: who visits your site",
+   "title": "Leaving the office out",
+   "html": "<p>In <strong>Settings → Infrastructure → Visit counting</strong>, <strong>Addresses to leave out</strong> takes one address or range per line, for example <code>203.0.113.7</code> or <code>203.0.113.0/24</code>. Put your office's address there so your own staff browsing the site do not count as visitors. <strong>Count signed-in staff</strong> is off by default; it only matters for staff who are signed in to the console.</p>",
+   "text": "In Settings → Infrastructure → Visit counting , Addresses to leave out takes one address or range per line, for example 203.0.113.7 or 203.0.113.0/24 . Put your office's address there so your own staff browsing the site do not count as visitors. Count signed-in staff is off by default; it only matters for staff who are signed in to the console."
+  },
+  {
+   "id": "38-analytics#using-google-analytics-as-well",
+   "chapter": "38-analytics",
+   "chapterTitle": "Analytics: who visits your site",
+   "title": "Using Google Analytics as well",
+   "html": "<p>You can keep Google Analytics 4 running beside this. The two will not agree exactly — Google uses cookies and counts differently — and that is normal. Where both could answer, the console shows this site's own figures. If you switch counting off, the console falls back to Google Analytics (when it is connected). Google's tags still wait for the cookie banner; this counting does not need it.</p>",
+   "text": "You can keep Google Analytics 4 running beside this. The two will not agree exactly — Google uses cookies and counts differently — and that is normal. Where both could answer, the console shows this site's own figures. If you switch counting off, the console falls back to Google Analytics (when it is connected). Google's tags still wait for the cookie banner; this counting does not need it."
+  },
+  {
+   "id": "38-analytics#about-the-countries",
+   "chapter": "38-analytics",
+   "chapterTitle": "Analytics: who visits your site",
+   "title": "About the countries",
+   "html": "<p>Countries are worked out from the visitor's address using a list from <a href=\"https://db-ip.com\" target=\"_blank\" rel=\"noopener\">DB-IP.com</a> (IP to Country Lite, licensed CC BY 4.0). The address itself is not kept.</p>",
+   "text": "Countries are worked out from the visitor's address using a list from DB-IP.com (IP to Country Lite, licensed CC BY 4.0). The address itself is not kept."
+  },
+  {
+   "id": "38-analytics#if-a-number-looks-too-low",
+   "chapter": "38-analytics",
+   "chapterTitle": "Analytics: who visits your site",
+   "title": "If a number looks too low",
+   "html": "<p>A visitor who closes the page within a second or so is not counted, because the website waits for the page to settle before it counts. Visitors who have Do Not Track switched on, or who use a privacy extension that blocks counting, are missing too. Treat the figures as a reliable trend, not an exact head-count.</p>",
+   "text": "A visitor who closes the page within a second or so is not counted, because the website waits for the page to settle before it counts. Visitors who have Do Not Track switched on, or who use a privacy extension that blocks counting, are missing too. Treat the figures as a reliable trend, not an exact head-count."
   }
  ]
 }
