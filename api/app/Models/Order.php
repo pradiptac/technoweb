@@ -111,7 +111,7 @@ class Order extends Model
 
         static::updated(function (self $order) {
             if ($order->wasChanged('paid_at') && $order->getOriginal('paid_at') === null && $order->paid_at !== null) {
-                Conversions::record('order_paid', null, (int) $order->total_paise, $order->order_number);
+                Conversions::record('order_paid', null, (int) $order->total_paise, $order->order_number, $order->created_at);
                 Webhooks::emit(WebhookEvent::OrderPaid, fn () => WebhookPayload::order($order));
             }
 

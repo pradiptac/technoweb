@@ -27,7 +27,7 @@ final class Collector
         return Setting::get('native_analytics_enabled', true) !== false;
     }
 
-    /** @param array{path?: ?string, referrer?: ?string, utm?: array<string, ?string>, width?: ?int, target?: ?string, results?: ?int, value_paise?: ?int, page?: ?array<string, ?string>} $data */
+    /** @param array{path?: ?string, referrer?: ?string, utm?: array<string, ?string>, width?: ?int, target?: ?string, results?: ?int, value_paise?: ?int, page?: ?array<string, ?string>, from?: ?AnalyticsHit} $data `from` is the placed order's own hit, whose visitor and attribution a payment inherits */
     public static function record(Request $request, string $kind, array $data): ?AnalyticsHit
     {
         try {
@@ -38,7 +38,9 @@ final class Collector
             $ua = Visitor::agent($request);
             $ip = (string) $request->ip();
             // A conversion is a thing that happened, not a browser that looked: a bot-like agent does not unmake an order.
-            if ((! $conversion && Bots::is($ua)) || self::excludedIp($ip) || self::isStaff($request)) {
+            // Money arrived whoever confirms it: an office that excludes its own address must not lose its COD, bank and UPI revenue.
+            $paid = $kind === 'order_paid';
+            if ((! $conversion && Bots::is($ua)) || (! $paid && (self::excludedIp($ip) || self::isStaff($request)))) {
                 return null;
             }
             $path = self::path($data['path'] ?? ($data['page']['source_path'] ?? null));
@@ -61,6 +63,20 @@ final class Collector
                 RateLimiter::hit($limit, 60);
             }
 
+            $from = $data['from'] ?? null;
+            if ($from instanceof AnalyticsHit) {
+                return AnalyticsHit::create([
+                    'day' => $day, 'at' => $now, 'kind' => $kind, 'visitor' => $from->visitor, 'entry' => false,
+                    ...$from->only(['path', 'channel', 'source', 'medium', 'campaign', 'referrer_host', 'device', 'browser', 'os', 'country']),
+                    'target' => isset($data['target']) ? mb_substr((string) $data['target'], 0, 255) : null,
+                    'value_paise' => $data['value_paise'] ?? null,
+                ]);
+            }
+
+            // No salt means the cache is refusing writes: an unsalted hash would follow a person for ever.
+            if (Visitor::salt($day) === '') {
+                return null;
+            }
             $visitor = Visitor::hash($ip, (string) $ua, $day);
             $first = AnalyticsHit::query()->where('day', $day)->where('visitor', $visitor)->where('entry', true)->first();
             $own = (string) parse_url((string) config('app.frontend_url'), PHP_URL_HOST);

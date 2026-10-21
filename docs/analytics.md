@@ -37,7 +37,9 @@ site, a `download`, a `contact` click (a `tel:`, `mailto:` or WhatsApp link), a
 
 A conversion is a fact rather than a browser looking, so it skips the bot check
 (`order_paid` from a gateway's webhook is still an order). The switch and the
-excluded addresses apply to it.
+excluded addresses apply to it — except `order_paid`, which skips the excluded
+addresses and the staff rule too: money arrived whoever confirms it, and an office
+that excludes its own address must not lose its COD, bank and UPI revenue.
 
 ---
 
@@ -45,7 +47,13 @@ excluded addresses apply to it.
 
 `Visitor::hash` is the first 16 bytes of `sha256(day's salt | address | browser
 | the site's host)`. The salt is random, made by the day's first hit, held in the
-cache until the end of that day in the app's timezone and then gone. So:
+cache until the end of that day in the app's timezone and then gone. Gone means
+deleted: the file and database cache stores never remove an expired key that is not
+read again, so `technoware:analytics-rollup` (00:20) `Cache::forget`s the salts of
+the previous three days (`Visitor::forget`; three, so a missed run is caught up).
+`Visitor::salt` makes another if the key expires between `add` and `get`, and
+returns `''` when the cache refuses writes — `Collector` then records nothing,
+because an unsalted hash would follow a person for ever. So:
 
 - the same person on the next day is a different code, and nobody — including us
   — can join the two;
@@ -99,13 +107,23 @@ own — a UTM tag, or a referrer that is not this site. A conversion reads the
 form's envelope (`PageContext`: referrer and `utm_*`) first, then the visitor's
 same-day entry hit, then direct.
 
-An order's `order_paid` that arrives by webhook is credited to that request
-(direct), as `order_placed` carries the buyer's source.
+`order_paid` takes the attribution of **its own order's `order_placed` hit**
+(`Conversions::placed`: kind, target = the order number and the order's day in the
+app's timezone, else by number alone) — the same visitor, channel, source, medium,
+campaign, referrer host, page, device, browser, OS and country — so a payment
+confirmed by a webhook or by staff is credited to the visit that placed the order.
+With no placed hit it is recorded as direct.
 
 ### Search and conversions where they happen
 
 `Conversions::search` is called by `SearchController` (the site search) and
-`StoreController` (the shop's `?q=`): the term lower-cased, whitespace folded, at
+`StoreController` (the shop's `?q=`) **only when the request carries `record=1`**
+(absent means do not record). The website sends it from the `/search` results page
+and from the shop listing a person lands on after submitting a search, and never
+from the header's type-ahead (`/api/search`, debounced: "fir", "fire", "firewal"),
+the 404 page's suggestions or the shop's suggest box. A term counts **once per
+visitor, scope and day** (`Cache::add` on a hash of the visitor code, scope and
+term, expiring at the end of the day). The term is lower-cased, whitespace folded, at
 most 100 characters, and **dropped when it contains `@` or seven digits** (a
 phone number, an order number with a person behind it). `results` is the count
 the page showed; a `NULL` count was never recorded and is not "found nothing".
@@ -124,6 +142,13 @@ views, visitors, entries, bounces, value) in one transaction, so running it twic
 changes nothing. `technoware:prune-analytics-hits` (03:55) deletes raw rows older
 than 90 days **only once their day is rolled up**: the totals stay, the rows go.
 
+**"Conversions" counts a paid order, not a placed one.** `Kinds::COUNTED` is every
+conversion kind except `order_placed`: the report's `conversions` figure, and
+`breakdown?kind=conversions` (which the console's Conversions-by-channel panel
+reads, so there is no list of kinds in TypeScript). `order_placed` hits stay stored
+and can be asked for on their own kind ("Orders placed"); counting it beside its
+`order_paid` counted one order twice.
+
 A **bounce** is a visitor with exactly one pageview that day. The `entry`
 dimension stores `visitors = 0`: it counts entries, and the API sends `visitors:
 null` for it.
@@ -132,9 +157,11 @@ null` for it.
 
 `App\Support\Analytics\Report` is the one reader: `summary`, `series`,
 `breakdown`, `search`, `now`, `pages`, `productViews`, `rows`. Closed days come
-from `analytics_daily`; **today is merged in from the raw hits** (`Rollup::rows`
+from `analytics_daily`, **summed by the database** per (dimension, key, kind)
+— and per day for a series — never loaded row by row; **today is merged in from the raw hits** (`Rollup::rows`
 for today), so a figure is live without waiting for midnight. Yesterday reads
-zero until the 00:20 rollup. The search list and the per-page view read raw hits,
+zero until the 00:20 rollup. The "Now" tile reads only yesterday onward (the
+`(day, kind)` index) so it does not scan the table. The search list and the per-page view read raw hits,
 so they cover **at most the last 90 days** whatever range is chosen, and the
 screen says so.
 

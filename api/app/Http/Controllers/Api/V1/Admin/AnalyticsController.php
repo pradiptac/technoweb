@@ -67,7 +67,7 @@ class AnalyticsController extends Controller
     {
         $v = $request->validate([
             'dimension' => ['required', Rule::in(self::DIMENSIONS)],
-            'kind' => ['nullable', Rule::in([...Kinds::EVENTS, ...Kinds::CONVERSIONS])],
+            'kind' => ['nullable', Rule::in([...Kinds::EVENTS, ...Kinds::CONVERSIONS, 'conversions'])],
             'limit' => ['nullable', 'integer', 'between:1,100'],
         ]);
 

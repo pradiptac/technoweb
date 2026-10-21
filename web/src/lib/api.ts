@@ -669,9 +669,13 @@ export const publicApi = {
    * `products` above: the query space is unbounded, so caching fills the
    * cache with single-use entries and serves a stale empty result for the
    * whole revalidate window.
+   *
+   * `record` says a person submitted this search (the /search page); the
+   * type-ahead and the 404 page's suggestions leave it off, so the API's
+   * search report counts what people looked for and not each keystroke.
    */
-  search: (q: string) =>
-    apiFetch<SearchResults>(`/search?q=${encodeURIComponent(q)}`, {}),
+  search: (q: string, record = false) =>
+    apiFetch<SearchResults>(`/search?q=${encodeURIComponent(q)}${record ? "&record=1" : ""}`, {}),
 
   ticketCategories: () =>
     apiFetch<{ data: { id: number; name: string }[] }>("/ticket-categories", { revalidate: 3600, tags: ["ticket-categories"] }),

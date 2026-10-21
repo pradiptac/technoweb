@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\AnalyticsDaily;
 use App\Models\AnalyticsHit;
 use App\Support\Analytics\Rollup;
+use App\Support\Analytics\Visitor;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
@@ -25,6 +26,11 @@ class AnalyticsRollup extends Command
             ->filter(fn ($d) => ! in_array($d, $rolled, true) || $d === $yesterday)->sort()->values();
         foreach ($days as $day) {
             Rollup::day($day);
+        }
+        // Yesterday's salt is deleted, so a person's hash cannot be recomputed for a past day.
+        // Three days back, so a missed run is caught up.
+        for ($n = 1; $n <= 3; $n++) {
+            Visitor::forget(now()->setTimezone($tz)->subDays($n)->toDateString());
         }
         $this->info("Rolled {$days->count()} day(s).");
 

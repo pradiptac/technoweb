@@ -73,7 +73,7 @@ class AnalyticsConversionsTest extends TestCase
 
     public function test_a_site_search_records_the_term_and_the_result_count(): void
     {
-        $this->getJson('/api/v1/search?q=Firewall+Rental')->assertOk();
+        $this->getJson('/api/v1/search?q=Firewall+Rental&record=1')->assertOk();
         $hit = AnalyticsHit::where('kind', 'search')->sole();
         $this->assertSame('firewall rental', $hit->target);
         $this->assertSame('/search', $hit->path);
@@ -82,7 +82,7 @@ class AnalyticsConversionsTest extends TestCase
 
     public function test_a_shop_search_records_the_term_under_the_stores_path(): void
     {
-        $this->getJson('/api/v1/store/products?q=Switch')->assertOk();
+        $this->getJson('/api/v1/store/products?q=Switch&record=1')->assertOk();
         $hit = AnalyticsHit::where('kind', 'search')->sole();
         $this->assertSame('switch', $hit->target);
         $this->assertSame('/store', $hit->path);
@@ -90,8 +90,8 @@ class AnalyticsConversionsTest extends TestCase
 
     public function test_a_term_that_looks_personal_is_not_stored(): void
     {
-        $this->getJson('/api/v1/search?q=priya@meridian.test')->assertOk();
-        $this->getJson('/api/v1/search?q=%2B91+98765+43210')->assertOk();
+        $this->getJson('/api/v1/search?q=priya@meridian.test&record=1')->assertOk();
+        $this->getJson('/api/v1/search?q=%2B91+98765+43210&record=1')->assertOk();
         $this->assertSame(0, AnalyticsHit::where('kind', 'search')->count());
     }
 

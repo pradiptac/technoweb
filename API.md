@@ -368,7 +368,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/pages/{slug}` | CMS pages — `/privacy`, `/terms` and anything an editor adds. A `builder` page adds `sections` (see "The section page builder") |
 | `GET` | `/ticket-categories` | Powers the submit-a-ticket form |
 | `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
-| `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, **max 100** (422 above), 5 per group. `%` and `_` match themselves. Throttled 240/min under the `search` key — every visitor reaches it through the one Next server |
+| `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, **max 100** (422 above), 5 per group. `%` and `_` match themselves. Throttled 240/min under the `search` key — every visitor reaches it through the one Next server. **`record=1` counts it in the search report** (native analytics); absent, it is a type-ahead or a suggestion and nothing is recorded, and a visitor's repeat of a term counts once a day |
 | `GET` | `/companies/suggest?q=` | Company names already on file. Prefix, min 3 chars, max 5. Throttled 20/min |
 | `GET` | `/redirects` | Every active redirect as `{from,to,status}` rows, plus `meta.coming_soon` (boolean — the `coming_soon_enabled` setting, which the proxy acts on) and `meta.media_cdn` (the media CDN's origin while it is switched on, else null). `Cache-Control: max-age=60`. What the frontend proxy holds in memory |
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404. **Records the hit** — the proxy calls it only on a match |
@@ -2438,7 +2438,7 @@ here reads `products`.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/store/products` | Paginated. `?q=`, `?category=`, `?type=`, `?sort=`, `?page=`, `?spec[<label>][]=<value>` (OR within a label, AND across, matched on normalised keys; a label nothing carries is ignored) |
+| `GET` | `/store/products` | Paginated. `?q=`, `?category=`, `?type=`, `?sort=`, `?page=`, `?spec[<label>][]=<value>` (OR within a label, AND across, matched on normalised keys; a label nothing carries is ignored), `record=1` (a `?q=` is counted in the search report only with it, once per visitor and day) |
 | `GET` | `/store/products/{slug}` | Detail only: `warranty`, `applications`, `services: [{id, title, slug}]`, `faqs`, `answer_blocks`, `entity`, `faq_schema`, `videos: [{kind, youtube_id?, url?, title?, poster_url?}]`; the `Product` graph adds `category` as a `Thing`, `additionalProperty` from the spec sheet, `isRelatedTo` (the six the page lists beside it), `offers.warranty` as a `WarrantyPromise` when one is set, and `subjectOf` `VideoObject`s for YouTube videos with an uploaded poster |
 | `GET` | `/store/categories` | Only categories with something published in them. Each carries `filter_specs` |
 | `GET` | `/store/categories/{slug}` | `filter_specs`: the spec labels offered as filters, in order |
@@ -6570,7 +6570,7 @@ The site's own cookieless visit counts (0.188.0, `docs/analytics.md`).
 |---|---|---|
 | `POST` | `/collect` | Public. Body `{k, p, r, u, w, t}` — the kind (`pageview`, `outbound`, `download`, `contact`), the path, the referrer and UTM tags (first view only), the window width, the clicked link (a `contact` click is stored as `tel`, `mailto` or `whatsapp`, never the number or address). **Answers 204 always** and has no throttle middleware: `Collector` rate-limits per address (120 a minute, beacon kinds only) and drops silently. The browser reaches it through the website's `/api/collect`, which adds `X-Visitor-Agent` and, for a staff browser, `X-Visitor-Staff: 1` — both believed from `TRUSTED_PROXIES` only |
 | `GET` | `/admin/analytics/summary` | `admin,seo_manager,content_manager`. `?from=`, `?to=` (`Y-m-d`, default the last 30 days, never the future, a backwards pair swapped, over 400 days a 422), `?compare=previous\|year\|none` |
-| `GET` | `/admin/analytics/breakdown` | `?dimension=` (`total`, `page`, `entry`, `channel`, `source`, `campaign`, `device`, `browser`, `os`, `country`, `target`), `?kind=` (an event or conversion kind, default `pageview`), `?limit=` (1–100, default 10), and the window |
+| `GET` | `/admin/analytics/breakdown` | `?dimension=` (`total`, `page`, `entry`, `channel`, `source`, `campaign`, `device`, `browser`, `os`, `country`, `target`), `?kind=` (an event or conversion kind, or `conversions` for every counted conversion — all but `order_placed` — default `pageview`), `?limit=` (1–100, default 10), and the window |
 | `GET` | `/admin/analytics/pages` | One page's view: `?path=` (required) and the window, clamped to the last 90 days |
 | `GET` | `/admin/analytics/search` | The terms searched and the ones that found nothing. `?scope=site\|shop\|all`, the window clamped to 90 days |
 | `GET` | `/admin/analytics/now` | Page views in the last 30 minutes. `Cache-Control: no-store` |
@@ -6584,6 +6584,8 @@ The site's own cookieless visit counts (0.188.0, `docs/analytics.md`).
 - `pages`: `data` is `{path, series: [{day, label, views, visitors}], entries, sources: [{key, label, views, visitors}], conversions: [{kind, label, count, value_paise}]}` — `value_paise` null for a kind with no money.
 - `search`: `data` is `{terms: [{term, searches, results}], nothing: [{term, searches}]}`. `results` is null when the count was never recorded, and a null count is never listed under `nothing`.
 - `now`: `data` is `{views, pages: [{path, views}]}`.
+
+**Conversions** in the summary and in `breakdown?kind=conversions` are `Kinds::COUNTED` — every conversion kind except `order_placed`, so a paid order is counted once. `order_placed` stays stored and is asked for on its own kind. An `order_paid` hit takes its order's `order_placed` attribution and is recorded whoever confirms the payment and from whichever address.
 
 **What is counted** is `Kinds::EVENTS` (`pageview`, `outbound`, `download`, `contact`, `search`) and `Kinds::CONVERSIONS` (`enquiry`, `order_placed`, `order_paid`, `visit_requested`, `meeting_booked`, `event_registered`, `newsletter_signup`). The path is a site path without its query; the console, the portal, the API and every page a secret addresses (`Collector::EXCLUDED`) are never counted. A visitor is a code that changes every day, so a "visit" is one code on one day.
 

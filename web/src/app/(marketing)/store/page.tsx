@@ -166,7 +166,8 @@ export default async function StorePage({
         const chosen = sp.category ? categories.find((c) => c.slug === sp.category) : undefined;
         const specs = chosen?.filter_specs?.length ? limitSpecs(requested, chosen.filter_specs) : {};
         const filteredBySpec = hasSpecs(specs);
-        const qs = appendSpecs(new URLSearchParams(query), specs).toString();
+        // The listing a person lands on after submitting a search is the one place the shop's search is counted.
+        const qs = appendSpecs(new URLSearchParams(query), specs).toString() + (sp.q ? "&record=1" : "");
         const facetQuery = appendSpecs(new URLSearchParams(), specs).toString();
 
         const [products, facets] = await Promise.all([

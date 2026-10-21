@@ -2,7 +2,6 @@
 
 namespace App\Support\Analytics;
 
-use App\Models\AnalyticsDaily;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -10,21 +9,34 @@ use Illuminate\Support\Facades\DB;
 /** Every read of native analytics (C3). Closed days from analytics_daily, today from the raw hits. */
 final class Report
 {
-    /** @return Collection<int, array<string, mixed>> */
-    public static function rows(Carbon $from, Carbon $to, ?string $dimension = null, ?string $kind = null): Collection
+    /**
+     * Closed days are summed by the database per (dimension, key, kind) — or per day too, for a series — and today's rows
+     * from the raw hits are appended: a caller that groups by key sums the two halves itself.
+     *
+     * @param  string|list<string>|null  $kind
+     * @return Collection<int, array<string, mixed>>
+     */
+    public static function rows(Carbon $from, Carbon $to, ?string $dimension = null, string|array|null $kind = null, bool $perDay = false): Collection
     {
+        $kinds = $kind === null ? null : (array) $kind;
         $tz = (string) config('app.timezone');
         $today = now()->setTimezone($tz)->toDateString();
         $f = $from->copy()->setTimezone($tz)->toDateString();
         $t = $to->copy()->setTimezone($tz)->toDateString();
 
-        $closed = AnalyticsDaily::query()->whereBetween('day', [$f, min($t, now()->setTimezone($tz)->subDay()->toDateString())])
+        $closed = DB::table('analytics_daily')->whereBetween('day', [$f, min($t, now()->setTimezone($tz)->subDay()->toDateString())])
             ->when($dimension, fn ($q) => $q->where('dimension', $dimension))
-            ->when($kind, fn ($q) => $q->where('kind', $kind))
-            ->get()->map(fn (AnalyticsDaily $r) => [...$r->only(['dimension', 'key', 'kind', 'views', 'visitors', 'entries', 'bounces', 'value_paise']), 'day' => $r->day->toDateString()]);
+            ->when($kinds, fn ($q) => $q->whereIn('kind', $kinds))
+            ->groupBy(...($perDay ? ['day', 'dimension', 'key', 'kind'] : ['dimension', 'key', 'kind']))
+            ->selectRaw(($perDay ? 'day, ' : '').'dimension, `key`, kind, SUM(views) as views, SUM(visitors) as visitors, SUM(entries) as entries, SUM(bounces) as bounces, SUM(value_paise) as value_paise')
+            ->get()->map(fn ($r) => [
+                'dimension' => $r->dimension, 'key' => $r->key, 'kind' => $r->kind, 'views' => (int) $r->views, 'visitors' => (int) $r->visitors,
+                'entries' => (int) $r->entries, 'bounces' => (int) $r->bounces, 'value_paise' => (int) $r->value_paise,
+                ...($perDay ? ['day' => Carbon::parse($r->day)->toDateString()] : []),
+            ]);
 
         $live = $t >= $today && $f <= $today
-            ? collect(Rollup::rows($today))->filter(fn ($r) => ($dimension === null || $r['dimension'] === $dimension) && ($kind === null || $r['kind'] === $kind))
+            ? collect(Rollup::rows($today))->filter(fn ($r) => ($dimension === null || $r['dimension'] === $dimension) && ($kinds === null || in_array($r['kind'], $kinds, true)))
             : collect();
 
         return $closed->concat($live)->values();
@@ -53,7 +65,7 @@ final class Report
         $rows = self::rows($from, $to, 'total');
         $pv = $rows->where('kind', 'pageview');
         $visits = (int) $pv->sum('visitors');
-        $conv = $rows->whereIn('kind', Kinds::CONVERSIONS);
+        $conv = $rows->whereIn('kind', Kinds::COUNTED);
 
         return [
             'views' => (int) $pv->sum('views'),
@@ -81,7 +93,7 @@ final class Report
     /** @return list<array{day: string, views: int, visitors: int}> */
     public static function series(Carbon $from, Carbon $to, string $kind = 'pageview'): array
     {
-        $byDay = self::rows($from, $to, 'total', $kind)->groupBy('day');
+        $byDay = self::rows($from, $to, 'total', $kind, true)->groupBy('day');
         $out = [];
         for ($d = $from->copy()->startOfDay(); $d->lte($to); $d->addDay()) {
             $day = $d->toDateString();
@@ -94,7 +106,8 @@ final class Report
     /** @return list<array{key: string, label: string, views: int, visitors: int, value_paise: int}> */
     public static function breakdown(string $dimension, Carbon $from, Carbon $to, string $kind = 'pageview', int $limit = 10): array
     {
-        return self::rows($from, $to, $dimension, $kind)->groupBy('key')
+        // `conversions` is every counted conversion kind at once.
+        return self::rows($from, $to, $dimension, $kind === 'conversions' ? Kinds::COUNTED : $kind)->groupBy('key')
             ->map(fn (Collection $g, $key) => ['key' => (string) $key, 'label' => Labels::of($dimension, (string) $key),
                 'views' => (int) $g->sum('views'), 'visitors' => (int) $g->sum('visitors'), 'value_paise' => (int) $g->sum('value_paise')])
             ->sortByDesc('views')->take($limit)->values()->all();
@@ -119,7 +132,9 @@ final class Report
     public static function now(): array
     {
         $since = now()->subMinutes(30);
-        $q = DB::table('analytics_hits')->where('kind', 'pageview')->where('at', '>=', $since);
+        // Yesterday covers the thirty minutes across midnight, and lets the (day, kind) index do the work.
+        $q = DB::table('analytics_hits')->where('day', '>=', now()->setTimezone((string) config('app.timezone'))->subDay()->toDateString())
+            ->where('kind', 'pageview')->where('at', '>=', $since);
 
         return ['views' => (clone $q)->count(),
             'pages' => (clone $q)->selectRaw('path, COUNT(*) as n')->groupBy('path')->orderByDesc('n')->limit(5)->get()

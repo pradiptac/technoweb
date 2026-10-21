@@ -9,6 +9,9 @@ final class Kinds
 
     public const CONVERSIONS = ['enquiry', 'order_placed', 'order_paid', 'visit_requested', 'meeting_booked', 'event_registered', 'newsletter_signup'];
 
+    /** What "Conversions" counts: a paid order is the conversion, an unpaid placed one is not (and is never counted beside its payment). */
+    public const COUNTED = ['enquiry', 'order_paid', 'visit_requested', 'meeting_booked', 'event_registered', 'newsletter_signup'];
+
     public const CHANNELS = ['search' => 'Search', 'social' => 'Social', 'email' => 'Email', 'referral' => 'Other websites', 'campaign' => 'Campaigns', 'direct' => 'Direct'];
 
     private const LABELS = [

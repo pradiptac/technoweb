@@ -39,7 +39,7 @@ export default async function SearchPage({
 
   if (term) {
     try {
-      results = await publicApi.search(term);
+      results = await publicApi.search(term, true);
     } catch {
       // A search that cannot run says so; it does not render as "no results",
       // which tells somebody their part number does not exist when it does.

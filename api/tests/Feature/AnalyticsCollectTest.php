@@ -235,7 +235,8 @@ class AnalyticsCollectTest extends TestCase
         $this->assertNull(Collector::record($this->visitor('Googlebot/2.1'), 'pageview', ['path' => '/']));
 
         $this->set('native_analytics_exclude_ips', '203.0.113.0/24');
-        $this->assertNull(Collector::record($this->visitor(), 'order_paid', []), 'excluded addresses still apply');
+        $this->assertNull(Collector::record($this->visitor(), 'enquiry', ['path' => '/contact']), 'excluded addresses still apply to a conversion');
+        $this->assertNotNull(Collector::record($this->visitor(), 'order_paid', []), 'but not to money arriving');
     }
 
     public function test_staff_are_dropped_by_default_and_counted_when_the_setting_says_so(): void
