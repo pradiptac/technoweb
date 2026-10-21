@@ -243,6 +243,8 @@ class Settlement
                 $taken = StoreProduct::whereKey($item->store_product_id)
                     ->where('track_stock', true)
                     ->when(! $oversells, fn ($q) => $q->where('stock', '>=', $item->quantity))
+                    // On the base query: a sale is not an edit, and the stale-save guard reads updated_at (C2).
+                    ->toBase()
                     ->decrement('stock', $item->quantity);
             }
 

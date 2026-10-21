@@ -16,6 +16,7 @@ use App\Jobs\SendInvestorAlertsJob;
 use App\Models\ContentType;
 use App\Models\Entry;
 use App\Support\CustomFields\CustomFields;
+use App\Support\Notifications\StaleGuard;
 use App\Support\PageSections\RecordSections;
 use App\Support\Presets\InvestorAlerts;
 use App\Support\PublishStamp;
@@ -107,6 +108,8 @@ class EntryController extends Controller
 
     public function update(EntryRequest $request, ContentType $contentType, Entry $entry): JsonResource
     {
+        StaleGuard::check($request, $entry);
+
         DB::transaction(function () use ($request, $entry) {
             [$attributes, $seo] = $this->split($request->validated());
             $custom = $this->pullCustomFields($attributes);

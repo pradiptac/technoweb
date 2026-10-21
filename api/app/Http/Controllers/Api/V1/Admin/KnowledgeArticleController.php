@@ -13,6 +13,7 @@ use App\Http\Resources\Admin\KnowledgeArticleResource;
 use App\Models\KnowledgeArticle;
 use App\Models\KnowledgeCategory;
 use App\Support\CustomFields\CustomFields;
+use App\Support\Notifications\StaleGuard;
 use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -96,6 +97,8 @@ class KnowledgeArticleController extends Controller
 
     public function update(UpdateKnowledgeArticleRequest $request, KnowledgeArticle $knowledgeArticle): JsonResource
     {
+        StaleGuard::check($request, $knowledgeArticle);
+
         DB::transaction(function () use ($request, $knowledgeArticle) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);

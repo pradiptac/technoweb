@@ -12,6 +12,7 @@ use App\Http\Resources\Admin\TenderResource;
 use App\Models\Tender;
 use App\Models\TenderCategory;
 use App\Support\ListSort;
+use App\Support\Notifications\StaleGuard;
 use App\Support\Tenders\TenderDocuments;
 use App\Support\Tenders\TenderText;
 use Illuminate\Database\Eloquent\Builder;
@@ -113,6 +114,8 @@ class TenderController extends Controller
 
     public function update(UpdateTenderRequest $request, Tender $tender): JsonResponse
     {
+        StaleGuard::check($request, $tender);
+
         DB::transaction(function () use ($request, $tender) {
             $tender->update($request->modelData());
 

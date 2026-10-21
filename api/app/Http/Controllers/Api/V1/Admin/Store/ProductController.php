@@ -16,6 +16,7 @@ use App\Models\StoreProduct;
 use App\Models\StoreTag;
 use App\Support\CustomFields\CustomFields;
 use App\Support\Money;
+use App\Support\Notifications\StaleGuard;
 use App\Support\PageSections\RecordSections;
 use App\Support\Store\ProductVideos;
 use App\Support\Store\SpecIndex;
@@ -174,6 +175,8 @@ class ProductController extends Controller
 
     public function update(ProductRequest $request, StoreProduct $storeProduct): JsonResource
     {
+        StaleGuard::check($request, $storeProduct);
+
         DB::transaction(function () use ($request, $storeProduct) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);

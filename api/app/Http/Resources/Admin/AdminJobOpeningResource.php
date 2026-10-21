@@ -50,6 +50,8 @@ class AdminJobOpeningResource extends JsonResource
             'seo' => $this->whenLoaded('seo', fn () => $this->seo),
             'seo_defaults' => $this->defaultSeo(),
             'created_at' => $this->created_at->toIso8601String(),
+            // The edit form sends it back as `base_updated_at` (C2's stale-save guard).
+            'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 }

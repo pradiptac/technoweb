@@ -13,6 +13,7 @@ use App\Http\Resources\Admin\ProductResource;
 use App\Models\Product;
 use App\Support\CustomFields\CustomFields;
 use App\Support\ListSort;
+use App\Support\Notifications\StaleGuard;
 use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -100,6 +101,8 @@ class ProductController extends Controller
 
     public function update(UpdateProductRequest $request, Product $product): JsonResource
     {
+        StaleGuard::check($request, $product);
+
         DB::transaction(function () use ($request, $product) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);

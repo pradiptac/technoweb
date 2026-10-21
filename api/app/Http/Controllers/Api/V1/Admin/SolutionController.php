@@ -12,6 +12,7 @@ use App\Http\Requests\UpdateSolutionRequest;
 use App\Http\Resources\Admin\SolutionResource;
 use App\Models\Solution;
 use App\Support\CustomFields\CustomFields;
+use App\Support\Notifications\StaleGuard;
 use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -87,6 +88,8 @@ class SolutionController extends Controller
 
     public function update(UpdateSolutionRequest $request, Solution $solution): JsonResource
     {
+        StaleGuard::check($request, $solution);
+
         DB::transaction(function () use ($request, $solution) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);

@@ -449,7 +449,9 @@ class ContentController extends Controller
     {
         abort_unless($article->status?->value === 'published', 404);
 
-        $article->increment('view_count');
+        // On the base query: a view is not an edit, and the stale-save guard reads updated_at (C2).
+        KnowledgeArticle::query()->whereKey($article->id)->toBase()->increment('view_count');
+        $article->forceFill(['view_count' => (int) $article->view_count + 1])->syncOriginal();
 
         return $this->presentKnowledgeArticle($article);
     }
@@ -486,7 +488,8 @@ class ContentController extends Controller
          * avoids — a script could list draft slugs by asking. Scoped to
          * published, and 204 whatever it finds.
          */
-        KnowledgeArticle::published()->where('slug', $article)->first()?->increment('helpful_count');
+        // On the base query: a vote is not an edit, and the stale-save guard reads updated_at (C2).
+        KnowledgeArticle::published()->where('slug', $article)->toBase()->increment('helpful_count');
 
         return response()->noContent();
     }

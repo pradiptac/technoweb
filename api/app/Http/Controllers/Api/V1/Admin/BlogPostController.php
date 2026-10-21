@@ -12,6 +12,7 @@ use App\Http\Requests\UpdateBlogPostRequest;
 use App\Http\Resources\Admin\BlogPostResource;
 use App\Models\BlogPost;
 use App\Support\CustomFields\CustomFields;
+use App\Support\Notifications\StaleGuard;
 use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -96,6 +97,8 @@ class BlogPostController extends Controller
 
     public function update(UpdateBlogPostRequest $request, BlogPost $blogPost): JsonResource
     {
+        StaleGuard::check($request, $blogPost);
+
         DB::transaction(function () use ($request, $blogPost) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);

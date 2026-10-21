@@ -19,6 +19,7 @@ use App\Support\Events\EventCounts;
 use App\Support\Events\EventText;
 use App\Support\Events\PublishCheck;
 use App\Support\ListSort;
+use App\Support\Notifications\StaleGuard;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -108,6 +109,8 @@ class EventController extends Controller
 
     public function update(UpdateEventRequest $request, Event $event): JsonResponse
     {
+        StaleGuard::check($request, $event);
+
         DB::transaction(function () use ($request, $event) {
             // Changing the slug leaves a 301 behind automatically — see the
             // updating hook in the Sluggable trait.

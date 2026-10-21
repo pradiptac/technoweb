@@ -159,6 +159,21 @@ class ActivityLogger
         ], $request);
     }
 
+    /** A save that knowingly replaced a newer version (C2's stale-save guard). */
+    public static function overwrote(User $user, Model $subject, string $replacedAt, Request $request): void
+    {
+        self::write([
+            'user_id' => $user->id,
+            'actor_name' => $user->name,
+            'actor_email' => $user->email,
+            'action' => 'overwrote',
+            'subject_type' => $subject->getMorphClass(),
+            'subject_id' => $subject->getKey(),
+            'subject_label' => self::labelOf($subject),
+            'context' => ['replaced_version_at' => $replacedAt],
+        ], $request);
+    }
+
     /** Shared tail: stamp the request details, and never fail the caller. */
     private static function write(array $row, Request $request): void
     {

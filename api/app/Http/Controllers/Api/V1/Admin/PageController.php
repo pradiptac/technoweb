@@ -27,6 +27,7 @@ use App\Models\StoreCategory;
 use App\Models\SupportCentre;
 use App\Support\Countries;
 use App\Support\CustomFields\CustomFields;
+use App\Support\Notifications\StaleGuard;
 use App\Support\PageSections\BodySections;
 use App\Support\PageSections\LayoutRules;
 use App\Support\PageSections\RecordSections;
@@ -299,6 +300,8 @@ class PageController extends Controller
 
     public function update(UpdatePageRequest $request, Page $page): JsonResource
     {
+        StaleGuard::check($request, $page);
+
         DB::transaction(function () use ($request, $page) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);

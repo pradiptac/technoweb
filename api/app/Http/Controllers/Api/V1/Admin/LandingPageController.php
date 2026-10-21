@@ -13,6 +13,7 @@ use App\Models\Faq;
 use App\Models\LandingPage;
 use App\Support\LandingPageOpportunities;
 use App\Support\LandingPageQuality;
+use App\Support\Notifications\StaleGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -117,6 +118,8 @@ class LandingPageController extends Controller
 
     public function update(LandingPageRequest $request, LandingPage $landingPage): JsonResponse
     {
+        StaleGuard::check($request, $landingPage);
+
         $data = $request->validated();
         $landingPage->fill($this->columns($data));
 

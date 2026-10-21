@@ -9,6 +9,7 @@ use App\Http\Requests\StoreJobOpeningRequest;
 use App\Http\Requests\UpdateJobOpeningRequest;
 use App\Http\Resources\Admin\AdminJobOpeningResource;
 use App\Models\JobOpening;
+use App\Support\Notifications\StaleGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -50,6 +51,8 @@ class JobOpeningController extends Controller
 
     public function update(UpdateJobOpeningRequest $request, JobOpening $job_opening): JsonResponse
     {
+        StaleGuard::check($request, $job_opening);
+
         $job_opening->update($request->modelData());
         $this->applyRelations($job_opening, $request);
 

@@ -11,6 +11,7 @@ use App\Http\Requests\UpdateCaseStudyRequest;
 use App\Http\Resources\Admin\CaseStudyResource;
 use App\Models\CaseStudy;
 use App\Support\CustomFields\CustomFields;
+use App\Support\Notifications\StaleGuard;
 use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -80,6 +81,8 @@ class CaseStudyController extends Controller
 
     public function update(UpdateCaseStudyRequest $request, CaseStudy $caseStudy): JsonResource
     {
+        StaleGuard::check($request, $caseStudy);
+
         DB::transaction(function () use ($request, $caseStudy) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);

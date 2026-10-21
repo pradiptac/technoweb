@@ -14,6 +14,7 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Support\CustomFields\CustomFields;
 use App\Support\ListSort;
+use App\Support\Notifications\StaleGuard;
 use App\Support\PageSections\RecordSections;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -110,6 +111,8 @@ class ServiceController extends Controller
 
     public function update(UpdateServiceRequest $request, Service $service): JsonResource
     {
+        StaleGuard::check($request, $service);
+
         DB::transaction(function () use ($request, $service) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);

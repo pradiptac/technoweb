@@ -296,7 +296,8 @@ class ReturnActions
         // On the affected row count, the rule every movement follows.
         $moved = $variation !== null
             ? StoreProductVariation::query()->whereKey($variation->id)->increment('stock', $quantity)
-            : StoreProduct::query()->whereKey($product->id)->increment('stock', $quantity);
+            // On the base query: restocking is not an edit, and the stale-save guard reads updated_at (C2).
+            : StoreProduct::query()->whereKey($product->id)->toBase()->increment('stock', $quantity);
 
         if ($moved < 1) {
             return 0;

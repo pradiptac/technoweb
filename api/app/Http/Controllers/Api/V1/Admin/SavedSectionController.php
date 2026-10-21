@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\SavedSectionRequest;
 use App\Http\Resources\Admin\SavedSectionResource;
 use App\Models\SavedSection;
+use App\Support\Notifications\StaleGuard;
 use App\Support\PageSections\SectionRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -65,6 +66,8 @@ class SavedSectionController extends Controller
 
     public function update(SavedSectionRequest $request, SavedSection $savedSection): JsonResource
     {
+        StaleGuard::check($request, $savedSection);
+
         $attributes = collect($request->validated())->only(['name', 'description'])->all();
         if ($request->has('category') && $savedSection->kind === SavedSection::KIND_TEMPLATE) {
             $attributes['category'] = $request->validated('category');
