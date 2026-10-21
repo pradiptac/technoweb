@@ -1,5 +1,6 @@
 "use server";
 
+import { staleFields, staleState } from "@/lib/admin/stale";
 import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 
@@ -149,9 +150,9 @@ export async function createTenderAction(_state: TenderState, formData: FormData
 
 export async function updateTenderAction(id: number, _state: TenderState, formData: FormData): Promise<TenderState> {
   try {
-    await updateTender(id, payload(formData));
+    await updateTender(id, { ...payload(formData), ...staleFields(formData) });
   } catch (error) {
-    return fail(error);
+    return staleState(error) ?? fail(error);
   }
 
   refresh(id);

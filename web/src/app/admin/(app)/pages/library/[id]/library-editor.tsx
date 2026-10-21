@@ -3,6 +3,8 @@
 import { useEffect, useState, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { FormActions, SaveStatus } from "@/components/admin/form-actions";
+import { EditPresence } from "@/components/admin/edit-presence";
+import { StaleAlert } from "@/components/admin/stale-alert";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select } from "@/components/ui/input";
 import { formatDate } from "@/lib/dates";
@@ -48,20 +50,28 @@ export function LibraryEditor({ item, options }: { item: SavedSection; options: 
 
   const setSections = (next: SetStateAction<StoredSection[]>) => { setSectionsState(next); touch(); };
 
-  const save = () => run(async () => {
+  // Somebody saved this item after it was loaded here (C2's stale-save guard).
+  const [stale, setStale] = useState<string | null>(null);
+
+  const save = (overwrite = false) => run(async () => {
     const result = await updateLibraryAction(item.id, {
       name: name.trim(),
       description: template ? (description.trim() || null) : undefined,
       category: template ? (category || null) : undefined,
       blocks: sections,
+      ...(item.updated_at ? { base_updated_at: item.updated_at } : {}),
+      ...(overwrite ? { overwrite: true } : {}),
     });
     setErrors(result.fieldErrors ?? {});
+    setStale(result.stale ?? null);
     if (result.ok) { setLoaded(null); router.refresh(); }
+    if (result.stale) return { error: "Not saved — a newer version exists." };
     return { error: result.ok ? null : (result.error ?? "It could not be saved.") };
   }, "Saved.");
 
   return (
     <div className="grid gap-4">
+      <EditPresence type="saved_section" id={item.id} base={item.updated_at} />
       <div className="grid gap-x-4 sm:grid-cols-2">
         <Field label="Name" htmlFor="library-name" error={errors.name?.[0]}>
           <Input id="library-name" value={name} maxLength={120} onChange={(e) => { setName(e.target.value); touch(); }} />
@@ -105,8 +115,10 @@ export function LibraryEditor({ item, options }: { item: SavedSection; options: 
         </p>
       )}
 
-      <FormActions dirty={dirty} onSave={save}>
-        <Button type="button" pending={saving} disabled={saving || !name.trim()} onClick={save}>Save</Button>
+      {stale && <StaleAlert message={stale} onOverwrite={() => void save(true)} onLoadNewer={() => window.location.reload()} />}
+
+      <FormActions dirty={dirty} onSave={() => save()}>
+        <Button type="button" pending={saving} disabled={saving || !name.trim()} onClick={() => save()}>Save</Button>
         <SaveStatus dirty={dirty} message={message} />
         <span className="ml-auto">
           <DeleteLibraryButton id={item.id} name={item.name} onDeleted={() => router.push("/admin/pages/library")} />

@@ -149,7 +149,11 @@ export async function deletePage(id: number): Promise<void> {
 }
 
 /* The section library and page templates (0.106.0, docs/page-builder.md "The library"). */
-export type SavedSectionPayload = { kind?: "section" | "template"; name?: string; description?: string | null; category?: string | null; blocks?: StoredSection[] };
+export type SavedSectionPayload = {
+  kind?: "section" | "template"; name?: string; description?: string | null; category?: string | null; blocks?: StoredSection[];
+  /** The stale-save guard (C2): read by the API's StaleGuard, never stored. */
+  base_updated_at?: string; overwrite?: boolean;
+};
 
 export async function getSavedSections(params: { kind?: string; category?: string; q?: string; page?: number; per_page?: number } = {}): Promise<Paginated<SavedSection> & { meta: { categories?: TemplateCategory[] } }> {
   return apiFetch<Paginated<SavedSection> & { meta: { categories?: TemplateCategory[] } }>(`/admin/saved-sections${query(params)}`, { token: await token() });

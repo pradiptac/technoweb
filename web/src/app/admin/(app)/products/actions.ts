@@ -1,5 +1,6 @@
 "use server";
 
+import { staleFields, staleState } from "@/lib/admin/stale";
 import { runBulkAction } from "@/lib/admin/bulk";
 import type { BulkState } from "@/types/bulk";
 
@@ -96,8 +97,8 @@ export async function updateProductAction(_p: ProductFormState, formData: FormDa
   const id = Number(formData.get("id"));
   if (!id) return { error: "Missing product id." };
 
-  try { await updateProduct(id, payloadFrom(formData)); }
-  catch (error) { return toState(error); }
+  try { await updateProduct(id, { ...payloadFrom(formData), ...staleFields(formData) }); }
+  catch (error) { return staleState(error) ?? toState(error); }
 
   updateTag("products");
   revalidatePath("/admin/products");

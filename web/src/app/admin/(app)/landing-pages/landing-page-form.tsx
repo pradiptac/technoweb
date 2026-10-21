@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Form } from "@/components/ui/form";
 import { FormDraft } from "@/components/admin/form-draft";
+import { EditPresence } from "@/components/admin/edit-presence";
+import { StaleAlert } from "@/components/admin/stale-alert";
 import { useActionState } from "react";
 import { FormActions } from "@/components/admin/form-actions";
 import { EditorField } from "@/components/admin/editor-field";
@@ -54,6 +56,8 @@ export function LandingPageForm({ record, saved, drafted }: {
     <Form action={formAction} state={state} noValidate>
       {/* A draft in localStorage, offered back after a refresh or a crash. */}
       <FormDraft />
+      {<EditPresence type="landing_page" id={record.id} base={record.updated_at ?? null} />}
+      {<input type="hidden" name="base_updated_at" value={record.updated_at ?? ""} />}
       <input type="hidden" name="id" value={record.id} />
       {/*
         What the page is about is fixed at creation and carried through as
@@ -181,6 +185,7 @@ export function LandingPageForm({ record, saved, drafted }: {
         </section>
       </Tabs>
 
+      {state.fieldErrors?.stale && <StaleAlert message={state.fieldErrors.stale[0] ?? ""} />}
       <FormActions>
         <Button type="submit" pending={pending}>{pending ? "Saving…" : "Save changes"}</Button>
         <Link href="/admin/landing-pages"

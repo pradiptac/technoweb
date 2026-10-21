@@ -23,6 +23,8 @@ const STYLES = {
   dateTimeShort: { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" },
   /** 14/9/2026 — the compact numeric form for a column of hits. */
   numeric: {},
+  /** 10:15 — a time today, on the 24-hour clock (the presence strip, C2). */
+  time: { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
 } as const satisfies Record<string, Intl.DateTimeFormatOptions>;
 
 export type DateStyle = keyof typeof STYLES;

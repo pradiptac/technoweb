@@ -1,5 +1,6 @@
 "use server";
 
+import { staleFields, staleState } from "@/lib/admin/stale";
 import { redirect } from "next/navigation";
 import { runBulkAction } from "@/lib/admin/bulk";
 import type { BulkState } from "@/types/bulk";
@@ -104,9 +105,9 @@ export async function updateEntryAction(_prev: EntryFormState, formData: FormDat
 
   let slug: string;
   try {
-    slug = (await updateEntry(type, id, payloadFrom(formData))).slug;
+    slug = (await updateEntry(type, id, { ...payloadFrom(formData), ...staleFields(formData) })).slug;
   } catch (error) {
-    return toState(error);
+    return staleState(error) ?? toState(error);
   }
 
   tag(type, [slug, str(formData, "previous_slug")], formData);

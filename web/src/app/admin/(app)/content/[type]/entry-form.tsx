@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useActionState, type ReactNode } from "react";
 import { Form } from "@/components/ui/form";
 import { FormDraft } from "@/components/admin/form-draft";
+import { EditPresence } from "@/components/admin/edit-presence";
+import { StaleAlert } from "@/components/admin/stale-alert";
 import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
@@ -191,6 +193,8 @@ export function EntryForm({
     <Form action={formAction} state={state} noValidate>
       {/* A draft in localStorage, offered back after a refresh or a crash. */}
       <FormDraft />
+      {editing && <EditPresence type="entry" id={entry!.id} base={entry!.updated_at ?? null} />}
+      {editing && <input type="hidden" name="base_updated_at" value={entry!.updated_at ?? ""} />}
       <input type="hidden" name="type" value={type.slug} />
       <input type="hidden" name="type_preset" value={type.preset ?? ""} />
       {editing && <input type="hidden" name="id" value={entry!.id} />}
@@ -209,6 +213,7 @@ export function EntryForm({
         {panels.map((p) => p.node)}
       </Tabs>
 
+      {state.fieldErrors?.stale && <StaleAlert message={state.fieldErrors.stale[0] ?? ""} />}
       <FormActions>
         <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : `Create ${type.name.toLowerCase()}`}

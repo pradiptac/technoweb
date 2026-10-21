@@ -1,5 +1,6 @@
 "use server";
 
+import { staleFields, staleState } from "@/lib/admin/stale";
 import { runBulkAction } from "@/lib/admin/bulk";
 import type { BulkState } from "@/types/bulk";
 
@@ -76,8 +77,8 @@ export async function updateServiceAction(_p: ServiceFormState, formData: FormDa
   const id = Number(formData.get("id"));
   if (!id) return { error: "Missing service id." };
 
-  try { await updateService(id, payloadFrom(formData)); }
-  catch (error) { return toState(error); }
+  try { await updateService(id, { ...payloadFrom(formData), ...staleFields(formData) }); }
+  catch (error) { return staleState(error) ?? toState(error); }
 
   updateTag("services");
   updateTag("menu");

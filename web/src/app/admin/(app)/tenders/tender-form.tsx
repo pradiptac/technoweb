@@ -8,6 +8,8 @@ import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
 import { FormDraft } from "@/components/admin/form-draft";
+import { EditPresence } from "@/components/admin/edit-presence";
+import { StaleAlert } from "@/components/admin/stale-alert";
 import { SummaryAi } from "@/components/admin/writing/summary-ai";
 import { EditorField } from "@/components/admin/editor-field";
 import { RecordSwitch } from "@/components/admin/record-switch";
@@ -70,6 +72,8 @@ export function TenderForm({ tender, meta }: { tender?: AdminTender; meta: Tende
     <Form action={formAction} state={state} noValidate>
       {/* A draft in localStorage, offered back after a refresh or a crash. */}
       <FormDraft />
+      {editing && <EditPresence type="tender" id={tender!.id} base={tender!.updated_at ?? null} />}
+      {editing && <input type="hidden" name="base_updated_at" value={tender!.updated_at ?? ""} />}
       {editing && <input type="hidden" name="id" value={tender!.id} />}
       {/* Where a refused delete returns to: this tender. */}
       {editing && <input type="hidden" name="back" value={`/admin/tenders/${tender!.id}`} />}
@@ -278,6 +282,7 @@ export function TenderForm({ tender, meta }: { tender?: AdminTender; meta: Tende
         />
       </Tabs>
 
+      {state.fieldErrors?.stale && <StaleAlert message={state.fieldErrors.stale[0] ?? ""} />}
       <FormActions>
         <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save tender" : "Create tender"}

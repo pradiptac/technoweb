@@ -1,5 +1,6 @@
 "use server";
 
+import { staleFields, staleState } from "@/lib/admin/stale";
 import { runBulkAction } from "@/lib/admin/bulk";
 import type { BulkState } from "@/types/bulk";
 
@@ -96,9 +97,9 @@ export async function updateCaseStudyAction(_prev: CaseStudyFormState, formData:
   if (!id) return { error: "Missing case study id." };
 
   try {
-    await updateCaseStudy(id, payloadFrom(formData));
+    await updateCaseStudy(id, { ...payloadFrom(formData), ...staleFields(formData) });
   } catch (error) {
-    return toState(error);
+    return staleState(error) ?? toState(error);
   }
 
   updateTag("case-studies");

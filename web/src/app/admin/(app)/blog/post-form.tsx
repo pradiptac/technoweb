@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Form } from "@/components/ui/form";
 import { FormDraft } from "@/components/admin/form-draft";
+import { EditPresence } from "@/components/admin/edit-presence";
+import { StaleAlert } from "@/components/admin/stale-alert";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
@@ -89,6 +91,8 @@ export function PostForm({
     <Form action={formAction} state={state} noValidate>
       {/* A draft in localStorage, offered back after a refresh or a crash. */}
       <FormDraft />
+      {editing && <EditPresence type="blog_post" id={post!.id} base={post!.updated_at ?? null} />}
+      {editing && <input type="hidden" name="base_updated_at" value={post!.updated_at ?? ""} />}
       {editing && <input type="hidden" name="id" value={post!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -213,6 +217,7 @@ export function PostForm({
         )}
       </Tabs>
 
+      {state.fieldErrors?.stale && <StaleAlert message={state.fieldErrors.stale[0] ?? ""} />}
       <FormActions>
         <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create post"}

@@ -1,5 +1,6 @@
 "use server";
 
+import { staleFields, staleState } from "@/lib/admin/stale";
 import { runBulkAction } from "@/lib/admin/bulk";
 import type { BulkState } from "@/types/bulk";
 
@@ -82,9 +83,9 @@ export async function updatePostAction(_prev: PostFormState, formData: FormData)
   if (!id) return { error: "Missing post id." };
 
   try {
-    await updateBlogPost(id, payloadFrom(formData));
+    await updateBlogPost(id, { ...payloadFrom(formData), ...staleFields(formData) });
   } catch (error) {
-    return toState(error);
+    return staleState(error) ?? toState(error);
   }
 
   updateTag("blog");

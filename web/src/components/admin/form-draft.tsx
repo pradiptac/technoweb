@@ -17,6 +17,9 @@ function storable(el: Element): el is HTMLInputElement | HTMLTextAreaElement | H
   if (el instanceof HTMLInputElement && (el.type === "file" || el.type === "password")) return false;
   // RecordSwitch's hidden "0" is the off-answer, not a value to restore.
   if (el instanceof HTMLInputElement && "switchOff" in el.dataset) return false;
+  // The stale-save guard's fields (C2): a restored draft must carry the base the
+  // person has now loaded, not the one they first opened, or the save is refused again.
+  if (el.name === "base_updated_at" || el.name === "overwrite") return false;
   return Boolean(el.name);
 }
 
@@ -130,10 +133,14 @@ export function FormDraft() {
     };
     const submitted = () => { dirty = false; try { localStorage.removeItem(key); } catch { /* fine */ } };
     const onHide = () => { if (document.visibilityState === "hidden") save(); };
+    // The stale-save refusal's "Load the newer version" (C2): keep what is on screen first,
+    // whatever the flag says — the refused submit has already cleared it.
+    const saveNow = () => { dirty = true; save(); };
 
     form.addEventListener("input", touched);
     form.addEventListener("change", touched);
     form.addEventListener("submit", submitted);
+    form.addEventListener("tw:draft-save-now", saveNow);
     document.addEventListener("visibilitychange", onHide);
     window.addEventListener("pagehide", save);
     const id = setInterval(save, EVERY_MS);
@@ -142,6 +149,7 @@ export function FormDraft() {
       form.removeEventListener("input", touched);
       form.removeEventListener("change", touched);
       form.removeEventListener("submit", submitted);
+      form.removeEventListener("tw:draft-save-now", saveNow);
       document.removeEventListener("visibilitychange", onHide);
       window.removeEventListener("pagehide", save);
       clearInterval(id);

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Form } from "@/components/ui/form";
 import { FormDraft } from "@/components/admin/form-draft";
+import { EditPresence } from "@/components/admin/edit-presence";
+import { StaleAlert } from "@/components/admin/stale-alert";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -129,6 +131,8 @@ export function PageForm({
     <Form action={formAction} state={state} noValidate>
       {/* A draft in localStorage, offered back after a refresh or a crash. */}
       <FormDraft />
+      {editing && <EditPresence type="page" id={page!.id} base={page!.updated_at ?? null} />}
+      {editing && <input type="hidden" name="base_updated_at" value={page!.updated_at ?? ""} />}
       {editing && <input type="hidden" name="id" value={page!.id} />}
       <input ref={sectionsInput} type="hidden" name="blocks" value={JSON.stringify(sections)} />
 
@@ -227,6 +231,7 @@ export function PageForm({
         ] : []),
       ]}</Tabs>
 
+      {state.fieldErrors?.stale && <StaleAlert message={state.fieldErrors.stale[0] ?? ""} />}
       <FormActions>
         <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create page"}

@@ -1,5 +1,6 @@
 "use server";
 
+import { staleFields, staleState } from "@/lib/admin/stale";
 import { runBulkAction } from "@/lib/admin/bulk";
 import type { BulkState } from "@/types/bulk";
 
@@ -89,9 +90,9 @@ export async function updateSolutionAction(_prev: SolutionFormState, formData: F
   if (!id) return { error: "Missing solution id." };
 
   try {
-    await updateSolution(id, payloadFrom(formData));
+    await updateSolution(id, { ...payloadFrom(formData), ...staleFields(formData) });
   } catch (error) {
-    return toState(error);
+    return staleState(error) ?? toState(error);
   }
 
   updateTag("solutions");

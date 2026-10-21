@@ -1621,6 +1621,8 @@ export type JobOpening = import("./page-sections").RecordSectionsRead & {
 
 export type AdminJobOpening = import("./page-sections").AdminRecordSections & {
   id: number;
+  /** Sent back as `base_updated_at` by the edit form (C2's stale-save guard). */
+  updated_at?: string | null;
   title: string;
   slug: string;
   department: string | null;
@@ -1691,6 +1693,8 @@ export type PickerOption = { id: number; name: string };
  */
 export type AdminProduct = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
+  /** Sent back as `base_updated_at` by the edit form (C2's stale-save guard). */
+  updated_at?: string | null;
   /** schema.org availability, or null when nobody has said. */
   availability?: string | null;
   name: string;

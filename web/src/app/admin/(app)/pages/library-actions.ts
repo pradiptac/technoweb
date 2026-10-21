@@ -6,6 +6,7 @@ import { ApiError } from "@/lib/api";
 import { getToken } from "@/lib/admin-auth";
 import { createSavedSection, deleteSavedSection, getSavedSection, sectionsFromBody, updateSavedSection, type SavedSectionPayload } from "@/lib/admin";
 import { keepPreviewDraft } from "@/lib/admin/preview-drafts";
+import { staleState } from "@/lib/admin/stale";
 import type { StoredSection } from "@/types/api";
 
 /**
@@ -25,9 +26,11 @@ const PLACES_SECTIONS = [
   // 0.130.0: the rest of the records with a written body.
   "blog", "kb", "products", "store-products", "events", "careers", "entries",
 ] as const;
-export type LibraryResult = { ok: boolean; id?: number; error?: string; fieldErrors?: Record<string, string[]> };
+export type LibraryResult = { ok: boolean; id?: number; error?: string; fieldErrors?: Record<string, string[]>; stale?: string };
 
 function fail(error: unknown): LibraryResult {
+  const stale = staleState(error);
+  if (stale) return { ok: false, stale: stale.fieldErrors.stale[0] };
   if (error instanceof ApiError) {
     if (error.status === 401) redirect("/admin/login");
     if (error.status === 403) return { ok: false, error: "Your account cannot edit the section library." };

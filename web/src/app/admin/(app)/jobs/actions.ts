@@ -1,5 +1,6 @@
 "use server";
 
+import { staleFields, staleState } from "@/lib/admin/stale";
 import { runBulkAction } from "@/lib/admin/bulk";
 import type { BulkState } from "@/types/bulk";
 
@@ -105,10 +106,10 @@ export async function createJobAction(_prev: JobState, formData: FormData): Prom
 export async function updateJobAction(_prev: JobState, formData: FormData): Promise<JobState> {
   const id = Number(formData.get("id"));
   try {
-    const saved = await updateJobOpening(id, payloadFrom(formData));
+    const saved = await updateJobOpening(id, { ...payloadFrom(formData), ...staleFields(formData) });
     refresh(saved.slug);
   } catch (error) {
-    return fail(error);
+    return staleState(error) ?? fail(error);
   }
 
   redirect(`/admin/jobs/${id}?done=saved`);

@@ -1,5 +1,6 @@
 "use server";
 
+import { staleFields, staleState } from "@/lib/admin/stale";
 import { runBulkAction } from "@/lib/admin/bulk";
 import type { BulkState } from "@/types/bulk";
 
@@ -74,10 +75,10 @@ export async function updatePageAction(_prev: PageFormState, formData: FormData)
 
   let slug: string;
   try {
-    const page = await updatePage(id, payloadFrom(formData));
+    const page = await updatePage(id, { ...payloadFrom(formData), ...staleFields(formData) });
     slug = page.slug;
   } catch (error) {
-    return toState(error);
+    return staleState(error) ?? toState(error);
   }
 
   updateTag("pages");

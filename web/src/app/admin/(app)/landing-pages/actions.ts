@@ -1,5 +1,6 @@
 "use server";
 
+import { staleFields, staleState } from "@/lib/admin/stale";
 import { runBulkAction } from "@/lib/admin/bulk";
 import type { BulkState } from "@/types/bulk";
 
@@ -80,8 +81,8 @@ export async function updateLandingPageAction(_p: LandingFormState, formData: Fo
   const id = Number(formData.get("id"));
   if (!id) return { error: "Missing page id." };
 
-  try { await updateLandingPage(id, payloadFrom(formData)); }
-  catch (error) { return toState(error); }
+  try { await updateLandingPage(id, { ...payloadFrom(formData), ...staleFields(formData) }); }
+  catch (error) { return staleState(error) ?? toState(error); }
 
   revalidatePath("/admin/landing-pages");
   revalidatePath(`/admin/landing-pages/${id}`);

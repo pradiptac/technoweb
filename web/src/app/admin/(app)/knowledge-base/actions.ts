@@ -1,5 +1,6 @@
 "use server";
 
+import { staleFields, staleState } from "@/lib/admin/stale";
 import { runBulkAction } from "@/lib/admin/bulk";
 import type { BulkState } from "@/types/bulk";
 
@@ -76,9 +77,9 @@ export async function updateArticleAction(_prev: ArticleFormState, formData: For
   if (!id) return { error: "Missing article id." };
 
   try {
-    await updateKnowledgeArticle(id, payloadFrom(formData));
+    await updateKnowledgeArticle(id, { ...payloadFrom(formData), ...staleFields(formData) });
   } catch (error) {
-    return toState(error);
+    return staleState(error) ?? toState(error);
   }
 
   updateTag("kb");

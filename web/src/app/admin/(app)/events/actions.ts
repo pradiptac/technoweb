@@ -1,5 +1,6 @@
 "use server";
 
+import { staleFields, staleState } from "@/lib/admin/stale";
 import { runBulkAction } from "@/lib/admin/bulk";
 import type { BulkState } from "@/types/bulk";
 
@@ -120,9 +121,9 @@ export async function updateEventAction(_prev: EventFormState, formData: FormDat
   const payload = payloadFrom(formData, true);
 
   try {
-    await updateEvent(id, payload);
+    await updateEvent(id, { ...payload, ...staleFields(formData) });
   } catch (error) {
-    return toState(error);
+    return staleState(error) ?? toState(error);
   }
 
   refresh(id);
