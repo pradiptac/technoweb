@@ -159,7 +159,9 @@ the section jumps).
   Each is a 422 on `section_id` with a sentence.
 - **A section under a running test is locked.** A page save that changes its
   `data`, type or deletes it is a 422 on `blocks.N.data` (or `blocks`) naming
-  the test ("This section is being tested. End the test first."). Its
+  the test ("This section is being tested. End the test first."). Applying B
+  is the one write that passes the lock, since it ends the test in the same
+  transaction. Its
   background and style may still change — both versions share them. Deleting
   the page deletes its tests.
 - A test needs `native_analytics_enabled`: starting one with it off is a 422
