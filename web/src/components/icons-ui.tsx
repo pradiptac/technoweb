@@ -171,3 +171,13 @@ export const IconBell = (p: P) => (
     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
   </svg>
 );
+/** The bell's three kinds of row (C2): somebody mentioned you, something was given to you, something needs you. */
+export const IconAt = (p: P) => (
+  <svg {...base} {...p}><circle cx="12" cy="12" r="3.6" /><path d="M15.6 9v4.4a2.4 2.4 0 0 0 4.8 0V12a8.4 8.4 0 1 0-3.3 6.7" /></svg>
+);
+export const IconPerson = (p: P) => (
+  <svg {...base} {...p}><circle cx="12" cy="8" r="3.8" /><path d="M4.6 20.4c.8-3.8 3.8-6 7.4-6s6.6 2.2 7.4 6" /></svg>
+);
+export const IconAlert = (p: P) => (
+  <svg {...base} {...p}><path d="M10.3 4.1 2.6 17.6A2 2 0 0 0 4.3 20.6h15.4a2 2 0 0 0 1.7-3L13.7 4.1a2 2 0 0 0-3.4 0Z" /><path d="M12 9.5v4" /><path d="M12 17h.01" /></svg>
+);

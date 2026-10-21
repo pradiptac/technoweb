@@ -22,6 +22,7 @@ export async function saveNotificationsAction(_prev: NotificationsState, form: F
     alerts,
     alert_email: bool(form, "alert_email"),
     alert_push: bool(form, "alert_push"),
+    notify_mentions: bool(form, "notify_mentions"),
     quiet_start: String(form.get("quiet_start")),
     quiet_end: String(form.get("quiet_end")),
   };

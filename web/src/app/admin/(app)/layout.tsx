@@ -27,7 +27,8 @@ import { TopBar } from "@/components/app-shell/top-bar";
 import { CopilotDrawer } from "@/components/admin/copilot-drawer";
 import { HelpDrawer } from "@/components/admin/help-drawer";
 import { IconAccessCard, IconBook, IconExternal } from "@/components/icons";
-import { IconSparkle } from "@/components/icons-ui";
+import { IconBell, IconSparkle } from "@/components/icons-ui";
+import { NotificationBell } from "@/components/admin/notification-bell";
 import { PageEnter } from "@/components/ui/page-enter";
 import { AccountMenu } from "@/components/app-shell/account-menu";
 import { CropBeforeUploadProvider } from "@/components/admin/crop-before-upload";
@@ -170,6 +171,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           {/* Ask ALTIS (0.177.0): a question about this install, answered out
               of its own figures. It reads no search params, so no Suspense. */}
           <CopilotDrawer />
+          {/* Mentions, assignments and alerts (C2); its count rides on NewSincePoller. */}
+          <NotificationBell />
           <SchemeToggle area="console" className="sm:mr-1.5" />
 
           {/* "View site" is always a new tab (the client, 2026-09-28):
@@ -186,6 +189,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               { label: "View site", href: "/", external: true, icon: <IconExternal /> },
               { label: "Help for this screen", href: "#help", event: "tw:help", phoneOnly: true, icon: <IconBook /> },
               { label: "Ask ALTIS", href: "#copilot", event: "tw:copilot", phoneOnly: true, icon: <IconSparkle /> },
+              { label: "Notifications", href: "#notifications", event: "tw:notifications", phoneOnly: true, icon: <IconBell /> },
             ]}
             signOut={logoutAction}
           />

@@ -9,6 +9,32 @@ export type NotificationPrefs = {
   quiet_start: string;
   quiet_end: string;
   last_digest_at: string | null;
+  /** Mentions and assignments by email and push; the bell fills either way (C2). */
+  notify_mentions: boolean;
+};
+
+/** One row of the console's bell (C2, docs/notifications.md). `line` is the API's sentence. */
+export type StaffNotificationRow = {
+  id: number;
+  kind: string;
+  group: "mention" | "assigned" | "alert";
+  line: string;
+  path: string | null;
+  actor_name: string | null;
+  read_at: string | null;
+  created_at: string | null;
+};
+
+export type StaffNotificationsPage = {
+  data: StaffNotificationRow[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    unread: number;
+    kinds: { value: string; label: string; group: string }[];
+  };
 };
 
 export type NotificationRule = { key: string; label: string; threshold_label: string | null; site_enabled: boolean };

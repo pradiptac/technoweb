@@ -26,14 +26,14 @@ import { useEffect, useSyncExternalStore } from "react";
  * open console tab is one more request a minute on the API.
  */
 type Counts = { tickets: number | null; leads: number | null; enquiries: number | null };
-type Snapshot = { latest: Counts; seen: Partial<Record<keyof Counts, number>> };
+type Snapshot = { latest: Counts; seen: Partial<Record<keyof Counts, number>>; unread: number | null };
 
 const EMPTY: Counts = { tickets: null, leads: null, enquiries: null };
-let state: Snapshot = { latest: EMPTY, seen: {} };
+let state: Snapshot = { latest: EMPTY, seen: {}, unread: null };
 const listeners = new Set<() => void>();
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 const snapshot = () => state;
-const SERVER: Snapshot = { latest: EMPTY, seen: {} };
+const SERVER: Snapshot = { latest: EMPTY, seen: {}, unread: null };
 const serverSnapshot = () => SERVER;
 function set(next: Snapshot) { state = next; listeners.forEach((l) => l()); }
 
@@ -62,26 +62,41 @@ export function useNewSince(): Record<keyof Counts, number> {
   return { tickets: unseen("tickets"), leads: unseen("leads"), enquiries: unseen("enquiries") };
 }
 
+/** The bell's unread count from the minute poll; null when it could not be read, and then no number is drawn. */
+export function useUnreadNotifications(): number | null {
+  return useSyncExternalStore(subscribe, snapshot, serverSnapshot).unread;
+}
+
+let stopped = false;
+async function poll() {
+  if (document.visibilityState !== "visible") return;
+  try {
+    const res = await fetch(`/api/admin/new-since?since=${encodeURIComponent(sinceMoment())}`);
+    if (!res.ok || stopped) return;
+    const body = (await res.json()) as { data: (Counts & { notifications_unread?: number }) | null };
+    if (body.data) {
+      const { notifications_unread: unread, ...latest } = body.data;
+      set({ ...state, latest, unread: typeof unread === "number" ? unread : null });
+    }
+  } catch {
+    // Next minute.
+  }
+}
+
+/** Runs the poll once now — after the bell marks something read. */
+export function refreshNewSince(): void {
+  void poll();
+}
+
 export function NewSincePoller() {
   const pathname = usePathname();
 
   useEffect(() => {
     try { state = { ...state, seen: JSON.parse(sessionStorage.getItem(SEEN_KEY) ?? "{}") }; } catch { /* fresh */ }
-    let stopped = false;
-    const poll = async () => {
-      if (document.visibilityState !== "visible") return;
-      try {
-        const res = await fetch(`/api/admin/new-since?since=${encodeURIComponent(sinceMoment())}`);
-        if (!res.ok || stopped) return;
-        const body = (await res.json()) as { data: Counts | null };
-        if (body.data) set({ ...state, latest: body.data });
-      } catch {
-        // Next minute.
-      }
-    };
-    poll();
+    stopped = false;
+    void poll();
     const id = setInterval(poll, 60_000);
-    const onVisible = () => { if (document.visibilityState === "visible") poll(); };
+    const onVisible = () => { if (document.visibilityState === "visible") void poll(); };
     document.addEventListener("visibilitychange", onVisible);
     return () => { stopped = true; clearInterval(id); document.removeEventListener("visibilitychange", onVisible); };
   }, []);

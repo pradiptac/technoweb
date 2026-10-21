@@ -86,6 +86,12 @@ export function NotificationsPanel({ prefs, meta, pushConfig }: {
           <legend className="mb-2 text-13-5 font-semibold text-ink">How alerts reach you</legend>
           <RecordSwitch name="alert_email" defaultChecked={prefs.alert_email} label="Email" />
           <RecordSwitch name="alert_push" defaultChecked={prefs.alert_push} label="Browser notifications" />
+          <RecordSwitch
+            name="notify_mentions"
+            defaultChecked={prefs.notify_mentions ?? true}
+            label="Mentions and assignments"
+            hint="When a colleague mentions you, or assigns you a ticket, lead or visit, or books a meeting with you. They are always in the bell."
+          />
           <p className="text-12-5 text-muted">Quiet hours for browser notifications (email still arrives)</p>
           <div className="grid max-w-[360px] grid-cols-2 gap-x-4">
             <Field label="From" htmlFor="quiet_start" variant="float-static" error={err("quiet_start")}>
