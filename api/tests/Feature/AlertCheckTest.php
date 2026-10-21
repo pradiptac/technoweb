@@ -8,11 +8,13 @@ use App\Enums\TicketStatus;
 use App\Models\AlertFire;
 use App\Models\Customer;
 use App\Models\Setting;
+use App\Models\StaffNotification;
 use App\Models\StaffPreference;
 use App\Models\StaffPushSubscription;
 use App\Models\Ticket;
 use App\Models\TicketCategory;
 use App\Notifications\StaffAlerts;
+use App\Notifications\StaffAssigned;
 use App\Support\Alerts\AlertCheck;
 use App\Support\Alerts\Rules;
 use App\Support\Messaging\Providers\Fcm;
@@ -251,5 +253,19 @@ class AlertCheckTest extends TestCase
         $this->artisan('technoware:prune-alert-fires')->assertSuccessful();
 
         $this->assertSame(['ticket:2'], AlertFire::pluck('subject')->all());
+    }
+
+    /** C2 (docs/notifications.md): every new fire is a bell row too, and no second email. */
+    public function test_a_fire_writes_one_bell_row_and_nothing_more_is_sent(): void
+    {
+        $support = $this->staff(RoleEnum::SupportEngineer);
+        $this->overdue();
+
+        AlertCheck::run();
+        AlertCheck::run();
+
+        $this->assertSame(1, StaffNotification::query()->where('user_id', $support->id)->where('kind', 'alert')->count());
+        Notification::assertSentToTimes($support, StaffAlerts::class, 1);
+        Notification::assertNotSentTo($support, StaffAssigned::class);
     }
 }

@@ -43,6 +43,7 @@ class NotificationsController extends Controller
             'alerts.*' => ['boolean'],
             'alert_email' => ['sometimes', 'boolean'],
             'alert_push' => ['sometimes', 'boolean'],
+            'notify_mentions' => ['sometimes', 'boolean'],
             'quiet_start' => ['sometimes', 'date_format:H:i'],
             'quiet_end' => ['sometimes', 'date_format:H:i'],
         ]);
@@ -102,6 +103,7 @@ class NotificationsController extends Controller
                 'alerts' => (object) collect($rules)->mapWithKeys(fn (AlertRule $r) => [$r->key() => $prefs->wantsAlert($r->key())])->all(),
                 'alert_email' => $prefs->alert_email,
                 'alert_push' => $prefs->alert_push,
+                'notify_mentions' => (bool) $prefs->notify_mentions,
                 'quiet_start' => $prefs->quiet_start,
                 'quiet_end' => $prefs->quiet_end,
                 'last_digest_at' => $prefs->last_digest_at?->toIso8601String(),

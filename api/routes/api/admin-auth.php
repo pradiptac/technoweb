@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Admin\CopilotController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\NotificationsController;
 use App\Http\Controllers\Api\V1\Admin\SearchController;
+use App\Http\Controllers\Api\V1\Admin\StaffNotificationController;
 use App\Http\Controllers\Api\V1\Admin\StaffPushController;
 use App\Http\Controllers\Api\V1\Admin\WritingController;
 use Illuminate\Support\Facades\Route;
@@ -58,6 +59,10 @@ Route::get('notifications/preferences', [NotificationsController::class, 'show']
 Route::patch('notifications/preferences', [NotificationsController::class, 'update'])->name('notifications.update');
 Route::post('notifications/digest/send', [NotificationsController::class, 'sendDigest'])->middleware('throttle:6,1')->name('notifications.digest');
 Route::post('notifications/alerts/test', [NotificationsController::class, 'testAlert'])->middleware('throttle:6,1')->name('notifications.test');
+// The bell (C2, docs/notifications.md): the caller's own rows, nobody else's.
+Route::get('notifications', [StaffNotificationController::class, 'index'])->name('notifications.index');
+Route::post('notifications/read-all', [StaffNotificationController::class, 'readAll'])->name('notifications.read-all');
+Route::post('notifications/{id}/read', [StaffNotificationController::class, 'read'])->whereNumber('id')->name('notifications.read');
 Route::post('push/subscribe', [StaffPushController::class, 'subscribe'])->middleware('throttle:20,1')->name('push.subscribe');
 Route::delete('push/{id}', [StaffPushController::class, 'destroy'])->whereNumber('id')->name('push.destroy');
 

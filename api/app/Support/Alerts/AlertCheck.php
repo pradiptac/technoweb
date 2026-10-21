@@ -2,10 +2,12 @@
 
 namespace App\Support\Alerts;
 
+use App\Enums\StaffNotificationKind;
 use App\Models\AlertFire;
 use App\Models\StaffPreference;
 use App\Models\User;
 use App\Notifications\StaffAlerts;
+use App\Support\Notifications\Notifications;
 use App\Support\Notifier;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -72,6 +74,10 @@ final class AlertCheck
                     ['rule' => $key, 'subject' => $hit->subject, 'user_id' => $user->id],
                     ['fired_at' => now(), 'cleared_at' => null],
                 );
+            }
+            // The bell keeps a row per new fire; the email and push below are its delivery.
+            foreach ($batch as ['hit' => $hit]) {
+                Notifications::send($user, StaffNotificationKind::Alert, $hit->line, $hit->href, null, null, false);
             }
             self::deliver($user, $prefs, $batch);
             $people++;

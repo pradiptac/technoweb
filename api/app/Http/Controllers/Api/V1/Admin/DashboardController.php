@@ -46,7 +46,9 @@ class DashboardController extends Controller
 
         abort_if($since === null, 422, 'A since= moment is required.');
 
-        return response()->json(['data' => $this->arrivedSince($since, $request->user())]);
+        return response()->json(['data' => $this->arrivedSince($since, $request->user()) + [
+            'notifications_unread' => StaffNotificationController::unread((int) $request->user()->id),
+        ]]);
     }
 
     private static function since(Request $request): ?Carbon
