@@ -48,7 +48,7 @@ export default async function AnalyticsPageView({ searchParams }: { searchParams
     return (
       <>
         <PageHeader title={path} back={back} />
-        <Alert tone="info" dismissible={false} title="Native analytics is switched off.">Switch it on in Settings → Infrastructure.</Alert>
+        <Alert tone="info" dismissible={false} title="Native analytics is switched off.">Switch it on in Site → Settings, under Analytics.</Alert>
       </>
     );
   }
