@@ -80,7 +80,7 @@ try {
   await v.waitForTimeout(4000);
   for (const path of ["/about", "/contact"]) {
     await v.evaluate((p) => { const a = document.createElement("a"); a.href = p; a.textContent = "go"; a.id = "probe-go"; document.body.appendChild(a); }, path);
-    await v.locator("#probe-go").click();
+    await v.locator("#probe-go").click({ timeout: T });
     await v.waitForURL((u) => u.pathname === path, { timeout: T });
     await idle(v);
     await v.waitForTimeout(4000);
@@ -109,8 +109,9 @@ try {
   await s.locator('section[aria-label="Totals"]').waitFor({ timeout: T });
   await s.waitForTimeout(1500);
   const visits = await s.evaluate(() => {
-    const label = document.querySelector('section[aria-label="Totals"] p[title="Visits"]');
-    const m = (label?.parentElement?.innerText ?? "").match(/\d[\d,]*/);
+    // The label is the tile's text "Visits"; the figure is the paragraph before it (either layout).
+    const label = [...document.querySelectorAll('section[aria-label="Totals"] p')].find((p) => p.textContent?.trim() === "Visits");
+    const m = (label?.previousElementSibling?.textContent ?? label?.parentElement?.previousElementSibling?.textContent ?? "").match(/\d[\d,]*/);
     return m ? Number(m[0].replace(/,/g, "")) : null;
   });
   ok(visits !== null && visits >= 1, `the Visits tile reads at least 1 (read ${visits})`);
