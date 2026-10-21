@@ -3254,11 +3254,9 @@ Run against `npm run dev` (with the API up and analytics on). Under Git Bash, pr
 Run: `cd web; ADMIN_LOGIN_EMAIL=… ADMIN_LOGIN_PASSWORD=… node scripts/probes/section-ab.mjs`
 Expected: every line `ok`, ending `all passed`.
 
-The probe's first page load may still be the cached page from before the test, because the probe starts the test through the API, not the console action. If that happens:
-- make the probe press the console's Start button instead, which purges through `updateTag`;
-- or have it call the site's `/api/internal/revalidate` with `INTERNAL_TOKEN` when set.
+Decision: the probe starts and ends the test by pressing the console's own buttons (Start, Use version B), never by calling the API directly — the console's Server Action is the door that purges `settings` and `pages` through `updateTag`, so the first public load after it is the new page. Say so in the probe's docblock. (A test started through the API alone shows the old page until the settings window passes; that is the same rule every settings write here follows, and docs/section-tests.md states it.)
 
-Record which one in the probe's docblock.
+Decision (kept from line 54): version B takes A's flags. Only the first two sections are eager, so the double download is limited to a tested section at the top of the page; making B lazy instead would make a visible B hero a lazy LCP image, which `next/image` warns about in dev and the audit fails on.
 
 - [ ] **Step 3: Audits, help, tour, palette**
 
