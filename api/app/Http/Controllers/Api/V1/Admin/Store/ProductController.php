@@ -211,6 +211,8 @@ class ProductController extends Controller
 
         $this->autoTag($request, $storeProduct);
 
+        StaleGuard::touch($storeProduct);
+
         return new ProductResource($storeProduct->fresh($this->detailRelations())->loadCount(self::noticesCount()));
     }
 

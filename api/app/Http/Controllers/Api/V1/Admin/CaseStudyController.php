@@ -95,6 +95,8 @@ class CaseStudyController extends Controller
             $this->saveCustomFields($caseStudy, $custom);
         });
 
+        StaleGuard::touch($caseStudy);
+
         return new CaseStudyResource($caseStudy->fresh(['industry', 'seo', 'customValues.field.group']));
     }
 

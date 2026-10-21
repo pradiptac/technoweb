@@ -68,6 +68,11 @@ extra, and goes only when:
 - then their own `alert_email` and `alert_push` choices, push outside their
   quiet hours.
 
+**Delivery runs after the response** in a web request (`app()->terminating`),
+ because a push is an FCM call per device and a customer's portal reply must
+ not wait on it; in a job or a command it runs at once. It is guarded on its own:
+ a failure after the response is logged, never thrown.
+
 ### What writes a row
 
 | Source | Kind | Line | Path |
@@ -194,7 +199,15 @@ save is refused:
 ```
 
 — "You saved this at … in another tab" when the newest version is the caller's
-own (decision 6). `overwrite: true` saves anyway and writes `overwrote` to the
+own (decision 6), and "Somebody" when the newest page-history version is older
+than the record's `updated_at` (a save that changed only related rows records no
+version, so its author is not known — never a wrong name).
+
+**Every one of the fourteen update methods ends with `StaleGuard::touch()`**
+(`touchQuietly`: no revision, no recheck, no webhook). A save that changed only
+the SEO override, FAQs, answer blocks, custom fields or a relation list is not a
+change of the record to Eloquent, and without the touch a colleague's save from
+an older base would silently overwrite it. `overwrite: true` saves anyway and writes `overwrote` to the
 activity log with `replaced_version_at`.
 
 The console: every edit form posts a hidden `base_updated_at`; the update
@@ -218,7 +231,8 @@ save for nothing. Audited for 0.187.0:
 - **moved off the timestamp** (base-query writes now): a knowledge article's
   helpful vote **and its view count** (every public view used to touch it), a
   shop sale's stock decrement on the product (`Settlement::takeStock`), a
-  return's restock on the product (`ReturnActions`).
+  return's restock on the product (`ReturnActions`), and the investor alerts'
+  claim and outcome writes on an entry (`InvestorAlerts`, `EntryController`).
 - **already off it:** `ReviewSummary` (`toBase`), `Tags::stamp` (`DB::table`),
   site-health `Findings` and `LinkProber`, the search `Indexer` (their own
   tables), `Revisions` (`content_revisions`).

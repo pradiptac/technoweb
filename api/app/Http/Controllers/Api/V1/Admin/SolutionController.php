@@ -103,6 +103,8 @@ class SolutionController extends Controller
             $this->saveCustomFields($solution, $custom);
         });
 
+        StaleGuard::touch($solution);
+
         return new SolutionResource($solution->fresh(['products', 'industries', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 

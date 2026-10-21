@@ -77,6 +77,8 @@ class SavedSectionController extends Controller
         }
         $savedSection->update($attributes);
 
+        StaleGuard::touch($savedSection);
+
         return new SavedSectionResource($savedSection->load('author:id,name'));
     }
 

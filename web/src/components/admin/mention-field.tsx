@@ -4,7 +4,7 @@ import { useEffect, useId, useImperativeHandle, useRef, useState, type KeyboardE
 
 import { setFieldValue } from "@/components/admin/writing/apply";
 import { Field, Textarea } from "@/components/ui/input";
-import { findMentionQuery, insertMention } from "@/lib/mentions";
+import { findMentionQuery, insertMention, keepMentioned } from "@/lib/mentions";
 import { cn } from "@/lib/utils";
 
 type Person = { id: number; name: string };
@@ -61,11 +61,21 @@ export function MentionField({
     return () => { window.clearTimeout(t); ctrl.abort(); };
   }, [query, scope]);
 
-  // React resets the form after a successful submit; the mentions go with the text.
+  /*
+   * React resets the form after every action, a refused one too, and <Form>
+   * then puts a refused submission's text back a microtask later. So the
+   * people are re-read from the text once that has happened: after a success
+   * the box is empty and nobody is kept; after a refusal everyone still named
+   * in it is.
+   */
   useEffect(() => {
     const form = box.current?.form;
     if (!form) return;
-    const onReset = () => { setChosen([]); setQuery(null); setPeople([]); };
+    const onReset = () => {
+      setQuery(null);
+      setPeople([]);
+      window.setTimeout(() => setChosen((c) => keepMentioned(c, box.current?.value ?? "")), 0);
+    };
     form.addEventListener("reset", onReset);
     return () => form.removeEventListener("reset", onReset);
   }, []);

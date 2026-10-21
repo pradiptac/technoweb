@@ -72,14 +72,17 @@ async function poll() {
   if (document.visibilityState !== "visible") return;
   try {
     const res = await fetch(`/api/admin/new-since?since=${encodeURIComponent(sinceMoment())}`);
-    if (!res.ok || stopped) return;
-    const body = (await res.json()) as { data: (Counts & { notifications_unread?: number }) | null };
-    if (body.data) {
+    if (stopped) return;
+    const body = res.ok ? ((await res.json()) as { data: (Counts & { notifications_unread?: number }) | null }) : null;
+    if (body?.data) {
       const { notifications_unread: unread, ...latest } = body.data;
       set({ ...state, latest, unread: typeof unread === "number" ? unread : null });
+    } else {
+      // The bell draws no number it could not read — never the last one (C2).
+      set({ ...state, unread: null });
     }
   } catch {
-    // Next minute.
+    if (!stopped) set({ ...state, unread: null });
   }
 }
 

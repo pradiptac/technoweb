@@ -118,6 +118,8 @@ class BlogPostController extends Controller
             $this->saveCustomFields($blogPost, $custom);
         });
 
+        StaleGuard::touch($blogPost);
+
         return new BlogPostResource($blogPost->fresh(['author', 'seo', 'categories', 'faqs', 'answerBlocks', 'customValues.field.group']));
     }
 

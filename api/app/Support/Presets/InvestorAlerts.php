@@ -55,7 +55,8 @@ final class InvestorAlerts
                 return 'Only a published document can be announced.';
             }
 
-            $claimed = Entry::query()->whereKey($entry->id)->whereNull('alert_sent_at')
+            // Every write here is on the base query: an alert is not an edit, and C2's stale-save guard reads updated_at.
+            $claimed = Entry::query()->whereKey($entry->id)->toBase()->whereNull('alert_sent_at')
                 ->update(['alert_sent_at' => now(), 'alert_error' => null]);
             if ($claimed === 0) {
                 return self::ALREADY_SENT;
@@ -73,7 +74,7 @@ final class InvestorAlerts
                 return self::refuse($entry, $campaign, (string) ($result['reason'] ?? 'The alert could not be queued.'));
             }
 
-            Entry::query()->whereKey($entry->id)->update(['alert_campaign_id' => $campaign->id]);
+            Entry::query()->whereKey($entry->id)->toBase()->update(['alert_campaign_id' => $campaign->id]);
 
             return null;
         } catch (Throwable $e) {
@@ -97,7 +98,7 @@ final class InvestorAlerts
                 $status = $status instanceof CampaignStatus ? $status : CampaignStatus::tryFrom((string) $status);
 
                 if ($status !== null && $status !== CampaignStatus::Draft && $status !== CampaignStatus::Ready) {
-                    Entry::query()->whereKey($entry->id)->update(['alert_campaign_id' => $campaign->id, 'alert_error' => null]);
+                    Entry::query()->whereKey($entry->id)->toBase()->update(['alert_campaign_id' => $campaign->id, 'alert_error' => null]);
 
                     return null;
                 }
@@ -105,7 +106,7 @@ final class InvestorAlerts
                 $campaign->groups()->detach();
                 NewsletterCampaign::query()->whereKey($campaign->id)->delete();
             }
-            Entry::query()->whereKey($entry->id)->update(['alert_sent_at' => null, 'alert_error' => 'The alert could not be sent. Try again.']);
+            Entry::query()->whereKey($entry->id)->toBase()->update(['alert_sent_at' => null, 'alert_error' => 'The alert could not be sent. Try again.']);
         } catch (Throwable $e) {
             Log::warning('Investor alert cleanup failed', ['entry' => $entry->id, 'error' => $e->getMessage()]);
         }
@@ -117,7 +118,7 @@ final class InvestorAlerts
     {
         $campaign->groups()->detach();
         $campaign->delete();
-        Entry::query()->whereKey($entry->id)->update(['alert_sent_at' => null, 'alert_error' => $why]);
+        Entry::query()->whereKey($entry->id)->toBase()->update(['alert_sent_at' => null, 'alert_error' => $why]);
 
         return $why;
     }

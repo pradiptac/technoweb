@@ -22,6 +22,12 @@ export function insertMention(text: string, start: number, caret: number, name: 
   return { text: text.slice(0, start) + token + text.slice(caret), caret: start + token.length };
 }
 
+/** The chosen people still named as `@Name` in the text — what a form keeps after React's reset (case-insensitive). */
+export function keepMentioned<P extends { name: string }>(chosen: P[], text: string): P[] {
+  const lower = text.toLowerCase();
+  return chosen.filter((p) => lower.includes(`@${p.name.toLowerCase()}`));
+}
+
 /** Splits text into runs, marking `@Name` for the names given (longest first, case-insensitive). */
 export function mentionSegments(text: string, names: string[]): { text: string; mention: boolean }[] {
   const wanted = [...new Set(names.filter(Boolean))].sort((a, b) => b.length - a.length);

@@ -56,6 +56,8 @@ class JobOpeningController extends Controller
         $job_opening->update($request->modelData());
         $this->applyRelations($job_opening, $request);
 
+        StaleGuard::touch($job_opening);
+
         return response()->json(['data' => new AdminJobOpeningResource($this->hydrate($job_opening->fresh()))]);
     }
 

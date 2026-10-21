@@ -44,12 +44,25 @@ export function EditPresence({ type, id, base }: { type: RevisionType; id: numbe
 
   useEffect(() => {
     let stopped = false;
+    /*
+     * "Unsaved changes" means somebody typed — a trusted input or change inside
+     * a form since the page loaded or last saved. The leave guard's own dirty
+     * flag is not enough on its own: an editor that normalises its value on
+     * mount (the page body) sets it with nobody at the keyboard, and colleagues
+     * would be told of changes that do not exist.
+     */
+    let typed = false;
+    const onInput = (e: Event) => { if (e.isTrusted && (e.target as Element | null)?.closest?.("form")) typed = true; };
+    const onSubmit = () => { typed = false; };
+    document.addEventListener("input", onInput, true);
+    document.addEventListener("change", onInput, true);
+    document.addEventListener("submit", onSubmit, true);
     const beat = async () => {
       if (document.visibilityState !== "visible") return;
       const res = await fetch("/api/admin/presence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, id, dirty: isAnyFormDirty() }),
+        body: JSON.stringify({ type, id, dirty: typed && isAnyFormDirty() }),
       }).catch(() => null);
       const body = res?.ok ? ((await res.json().catch(() => null)) as { data?: Presence } | null) : null;
       if (!stopped && body?.data && Array.isArray(body.data.others)) setPresence(body.data);
@@ -63,6 +76,9 @@ export function EditPresence({ type, id, base }: { type: RevisionType; id: numbe
     window.addEventListener("pagehide", leave);
     return () => {
       stopped = true;
+      document.removeEventListener("input", onInput, true);
+      document.removeEventListener("change", onInput, true);
+      document.removeEventListener("submit", onSubmit, true);
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("pagehide", leave);

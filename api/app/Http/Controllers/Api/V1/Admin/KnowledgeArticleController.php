@@ -112,6 +112,8 @@ class KnowledgeArticleController extends Controller
             $this->saveCustomFields($knowledgeArticle, $custom);
         });
 
+        StaleGuard::touch($knowledgeArticle);
+
         return new KnowledgeArticleResource($knowledgeArticle->fresh(['category', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 

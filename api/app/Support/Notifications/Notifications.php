@@ -46,8 +46,14 @@ final class Notifications
                 'actor_name' => $actor?->name,
             ]);
 
+            // After the response in a web request (push is an FCM call per device); at once in a job or a
+            // command, where there is no response and a worker's terminate may be a long way off.
             if ($deliver && $kind->delivers()) {
-                self::deliver($to, $row);
+                if (app()->runningInConsole()) {
+                    self::deliver($to, $row);
+                } else {
+                    app()->terminating(fn () => self::deliver($to, $row));
+                }
             }
 
             return $row;
@@ -82,21 +88,25 @@ final class Notifications
 
     private static function deliver(User $to, StaffNotification $row): void
     {
-        // The site switch silences delivery for everybody; the bell still fills.
-        if (Setting::get('alerts_mentions_enabled') === false) {
-            return;
-        }
+        try {
+            // The site switch silences delivery for everybody; the bell still fills.
+            if (Setting::get('alerts_mentions_enabled') === false) {
+                return;
+            }
 
-        $prefs = StaffPreferences::for($to);
-        if (! $prefs->notify_mentions) {
-            return;
-        }
+            $prefs = StaffPreferences::for($to);
+            if (! $prefs->notify_mentions) {
+                return;
+            }
 
-        if ($prefs->alert_email) {
-            Notifier::send($to, $row->kind->group() === 'mention' ? new StaffMentioned($row) : new StaffAssigned($row));
-        }
-        if ($prefs->alert_push && ! $prefs->quietAt(now())) {
-            StaffPush::send($to, $row->line, [$row->line], (string) $row->path);
+            if ($prefs->alert_email) {
+                Notifier::send($to, $row->kind->group() === 'mention' ? new StaffMentioned($row) : new StaffAssigned($row));
+            }
+            if ($prefs->alert_push && ! $prefs->quietAt(now())) {
+                StaffPush::send($to, $row->line, [$row->line], (string) $row->path);
+            }
+        } catch (Throwable $e) {
+            Log::warning('Staff notification delivery failed', ['kind' => $row->kind->value, 'user' => $to->id, 'error' => $e->getMessage()]);
         }
     }
 }

@@ -138,6 +138,8 @@ class EventController extends Controller
             EventActions::promote($event);
         }
 
+        StaleGuard::touch($event);
+
         return $this->respond($event->forgetRegistrationCounts());
     }
 

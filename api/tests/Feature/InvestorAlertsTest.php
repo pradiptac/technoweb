@@ -123,6 +123,24 @@ class InvestorAlertsTest extends TestCase
         $this->assertSame(1, NewsletterCampaign::query()->count());
     }
 
+    /** C2's stale-save guard reads updated_at: sending an alert, or failing to, is not an edit. */
+    public function test_sending_or_refusing_an_alert_does_not_move_updated_at(): void
+    {
+        $this->subscriber();
+        $sent = $this->document();
+        $refused = $this->document(['title' => 'Second document', 'slug' => 'second-document']);
+        $before = [$sent->fresh()->updated_at, $refused->fresh()->updated_at];
+        $this->travel(10)->seconds();
+
+        $this->assertNull(InvestorAlerts::send($sent->fresh()));
+        Setting::query()->whereIn('key', ['address', 'newsletter_address'])->update(['value' => null]);
+        Setting::flushCache();
+        $this->assertNotNull(InvestorAlerts::send($refused->fresh()));
+
+        $this->assertEquals($before[0], $sent->fresh()->updated_at);
+        $this->assertEquals($before[1], $refused->fresh()->updated_at);
+    }
+
     public function test_a_health_refusal_is_written_and_not_retried(): void
     {
         $this->subscriber();

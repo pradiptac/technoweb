@@ -122,6 +122,21 @@ class StaffNotificationsTest extends TestCase
         $this->assertSame(5, StaffNotification::where('user_id', $to->id)->count(), 'The bell fills whatever the delivery.');
     }
 
+    /** Push makes an FCM call per device: it must never run inside the request that caused it. */
+    public function test_delivery_runs_after_the_response_not_during_it(): void
+    {
+        $to = $this->staff(RoleEnum::SupportEngineer, 'later');
+        // As in a web request: there, an after-response dispatch waits for the response.
+        (fn () => $this->isRunningInConsole = false)->call($this->app);
+        Notifications::send($to, StaffNotificationKind::TicketAssigned, 'one', '/admin/tickets/TW-1');
+
+        $this->assertSame(1, StaffNotification::where('user_id', $to->id)->count(), 'The row is written at once.');
+        Notification::assertNotSentTo($to, StaffAssigned::class);
+
+        $this->app->terminate();
+        Notification::assertSentToTimes($to, StaffAssigned::class, 1);
+    }
+
     public function test_an_alert_row_and_a_finished_job_are_never_delivered(): void
     {
         $to = $this->staff(RoleEnum::Admin, 'al');

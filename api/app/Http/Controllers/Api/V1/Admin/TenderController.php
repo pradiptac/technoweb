@@ -122,6 +122,8 @@ class TenderController extends Controller
             $this->saveSeo($tender, $request->validated('seo'));
         });
 
+        StaleGuard::touch($tender);
+
         return $this->respond($tender->refresh());
     }
 

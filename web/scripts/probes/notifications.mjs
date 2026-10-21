@@ -141,6 +141,14 @@ try {
     await pb.goto(`${BASE}/admin`, { waitUntil: "load", timeout: T });
     const bell = pb.getByRole("button", { name: /^Notifications, 1 unread/ });
     ok(await bell.waitFor({ timeout: 70000 }).then(() => true, () => false), "B's bell shows 1 unread within 70s");
+
+    // A failed poll draws no number — never the last one it read.
+    await pb.route("**/api/admin/new-since**", (r) => r.fulfill({ status: 502, body: "{}" }));
+    await pb.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    ok(await pb.getByRole("button", { name: "Notifications", exact: true }).waitFor({ timeout: 15000 }).then(() => true, () => false), "a failed poll removes the number");
+    await pb.unroute("**/api/admin/new-since**");
+    await pb.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await bell.waitFor({ timeout: 15000 });
     await bell.click();
     const line = pb.locator("[data-notifications-drawer]").getByText(`${a.name} mentioned you in a note on Bell page ${stamp}.`);
     ok(await line.waitFor({ timeout: T }).then(() => true, () => false), "the drawer lists the line");

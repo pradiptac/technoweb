@@ -132,6 +132,8 @@ class EntryController extends Controller
 
         $this->afterSave($contentType, $entry);
 
+        StaleGuard::touch($entry);
+
         return new EntryResource($entry->fresh(self::DETAIL) ?? $entry);
     }
 
@@ -169,7 +171,7 @@ class EntryController extends Controller
             return;
         }
 
-        Entry::query()->whereKey($entry->id)->whereNotNull('alert_error')->update(['alert_error' => null]);
+        Entry::query()->whereKey($entry->id)->toBase()->whereNotNull('alert_error')->update(['alert_error' => null]);
         SendInvestorAlertsJob::dispatch()->afterCommit();
     }
 

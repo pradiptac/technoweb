@@ -85,6 +85,22 @@ class StaleSaveTest extends TestCase
         return [['page'], ['product'], ['store_product']];
     }
 
+    /** A save that changes only related rows (SEO, FAQs) is still a newer version. */
+    #[DataProvider('kinds')]
+    public function test_a_save_that_changes_only_related_rows_is_still_newer(string $kind): void
+    {
+        [$record, $url, , $role] = $this->make($kind);
+        $base = $record->updated_at->toIso8601String();
+        $this->travel(5)->seconds();
+        $this->asStaff($role, 'ravi')->patchJson($url, ['seo' => ['title' => 'A better search title'], 'faqs' => [['question' => 'Is it fast?', 'answer' => '<p>Yes.</p>']]])->assertOk();
+
+        $this->travel(5)->seconds();
+        // Page history records no version for an SEO-only save, so its author is not known: "Somebody", never a wrong name.
+        $this->asStaff($role, 'me')->patchJson($url, ['seo' => ['title' => 'Mine'], 'base_updated_at' => $base])->assertStatus(422)
+            ->assertJsonPath('meta.stale.by', null)
+            ->assertJsonPath('errors.stale.0', fn (string $m) => str_starts_with($m, 'Somebody saved this at '));
+    }
+
     public function test_a_save_from_the_current_version_goes_through(): void
     {
         $page = $this->page();

@@ -128,6 +128,8 @@ class LandingPageController extends Controller
 
         LandingPageResource::compareAgainst($this->comparisonSet());
 
+        StaleGuard::touch($landingPage);
+
         return response()->json([
             'data' => (new LandingPageResource($landingPage->fresh()->loadMissing(['brand', 'category', 'solution', 'service', 'location', 'seo', 'faqs'])))->toArray($request),
         ]);

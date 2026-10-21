@@ -116,6 +116,8 @@ class ProductController extends Controller
             $this->saveCustomFields($product, $custom);
         });
 
+        StaleGuard::touch($product);
+
         return new ProductResource($product->fresh($this->detailRelations()));
     }
 

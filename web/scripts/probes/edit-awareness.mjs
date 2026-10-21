@@ -12,8 +12,8 @@ import { chromium } from "playwright";
  * deletes all three at the end. No credential is in this file.
  *
  * What it checks:
- *   1. each editor's strip says the other "has this open" within 45s (one
- *      20-second beat after both pages have hydrated, with slack);
+ *   1. each editor's strip says the other "has this open" within two minutes
+ *      (a 20-second beat once both pages have hydrated; a cold dev page takes a minute);
  *   2. after A saves, B's save is refused with the stale alert, and B's typed
  *      title is still in the field;
  *   3. "Load the newer version" reloads, the draft bar offers Restore, and
@@ -111,9 +111,11 @@ try {
   await open(pb);
 
   // 1. Each sees the other.
-  const sees = (p, who) => p.locator("[data-edit-presence]").getByText(`${who} has this open.`).waitFor({ timeout: 45000 }).then(() => true, () => false);
+  const sees = (p, who) => p.locator("[data-edit-presence]").getByText(`${who} has this open.`).waitFor({ timeout: 120000 }).then(() => true, () => false);
   ok(await sees(pb, a.name), "B sees A has it open");
-  ok(await sees(pa, b.name), "A sees B has it open");
+  ok(await sees(pa, b.name), "A sees B has it open (opening a page is not editing it)");
+  await pb.locator('input[name="title"]').pressSequentially(" draft", { delay: 20 });
+  ok(await pa.locator("[data-edit-presence]").getByText(`${b.name} is also editing this — unsaved changes.`).waitFor({ timeout: 120000 }).then(() => true, () => false), "once B types, A sees B is editing");
 
   // 2. A saves; B's save is refused with B's typing kept.
   await pa.waitForTimeout(1100); // the guard compares to the second
@@ -127,7 +129,7 @@ try {
   ok(await freshTitle() === `A title ${stamp}`, "A's version was not overwritten");
 
   // 3. Load the newer version, restore, save.
-  await Promise.all([pb.waitForEvent("load", { timeout: T }), pb.getByRole("button", { name: "Load the newer version" }).click()]);
+  await Promise.all([pb.waitForEvent("load", { timeout: T }), pb.getByRole("button", { name: "Load the newer version" }).click({ noWaitAfter: true })]);
   const restore = pb.getByRole("button", { name: "Restore" });
   ok(await restore.waitFor({ timeout: T }).then(() => true, () => false), "after the reload the draft bar offers Restore");
   await restore.click();

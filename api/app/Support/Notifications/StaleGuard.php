@@ -59,14 +59,33 @@ final class StaleGuard
         ], 422));
     }
 
+    /**
+     * A save is a newer version even when it changed only related rows — the
+     * SEO override, FAQs, answer blocks, custom fields, a relation list — which
+     * Eloquent does not count as a change of the record. The last line before
+     * each of the fourteen update methods answers. Quietly: no revision, no
+     * recheck, no webhook for a timestamp.
+     */
+    public static function touch(Model $model): void
+    {
+        $model->touchQuietly();
+    }
+
     /** The newest version's author, from page history. @return array{id: ?int, name: ?string}|null */
     public static function lastSavedBy(Model $model): ?array
     {
         $alias = Revisions::aliasFor($model);
         $row = $alias === null ? null : ContentRevision::query()
             ->where('subject_type', $alias)->where('subject_id', $model->getKey())
-            ->orderByDesc('id')->first(['user_id', 'actor_name']);
+            ->orderByDesc('id')->first(['user_id', 'actor_name', 'updated_at']);
+        $stored = $model->getAttribute('updated_at');
 
-        return $row === null ? null : ['id' => $row->user_id, 'name' => $row->actor_name];
+        // A save that changed only related rows (SEO, FAQs) records no version: the newest version then
+        // predates the record's own time, and its author is not who saved last — so nobody is named.
+        if ($row === null || ($stored instanceof Carbon && $row->updated_at !== null && $row->updated_at->lt($stored->copy()->subSeconds(2)))) {
+            return null;
+        }
+
+        return ['id' => $row->user_id, 'name' => $row->actor_name];
     }
 }

@@ -126,6 +126,8 @@ class ServiceController extends Controller
             $this->saveCustomFields($service, $custom);
         });
 
+        StaleGuard::touch($service);
+
         return new ServiceResource($service->fresh(['category', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 

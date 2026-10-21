@@ -314,6 +314,8 @@ class PageController extends Controller
             $this->saveCustomFields($page, $custom);
         });
 
+        StaleGuard::touch($page);
+
         return new PageResource($page->fresh(['faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 

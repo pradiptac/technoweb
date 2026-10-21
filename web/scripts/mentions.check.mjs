@@ -1,6 +1,6 @@
 // node --experimental-strip-types scripts/mentions.check.mjs
 // Pins the @-mention text helpers (C2, docs/notifications.md).
-import { findMentionQuery, insertMention, mentionSegments, mentionIdsFrom } from "../src/lib/mentions.ts";
+import { findMentionQuery, insertMention, keepMentioned, mentionSegments, mentionIdsFrom } from "../src/lib/mentions.ts";
 
 let failed = 0;
 const ok = (c, l) => { console.log(`${c ? "ok  " : "FAIL"} ${l}`); if (!c) failed++; };
@@ -24,6 +24,11 @@ ok(JSON.stringify(mentionIdsFrom("not json")) === "[]", "a broken value is no id
 ok(JSON.stringify(mentionIdsFrom('{"a":1}')) === "[]", "an object is no ids");
 ok(JSON.stringify(mentionIdsFrom(["7", "7", "0", "abc", "9"])) === "[7,9]", "the form's mentions[] values are read the same way");
 ok(JSON.stringify(mentionIdsFrom([{}, [], null])) === "[]", "a value that is not a number or a string is dropped");
+
+const asha = { id: 1, name: "Asha Rao" };
+const ravi = { id: 2, name: "Ravi Menon" };
+ok(keepMentioned([asha, ravi], "Over to @asha rao, thanks").map((p) => p.id).join() === "1", "after a refused submit, people still named in the text are kept");
+ok(keepMentioned([asha, ravi], "").length === 0, "after a successful submit the box is empty and nobody is kept");
 
 console.log(failed ? `\n${failed} failed` : "\nall passed");
 process.exit(failed ? 1 : 0);
