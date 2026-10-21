@@ -12,12 +12,14 @@ class StaffPreference extends Model
     protected $fillable = [
         'user_id', 'digest', 'digest_hour', 'digest_weekday', 'digest_skip_quiet', 'alerts',
         'alert_email', 'alert_push', 'quiet_start', 'quiet_end', 'last_digest_at', 'last_digest_figures',
+        'notify_mentions',
     ];
 
     /** In step with the migration's defaults: an unsaved row reads the same as a saved one. */
     protected $attributes = [
         'digest' => 'weekly', 'digest_hour' => 8, 'digest_weekday' => 1, 'digest_skip_quiet' => false,
         'alert_email' => true, 'alert_push' => true, 'quiet_start' => '21:00', 'quiet_end' => '08:00',
+        'notify_mentions' => true,
     ];
 
     protected function casts(): array
@@ -25,7 +27,7 @@ class StaffPreference extends Model
         return [
             'digest_hour' => 'integer', 'digest_weekday' => 'integer', 'digest_skip_quiet' => 'boolean',
             'alerts' => 'array', 'alert_email' => 'boolean', 'alert_push' => 'boolean',
-            'last_digest_at' => 'datetime', 'last_digest_figures' => 'array',
+            'last_digest_at' => 'datetime', 'last_digest_figures' => 'array', 'notify_mentions' => 'boolean',
         ];
     }
 

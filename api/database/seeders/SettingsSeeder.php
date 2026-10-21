@@ -1693,7 +1693,11 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
     {
         $rules = ['ticket_critical_unassigned', 'ticket_overdue', 'lead_hot_untouched', 'order_not_dispatched',
             'return_waiting', 'mail_stalled', 'backup_failed', 'health_drop'];
-        $rows = [['group' => 'alerts', 'key' => 'alerts_default_digest', 'value' => 'weekly', 'type' => 'string']];
+        $rows = [
+            ['group' => 'alerts', 'key' => 'alerts_default_digest', 'value' => 'weekly', 'type' => 'string'],
+            // C2 (docs/notifications.md): mention and assignment emails and push, for everybody.
+            ['group' => 'alerts', 'key' => 'alerts_mentions_enabled', 'value' => '1', 'type' => 'boolean'],
+        ];
         foreach ($rules as $rule) {
             $rows[] = ['group' => 'alerts', 'key' => 'alert_'.$rule.'_enabled', 'value' => '1', 'type' => 'boolean'];
         }

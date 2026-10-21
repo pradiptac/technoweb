@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\Role as RoleEnum;
+use App\Support\Notifications\ScreenAccess;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
@@ -182,6 +183,34 @@ class AdminNavRolesTest extends TestCase
             12,
             $checked,
             'Almost nothing was compared, so this test proves nothing — the path shapes changed.',
+        );
+    }
+
+    /**
+     * The bell's screen check (C2, docs/notifications.md) is a PHP copy of the
+     * sidebar's rows and SCREEN_GATES; it must be the same list, row for row.
+     * Only the NAV array is read — the account link and the palette's
+     * sections below it are not rows `screenRole()` matches on.
+     */
+    public function test_screen_access_mirrors_the_sidebar(): void
+    {
+        $source = file_get_contents(base_path('../web/src/app/admin/(app)/nav-items.tsx'));
+        $nav = substr($source, 0, (int) strpos($source, 'const NEON_COUNT'));
+        preg_match_all('/\{[^{}]*href:\s*"(\/admin[^"]*)"[^{}]*\}/', $nav, $m, PREG_SET_ORDER);
+        $rows = array_map(function (array $x): array {
+            preg_match('/role:\s*"([a-z_,]+)"/', $x[0], $r);
+
+            return [$x[1], $r[1] ?? null, preg_match('/exact:\s*true/', $x[0]) === 1];
+        }, $m);
+
+        $this->assertSame($rows, ScreenAccess::ROWS, 'Regenerate ScreenAccess::ROWS from the NAV array in nav-items.tsx.');
+
+        preg_match_all('/\{\s*match:\s*\/(.+?)\/,\s*role:\s*"([a-z_,]+)"\s*\}/', $source, $g, PREG_SET_ORDER);
+        $this->assertNotEmpty($g, 'SCREEN_GATES moved or changed shape; this test needs its new form.');
+        $this->assertSame(
+            array_map(fn (array $x) => ['#'.str_replace('\/', '/', $x[1]).'#', $x[2]], $g),
+            ScreenAccess::GATES,
+            'ScreenAccess::GATES must match SCREEN_GATES.',
         );
     }
 }

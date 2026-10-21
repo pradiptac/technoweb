@@ -44,7 +44,9 @@ use App\Notifications\ReturnStatusChanged;
 use App\Notifications\ReviewRequested;
 use App\Notifications\SignInCodeIssued;
 use App\Notifications\StaffAlerts;
+use App\Notifications\StaffAssigned;
 use App\Notifications\StaffDigest;
+use App\Notifications\StaffMentioned;
 use App\Notifications\TicketAcknowledged;
 use App\Notifications\TicketCreated;
 use App\Notifications\TicketMerged;
@@ -1237,6 +1239,37 @@ IFSC HDFC0001234</pre><p>Quote <strong>ORD-2026-00117</strong> as the reference 
                 ],
                 'subject' => '{{count}} things need you',
                 'body' => '<p>Hello {{name}},</p>{{alerts}}<p><a href="{{url}}">Choose which alerts you get</a></p>',
+            ],
+
+            /* The bell's emails (0.187.0, docs/notifications.md): one line naming the record, never the note. */
+            'staff_mentioned' => [
+                'label' => 'Mentioned — to a staff member',
+                'description' => 'Sent when a colleague mentions somebody in a note on a ticket, a lead, an order or a page. It names the record and never quotes the note.',
+                'audience' => self::INTERNAL,
+                'class' => StaffMentioned::class,
+                'variables' => [
+                    'name' => ['about' => 'The staff member’s name.', 'sample' => 'Priya Sharma'],
+                    'line' => ['about' => 'What happened, in one sentence.', 'sample' => 'Asha mentioned you on ticket TW-2026-00041.'],
+                    'url' => ['about' => 'The record in the console.', 'sample' => 'https://www.example.com/admin/tickets/TW-2026-00041'],
+                    'preferences_url' => ['about' => 'Where to choose what arrives.', 'sample' => 'https://www.example.com/admin/profile'],
+                ],
+                'subject' => '{{line}}',
+                'body' => '<p>Hello {{name}},</p><p>{{line}}</p><p><a href="{{url}}">Open it</a></p><p><a href="{{preferences_url}}">Choose what reaches you</a></p>',
+            ],
+
+            'staff_assigned' => [
+                'label' => 'Assigned — to a staff member',
+                'description' => 'Sent when a ticket, a lead or a visit is assigned to somebody, a meeting is booked with them, or a customer replies on their ticket.',
+                'audience' => self::INTERNAL,
+                'class' => StaffAssigned::class,
+                'variables' => [
+                    'name' => ['about' => 'The staff member’s name.', 'sample' => 'Priya Sharma'],
+                    'line' => ['about' => 'What happened, in one sentence.', 'sample' => 'Asha assigned TW-2026-00041 to you.'],
+                    'url' => ['about' => 'The record in the console.', 'sample' => 'https://www.example.com/admin/tickets/TW-2026-00041'],
+                    'preferences_url' => ['about' => 'Where to choose what arrives.', 'sample' => 'https://www.example.com/admin/profile'],
+                ],
+                'subject' => '{{line}}',
+                'body' => '<p>Hello {{name}},</p><p>{{line}}</p><p><a href="{{url}}">Open it</a></p><p><a href="{{preferences_url}}">Choose what reaches you</a></p>',
             ],
 
             /* The digest (0.185.0, docs/digest-alerts.md): the copilot's figures for this person's roles. */
