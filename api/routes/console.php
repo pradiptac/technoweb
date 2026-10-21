@@ -369,6 +369,10 @@ Schedule::command('technoware:health-sweep')->dailyAt('02:50');
 // Search by meaning (0.182.0, docs/semantic-search.md): catch what saves missed, embed what waits.
 Schedule::command('technoware:index-search')->dailyAt('03:10');
 
+// Native analytics (0.188.0, docs/analytics.md): close the day into totals, then drop raw hits past 90 days.
+Schedule::command('technoware:analytics-rollup')->dailyAt('00:20')->withoutOverlapping();
+Schedule::command('technoware:prune-analytics-hits')->dailyAt('03:55');
+
 /*
  * While a restore is replacing the database, nothing else runs: no queue
  * drain (a campaign batch, a reminder, a webhook would write into tables
