@@ -27,6 +27,8 @@ use App\Models\StoreProduct;
 use App\Models\StoreTag;
 use App\Models\Tender;
 use App\Support\AeoScore;
+use App\Support\Analytics\Collector;
+use App\Support\Analytics\Report;
 use App\Support\EntityLinks;
 use App\Support\GeoScore;
 use App\Support\Health\Kinds;
@@ -280,9 +282,10 @@ class SeoController extends Controller
                 ],
                 // Google Analytics: the same three answers about the other column.
                 'analytics' => [
-                    'configured' => GoogleAnalytics::configured(),
-                    'days' => GoogleAnalytics::DAYS,
-                    'error' => GoogleAnalytics::lastError(),
+                    'configured' => Collector::enabled() || GoogleAnalytics::configured(),
+                    'source' => Collector::enabled() ? 'native' : (GoogleAnalytics::configured() ? 'ga4' : null),
+                    'days' => Collector::enabled() ? 28 : GoogleAnalytics::DAYS,
+                    'error' => Collector::enabled() ? null : GoogleAnalytics::lastError(),
                 ],
                 'types' => array_map(
                     fn ($type, $entity) => ['value' => $type, 'label' => $entity[3]],
@@ -727,7 +730,7 @@ class SeoController extends Controller
         // there is nothing to say, and the filter yields nothing rather than
         // everything.
         if ($request->string('analytics')->value() === 'no_views') {
-            $rows = ! GoogleAnalytics::configured()
+            $rows = ! (Collector::enabled() || GoogleAnalytics::configured())
                 ? []
                 : array_filter($rows, fn ($r) => $r['analytics'] === null && (! SearchConsole::configured() || $r['search'] !== null));
         }
@@ -834,7 +837,7 @@ class SeoController extends Controller
      */
     private function withAnalytics(array $rows): array
     {
-        $pages = GoogleAnalytics::pages();
+        $pages = Collector::enabled() ? Report::pages(28) : GoogleAnalytics::pages();
 
         foreach ($rows as $i => $row) {
             $path = '/'.trim((string) $row['public_path'], '/');

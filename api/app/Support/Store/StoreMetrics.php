@@ -13,6 +13,8 @@ use App\Models\OrderReturn;
 use App\Models\ProductReview;
 use App\Models\StoreProduct;
 use App\Models\WishlistItem;
+use App\Support\Analytics\Collector;
+use App\Support\Analytics\Report;
 use App\Support\Seo\GoogleAnalytics;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -228,17 +230,18 @@ class StoreMetrics
      * rate. A measured zero stays zero, and then the rate is null again,
      * because two orders over no views is not 200%.
      *
-     * @return array{product_views: int|null, paid_orders: int, views_to_orders: float|null}
+     * @return array{product_views: int|null, paid_orders: int, views_to_orders: float|null, views_source: string|null}
      */
     private static function funnel(Carbon $since): array
     {
-        $views = GoogleAnalytics::productViews($since, Carbon::today());
+        $views = Collector::enabled() ? Report::productViews($since, Carbon::today()) : GoogleAnalytics::productViews($since, Carbon::today());
         $paid = Order::paid()->where('created_at', '>=', $since)->count();
 
         return [
             'product_views' => $views,
             'paid_orders' => $paid,
             'views_to_orders' => $views !== null && $views > 0 ? round($paid / $views, 4) : null,
+            'views_source' => Collector::enabled() ? 'native' : (GoogleAnalytics::configured() ? 'ga4' : null),
         ];
     }
 

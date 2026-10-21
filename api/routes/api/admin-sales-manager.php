@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('role:sales_manager')->group(function () {
     Route::get('leads/export', [LeadController::class, 'export'])->name('leads.export');
 
+    Route::get('leads/sources', [LeadController::class, 'sources'])->name('leads.sources');
+
     Route::get('leads', [LeadController::class, 'index'])->name('leads.index');
     Route::get('leads/{lead}', [LeadController::class, 'show'])->name('leads.show');
     Route::patch('leads/{lead}', [LeadController::class, 'update'])->name('leads.update');

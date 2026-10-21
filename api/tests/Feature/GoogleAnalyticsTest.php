@@ -71,6 +71,14 @@ tLOqLw4WZIMrFRXUZ6GtnSFUereLhn+H2V93BNx5NPgSTZt++l5R8BxWneAx6DK7
 -----END PRIVATE KEY-----
 PEM;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // These tests are about the GA4 fallback; native counts (C3) take the overview and the funnel whenever they are on.
+        Setting::updateOrCreate(['key' => 'native_analytics_enabled'], ['group' => 'analytics', 'type' => 'boolean', 'value' => '0']);
+        Setting::flushCache();
+    }
+
     private function admin(): User
     {
         $user = User::firstOrCreate(['email' => 'admin@example.test'], ['name' => 'Admin', 'password' => 'password-for-tests', 'is_active' => true]);
@@ -249,7 +257,7 @@ PEM;
         });
 
         $res = $this->actingAs($this->seoManager())->getJson('/api/v1/admin/seo?type=solution')->assertOk()->json();
-        $this->assertSame(['configured' => true, 'days' => 28, 'error' => null], $res['meta']['analytics']);
+        $this->assertSame(['configured' => true, 'source' => 'ga4', 'days' => 28, 'error' => null], $res['meta']['analytics']);
         $rows = collect($res['data']);
         $this->assertSame(['views' => 150, 'users' => 100], $rows->firstWhere('slug', 'networking')['analytics']);
         $this->assertNull($rows->firstWhere('slug', 'storage')['analytics'], 'a page nobody opened is null, not zero');

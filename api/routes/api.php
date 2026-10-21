@@ -52,6 +52,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             require __DIR__.'/api/admin-revisions.php';
             require __DIR__.'/api/admin-health.php';
             require __DIR__.'/api/admin-detail-templates.php';
+            require __DIR__.'/api/admin-analytics.php';
         });
     });
 });

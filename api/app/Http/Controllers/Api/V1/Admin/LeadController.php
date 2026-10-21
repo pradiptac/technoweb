@@ -9,6 +9,7 @@ use App\Http\Resources\Admin\LeadResource;
 use App\Models\Lead;
 use App\Models\LeadNote;
 use App\Models\User;
+use App\Support\Analytics\Report;
 use App\Support\Money;
 use App\Support\Newsletter\Csv;
 use App\Support\Notifications\Mentions;
@@ -177,6 +178,24 @@ class LeadController extends Controller
 
             fclose($handle);
         }, 'leads-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    /** Which channels brought enquiries and paid orders, from the native counts (C3). */
+    public function sources(Request $request): JsonResponse
+    {
+        [$from, $to] = AnalyticsController::range($request);
+        $rows = [];
+        foreach (['enquiry' => 'enquiries', 'order_paid' => 'orders_paid'] as $kind => $column) {
+            foreach (Report::breakdown('channel', $from, $to, $kind, 100) as $r) {
+                $rows[$r['key']] ??= ['channel' => $r['key'], 'label' => $r['label'], 'enquiries' => 0, 'orders_paid' => 0, 'revenue_paise' => 0];
+                $rows[$r['key']][$column] = $r['views'];
+                $rows[$r['key']]['revenue_paise'] += $r['value_paise'];
+            }
+        }
+        $rows = array_values($rows);
+        usort($rows, fn ($a, $b) => [$b['enquiries'], $b['orders_paid']] <=> [$a['enquiries'], $a['orders_paid']]);
+
+        return response()->json(['data' => $rows]);
     }
 
     public function show(Lead $lead): JsonResource
