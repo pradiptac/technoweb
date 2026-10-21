@@ -6,6 +6,7 @@ use App\Models\AnalyticsHit;
 use App\Models\NewsletterGroup;
 use App\Models\Order;
 use App\Models\Setting;
+use App\Models\User;
 use App\Support\Analytics\Conversions;
 use App\Support\Newsletter\SubscriberIntake;
 use Database\Seeders\SettingsSeeder;
@@ -35,6 +36,29 @@ class AnalyticsConversionsTest extends TestCase
         $this->assertSame('/solutions/wifi', $hit->path);
         $this->assertSame('social', $hit->channel);
         $this->assertSame('linkedin', $hit->source);
+    }
+
+    public function test_a_conversion_made_by_a_signed_in_staff_member_is_not_counted(): void
+    {
+        $staff = User::create(['name' => 'Desk', 'email' => 'desk@technoware.in', 'password' => 'password-for-tests', 'is_active' => true]);
+
+        $this->withHeader('Authorization', 'Bearer '.$staff->createToken('admin')->plainTextToken)
+            ->postJson('/api/v1/enquiries', [
+                'name' => 'Priya', 'email' => 'priya@meridian.test', 'message' => 'We need twenty access points for two floors.',
+            ])->assertSuccessful();
+
+        $this->assertSame(0, AnalyticsHit::count());
+    }
+
+    public function test_an_order_paid_is_counted_whoever_reports_it(): void
+    {
+        $staff = User::create(['name' => 'Desk', 'email' => 'desk@technoware.in', 'password' => 'password-for-tests', 'is_active' => true]);
+        $this->actingAs($staff, 'sanctum');
+
+        $order = Order::create(['status' => 'pending_payment', 'subtotal_paise' => 118000, 'taxable_paise' => 100000, 'gst_paise' => 18000, 'total_paise' => 118000, 'customer_name' => 'N', 'customer_email' => 'n@example.test', 'placed_at' => now()]);
+        $order->update(['paid_at' => now(), 'status' => 'paid']);
+
+        $this->assertSame(1, AnalyticsHit::where('kind', 'order_paid')->count());
     }
 
     public function test_an_order_placed_and_paid_are_two_conversions_with_a_value(): void

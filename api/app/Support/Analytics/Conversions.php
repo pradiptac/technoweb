@@ -2,6 +2,7 @@
 
 namespace App\Support\Analytics;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Throwable;
 
@@ -15,6 +16,11 @@ final class Conversions
             $request = app()->bound('request') ? request() : null;
             if (! $request instanceof Request || app()->runningInConsole() && ! app()->runningUnitTests()) {
                 return; // A conversion made by a command or a worker has no visitor to attribute it to.
+            }
+            // Staff entering a lead or a registration at the desk are not visitors. A payment is the
+            // exception: money arrived whoever records it, so order_paid is counted from a staff request too.
+            if ($kind !== 'order_paid' && $request->user('sanctum') instanceof User) {
+                return;
             }
             Collector::record($request, $kind, [
                 'page' => $page,

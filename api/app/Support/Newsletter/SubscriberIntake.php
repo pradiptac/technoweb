@@ -93,7 +93,7 @@ class SubscriberIntake
 
             // A public signup is a conversion; an import, a sync or a desk entry is not.
             if (in_array($source, ['signup', 'banner'], true)) {
-                Conversions::record('newsletter_signup', PageContext::from(request()));
+                rescue(fn () => Conversions::record('newsletter_signup', PageContext::from(request())), report: false);
             }
 
             return self::result(self::CREATED, $subscriber);
