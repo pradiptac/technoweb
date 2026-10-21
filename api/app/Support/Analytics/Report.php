@@ -109,8 +109,9 @@ final class Report
             ->selectRaw('target, COUNT(*) as n, MAX(results) as best')->groupBy('target')->orderByDesc('n')->limit(100)->get();
 
         return [
-            'terms' => $raw->take(25)->map(fn ($r) => ['term' => $r->target, 'searches' => (int) $r->n, 'results' => (int) $r->best])->values()->all(),
-            'nothing' => $raw->where('best', 0)->take(25)->map(fn ($r) => ['term' => $r->target, 'searches' => (int) $r->n])->values()->all(),
+            'terms' => $raw->take(25)->map(fn ($r) => ['term' => $r->target, 'searches' => (int) $r->n, 'results' => $r->best === null ? null : (int) $r->best])->values()->all(),
+            // A NULL max means the count was never recorded, not that nothing was found.
+            'nothing' => $raw->filter(fn ($r) => $r->best !== null && (int) $r->best === 0)->take(25)->map(fn ($r) => ['term' => $r->target, 'searches' => (int) $r->n])->values()->all(),
         ];
     }
 
