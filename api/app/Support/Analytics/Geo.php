@@ -37,27 +37,53 @@ final class Geo
             return null;
         }
         $bytes = strlen($packed);
-        $table = self::table($bytes === 4 ? 'country-v4.bin' : 'country-v6.bin');
 
-        return $table === null ? null : self::search($table, $packed, $bytes);
+        return self::searchFile(resource_path('geo/'.($bytes === 4 ? 'country-v4.bin' : 'country-v6.bin')), $packed, $bytes);
     }
 
-    /** Binary search over records of `$bytes * 2 + 2`. */
+    /** Binary search over records of `$bytes * 2 + 2` in a packed string. */
     public static function search(string $table, string $packed, int $bytes): ?string
     {
         $width = $bytes * 2 + 2;
+
+        return self::find(intdiv(strlen($table), $width), fn (int $i): string => substr($table, $i * $width, $width), $packed, $bytes);
+    }
+
+    /** The same search over a file, one record read per probe; the handle is opened once per process. A missing file is null. */
+    public static function searchFile(string $path, string $packed, int $bytes): ?string
+    {
+        static $handles = [];
+        if (! array_key_exists($path, $handles)) {
+            $handles[$path] = is_file($path) ? (fopen($path, 'rb') ?: null) : null;
+        }
+        $fh = $handles[$path];
+        if ($fh === null) {
+            return null;
+        }
+        $width = $bytes * 2 + 2;
+        $size = fstat($fh)['size'] ?? 0;
+
+        return self::find(intdiv($size, $width), function (int $i) use ($fh, $width): string {
+            fseek($fh, $i * $width);
+
+            return (string) fread($fh, $width);
+        }, $packed, $bytes);
+    }
+
+    /** @param \Closure(int): string $record record i as raw bytes */
+    private static function find(int $count, \Closure $record, string $packed, int $bytes): ?string
+    {
         $lo = 0;
-        $hi = intdiv(strlen($table), $width) - 1;
+        $hi = $count - 1;
         while ($lo <= $hi) {
             $mid = intdiv($lo + $hi, 2);
-            $start = substr($table, $mid * $width, $bytes);
-            $end = substr($table, $mid * $width + $bytes, $bytes);
-            if (strcmp($packed, $start) < 0) {
+            $row = $record($mid);
+            if (strcmp($packed, substr($row, 0, $bytes)) < 0) {
                 $hi = $mid - 1;
-            } elseif (strcmp($packed, $end) > 0) {
+            } elseif (strcmp($packed, substr($row, $bytes, $bytes)) > 0) {
                 $lo = $mid + 1;
             } else {
-                return substr($table, $mid * $width + $bytes * 2, 2);
+                return substr($row, $bytes * 2, 2);
             }
         }
 
@@ -73,16 +99,5 @@ final class Geo
         }
 
         return $out;
-    }
-
-    private static function table(string $name): ?string
-    {
-        static $cache = [];
-        if (! array_key_exists($name, $cache)) {
-            $path = resource_path('geo/'.$name);
-            $cache[$name] = is_file($path) ? (string) file_get_contents($path) : null;
-        }
-
-        return $cache[$name];
     }
 }

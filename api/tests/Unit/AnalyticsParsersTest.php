@@ -75,6 +75,22 @@ class AnalyticsParsersTest extends TestCase
         $this->assertNull(Geo::search($v4, inet_pton('9.9.9.9'), 4));
     }
 
+    public function test_the_file_search_agrees_with_the_string_search(): void
+    {
+        $bytes = Geo::pack([['1.0.0.0', '1.0.0.255', 'AU'], ['1.0.1.0', '1.0.3.255', 'CN'], ['9.0.0.0', '9.0.0.9', 'DE']], 4);
+        $path = tempnam(sys_get_temp_dir(), 'geo');
+        file_put_contents($path, $bytes);
+
+        foreach (['1.0.0.0', '1.0.2.9', '9.0.0.9', '5.5.5.5', '0.0.0.1', '9.0.0.10'] as $ip) {
+            $this->assertSame(Geo::search($bytes, inet_pton($ip), 4), Geo::searchFile($path, inet_pton($ip), 4), $ip);
+        }
+        $this->assertSame('AU', Geo::searchFile($path, inet_pton('1.0.0.0'), 4), 'first record');
+        $this->assertSame('DE', Geo::searchFile($path, inet_pton('9.0.0.9'), 4), 'last record');
+        $this->assertNull(Geo::searchFile($path, inet_pton('5.5.5.5'), 4), 'a gap');
+        $this->assertNull(Geo::searchFile($path.'-missing', inet_pton('1.0.0.0'), 4), 'a missing file');
+        unlink($path);
+    }
+
     public function test_the_committed_table_knows_a_well_known_address(): void
     {
         $this->assertSame('US', Geo::lookup('8.8.8.8'));
