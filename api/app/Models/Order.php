@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
+use App\Support\Analytics\Conversions;
 use App\Support\References;
 use App\Support\Store\Invoice\Invoices;
 use App\Support\Store\Zoho\ZohoInvoices;
@@ -106,8 +107,11 @@ class Order extends Model
          * settled it or `ManualPayment` recorded it — and `order.status_changed`
          * reads the column; `moveTo(Paid)` changes both and sends both.
          */
+        static::created(fn (self $order) => Conversions::record('order_placed', null, (int) $order->total_paise, $order->order_number));
+
         static::updated(function (self $order) {
             if ($order->wasChanged('paid_at') && $order->getOriginal('paid_at') === null && $order->paid_at !== null) {
+                Conversions::record('order_paid', null, (int) $order->total_paise, $order->order_number);
                 Webhooks::emit(WebhookEvent::OrderPaid, fn () => WebhookPayload::order($order));
             }
 

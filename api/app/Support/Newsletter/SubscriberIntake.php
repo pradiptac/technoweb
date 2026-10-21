@@ -6,6 +6,8 @@ use App\Enums\SubscriberStatus;
 use App\Models\NewsletterGroup;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterSuppression;
+use App\Support\Analytics\Conversions;
+use App\Support\Crm\PageContext;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -88,6 +90,11 @@ class SubscriberIntake
             // group-less sequences hear about a new one. The group-triggered
             // sequences heard from `join()` a line above.
             Sequences::onActivated($subscriber);
+
+            // A public signup is a conversion; an import, a sync or a desk entry is not.
+            if (in_array($source, ['signup', 'banner'], true)) {
+                Conversions::record('newsletter_signup', PageContext::from(request()));
+            }
 
             return self::result(self::CREATED, $subscriber);
         }

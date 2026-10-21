@@ -10,6 +10,7 @@ use App\Models\ProductReview;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Models\StoreTag;
+use App\Support\Analytics\Conversions;
 use App\Support\EntityLinks;
 use App\Support\Store\ProductFeed;
 use App\Support\Store\SpecFilter;
@@ -97,6 +98,10 @@ class StoreController extends Controller
             ->orderBy('name')
             ->paginate(min($request->integer('per_page', 24), 60))
             ->withQueryString();
+
+        if ($request->filled('q')) {
+            Conversions::search($request, 'shop', (string) $request->string('q'), $products->total());
+        }
 
         return ProductResource::collection($products);
     }

@@ -17,6 +17,7 @@ use App\Models\Service;
 use App\Models\Solution;
 use App\Models\StoreProduct;
 use App\Models\Tender;
+use App\Support\Analytics\Conversions;
 use App\Support\Events\EventText;
 use App\Support\HtmlSanitiser;
 use App\Support\Search\Indexable;
@@ -134,6 +135,8 @@ class SearchController extends Controller
             $this->downloads($term),
             $this->entries($like),
         ])->filter(fn (?array $g) => $g !== null)->values();
+
+        Conversions::search($request, 'site', $term, (int) $groups->sum('total'));
 
         return response()->json([
             'data' => [

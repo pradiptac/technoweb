@@ -12,6 +12,7 @@ use App\Models\FormSubmission;
 use App\Models\Lead;
 use App\Models\Meeting;
 use App\Models\VisitRequest;
+use App\Support\Analytics\Conversions;
 use App\Support\Meetings\MeetingText;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -253,7 +254,7 @@ class LeadIntake
                 'returning' => self::hasEnquiredBefore($contact['email'] ?? null),
             ]);
 
-            return Lead::create([
+            $lead = Lead::create([
                 ...$contact,
                 ...$page,
                 'source_type' => $source->getMorphClass(),
@@ -266,6 +267,12 @@ class LeadIntake
                 'score_reasons' => $score['reasons'],
                 'ip_address' => $request->ip(),
             ]);
+
+            Conversions::record(match ($channel) {
+                'visit' => 'visit_requested', 'meeting' => 'meeting_booked', 'event' => 'event_registered', default => 'enquiry'
+            }, $page);
+
+            return $lead;
         } catch (\Throwable $e) {
             Log::warning('Lead intake failed; the submission itself is stored.', [
                 'source' => $source->getMorphClass(),
