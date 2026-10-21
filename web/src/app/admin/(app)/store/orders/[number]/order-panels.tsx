@@ -7,6 +7,7 @@ import { useUploadForm } from "@/lib/hooks/use-upload-form";
 import { Form } from "@/components/ui/form";
 import { Button, ButtonAnchor } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { MentionField } from "@/components/admin/mention-field";
 import {
   addNoteAction, createZohoInvoiceAction, fulfilOrderAction, moveOrderAction, recordPaymentAction, recordRefundAction, saveInvoiceAction,
   saveShippingAction, sendZohoPaymentAction, shipmentAction, shipmentRatesAction,
@@ -579,9 +580,7 @@ export function NotePanel({ order }: { order: AdminOrder }) {
         </ul>
       )}
 
-      <Field label="Add a note" htmlFor="body">
-        <Textarea id="body" name="body" rows={3} maxLength={2000} />
-      </Field>
+      <MentionField scope="order" id="body" name="body" label="Add a note" maxLength={2000} hint="Type @ to mention a colleague." />
 
       <Button type="submit" size="sm" variant="secondary" pending={pending}>
         {pending ? "Adding…" : "Add note"}

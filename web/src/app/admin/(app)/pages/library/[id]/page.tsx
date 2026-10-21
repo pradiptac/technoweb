@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { RevisionPanel } from "@/components/admin/revision-panel";
+import { RecordNotesPanel } from "@/components/admin/record-notes-panel";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
 import { getPageBuilderOptions, getSavedSection } from "@/lib/admin";
@@ -50,6 +51,7 @@ export default async function EditLibraryItemPage({ params }: { params: Promise<
       >
         <Badge tone="progress">{item.kind === "template" ? "Page template" : (item.type_label ?? "Section")}</Badge>
         <span className="ml-auto flex items-center gap-2">
+          <RecordNotesPanel type="saved_section" id={item.id} />
           <RevisionPanel type="saved_section" id={item.id} />
         </span>
       </PageHeader>

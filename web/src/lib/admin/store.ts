@@ -472,10 +472,10 @@ export async function saveStoreOrderShipping(
   return res.data;
 }
 
-export async function addStoreOrderNote(orderNumber: string, body: string): Promise<AdminOrder> {
+export async function addStoreOrderNote(orderNumber: string, body: string, mentions: number[] = []): Promise<AdminOrder> {
   const res = await apiFetch<{ data: AdminOrder }>(
     `/admin/store/orders/${encodeURIComponent(orderNumber)}/notes`,
-    { method: "POST", body: { body }, token: await token() },
+    { method: "POST", body: { body, mentions }, token: await token() },
   );
   return res.data;
 }

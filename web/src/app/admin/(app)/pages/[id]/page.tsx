@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { RevisionPanel } from "@/components/admin/revision-panel";
+import { RecordNotesPanel } from "@/components/admin/record-notes-panel";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/input";
@@ -58,6 +59,7 @@ export default async function EditCmsPage({
       >
         <Badge tone={statusTone[page.status]}>{page.status_label}</Badge>
         <span className="ml-auto flex flex-wrap items-center gap-2">
+          <RecordNotesPanel type="page" id={page.id} />
           <RevisionPanel type="page" id={page.id} pageId={page.id} />
           <PreviewLinkPanel type="page" id={page.id} />
         </span>

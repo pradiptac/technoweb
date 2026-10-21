@@ -36,6 +36,7 @@ export * from "./pages";
 export * from "./presets";
 export * from "./detail-templates";
 export * from "./preview-links";
+export * from "./record-notes";
 export * from "./revisions";
 export * from "./seo";
 export * from "./settings";

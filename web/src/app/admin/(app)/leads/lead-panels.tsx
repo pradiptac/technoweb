@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { MentionField } from "@/components/admin/mention-field";
 import { Badge, leadBandTone } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import {
@@ -126,9 +127,7 @@ export function LeadNotes({ lead }: { lead: AdminLead }) {
 
       <Form action={formAction} state={state}>
         {state.error && <Alert tone="err" title="Could not add that">{state.error}</Alert>}
-        <Field label="Add a note" htmlFor="body">
-          <Textarea id="body" name="body" rows={3} />
-        </Field>
+        <MentionField scope="lead" id="body" name="body" label="Add a note" maxLength={2000} hint="Type @ to mention a colleague." />
         <Button type="submit" variant="secondary" size="sm" pending={pending}>
           {pending ? "Adding…" : "Add note"}
         </Button>

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { RevisionPanel } from "@/components/admin/revision-panel";
+import { RecordNotesPanel } from "@/components/admin/record-notes-panel";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
 import { getEventWithMeta, getPageBuilderOptions, type AdminEvent, type EventMeta } from "@/lib/admin";
@@ -42,6 +43,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
         <Badge tone={eventStatusTone(event.status)}>{event.status_label}</Badge>
 
         <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1">
+          <RecordNotesPanel type="event" id={event.id} />
           <RevisionPanel type="event" id={event.id} />
           <PreviewLinkPanel type="event" id={event.id} />
           {(event.registration_mode === "open" || held > 0) && (

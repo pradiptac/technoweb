@@ -52,8 +52,8 @@ export async function updateLead(id: number, payload: LeadUpdate): Promise<Admin
   return res.data;
 }
 
-export async function addLeadNote(id: number, body: string): Promise<void> {
-  await apiFetch(`/admin/leads/${id}/notes`, { method: "POST", body: { body }, token: await token() });
+export async function addLeadNote(id: number, body: string, mentions: number[] = []): Promise<void> {
+  await apiFetch(`/admin/leads/${id}/notes`, { method: "POST", body: { body, mentions }, token: await token() });
 }
 
 export async function deleteLead(id: number): Promise<void> {

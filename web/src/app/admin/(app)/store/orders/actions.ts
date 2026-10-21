@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { rupeesToPaise } from "@/lib/money";
+import { mentionIdsFrom } from "@/lib/mentions";
 import { ApiError } from "@/lib/api";
 import { generateOrderInvoice,
   addStoreOrderNote, createZohoInvoice, fulfilStoreOrder, moveStoreOrder, saveStoreOrderInvoice, saveStoreOrderShipping,
@@ -103,7 +104,7 @@ export async function addNoteAction(
   if (!orderNumber || !body) return { error: "Write something first." };
 
   try {
-    await addStoreOrderNote(orderNumber, body);
+    await addStoreOrderNote(orderNumber, body, mentionIdsFrom(formData.getAll("mentions[]")));
   } catch (error) {
     return toState(error, "We could not add the note.");
   }

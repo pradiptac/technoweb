@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { RevisionPanel } from "@/components/admin/revision-panel";
+import { RecordNotesPanel } from "@/components/admin/record-notes-panel";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
@@ -50,6 +51,7 @@ export default async function EditKnowledgeArticlePage({
       >
         <Badge tone={statusTone[article.status]}>{article.status_label}</Badge>
         <span className="ml-auto flex flex-wrap items-center gap-2">
+          <RecordNotesPanel type="knowledge_article" id={article.id} />
           <RevisionPanel type="knowledge_article" id={article.id} />
           <PreviewLinkPanel type="knowledge_article" id={article.id} />
         </span>

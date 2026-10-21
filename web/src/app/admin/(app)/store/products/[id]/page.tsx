@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { RevisionPanel } from "@/components/admin/revision-panel";
+import { RecordNotesPanel } from "@/components/admin/record-notes-panel";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
 import { getAnswerBlockKinds, getBrandOptions, getServiceOptions, getStoreCategories, getStoreProduct, getPageBuilderOptionsIfAllowed, getProductTaxMeta, getStoreTagNames } from "@/lib/admin";
@@ -59,6 +60,7 @@ export default async function EditStoreProductPage({
     <>
       <PageHeader back={{ href: "/admin/store/products", label: "Store products" }} title={product.name}>
         <div className="ml-auto flex items-center gap-2">
+          <RecordNotesPanel type="store_product" id={product.id} />
           <RevisionPanel type="store_product" id={product.id} />
           <PreviewLinkPanel type="store_product" id={product.id} />
           {!product.in_stock && <Badge tone="urgent">Out of stock</Badge>}

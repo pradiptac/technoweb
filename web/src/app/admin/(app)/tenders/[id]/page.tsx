@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ErrorState } from "@/components/ui/empty";
 import { RevisionPanel } from "@/components/admin/revision-panel";
+import { RecordNotesPanel } from "@/components/admin/record-notes-panel";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { getTenderWithMeta } from "@/lib/admin";
 import { ApiError } from "@/lib/api";
@@ -45,6 +46,7 @@ export default async function EditTenderPage({ params }: { params: Promise<{ id:
         <Badge tone={stateTone(tender.state)}>{tender.state_label}</Badge>
 
         <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1">
+          <RecordNotesPanel type="tender" id={tender.id} />
           <RevisionPanel type="tender" id={tender.id} />
           <PreviewLinkPanel type="tender" id={tender.id} />
           <DuplicateTender id={tender.id} title={tender.title} back={`/admin/tenders/${tender.id}`} />

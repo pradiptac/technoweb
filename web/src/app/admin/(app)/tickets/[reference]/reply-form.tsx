@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useUploadForm } from "@/lib/hooks/use-upload-form";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Select, Textarea } from "@/components/ui/input";
+import { Alert, Field, Select } from "@/components/ui/input";
+import { MentionField } from "@/components/admin/mention-field";
 import { FileDrop } from "@/components/ui/file-drop";
 import { AiRow } from "@/components/admin/writing/ai-row";
 import { AiWriteButton } from "@/components/admin/writing/ai-write-button";
@@ -114,10 +115,17 @@ export function ReplyForm({ reference, savedReplies = [] }: { reference: string;
           />
         </AiRow>
       )}
-      <Field label="Message" htmlFor="body" error={state.fieldErrors?.body?.[0]}>
-        <Textarea ref={bodyRef} id="body" name="body" rows={4} required
-          aria-invalid={Boolean(state.fieldErrors?.body)} />
-      </Field>
+      <MentionField
+        scope={internal ? "ticket" : ""}
+        inputRef={bodyRef}
+        id="body"
+        name="body"
+        label="Message"
+        rows={4}
+        required
+        error={state.fieldErrors?.body?.[0]}
+        hint={internal ? "Type @ to mention a colleague; they are told in their bell." : undefined}
+      />
 
       <Field label="Attachments" htmlFor="reply-attachments"
         hint={TICKET_ATTACHMENT_HINT} error={state.fieldErrors?.attachments?.[0]} variant="above">

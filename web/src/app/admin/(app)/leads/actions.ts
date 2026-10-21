@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { addLeadNote, deleteLead, updateLead, type LeadUpdate } from "@/lib/admin";
 import { ApiError } from "@/lib/api";
 import { rupeesToPaise } from "@/lib/money";
+import { mentionIdsFrom } from "@/lib/mentions";
 
 export type LeadActionState = { error?: string };
 
@@ -95,7 +96,7 @@ export async function addLeadNoteAction(
   }
 
   try {
-    await addLeadNote(id, body.trim());
+    await addLeadNote(id, body.trim(), mentionIdsFrom(formData.getAll("mentions[]")));
   } catch {
     return { error: "We could not add that note. Try again." };
   }
