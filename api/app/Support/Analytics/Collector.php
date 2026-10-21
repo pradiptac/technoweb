@@ -18,7 +18,7 @@ final class Collector
 {
     /** Paths never counted: the console, the portal, the API, and every page a secret addresses. */
     public const EXCLUDED = ['/admin', '/portal', '/api', '/_next', '/order/', '/newsletter/unsubscribe/', '/newsletter/rejoin/',
-        '/store/notify/cancel/', '/meeting/', '/visit/', '/ticket-survey/', '/events/registration/', '/preview/'];
+        '/store/notify/cancel/', '/store/wishlist/stop/', '/store/basket/restore/', '/meeting/', '/visit/', '/ticket-survey/', '/events/registration/', '/preview/'];
 
     private const PER_MINUTE = 120;
 
@@ -42,39 +42,45 @@ final class Collector
                 return null;
             }
             $path = self::path($data['path'] ?? ($data['page']['source_path'] ?? null));
-            if ($kind === 'pageview' && $path === null) {
+            // An event from a page that is never counted (or from no page of this site) is not counted either.
+            if (! $conversion && $path === null) {
                 return null;
             }
+
+            // One clock read: the stored day, the salt's day and the entry lookup all agree.
+            $now = now();
+            $day = $now->copy()->setTimezone((string) config('app.timezone'))->toDateString();
 
             // Per address, in the cache, so a flood is dropped silently and the endpoint still answers 204.
-            $limit = 'analytics:collect:'.$ip;
-            if (RateLimiter::tooManyAttempts($limit, self::PER_MINUTE)) {
-                return null;
+            // Server-side conversions are rare and must never be lost to a busy beacon address.
+            if (! $conversion) {
+                $limit = 'analytics:collect:'.$ip;
+                if (RateLimiter::tooManyAttempts($limit, self::PER_MINUTE)) {
+                    return null;
+                }
+                RateLimiter::hit($limit, 60);
             }
-            RateLimiter::hit($limit, 60);
 
-            $visitor = Visitor::hash($ip, (string) $ua);
-            $day = now()->setTimezone((string) config('app.timezone'))->toDateString();
+            $visitor = Visitor::hash($ip, (string) $ua, $day);
             $first = AnalyticsHit::query()->where('day', $day)->where('visitor', $visitor)->where('entry', true)->first();
             $own = (string) parse_url((string) config('app.frontend_url'), PHP_URL_HOST);
             $page = $data['page'] ?? null;
-            $pageUtm = ['source' => $page['utm_source'] ?? null, 'medium' => $page['utm_medium'] ?? null, 'campaign' => $page['utm_campaign'] ?? null];
-            // A conversion names its own source only when its page context carries one (R2); otherwise the visit's.
-            $reuse = $first !== null && ($conversion
-                ? empty($page['referrer']) && ! array_filter($pageUtm)
-                : ($kind !== 'pageview' || empty($data['referrer'])));
-            $source = $reuse
-                ? $first->only(['channel', 'source', 'medium', 'campaign', 'referrer_host'])
-                : Source::of($data['referrer'] ?? ($page['referrer'] ?? null), [
-                    'source' => $data['utm']['source'] ?? $pageUtm['source'],
-                    'medium' => $data['utm']['medium'] ?? $pageUtm['medium'],
-                    'campaign' => $data['utm']['campaign'] ?? $pageUtm['campaign'],
-                ], $own);
+            $referrer = $data['referrer'] ?? ($page['referrer'] ?? null);
+            $utm = [
+                'source' => $data['utm']['source'] ?? ($page['utm_source'] ?? null),
+                'medium' => $data['utm']['medium'] ?? ($page['utm_medium'] ?? null),
+                'campaign' => $data['utm']['campaign'] ?? ($page['utm_campaign'] ?? null),
+            ];
+            // Names a source of its own: a UTM tag, or a referrer that is not this site (R2).
+            $ownSource = array_filter($utm) !== [] || Source::of($referrer, [], $own)['referrer_host'] !== null;
+            // A later view or conversion keeps the visit's entry source; the other events always do.
+            $reuse = $first !== null && (! $ownSource || ! ($conversion || $kind === 'pageview'));
+            $source = $reuse ? $first->only(['channel', 'source', 'medium', 'campaign', 'referrer_host']) : Source::of($referrer, $utm, $own);
             $agent = AgentParser::parse($ua, isset($data['width']) ? (int) $data['width'] : null);
 
             return AnalyticsHit::create([
                 'day' => $day,
-                'at' => now(),
+                'at' => $now,
                 'kind' => $kind,
                 'path' => $path,
                 'visitor' => $visitor,

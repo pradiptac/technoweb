@@ -3,22 +3,25 @@
 namespace App\Support\Analytics;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 /** Who a hit belongs to, for one day only (C3). */
 final class Visitor
 {
-    /** The day's salt, replaced at midnight in the app's timezone; the key expires a day later. */
-    public static function salt(): string
+    /** The day's salt: made by the first hit of the day, gone at the end of that day in the app's timezone. */
+    public static function salt(string $day): string
     {
-        $day = now()->setTimezone((string) config('app.timezone'))->format('Y-m-d');
+        $key = "analytics:salt:{$day}";
+        // add() is atomic, so two first hits at midnight settle on one salt.
+        Cache::add($key, bin2hex(random_bytes(32)), Carbon::parse($day, (string) config('app.timezone'))->endOfDay());
 
-        return Cache::remember("analytics:salt:{$day}", now()->addHours(26), fn () => bin2hex(random_bytes(32)));
+        return (string) Cache::get($key);
     }
 
-    public static function hash(string $ip, string $ua): string
+    public static function hash(string $ip, string $ua, string $day): string
     {
-        return substr(hash('sha256', self::salt().'|'.$ip.'|'.$ua.'|'.parse_url((string) config('app.frontend_url'), PHP_URL_HOST), true), 0, 16);
+        return substr(hash('sha256', self::salt($day).'|'.$ip.'|'.$ua.'|'.parse_url((string) config('app.frontend_url'), PHP_URL_HOST), true), 0, 16);
     }
 
     /** The visitor's own browser: the Next server forwards it as X-Visitor-Agent, believed only from a trusted proxy. */

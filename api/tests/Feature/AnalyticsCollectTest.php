@@ -12,6 +12,7 @@ use App\Support\Analytics\Visitor;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
@@ -117,12 +118,78 @@ class AnalyticsCollectTest extends TestCase
 
     public function test_a_forwarded_agent_is_believed_only_from_a_trusted_proxy(): void
     {
-        $request = Request::create('/', 'POST', server: ['REMOTE_ADDR' => '127.0.0.1', 'HTTP_USER_AGENT' => 'node', 'HTTP_X_VISITOR_AGENT' => self::CHROME]);
-        $this->app->instance('request', $request);
-        $this->assertSame(self::CHROME, Visitor::agent($request));
+        $this->collect(['k' => 'pageview', 'p' => '/', 'w' => 1440], 'curl/8', '127.0.0.1', ['X-Visitor-Agent' => self::CHROME])->assertNoContent();
+        $this->assertSame('Chrome', AnalyticsHit::sole()->browser);
 
-        $direct = Request::create('/', 'POST', server: ['REMOTE_ADDR' => '198.51.100.9', 'HTTP_USER_AGENT' => 'real', 'HTTP_X_VISITOR_AGENT' => 'forged']);
-        $this->assertSame('real', Visitor::agent($direct));
+        AnalyticsHit::query()->delete();
+        $this->collect(['k' => 'pageview', 'p' => '/', 'w' => 1440], 'curl/8', '198.51.100.9', ['X-Visitor-Agent' => self::CHROME])->assertNoContent();
+        $this->assertSame(0, AnalyticsHit::count(), 'a forged agent is ignored, so the request is curl — a bot');
+    }
+
+    public function test_an_event_from_an_excluded_or_foreign_page_writes_nothing(): void
+    {
+        $this->collect(['k' => 'outbound', 'p' => '/order/ORD-2026-00001', 't' => 'https://maps.google.com/x'])->assertNoContent();
+        $this->collect(['k' => 'download', 'p' => 'https://evil.example/x', 't' => '/storage/a.pdf'])->assertNoContent();
+        $this->collect(['k' => 'outbound', 't' => 'https://maps.google.com/x'])->assertNoContent();
+        $this->assertSame(0, AnalyticsHit::count());
+    }
+
+    public function test_secret_bearing_pages_are_never_counted(): void
+    {
+        $this->collect(['k' => 'pageview', 'p' => '/store/wishlist/stop/'.str_repeat('a', 64)])->assertNoContent();
+        $this->collect(['k' => 'pageview', 'p' => '/store/basket/restore/'.str_repeat('a', 64)])->assertNoContent();
+        $this->assertSame(0, AnalyticsHit::count());
+    }
+
+    public function test_the_salt_ends_with_its_day(): void
+    {
+        $this->travelTo(now()->setTimezone(config('app.timezone'))->setTime(12, 0));
+        $day = now()->setTimezone(config('app.timezone'))->toDateString();
+        $this->collect(['k' => 'pageview', 'p' => '/', 'w' => 1440]);
+        $salt = Visitor::salt($day);
+        $this->assertTrue(Cache::has("analytics:salt:{$day}"));
+
+        $this->travelTo(now()->setTimezone(config('app.timezone'))->addDay()->startOfDay()->addSecond());
+        $this->assertFalse(Cache::has("analytics:salt:{$day}"), 'yesterday’s salt is not kept');
+        $this->assertNotSame($salt, Visitor::salt(now()->setTimezone(config('app.timezone'))->toDateString()));
+    }
+
+    public function test_a_view_from_this_sites_own_host_keeps_the_entry_source(): void
+    {
+        $this->collect(['k' => 'pageview', 'p' => '/', 'r' => 'https://www.linkedin.com/feed/', 'w' => 1440]);
+        $this->collect(['k' => 'pageview', 'p' => '/about', 'r' => config('app.frontend_url').'/', 'w' => 1440]);
+
+        $second = AnalyticsHit::orderBy('id')->get()[1];
+        $this->assertSame('LinkedIn', $second->source);
+    }
+
+    public function test_a_view_with_utm_tags_is_its_own_source(): void
+    {
+        $this->collect(['k' => 'pageview', 'p' => '/', 'r' => 'https://www.linkedin.com/feed/', 'w' => 1440]);
+        $this->collect(['k' => 'pageview', 'p' => '/about', 'u' => ['source' => 'newsletter', 'medium' => 'email'], 'w' => 1440]);
+
+        $second = AnalyticsHit::orderBy('id')->get()[1];
+        $this->assertFalse($second->entry);
+        $this->assertSame('email', $second->channel);
+        $this->assertSame('newsletter', $second->source);
+    }
+
+    public function test_a_conversion_whose_referrer_is_this_site_is_credited_to_the_entry_hit(): void
+    {
+        $this->collect(['k' => 'pageview', 'p' => '/', 'r' => 'https://www.linkedin.com/', 'w' => 1440]);
+        $hit = Collector::record($this->visitor(), 'enquiry', ['page' => ['source_path' => '/contact', 'referrer' => config('app.frontend_url').'/solutions']]);
+
+        $this->assertSame('LinkedIn', $hit->source);
+    }
+
+    public function test_a_conversion_is_not_limited_by_a_busy_beacon_address(): void
+    {
+        for ($i = 0; $i < 125; $i++) {
+            $this->collect(['k' => 'pageview', 'p' => '/p'.$i]);
+        }
+        $this->assertLessThan(125, AnalyticsHit::count());
+
+        $this->assertNotNull(Collector::record($this->visitor(), 'order_placed', ['value_paise' => 100]));
     }
 
     public function test_it_is_throttled_and_still_answers_204(): void
