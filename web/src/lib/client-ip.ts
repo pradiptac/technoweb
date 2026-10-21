@@ -75,7 +75,11 @@ export async function clientIpHeaders(): Promise<Record<string, string>> {
     const incoming = await headers();
     const ip = clientIpFrom((name) => incoming.get(name));
 
-    return ip ? { "X-Forwarded-For": ip } : {};
+    const agent = incoming.get("user-agent");
+
+    // The browser too, for native analytics' bot check; like the address, the
+    // API believes it from TRUSTED_PROXIES only.
+    return { ...(ip ? { "X-Forwarded-For": ip } : {}), ...(agent ? { "X-Visitor-Agent": agent } : {}) };
   } catch (error) {
     unstable_rethrow(error);
 

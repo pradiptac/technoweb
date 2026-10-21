@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@/components/layout/analytics";
+import { AnalyticsBeacon } from "@/components/layout/analytics-beacon";
 import { ChatLoader } from "@/components/chat/chat-loader";
 import { SitePopup } from "@/components/layout/site-popup";
 import { CookieConsent } from "@/components/layout/cookie-consent";
@@ -121,6 +122,8 @@ export default async function MarketingLayout({ children }: { children: React.Re
       <Chrome {...chrome} options={theme.options} themeId={theme.manifest.id}>{children}</Chrome>
       <JsonLd data={[jsonLd.organization(settings), jsonLd.website()]} />
       <Analytics settings={settings} />
+      {/* Native, cookieless analytics: a prop from the settings, never a cookie read — this layout is ISR-cached. */}
+      <AnalyticsBeacon enabled={settingEnabled(settings, "native_analytics_enabled", true)} />
 
       {/*
         The website assistant, on the public site only.
