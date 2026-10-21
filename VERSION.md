@@ -21,6 +21,17 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.187.0 — 2026-10-21
+
+**Working together** — a notification bell, @-mentions, team notes on every record, and a warning when somebody else is editing.
+
+- A bell at the top of the console lists what needs you: a colleague mentioning you, a ticket, lead or visit assigned to you, a meeting booked with you, a customer replying on your ticket, an import or backup you started finishing, and your alerts. Press a line to go straight there. On a phone it is in the menu under your name.
+- Type **@** in a ticket's internal note, a lead note or an order note to mention a colleague; only people who can open that screen are offered, and they are told in their bell (and by email and browser notification, if they want — "Mentions and assignments" on Your account).
+- Every page, post, article, product and the other records with History now have **Team notes** beside it: a thread for the people who work on the record, never shown on the website.
+- An edit screen says who else has it open, and when they have unsaved changes or have just saved.
+- A save is refused, with everything typed kept, when somebody saved the record after you opened it. **Load the newer version** keeps your typing as a draft to restore; **Save mine anyway** replaces theirs (History keeps it, and the activity log records it).
+- A knowledge article's views and helpful votes, and stock changes from sales and returns, no longer count as an edit of the record.
+
 ## 0.186.0 — 2026-10-21
 
 **Content-type presets** — a newsroom, an investors page, testimonials and awards, each ready with one press.

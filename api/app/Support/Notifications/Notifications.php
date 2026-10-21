@@ -68,7 +68,7 @@ final class Notifications
     public static function assigned(?int $toId, StaffNotificationKind $kind, string $what, string $path, Model $subject, ?User $actor): void
     {
         if ($toId !== null && ($to = User::find($toId)) !== null) {
-            self::later($to, $kind, ($actor?->name ?? 'Somebody')." assigned {$what} to you.", $path, $subject, $actor);
+            self::later($to, $kind, ($actor->name ?? 'Somebody')." assigned {$what} to you.", $path, $subject, $actor);
         }
     }
 

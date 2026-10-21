@@ -174,6 +174,7 @@ Contents:
   - AI images — `docs/ai-images.md`
   - Digest and alerts — `docs/digest-alerts.md`
   - Content-type presets — `docs/content-presets.md`
+  - Notifications, mentions and edit awareness — `docs/notifications.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -3205,6 +3206,22 @@ Newsroom (press releases + In the news), Investors, Testimonials and Awards, ins
 - `testimonial_source: preset` puts the newest featured testimonial onto the three `testimonial_*` keys in `PublicSettings::build()`, so no theme changes (the role sent blank rather than dropped); **only** a testimonial's save purges `settings` (`lib/entry-tags.ts`) — that tag re-renders every public page.
 - Investor alerts claim `alert_sent_at` with a conditional UPDATE and go as an ordinary campaign through `CampaignSender` — no header logo (the image-ratio health check), a refusal writes `alert_error` and is not retried until a save; `technoware:send-investor-alerts` every ten minutes catches scheduled documents.
 - `preset_list` rows are a light shape built in `SectionPresenter` (never `EntryResource`, which sends the body on any `*.show` route); `blankData` takes the builder options so a new section starts on an installed preset.
+
+### Notifications, mentions and edit awareness — `docs/notifications.md`
+
+The console's bell, @-mentions, team notes on records, who else is editing, and a save refused over a newer one (0.187.0).
+
+- `Notifications::send()` is the only writer of `staff_notifications`: never to the actor, an inactive account, without a path, or about a screen the person cannot open (`ScreenAccess::can`), and never a failure for the caller; `later()` waits for the commit. A line carries a reference, a number or a title — never a subject, a body or contact details.
+- `ScreenAccess::ROWS`/`GATES` are the sidebar's `NAV` and `SCREEN_GATES` copied, longest match wins; `AdminNavRolesTest` parses the NAV array and fails any drift — change both together.
+- The bell is the row; email (`staff_mentioned`/`staff_assigned`) and push are extra, behind the site switch `alerts_mentions_enabled`, the person's `notify_mentions`, then their `alert_email`/`alert_push` and quiet hours. `alert` and `job_finished` rows never deliver.
+- The bell's count rides on `GET /admin/new-since`'s `notifications_unread`; no number is drawn when it could not be read, and a failed load is an error, never "Nothing unread". Its empty state is a paragraph: `EmptyState` would put the icon map on every console page.
+- Mentions are decided by the server (`Mentions::resolve`): `mentions` is read raw and never refuses a note; an id counts only while `@Their Name` is in the saved text, the person can open the screen and is not the author; ten at most. A ticket's only on an internal note. The console posts one hidden `mentions[]` per person, because the ticket reply goes multipart with a file.
+- `JobFinished::watchAll()` tells the starter of a WordPress/site import, a newsletter scan, a backup or a restore — never a safety-copy backup (`pre_restore`/`pre_update`) and never `expired`.
+- Team notes and presence are the page-history kinds (`NoteKinds::aliases()` = `Revisions::aliases()`, `NoteKinds::PATHS` pinned by `MentionsTest`), per-kind owners by `Revisions::allows()`; deleted with their record.
+- Presence counts a row seen in the last 60s; the strip keeps its last answer through a failed beat and says goodbye on `pagehide` and unmount.
+- `StaleGuard::check($request, $model)` is the first line of the fourteen update methods and checks only a request carrying `base_updated_at`; a refusal is a 422 `errors.stale` + `meta.stale {at, by}`, `overwrite` saves anyway and logs `overwrote`. One second is the resolution.
+- **Only a person's save may move `updated_at` on those fourteen kinds** — a system write uses the base query (`toBase()`/`DB::table`): the knowledge-base helpful vote and view count, a sale's and a return's stock on the product moved off it in 0.187.0. A new writer that touches the timestamp makes every editor's next save "stale".
+- `FormDraft` never stores `base_updated_at` or `overwrite`; `tw:draft-save-now` writes the draft at once (the stale alert's "Load the newer version"); "Save mine anyway" removes its `overwrite` input after the submit has read it.
 
 ## Conventions
 

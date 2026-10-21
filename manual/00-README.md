@@ -45,6 +45,7 @@ update. `config/` and `storage/` are yours: an update never touches them.
 | Getting help writing pages, replies and emails | [33 — Writing help](33-ai-writing.md) |
 | Making a picture from a description | [34 — Pictures made with AI](34-ai-images.md) |
 | Choosing your digest and alerts | [35 — Your digest and alerts](35-digest-and-alerts.md) |
+| The bell, mentioning colleagues, team notes and editing together | [37 — Notifications, mentions and working together](37-notifications.md) |
 
 ## The two addresses
 

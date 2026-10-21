@@ -6094,6 +6094,112 @@ None of these settings is on the public `/settings` map.
 
 ---
 
+## Admin — notifications, mentions and edit awareness
+
+The console's bell, @-mentions, team notes, who else is editing, and the
+stale-save guard (0.187.0, `docs/notifications.md`).
+
+### The bell (staff-wide)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/notifications` | The caller's own rows, newest first, 30 a page. `?filter=unread` (default) or `all`. Each row `{id, kind, group, line, path, actor_name, read_at, created_at}` — `group` is `mention`, `assigned` or `alert`; `line` is the API's sentence; `path` a console path. `meta`: `current_page`, `last_page`, `per_page`, `total`, `unread` (the whole unread count), `kinds` (`[{value, label, group}]`) |
+| `POST` | `/admin/notifications/{id}/read` | Marks one read; `{data: row}`. Another person's row is a **404**. `{id}` is digits only |
+| `POST` | `/admin/notifications/read-all` | `{updated: n}` |
+
+`GET /admin/new-since` gains `notifications_unread` — the caller's unread count —
+beside `tickets`, `leads` and `enquiries`; the dashboard's `new_since` does not.
+
+A row is written for: a ticket, lead or engineer visit assigned to someone else
+(`ticket_assigned`, `lead_assigned`, `visit_assigned`), a meeting booked with a
+host (`meeting_booked`), a customer reply — portal or email — on an assigned
+ticket (`ticket_customer_reply`), a WordPress/site import, newsletter scan,
+backup or restore finishing, failing or ready to review, told to whoever started
+it (`job_finished`), each new alert fire (`alert`), and each mention
+(`mention_ticket`, `mention_lead`, `mention_order`, `mention_note`). Never to the
+person who did it, an inactive account, or about a screen they cannot open.
+Pruned at 90 days.
+
+**Delivery** of a mention or an assignment (not `alert`, not `job_finished`) is
+the `staff_mentioned` / `staff_assigned` email and a browser push, behind the
+`alerts_mentions_enabled` setting (alerts group, boolean, on), the person's
+`notify_mentions` (`GET`/`PATCH /admin/notifications/preferences`, boolean,
+default true), and then their `alert_email`, `alert_push` and quiet hours.
+
+### Mentions
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/mentionable?scope=&q=` | Staff-wide, 60/min. `scope` is `ticket`, `lead`, `order` or a page-history kind (`page`, `blog_post`, …); anything else is a 422 on `scope`. `q` ≤ 60, a prefix of a name word or the email; `%` and `_` match themselves. `{data: [{id, name}]}`, eight at most, only active staff who can open that screen |
+
+`POST /admin/tickets/{reference}/reply`, `POST /admin/leads/{id}/notes` and
+`POST /admin/store/orders/{number}/notes` accept **`mentions`**, a list of staff
+ids (JSON array, or `mentions[]` in a multipart body). It is read raw and never
+validated, so a bad value is ignored, never a 422. An id is honoured only while
+`@Their Name` is in the saved text, the person is active, can open the record's
+screen and is not the author; at most ten are told. A ticket reply reads it only
+when `is_internal` is true.
+
+### Team notes (`role:content_manager,store_manager,seo_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/record-notes?type=&id=` | The record's thread, oldest first: `[{id, author_name, body, mentioned: [{id, name}], created_at, can_delete}]` |
+| `POST` | `/admin/record-notes` | `type`, `id`, `body` (plain text, ≤ 2000, stored as typed), `mentions`. **201** `{data: note}`; a mentioned colleague is told "{author} mentioned you in a note on {title}." Throttled 20/min |
+| `DELETE` | `/admin/record-notes/{id}` | **204**. The author or an administrator; anybody else is a 403 |
+
+`type` is one of the fourteen page-history kinds (`page`, `saved_section`,
+`blog_post`, `knowledge_article`, `case_study`, `solution`, `service`, `product`,
+`store_product`, `event`, `tender`, `job_opening`, `entry`, `landing_page`) — 422
+on `type` otherwise — narrowed to that kind's owning role (`store_product` a
+store manager's, `landing_page` an SEO manager's, the rest a content manager's;
+an administrator all): a 403 for a kind the caller does not own, a 404 for a
+record that is not there. A record's notes are deleted with it.
+
+### Presence (same roles and kinds)
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/admin/presence` | `{type, id, dirty}`. Records the caller on the record's edit screen and answers `{data: {others: [{name, dirty, since}], saved: {at, by}}}` — others seen in the last 60 seconds, never the caller; `saved.at` the record's `updated_at`, `saved.by` the newest page-history version's author or null. Throttled 12/min |
+| `POST` | `/admin/presence/leave` | `{type, id}`. **204** |
+
+### The stale-save guard
+
+The update routes of the fourteen kinds — `PATCH /admin/pages/{id}`,
+`/admin/saved-sections/{id}`, `/admin/blog-posts/{id}`,
+`/admin/knowledge-articles/{id}`, `/admin/case-studies/{id}`,
+`/admin/solutions/{id}`, `/admin/services/{id}`, `/admin/products/{id}`,
+`/admin/store/products/{id}`, `/admin/events/{id}`, `/admin/tenders/{id}`,
+`/admin/job-openings/{id}`, `/admin/content-types/{type-slug}/entries/{id}` and
+`/admin/landing-pages/{id}` — accept **`base_updated_at`** (the `updated_at` the
+form was opened with) and **`overwrite`** (boolean). Neither is stored.
+
+With no `base_updated_at`, or one that cannot be read, nothing is checked. When
+the record's `updated_at` is later, to the second, the save is refused before
+anything is written:
+
+```json
+{
+  "message": "Ravi Menon saved this at 14:32, after you opened it.",
+  "errors": { "stale": ["Ravi Menon saved this at 14:32, after you opened it."] },
+  "meta": { "stale": { "at": "2026-10-21T14:32:05+05:30", "by": "Ravi Menon" } }
+}
+```
+
+The time is `H:i` today and `j F at H:i` otherwise; "You saved this at … in
+another tab, after you opened it." when the newest version is the caller's own;
+"Somebody" when page history names nobody. With `overwrite: true` the save goes
+through and the activity log records `overwrote` with
+`context.replaced_version_at`.
+
+**Only a person's save moves `updated_at` on these kinds**: the knowledge-base
+helpful vote and view count, and a sale's or a return's stock change on a shop
+product, are written without touching it.
+
+`AdminJobOpeningResource` now carries `updated_at`.
+
+---
+
 ## Admin — site health
 
 A worklist of broken links, out-of-date records and accessibility mistakes in

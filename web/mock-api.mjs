@@ -551,6 +551,23 @@ const storeProducts = [
  */
 const MOCK_WRITING_OFF = 'AI help is switched off. Turn it on in SEO → Settings.';
 
+/* The bell (0.187.0): one mention unread, one assignment read; team notes kept per `type:id`. */
+const MOCK_BELL = [
+  { id: 2, kind: 'mention_note', group: 'mention', line: 'Asha Rao mentioned you in a note on Privacy policy.', path: '/admin/pages/1', actor_name: 'Asha Rao', read_at: null, created_at: '2026-10-21T09:30:00+05:30' },
+  { id: 1, kind: 'ticket_assigned', group: 'assigned', line: 'Ravi Menon assigned TW-2026-00001 to you.', path: '/admin/tickets/TW-2026-00001', actor_name: 'Ravi Menon', read_at: '2026-10-21T09:00:00+05:30', created_at: '2026-10-21T08:45:00+05:30' },
+];
+const MOCK_BELL_KINDS = [
+  ['mention_ticket', 'Mentioned on a ticket', 'mention'], ['mention_lead', 'Mentioned on a lead', 'mention'],
+  ['mention_order', 'Mentioned on an order', 'mention'], ['mention_note', 'Mentioned in a team note', 'mention'],
+  ['ticket_assigned', 'Ticket assigned to you', 'assigned'], ['lead_assigned', 'Lead assigned to you', 'assigned'],
+  ['visit_assigned', 'Visit assigned to you', 'assigned'], ['meeting_booked', 'Meeting booked with you', 'assigned'],
+  ['ticket_customer_reply', 'Customer replied', 'assigned'], ['job_finished', 'Finished', 'assigned'],
+  ['alert', 'Alert', 'alert'],
+].map(([value, label, group]) => ({ value, label, group }));
+const MOCK_MENTIONABLE = [{ id: 1, name: 'Asha Rao' }, { id: 2, name: 'Ravi Menon' }];
+const MOCK_NOTES = new Map();
+let mockNoteId = 0;
+
 const MOCK_COPILOT = [
   { key: 'tickets_open', label: 'How many tickets are open?', words: 'ticket open outstanding queue support', figure: 7, sentence: '7 tickets are open.', href: '/admin/tickets?open=1' },
   { key: 'tickets_overdue', label: 'Which tickets are overdue?', words: 'ticket overdue late sla breached past due', figure: 2, sentence: '2 tickets are past their due time.', href: '/admin/tickets?overdue=1' },
@@ -2266,7 +2283,7 @@ const tenderMeta = () => ({
   closing_soon_days: TENDER_CLOSING_SOON_DAYS,
   timezone: 'IST',
 });
-
+
 const paginate = (rows) => ({
   data: rows,
   links:{ first:null, last:null, prev:null, next:null },
@@ -6427,6 +6444,7 @@ createServer(async (req, res) => {
       const data = {
         digest: 'weekly', digest_hour: 8, digest_weekday: 1, digest_skip_quiet: false,
         alert_email: true, alert_push: true, quiet_start: '21:00', quiet_end: '08:00', last_digest_at: null,
+        notify_mentions: true,
         ...sent,
         alerts: { ticket_critical_unassigned: true, ticket_overdue: true, ...(sent.alerts ?? {}) },
       };
@@ -6446,6 +6464,68 @@ createServer(async (req, res) => {
     if (p === '/admin/push/subscribe' && req.method === 'POST') {
       const m = 'Browser notifications are not set up on this site.';
       return json(res, 422, { message: m, errors: { token: [m] } });
+    }
+    /* The bell, mentions, team notes and presence (0.187.0, docs/notifications.md). */
+    if (p === '/admin/notifications' && req.method === 'GET') {
+      const rows = url.searchParams.get('filter') === 'all' ? MOCK_BELL : MOCK_BELL.filter((r) => r.read_at === null);
+      return json(res, 200, { data: rows, meta: {
+        current_page: 1, last_page: 1, per_page: 30, total: rows.length,
+        unread: MOCK_BELL.filter((r) => r.read_at === null).length, kinds: MOCK_BELL_KINDS,
+      } });
+    }
+    if (p === '/admin/notifications/read-all' && req.method === 'POST') {
+      const n = MOCK_BELL.filter((r) => r.read_at === null).length;
+      MOCK_BELL.forEach((r) => { r.read_at ??= new Date().toISOString(); });
+      return json(res, 200, { updated: n });
+    }
+    const bellRead = p.match(/^\/admin\/notifications\/(\d+)\/read$/);
+    if (bellRead && req.method === 'POST') {
+      const row = MOCK_BELL.find((r) => r.id === Number(bellRead[1]));
+      if (!row) return json(res, 404, { message: 'Not found.' });
+      row.read_at ??= new Date().toISOString();
+      return json(res, 200, { data: row });
+    }
+    if (p === '/admin/new-since' && req.method === 'GET') {
+      return json(res, 200, { data: {
+        since: url.searchParams.get('since'), tickets: 0, leads: 0, enquiries: 0,
+        notifications_unread: MOCK_BELL.filter((r) => r.read_at === null).length,
+      } });
+    }
+    if (p === '/admin/mentionable' && req.method === 'GET') {
+      const q = (url.searchParams.get('q') ?? '').toLowerCase();
+      return json(res, 200, { data: MOCK_MENTIONABLE.filter((m) => m.name.toLowerCase().split(' ').some((w) => w.startsWith(q))) });
+    }
+    if (p === '/admin/record-notes' && req.method === 'GET') {
+      const key = `${url.searchParams.get('type')}:${url.searchParams.get('id')}`;
+      return json(res, 200, { data: MOCK_NOTES.get(key) ?? [] });
+    }
+    if (p === '/admin/record-notes' && req.method === 'POST') {
+      const sent = await readJsonBody(req);
+      if (!sent.body || String(sent.body).length > 2000) {
+        return json(res, 422, { message: 'The body field is required.', errors: { body: ['The body field is required.'] } });
+      }
+      const key = `${sent.type}:${sent.id}`;
+      const ids = Array.isArray(sent.mentions) ? sent.mentions.map(Number) : [];
+      const note = {
+        id: ++mockNoteId, author_name: 'Mock Admin', body: String(sent.body),
+        mentioned: MOCK_MENTIONABLE.filter((m) => ids.includes(m.id) && String(sent.body).includes(`@${m.name}`)),
+        created_at: new Date().toISOString(), can_delete: true,
+      };
+      MOCK_NOTES.set(key, [...(MOCK_NOTES.get(key) ?? []), note]);
+      return json(res, 201, { data: note });
+    }
+    const noteDelete = p.match(/^\/admin\/record-notes\/(\d+)$/);
+    if (noteDelete && req.method === 'DELETE') {
+      for (const [key, list] of MOCK_NOTES) MOCK_NOTES.set(key, list.filter((n) => n.id !== Number(noteDelete[1])));
+      res.writeHead(204);
+      return res.end();
+    }
+    if (p === '/admin/presence' && req.method === 'POST') {
+      return json(res, 200, { data: { others: [], saved: { at: '2026-09-01T09:00:00Z', by: null } } });
+    }
+    if (p === '/admin/presence/leave' && req.method === 'POST') {
+      res.writeHead(204);
+      return res.end();
     }
     /* AI images (0.184.0): "switched off" too, so no tab is drawn against the mock. */
     if (p === '/admin/media/ai-image/status') {

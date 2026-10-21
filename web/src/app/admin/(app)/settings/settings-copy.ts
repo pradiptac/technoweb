@@ -309,6 +309,10 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   alert_backup_failed_enabled: { label: "Alert: a backup failed or none ran" },
   alert_health_drop_enabled: { label: "Alert: the site health score fell" },
   alert_health_points: { label: "Health score fell by (points)", hint: "1 to 100, against the best score of the week before." },
+  alerts_mentions_enabled: {
+    label: "Email and browser notifications for mentions and assignments",
+    hint: "Off for everybody: mentions and assignments still appear in each person's bell, and nobody is emailed about them (0.187.0).",
+  },
   /* The site health centre (0.181.0, docs/health.md). */
   health_external_links: {
     label: "Check links to other websites",
@@ -1379,7 +1383,8 @@ export const FIELD_ORDER: Record<string, string[]> = {
   alerts: ["alerts_default_digest", "alert_ticket_critical_unassigned_enabled", "alert_ticket_critical_minutes",
            "alert_ticket_overdue_enabled", "alert_lead_hot_untouched_enabled", "alert_lead_hot_hours",
            "alert_order_not_dispatched_enabled", "alert_order_dispatch_days", "alert_return_waiting_enabled", "alert_return_days",
-           "alert_mail_stalled_enabled", "alert_mail_minutes", "alert_backup_failed_enabled", "alert_health_drop_enabled", "alert_health_points"],
+           "alert_mail_stalled_enabled", "alert_mail_minutes", "alert_backup_failed_enabled", "alert_health_drop_enabled", "alert_health_points",
+           "alerts_mentions_enabled"],
   health: ["health_external_links", "health_stale_page", "health_stale_solution", "health_stale_service", "health_stale_product",
            "health_stale_store_product", "health_stale_knowledge_article", "health_stale_landing_page", "health_stale_event",
            "health_stale_blog_post", "health_stale_case_study", "health_stale_tender", "health_stale_job_opening", "health_stale_entry"],
