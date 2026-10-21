@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\RecordNoteController;
 use App\Http\Controllers\Api\V1\Admin\RevisionController;
 use Illuminate\Support\Facades\Route;
 
@@ -13,4 +14,9 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('role:content_manager,store_manager,seo_manager')->group(function () {
     Route::get('revisions', [RevisionController::class, 'index'])->name('revisions.index');
     Route::get('revisions/{id}', [RevisionController::class, 'show'])->whereNumber('id')->middleware('throttle:60,1')->name('revisions.show');
+
+    // Team notes (C2, docs/notifications.md): the same kinds and the same per-kind owners.
+    Route::get('record-notes', [RecordNoteController::class, 'index'])->name('record-notes.index');
+    Route::post('record-notes', [RecordNoteController::class, 'store'])->middleware('throttle:20,1')->name('record-notes.store');
+    Route::delete('record-notes/{id}', [RecordNoteController::class, 'destroy'])->whereNumber('id')->name('record-notes.destroy');
 });

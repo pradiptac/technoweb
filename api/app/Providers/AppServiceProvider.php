@@ -25,6 +25,7 @@ use App\Models\DetailTemplate;
 use App\Models\DigitalCode;
 use App\Models\Download;
 use App\Models\DownloadCategory;
+use App\Models\EditPresence;
 use App\Models\Enquiry;
 use App\Models\Entry;
 use App\Models\Event;
@@ -71,6 +72,7 @@ use App\Models\PreviewLink;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductReview;
+use App\Models\RecordNote;
 use App\Models\Redirect;
 use App\Models\SavedSection;
 use App\Models\SeoSuggestion;
@@ -108,6 +110,7 @@ use App\Support\InboundMail\MailboxScanner;
 use App\Support\Meetings\GoogleCalendar;
 use App\Support\Meetings\MeetingCalendar;
 use App\Support\Notifications\JobFinished;
+use App\Support\Notifications\NoteKinds;
 use App\Support\QueueHealth;
 use App\Support\Search\Indexable;
 use App\Support\Search\Indexer;
@@ -394,6 +397,9 @@ class AppServiceProvider extends ServiceProvider
             // so the activity log names them as the subject.
             'backup' => Backup::class,
             'backup_restore' => BackupRestore::class,
+
+            // A team note (C2); its subject is one of the page-history kinds above.
+            'record_note' => RecordNote::class,
         ]);
 
         /*
@@ -425,6 +431,18 @@ class AppServiceProvider extends ServiceProvider
                     Findings::forget($alias, (int) $model->getKey());
                 } catch (\Throwable $e) {
                     Log::warning('Site health: could not forget a record', ['type' => $alias, 'id' => $model->getKey(), 'error' => $e->getMessage()]);
+                }
+            });
+        }
+
+        // A record's team notes and who has it open go with it (C2).
+        foreach (NoteKinds::aliases() as $alias) {
+            Relation::getMorphedModel($alias)::deleted(function ($model) use ($alias) {
+                try {
+                    RecordNote::query()->where('subject_type', $alias)->where('subject_id', $model->getKey())->delete();
+                    EditPresence::query()->where('subject_type', $alias)->where('subject_id', $model->getKey())->delete();
+                } catch (\Throwable $e) {
+                    Log::warning('Team notes: could not delete with the record', ['type' => $alias, 'id' => $model->getKey(), 'error' => $e->getMessage()]);
                 }
             });
         }
