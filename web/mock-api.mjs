@@ -5124,6 +5124,10 @@ createServer(async (req, res) => {
       }
       if (p === '/admin/search/semantic/test' && req.method === 'POST') return json(res, 200, { data: { model: 'openai/text-embedding-3-small', dimensions: 512 } });
       if (p === '/admin/search/semantic/reindex' && req.method === 'POST') return json(res, 202, { message: 'Indexing has started. It runs in the background.' });
+      /* Native analytics (0.188.0): the mock reports it switched off, which is the page's own empty state. */
+      if (p === '/admin/analytics/summary' && req.method === 'GET') return json(res, 200, { data: null, meta: { enabled: false } });
+      if (p.startsWith('/admin/analytics/') && req.method === 'GET') return json(res, 200, { data: p.endsWith('/search') ? { terms: [], nothing: [] } : p.endsWith('/now') ? { views: 0, pages: [] } : [], meta: { enabled: false } });
+      if (p === '/admin/leads/sources' && req.method === 'GET') return json(res, 200, { data: [] });
       if (p === '/admin/health' && req.method === 'GET') {
         const ignored = url.searchParams.get('ignored') === '1';
         const group = url.searchParams.get('group');
@@ -5606,7 +5610,7 @@ createServer(async (req, res) => {
         revenue: { total_paise: 0, period_paise: 0, gst_paise: 0, discount_paise: 0, refunded_paise: 0, average_paise: null, sample: 0 },
         catalogue: { products: 0, published: 0, out_of_stock: 0 },
         attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, reviews_pending: 1, refund_requested: 0, returns_requested: mockReturns.filter(r => r.status === 'requested').length, zoho_failed: 0, shipments_in_trouble: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
-        funnel: { product_views: null, paid_orders: 0, views_to_orders: null },
+        funnel: { product_views: null, paid_orders: 0, views_to_orders: null, views_source: null },
         // Null, not zeros: the mock never reminds anybody about a basket.
         recovered: null,
         series, recent: [], low_stock: [], codes_low: [],

@@ -2288,7 +2288,7 @@ export type StoreDashboard = {
    * refused — never zero for "unmeasured" — and the rate is null with it, or
    * when a measured zero would put nothing under the line.
    */
-  funnel: { product_views: number | null; paid_orders: number; views_to_orders: number | null };
+  funnel: { product_views: number | null; paid_orders: number; views_to_orders: number | null; views_source: "native" | "ga4" | null };
   /**
    * What the basket reminders brought back over the window: baskets reminded,
    * how many became an order, those orders' paid total, and the share. Null —

@@ -14,7 +14,7 @@
  * order in the document — which a CSS `order` would not give a keyboard or a
  * screen reader.
  */
-export type WidgetKey = "glance" | "kpis" | "volume" | "arrivals" | "status" | "pipeline" | "urgent" | "activity" | "health";
+export type WidgetKey = "glance" | "kpis" | "volume" | "arrivals" | "status" | "pipeline" | "urgent" | "activity" | "health" | "traffic";
 export type GroupKey = "support" | "sales" | "diary" | "content";
 
 export type DashboardView = {
@@ -40,6 +40,8 @@ export const WIDGETS: { key: WidgetKey; label: string; blurb: string; half?: boo
   { key: "activity", label: "Activity", blurb: "What changed lately: the activity log for administrators, new tickets for the desk." },
   // Administrators only (the page decides), and off until somebody turns it on.
   { key: "health", label: "Site health", blurb: "The site's health score and the first problems to fix.", defaultHidden: true },
+  // For the roles that open Site → Analytics (the page decides), and off until somebody turns it on.
+  { key: "traffic", label: "Traffic", blurb: "Visits and page views over the last seven days, counted by this site.", defaultHidden: true },
 ];
 
 export const GROUPS: { key: GroupKey; label: string }[] = [

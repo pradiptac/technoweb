@@ -100,6 +100,7 @@ final class ScreenAccess
         ['/admin/blocks/stack', 'content_manager', false],
         ['/admin/info-bar', 'admin', false],
         ['/admin/themes', 'admin', false],
+        ['/admin/analytics', 'admin,seo_manager,content_manager', false],
         ['/admin/site/chrome', 'admin', false],
         ['/admin/support-centres', 'admin', false],
         ['/admin/site/settings', 'admin', false],

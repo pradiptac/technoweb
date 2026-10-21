@@ -153,7 +153,12 @@ class AnalyticsController extends Controller
         $sources = $hits()->groupBy('source')->selectRaw("COALESCE(source, '') as k, COUNT(*) as views, COUNT(DISTINCT visitor) as visitors")->orderByDesc('views')->limit(10)->get()
             ->map(fn ($r) => ['key' => (string) $r->k, 'label' => Labels::of('source', (string) $r->k), 'views' => (int) $r->views, 'visitors' => (int) $r->visitors])->all();
 
-        return $this->json(['data' => ['path' => $path, 'series' => $series, 'entries' => (int) $byDay->sum('entries'), 'sources' => $sources],
+        $conversions = DB::table('analytics_hits')->whereIn('kind', Kinds::CONVERSIONS)->where('path', $path)
+            ->whereBetween('day', [$from->toDateString(), $to->toDateString()])
+            ->groupBy('kind')->selectRaw('kind, COUNT(*) as n, SUM(value_paise) as value')->orderByDesc('n')->get()
+            ->map(fn ($r) => ['kind' => (string) $r->kind, 'label' => Kinds::label((string) $r->kind), 'count' => (int) $r->n, 'value_paise' => $r->value === null ? null : (int) $r->value])->all();
+
+        return $this->json(['data' => ['path' => $path, 'series' => $series, 'entries' => (int) $byDay->sum('entries'), 'sources' => $sources, 'conversions' => $conversions],
             'meta' => ['enabled' => Collector::enabled()]]);
     }
 

@@ -869,6 +869,20 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     placeholder: "FOLLOW",
     hint: "Up to seven letters or digits, one per tile — CONTACT fits. A letter past the last profile gets a tile of its own that is not a link; a profile past the end of the word shows its network's initial.",
   },
+  /* Native analytics (0.188.0, docs/analytics.md). */
+  native_analytics_enabled: {
+    label: "Count visits on this site",
+    hint: "Counts page views, searches, downloads and enquiries itself, with no cookie. Shown on Site → Analytics. Off: nothing is counted.",
+  },
+  native_analytics_exclude_ips: {
+    label: "Addresses to leave out",
+    hint: "One address or range (CIDR) per line, for example 203.0.113.7 or 10.0.0.0/8. Visits from these are never counted — put the office here.",
+    placeholder: "203.0.113.7",
+  },
+  native_analytics_count_staff: {
+    label: "Count signed-in staff",
+    hint: "Off, a browser signed in to this console adds nothing to the figures.",
+  },
   google_analytics_id: {
     label: "Google Analytics (GA4)",
     hint: "The measurement ID, which starts with G-. Leave blank to load nothing.",
@@ -1146,6 +1160,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Events",
     blurb: "What every event shares: where a new registration is announced, when the reminder goes out, and how many seats one registration may take unless the event says otherwise. The wording of each email is under System → Email templates.",
   },
+  native_analytics: {
+    title: "Visit counting",
+    blurb: "This site counts its own visits, without cookies: a page view, a search, a download or an enquiry is one row holding the page, where the visitor came from, a device type and a country, and a daily-salted code that cannot be followed from one day to the next. The address is never stored, so nothing here needs a consent banner. Do Not Track is honoured.",
+  },
   semantic_search: {
     title: "Search by meaning",
     blurb: "Whether the site search and the website assistant also find pages by what they mean, which embedding model reads them, and how many new search phrases a day may be sent to it. Switched off, search works on words alone and nothing leaves the server.",
@@ -1393,7 +1411,8 @@ export const FIELD_ORDER: Record<string, string[]> = {
   portal: ["portal_enabled", "registration_enabled", "customer_approval_required"],
   auth: ["default_login_method", "otp_login_enabled", "otp_admin_login_enabled", "password_login_enabled"],
   google_login: ["google_login_enabled", "google_login_client_id", "google_login_client_secret"],
-  analytics: ["google_analytics_id", "google_tag_manager_id", "google_site_verification", "meta_pixel_id", "meta_domain_verification"],
+  native_analytics: ["native_analytics_exclude_ips", "native_analytics_count_staff"],
+  analytics: ["native_analytics_enabled", "google_analytics_id", "google_tag_manager_id", "google_site_verification", "meta_pixel_id", "meta_domain_verification"],
   security: ["activity_retention_days", "application_retention_days", "chat_retention_days", "client_error_retention_days",
              "comment_retention_days", "seo_ai_retention_days"],
 };
@@ -1515,7 +1534,7 @@ export const SCREENS: SettingsScreen[] = [
         one provider, so it cannot be half-rotated — which is why it is not
         filed under SEO or the assistant.
       */
-      { label: "Infrastructure", groups: ["mail", "integrations", "semantic_search"] },
+      { label: "Infrastructure", groups: ["mail", "integrations", "semantic_search", "native_analytics"] },
       { label: "Notifications", groups: ["alerts"] },
       { label: "Privacy", groups: ["security"] },
     ],

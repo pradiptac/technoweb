@@ -477,6 +477,8 @@ export const NAV: NavItem[] = [
       */
       { role: "admin", href: "/admin/info-bar", label: "Info bar", icon: IconMegaphone },
       { role: "admin", href: "/admin/themes", label: "Themes", icon: IconLayers },
+      // Native analytics (0.188.0, docs/analytics.md): the visits this site counts itself.
+      { role: "admin,seo_manager,content_manager", href: "/admin/analytics", label: "Analytics", icon: IconChart },
       { role: "admin", href: "/admin/site/chrome", label: "Header & footer", icon: IconLayers },
       // The support network (0.170.0, docs/support-network.md): admin, since a centre tags staff.
       { role: "admin", href: "/admin/support-centres", label: "Support network", icon: IconMapPin },

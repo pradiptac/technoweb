@@ -2,13 +2,14 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { StatusBadge, PriorityBadge, statusTone, statusLabel } from "@/components/ui/badge";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
-import { getActivity, getDashboard, getHealthList, getOnboarding, getTickets } from "@/lib/admin";
+import { getActivity, getAnalyticsSummary, getDashboard, getHealthList, getOnboarding, getTickets } from "@/lib/admin";
 import { OnboardingCard } from "@/components/admin/onboarding-card";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import { IconHeart } from "@/components/icons-ui";
+import { IconEye, IconHeart } from "@/components/icons-ui";
 import { IconTicket, IconClock, IconUsers, IconBox, IconPen, IconMail, IconTools, IconMeeting } from "@/components/icons";
 import { istDate } from "@/lib/visit-dates";
+import { resolveRange } from "@/lib/analytics-range";
 import { StatTile, type Tone } from "@/components/admin/stat-tile";
 import { Card } from "@/components/ui/card";
 import { Panel } from "@/components/app-shell/panel";
@@ -71,6 +72,9 @@ const loadDashboard = cache(async (volume?: string): Promise<AdminDashboard | nu
   }
 });
 
+/** The roles that open Site → Analytics (`nav-items.tsx`), and so the Traffic panel. */
+const TRAFFIC_ROLES = ["admin", "seo_manager", "content_manager"];
+
 /** This account's arrangement, from its cookie (`lib/dashboard-view.ts`). */
 const readView = cache(async (): Promise<DashboardView> => {
   const staff = await getCurrentStaff();
@@ -82,13 +86,14 @@ const readView = cache(async (): Promise<DashboardView> => {
  * What this role's dashboard can draw at all. The dialog lists exactly this,
  * and `arrange()` ignores a stored key that is not in it.
  */
-function availableFor(dashboard: AdminDashboard, isAdmin: boolean): { widgets: WidgetKey[]; groups: GroupKey[] } {
+function availableFor(dashboard: AdminDashboard, isAdmin: boolean, canTraffic: boolean): { widgets: WidgetKey[]; groups: GroupKey[] } {
   const widgets: WidgetKey[] = ["glance", "kpis", "volume"];
   if (dashboard.metrics.arrivals) widgets.push("arrivals");
   widgets.push("status");
   if (dashboard.leads?.funnel) widgets.push("pipeline");
   widgets.push("urgent", "activity");
   if (isAdmin) widgets.push("health");
+  if (canTraffic) widgets.push("traffic");
 
   const groups: GroupKey[] = ["support", "sales"];
   if (dashboard.visits || dashboard.meetings) groups.push("diary");
@@ -101,7 +106,8 @@ async function CustomiseButton({ volume }: { volume?: string }) {
   const dashboard = await loadDashboard(volume);
   if (!dashboard) return null;
   const isAdmin = await getCurrentStaff().then((me) => Boolean(me?.roles.some((r) => r.slug === "admin"))).catch(() => false);
-  const { widgets, groups } = availableFor(dashboard, isAdmin);
+  const canTraffic = await getCurrentStaff().then((me) => Boolean(me?.roles.some((r) => TRAFFIC_ROLES.includes(r.slug)))).catch(() => false);
+  const { widgets, groups } = availableFor(dashboard, isAdmin, canTraffic);
 
   return <DashboardCustomise view={await readView()} available={widgets} groups={groups} />;
 }
@@ -164,6 +170,12 @@ async function DashboardBody({ volume }: { volume?: string }) {
   // Site health panel: administrators only, and not asked for while it is put away. Its own catch, so a failure blanks only this panel.
   const healthList = Promise.all([getCurrentStaff(), readView()])
     .then(([me, v]) => (me?.roles.some((r) => r.slug === "admin") && !v.hidden.includes("health") ? getHealthList({ per_page: 3 }) : null))
+    .catch(() => null);
+  // Traffic panel: the roles that open Analytics, and not asked for while it is put away. Its own catch.
+  const traffic = Promise.all([getCurrentStaff(), readView()])
+    .then(([me, v]) => (me?.roles.some((r) => TRAFFIC_ROLES.includes(r.slug)) && !v.hidden.includes("traffic")
+      ? getAnalyticsSummary({ ...resolveRange({ period: "7" }).range, compare: "previous" })
+      : null))
     .catch(() => null);
   const dashboard = await loadDashboard(volume);
   if (!dashboard) {
@@ -336,6 +348,7 @@ async function DashboardBody({ volume }: { volume?: string }) {
   const view = await readView();
   const recent = await activity;
   const health = await healthList;
+  const trafficSummary = await traffic;
 
   /*
    * The hero's one line and its buttons (Console 2.0), from figures this
@@ -494,6 +507,29 @@ async function DashboardBody({ volume }: { volume?: string }) {
           ))}
         </ul>
       )}
+    </Panel>
+  );
+
+  panels.traffic = trafficSummary && trafficSummary.meta.enabled && (
+    <Panel title="Traffic" icon={<IconEye />} actions={<Link href="/admin/analytics" className="text-13 text-brand-ink underline">See all</Link>}>
+      <div className="grid grid-cols-2 gap-3">
+        <StatTile
+          label="Visits"
+          value={trafficSummary.data.visits.value === null ? "—" : trafficSummary.data.visits.value.toLocaleString("en-IN")}
+          icon={IconUsers}
+          tone="brand"
+          spark={trafficSummary.data.series.map((p) => p.visitors)}
+          delta={{ change: trafficSummary.data.visits.change, caption: "vs the 7 days before" }}
+        />
+        <StatTile
+          label="Page views"
+          value={trafficSummary.data.views.value === null ? "—" : trafficSummary.data.views.value.toLocaleString("en-IN")}
+          icon={IconEye}
+          tone="info"
+          spark={trafficSummary.data.series.map((p) => p.views)}
+          delta={{ change: trafficSummary.data.views.change, caption: "vs the 7 days before" }}
+        />
+      </div>
     </Panel>
   );
 

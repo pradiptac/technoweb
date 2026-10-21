@@ -7,7 +7,7 @@ import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge, leadBandTone } from "@/components/ui/badge";
 import { IconUsers } from "@/components/icons";
-import { getLeads, leadQuery, type LeadIndex } from "@/lib/admin";
+import { getLeads, getLeadSources, leadQuery, type LeadIndex } from "@/lib/admin";
 import { getCurrentStaff } from "@/lib/admin-auth";
 import { LeadRowActions } from "./lead-row";
 import { buildMetadata } from "@/lib/seo";
@@ -57,6 +57,9 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       </ErrorState>
     );
   }
+
+  // The native counts' answer to "which channel brought them", last 30 days; a failure blanks only this panel.
+  const sources = await getLeadSources({}).catch(() => null);
 
   const leads = result.data;
   const filtered = Boolean(
@@ -267,6 +270,18 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
               tone: "brand",
               href: `/admin/leads?source_path=${encodeURIComponent(page.path)}`,
             }))}
+          />
+        </section>
+      )}
+
+      {sources !== null && (
+        <section className="mt-6 rounded-lg border border-line-strong bg-card p-4">
+          <h2 className="text-13 font-semibold">Where enquiries came from</h2>
+          <p className="mb-3 text-12 text-muted">By the channel the visitor arrived through, in the last 30 days, counted by this site.</p>
+          <BarList
+            labelWidth="min(16rem, 40%)"
+            empty="Nothing yet in this period."
+            rows={sources.filter((r) => r.enquiries > 0).map((r) => ({ label: r.label, value: r.enquiries, tone: "brand" }))}
           />
         </section>
       )}
