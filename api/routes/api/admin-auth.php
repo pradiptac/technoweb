@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\CopilotController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
+use App\Http\Controllers\Api\V1\Admin\MentionableController;
 use App\Http\Controllers\Api\V1\Admin\NotificationsController;
 use App\Http\Controllers\Api\V1\Admin\SearchController;
 use App\Http\Controllers\Api\V1\Admin\StaffNotificationController;
@@ -63,6 +64,7 @@ Route::post('notifications/alerts/test', [NotificationsController::class, 'testA
 Route::get('notifications', [StaffNotificationController::class, 'index'])->name('notifications.index');
 Route::post('notifications/read-all', [StaffNotificationController::class, 'readAll'])->name('notifications.read-all');
 Route::post('notifications/{id}/read', [StaffNotificationController::class, 'read'])->whereNumber('id')->name('notifications.read');
+Route::get('mentionable', MentionableController::class)->middleware('throttle:60,1')->name('mentionable');
 Route::post('push/subscribe', [StaffPushController::class, 'subscribe'])->middleware('throttle:20,1')->name('push.subscribe');
 Route::delete('push/{id}', [StaffPushController::class, 'destroy'])->whereNumber('id')->name('push.destroy');
 

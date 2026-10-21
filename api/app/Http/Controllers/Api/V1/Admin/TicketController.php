@@ -20,6 +20,7 @@ use App\Notifications\TicketMerged;
 use App\Notifications\TicketReplied;
 use App\Support\ListSort;
 use App\Support\Messaging\OrderMessages;
+use App\Support\Notifications\Mentions;
 use App\Support\Notifications\Notifications;
 use App\Support\Notifier;
 use Illuminate\Http\JsonResponse;
@@ -370,6 +371,12 @@ class TicketController extends Controller
             Notifier::send($ticket->customer, new TicketReplied($ticket, $message, toCustomer: true));
             // Inside the same `! $isInternal` guard: a note never reaches a phone either.
             OrderMessages::ticketReplied($ticket);
+        } else {
+            // Mentions are a colleague's business, so only an internal note carries them.
+            $actor = $request->user();
+            $path = "/admin/tickets/{$ticket->reference}";
+            $people = Mentions::resolve((string) $request->input('body'), $request->input('mentions'), $path, $actor);
+            Mentions::notify($people, StaffNotificationKind::MentionTicket, "{$actor->name} mentioned you on ticket {$ticket->reference}.", $path, $ticket, $actor);
         }
 
         return response()->json(['data' => new TicketMessageResource($message->load(['author', 'attachments']))], 201);

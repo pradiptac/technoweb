@@ -11,6 +11,7 @@ use App\Models\LeadNote;
 use App\Models\User;
 use App\Support\Money;
 use App\Support\Newsletter\Csv;
+use App\Support\Notifications\Mentions;
 use App\Support\Notifications\Notifications;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -257,7 +258,12 @@ class LeadController extends Controller
     {
         $data = $request->validate(['body' => ['required', 'string', 'max:2000']]);
 
-        $this->trail($lead, $request->user(), 'note', $data['body']);
+        $actor = $request->user();
+        $this->trail($lead, $actor, 'note', $data['body']);
+
+        $path = "/admin/leads/{$lead->id}";
+        $people = Mentions::resolve($data['body'], $request->input('mentions'), $path, $actor);
+        Mentions::notify($people, StaffNotificationKind::MentionLead, "{$actor->name} mentioned you on lead #{$lead->id}.", $path, $lead, $actor);
 
         return response()->json(['message' => 'Note added.'], 201);
     }

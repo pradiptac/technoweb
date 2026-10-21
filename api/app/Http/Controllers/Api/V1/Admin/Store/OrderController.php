@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\V1\Admin\Store;
 
 use App\Enums\OrderStatus;
+use App\Enums\StaffNotificationKind;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\Store\OrderResource;
 use App\Models\Order;
 use App\Support\ListSort;
+use App\Support\Notifications\Mentions;
 use App\Support\Store\DigitalFulfilment;
 use App\Support\Store\Invoice\Invoices;
 use App\Support\Store\Payments\ManualPayment;
@@ -361,6 +363,11 @@ class OrderController extends Controller
             'user_id' => $request->user()?->id,
             'actor_name' => $request->user()?->name,
         ]);
+
+        $actor = $request->user();
+        $path = "/admin/store/orders/{$order->order_number}";
+        $people = Mentions::resolve($data['body'], $request->input('mentions'), $path, $actor);
+        Mentions::notify($people, StaffNotificationKind::MentionOrder, "{$actor->name} mentioned you on order {$order->order_number}.", $path, $order, $actor);
 
         return new OrderResource($order->fresh(['items', 'payments', 'history', 'notes']));
     }
