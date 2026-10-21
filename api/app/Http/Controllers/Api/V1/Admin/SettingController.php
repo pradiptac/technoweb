@@ -17,6 +17,7 @@ use App\Models\Media;
 use App\Models\Page;
 use App\Models\Setting;
 use App\Support\Alerts\AlertSettings;
+use App\Support\Analytics\Collector;
 use App\Support\Announcement;
 use App\Support\Backups\BackupSettings;
 use App\Support\Chat\ChatSettings;
@@ -1343,7 +1344,9 @@ class SettingController extends Controller
                 // And AI images' cap, house style and model (0.184.0, docs/ai-images.md).
                 ?? ImageSettings::refusalFor($key, $row['value'] ?? null)
                 // And the alerts group's thresholds and default digest (0.185.0, docs/digest-alerts.md).
-                ?? AlertSettings::refusalFor($key, $row['value'] ?? null);
+                ?? AlertSettings::refusalFor($key, $row['value'] ?? null)
+                // And native analytics' excluded addresses (C3, docs/analytics.md).
+                ?? Collector::refusalFor($key, $row['value'] ?? null);
 
             if ($refusal !== null) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);

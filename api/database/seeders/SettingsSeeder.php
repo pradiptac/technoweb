@@ -391,6 +391,7 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              */
             // A method of its own: one more spread in this literal crashes PHPStan's oversized-array builder.
             ...self::alertRows(),
+            ...self::nativeAnalyticsRows(),
 
             /*
              * Semantic search (0.182.0, docs/semantic-search.md): off by
@@ -1686,6 +1687,21 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             $setting->setPlainValue($s['value']);
             $setting->save();
         }
+    }
+
+    /**
+     * Native analytics (C3, docs/analytics.md): the switch rides the public `analytics` group
+     * (the site learns whether to send beacons); the rest is private.
+     *
+     * @return list<array{group: string, key: string, value: ?string, type: string}>
+     */
+    private static function nativeAnalyticsRows(): array
+    {
+        return [
+            ['group' => 'analytics', 'key' => 'native_analytics_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'native_analytics', 'key' => 'native_analytics_exclude_ips', 'value' => null, 'type' => 'text'],
+            ['group' => 'native_analytics', 'key' => 'native_analytics_count_staff', 'value' => '0', 'type' => 'boolean'],
+        ];
     }
 
     /** @return list<array{group: string, key: string, value: string, type: string}> */

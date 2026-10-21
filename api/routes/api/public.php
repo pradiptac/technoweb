@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\ClientErrorController;
+use App\Http\Controllers\Api\V1\CollectController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanySuggestionController;
 use App\Http\Controllers\Api\V1\ContentBlockController;
@@ -510,6 +511,10 @@ Route::post('client-errors', [ClientErrorController::class, 'store'])
  */
 Route::post('not-found', [NotFoundController::class, 'store'])
     ->middleware('throttle:30,1')->name('not-found.store');
+
+// Native analytics (C3, docs/analytics.md): the beacon's one door, 204 always. No throttle middleware:
+// Collector limits per address and drops silently, so a flood never turns into a 429 a beacon cannot read.
+Route::post('collect', CollectController::class)->name('collect');
 
 Route::get('settings', [ContentController::class, 'settings'])->name('settings.index');
 
