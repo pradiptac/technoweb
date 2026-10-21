@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\StaffNotificationKind;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Http\Controllers\Concerns\StoresTicketAttachments;
@@ -19,6 +20,7 @@ use App\Notifications\TicketMerged;
 use App\Notifications\TicketReplied;
 use App\Support\ListSort;
 use App\Support\Messaging\OrderMessages;
+use App\Support\Notifications\Notifications;
 use App\Support\Notifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -315,6 +317,7 @@ class TicketController extends Controller
                 $staffId
             );
             $ticket->assigned_to = $to;
+            Notifications::assigned($to, StaffNotificationKind::TicketAssigned, $ticket->reference, "/admin/tickets/{$ticket->reference}", $ticket, User::find($staffId));
 
             // Picking up an unassigned ticket moves it out of the open pile.
             if ($to && $ticket->status === TicketStatus::Open) {

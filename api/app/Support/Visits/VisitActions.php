@@ -4,6 +4,7 @@ namespace App\Support\Visits;
 
 use App\Enums\MessageChannel;
 use App\Enums\MessageEvent;
+use App\Enums\StaffNotificationKind;
 use App\Enums\VisitStatus;
 use App\Enums\WebhookEvent;
 use App\Models\Customer;
@@ -17,6 +18,7 @@ use App\Support\Address;
 use App\Support\Crm\LeadIntake;
 use App\Support\Crm\PageContext;
 use App\Support\Messaging\Contacts;
+use App\Support\Notifications\Notifications;
 use App\Support\Notifier;
 use App\Support\Webhooks\WebhookPayload;
 use App\Support\Webhooks\Webhooks;
@@ -162,6 +164,7 @@ final class VisitActions
         if ($assignedTo !== $visit->assigned_to) {
             $to = $assignedTo ? User::find($assignedTo) : null;
             $visit->record('assigned', $by, null, $to !== null ? $to->name : 'Unassigned');
+            Notifications::assigned($to?->id, StaffNotificationKind::VisitAssigned, "visit {$visit->reference}", "/admin/visits/{$visit->reference}", $visit, $by);
         }
 
         $visit->forceFill([

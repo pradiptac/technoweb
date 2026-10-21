@@ -5,6 +5,7 @@ namespace App\Support\Notifications;
 use App\Enums\StaffNotificationKind;
 use App\Models\Setting;
 use App\Models\StaffNotification;
+use App\Models\Ticket;
 use App\Models\User;
 use App\Notifications\StaffAssigned;
 use App\Notifications\StaffMentioned;
@@ -61,6 +62,22 @@ final class Notifications
     public static function later(User $to, StaffNotificationKind $kind, string $line, ?string $path, ?Model $subject = null, ?User $actor = null, bool $deliver = true): void
     {
         DB::afterCommit(fn () => self::send($to, $kind, $line, $path, $subject, $actor, $deliver));
+    }
+
+    /** "{actor} assigned {what} to you." — told only when the new assignee is not the actor. */
+    public static function assigned(?int $toId, StaffNotificationKind $kind, string $what, string $path, Model $subject, ?User $actor): void
+    {
+        if ($toId !== null && ($to = User::find($toId)) !== null) {
+            self::later($to, $kind, ($actor?->name ?? 'Somebody')." assigned {$what} to you.", $path, $subject, $actor);
+        }
+    }
+
+    /** A customer wrote on a ticket; its engineer hears of it. */
+    public static function customerReplied(Ticket $ticket): void
+    {
+        if ($ticket->assigned_to !== null && ($to = User::find($ticket->assigned_to)) !== null) {
+            self::later($to, StaffNotificationKind::TicketCustomerReply, "The customer replied on {$ticket->reference}.", "/admin/tickets/{$ticket->reference}", $ticket);
+        }
     }
 
     private static function deliver(User $to, StaffNotification $row): void

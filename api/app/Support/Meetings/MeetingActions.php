@@ -5,6 +5,7 @@ namespace App\Support\Meetings;
 use App\Enums\MeetingSource;
 use App\Enums\MeetingStatus;
 use App\Enums\MessageChannel;
+use App\Enums\StaffNotificationKind;
 use App\Models\Customer;
 use App\Models\Meeting;
 use App\Models\MeetingType;
@@ -12,6 +13,7 @@ use App\Models\User;
 use App\Support\Crm\LeadIntake;
 use App\Support\Crm\PageContext;
 use App\Support\Messaging\Contacts;
+use App\Support\Notifications\Notifications;
 use App\Support\Phone;
 use App\Support\References;
 use Carbon\CarbonImmutable;
@@ -196,6 +198,10 @@ final class MeetingActions
 
         MeetingReminders::seedPast($meeting);
         MeetingNotices::booked($meeting);
+        if ($meeting->host_id !== null && ($host = User::find($meeting->host_id)) !== null) {
+            $when = MeetingText::date($meeting->starts_at).' at '.MeetingText::time($meeting);
+            Notifications::send($host, StaffNotificationKind::MeetingBooked, "Meeting {$meeting->reference} was booked with you for {$when}.", "/admin/my-meetings/{$meeting->reference}", $meeting, $by);
+        }
         MeetingSync::queue($meeting);
 
         return $meeting;

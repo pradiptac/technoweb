@@ -11,6 +11,7 @@ use App\Models\Lead;
 use App\Models\Role;
 use App\Models\Service;
 use App\Models\Setting;
+use App\Models\StaffNotification;
 use App\Models\User;
 use App\Models\VisitRequest;
 use App\Models\Webhook;
@@ -324,6 +325,27 @@ class VisitRequestTest extends TestCase
         $this->app['auth']->forgetGuards();
         $this->actingAs($this->staff(RoleEnum::ContentManager, 'cm@example.test'), 'sanctum')
             ->getJson('/api/v1/admin/visits')->assertForbidden();
+    }
+
+    /** C2 (docs/notifications.md): the engineer given a visit hears of it in the bell; the one who did it does not. */
+    public function test_assigning_a_visit_tells_the_engineer(): void
+    {
+        $this->place();
+        $visit = VisitRequest::sole();
+        $sales = $this->staff(RoleEnum::SalesManager, 'sales@example.test');
+        $engineer = $this->staff(RoleEnum::SupportEngineer, 'engineer@example.test');
+
+        $this->actingAs($sales, 'sanctum')->patchJson("/api/v1/admin/visits/{$visit->reference}", ['assigned_to' => $engineer->id])->assertOk();
+        $this->actingAs($sales, 'sanctum')->postJson("/api/v1/admin/visits/{$visit->reference}/confirm", [
+            'start_at' => '2026-09-30T10:30', 'minutes' => 90, 'assigned_to' => $engineer->id,
+        ])->assertOk();
+
+        $this->assertSame(
+            ["Sales_manager assigned visit {$visit->reference} to you."],
+            StaffNotification::where('user_id', $engineer->id)->pluck('line')->all(),
+            'Confirming with the same engineer tells them nothing new.',
+        );
+        $this->assertSame("/admin/visits/{$visit->reference}", StaffNotification::where('user_id', $engineer->id)->value('path'));
     }
 
     public function test_confirming_sets_the_time_and_emails_a_calendar_file(): void

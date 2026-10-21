@@ -107,6 +107,7 @@ use App\Support\InboundMail\Mailbox;
 use App\Support\InboundMail\MailboxScanner;
 use App\Support\Meetings\GoogleCalendar;
 use App\Support\Meetings\MeetingCalendar;
+use App\Support\Notifications\JobFinished;
 use App\Support\QueueHealth;
 use App\Support\Search\Indexable;
 use App\Support\Search\Indexer;
@@ -178,6 +179,9 @@ class AppServiceProvider extends ServiceProvider
          * with an `HtmlString` (see `BackInStock`), which is the point.
          */
         Markdown::withSecuredEncoding();
+
+        // A long job tells whoever started it, in the bell (C2).
+        JobFinished::watchAll();
 
         /*
          * A worker's pulse, written by the worker itself.

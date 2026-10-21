@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\StaffNotificationKind;
 use App\Enums\VisitStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\VisitRequestResource;
 use App\Models\User;
 use App\Models\VisitRequest;
 use App\Support\ListSort;
+use App\Support\Notifications\Notifications;
 use App\Support\Visits\VisitActions;
 use App\Support\Visits\VisitSettings;
 use Illuminate\Database\Eloquent\Builder;
@@ -129,6 +131,7 @@ class VisitController extends Controller
             $visit->assigned_to = $data['assigned_to'];
             $visit->save();
             $visit->record('assigned', $actor, null, $to !== null ? $to->name : 'Unassigned');
+            Notifications::assigned($to?->id, StaffNotificationKind::VisitAssigned, "visit {$visit->reference}", "/admin/visits/{$visit->reference}", $visit, $actor);
         }
 
         if (array_key_exists('staff_note', $data)) {

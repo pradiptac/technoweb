@@ -16,6 +16,7 @@ use App\Models\TicketMessage;
 use App\Notifications\TicketAcknowledged;
 use App\Notifications\TicketCreated;
 use App\Notifications\TicketReplied;
+use App\Support\Notifications\Notifications;
 use App\Support\Notifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -150,6 +151,7 @@ class TicketController extends Controller
         // The desk hears about it; a customer reply is never internal, so
         // there is nothing to withhold.
         Notifier::route('support_email', new TicketReplied($ticket, $message, toCustomer: false));
+        Notifications::customerReplied($ticket);
 
         return response()->json(
             ['data' => new TicketMessageResource($message->load(['author', 'attachments']))],

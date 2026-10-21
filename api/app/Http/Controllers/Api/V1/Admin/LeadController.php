@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\LeadStatus;
+use App\Enums\StaffNotificationKind;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\LeadResource;
 use App\Models\Lead;
@@ -10,6 +11,7 @@ use App\Models\LeadNote;
 use App\Models\User;
 use App\Support\Money;
 use App\Support\Newsletter\Csv;
+use App\Support\Notifications\Notifications;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -230,6 +232,7 @@ class LeadController extends Controller
             $to = $data['assigned_to'] ? User::find($data['assigned_to']) : null;
             $this->trail($lead, $actor, 'assigned', $to ? "Assigned to {$to->name}" : 'Unassigned');
             $lead->assigned_to = $data['assigned_to'];
+            Notifications::assigned($to?->id, StaffNotificationKind::LeadAssigned, "lead #{$lead->id}", "/admin/leads/{$lead->id}", $lead, $actor);
         }
 
         foreach (['follow_up_at', 'value_paise'] as $field) {

@@ -14,6 +14,7 @@ use App\Notifications\TicketAcknowledged;
 use App\Notifications\TicketCreated;
 use App\Notifications\TicketReplied;
 use App\Support\HtmlSanitiser;
+use App\Support\Notifications\Notifications;
 use App\Support\Notifier;
 use App\Support\Tickets\AttachmentStore;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -291,6 +292,7 @@ final class TicketPiper
         // portal sends none either.
         $ticket->loadMissing(['category', 'customer']);
         Notifier::route('support_email', new TicketReplied($ticket, $message, toCustomer: false));
+        Notifications::customerReplied($ticket);
     }
 
     /**

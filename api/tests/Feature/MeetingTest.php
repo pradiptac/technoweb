@@ -15,6 +15,7 @@ use App\Models\MeetingReminder;
 use App\Models\MeetingType;
 use App\Models\Role;
 use App\Models\Setting;
+use App\Models\StaffNotification;
 use App\Models\User;
 use App\Notifications\MeetingBooked;
 use App\Notifications\MeetingCancelled;
@@ -127,6 +128,19 @@ class MeetingTest extends TestCase
     }
 
     // ---------------------------------------------------------------- booking
+
+    /** C2 (docs/notifications.md): the host finds the booking in the bell. */
+    public function test_a_booking_tells_the_host_in_the_bell(): void
+    {
+        $anita = $this->host();
+
+        $data = $this->bookNow();
+
+        $row = StaffNotification::where('user_id', $anita->id)->sole();
+        $this->assertSame('meeting_booked', $row->kind->value);
+        $this->assertSame("Meeting {$data['reference']} was booked with you for Wed 7 Oct 2026 at 11:00 – 11:30.", $row->line);
+        $this->assertSame("/admin/my-meetings/{$data['reference']}", $row->path);
+    }
 
     public function test_a_booking_is_stored_files_a_lead_and_tells_everybody(): void
     {
