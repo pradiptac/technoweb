@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->group(function () {
     require __DIR__.'/api/public.php';
 
+    Route::prefix('ext')->name('ext.')->group(fn () => require __DIR__.'/api/ext.php');
+
     Route::middleware('auth:sanctum')->group(function () {
         require __DIR__.'/api/portal.php';
 

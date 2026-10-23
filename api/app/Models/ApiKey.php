@@ -65,7 +65,7 @@ class ApiKey extends Model
 
     public static function findByPlain(string $plain): ?self
     {
-        if (! preg_match('/^ak_[A-Za-z0-9]{40}$/', $plain)) {
+        if (! preg_match('/^ak_[A-Za-z0-9]{40}\z/', $plain)) {
             return null;
         }
 
