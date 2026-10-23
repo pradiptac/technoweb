@@ -20,7 +20,7 @@ final class ExtList
     public static function page(Request $request, Builder $query, callable $map): JsonResponse
     {
         $request->validate([
-            'since' => ['nullable', 'string', fn ($a, $v, $fail) => self::since($v) ?? $fail('Give `since` as an ISO 8601 date and time.')],
+            'since' => ['nullable', 'bail', 'string', fn ($a, $v, $fail) => self::since($v) ?? $fail('Give `since` as an ISO 8601 date and time.')],
             'per_page' => 'nullable|integer|between:1,100',
         ]);
 
@@ -60,7 +60,8 @@ final class ExtList
      */
     public static function status(Request $request, Builder $query, string $enum): void
     {
-        $status = $enum::tryFrom((string) $request->query('status'));
+        $value = $request->query('status');
+        $status = is_string($value) ? $enum::tryFrom($value) : null;
         if ($status !== null) {
             $query->where('status', $status);
         }

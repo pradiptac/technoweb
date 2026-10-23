@@ -160,6 +160,15 @@ class ApiKeyReadTest extends TestCase
         $this->read('leads?per_page=500', $plain)->assertStatus(422)->assertJsonValidationErrors('per_page');
     }
 
+    public function test_an_array_since_is_422_and_an_array_status_is_ignored(): void
+    {
+        $this->lead();
+        $plain = $this->key(['leads:read']);
+
+        $this->read('leads?since[]=x', $plain)->assertStatus(422)->assertJsonValidationErrors('since');
+        $this->read('leads?status[]=x', $plain)->assertOk()->assertJsonPath('meta.total', 1);
+    }
+
     /** @return array<string, array{0: string, 1: string}> */
     public static function listPaths(): array
     {
