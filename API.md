@@ -6597,6 +6597,115 @@ The site's own cookieless visit counts (0.188.0, `docs/analytics.md`).
 
 ---
 
+## Integration API — API keys
+
+Incoming integration (0.189.0, `docs/api-keys.md`): another system **asks** this
+site for the records a webhook would send it, and does three small writes.
+Everything is under `/api/v1/ext`, outside `auth:sanctum`, JSON only (send
+`Accept: application/json`).
+
+**Authentication is `Authorization: Bearer ak_…` and nothing else** — never the
+query string, and a Sanctum token is not a key. A key is `ak_` and 40
+characters, stored only as its SHA-256; it is shown once, on the response that
+made or rolled it. `ApiKey` is not a Sanctum tokenable and never resolves as
+`$request->user()`. Keys are made by an administrator at System → API keys.
+
+| Method | Path | Scope | Notes |
+|---|---|---|---|
+| `GET` | `/ext/me` | any valid key | `{name, prefix, scopes, expires_at}` |
+| `GET` | `/ext/leads` | `leads:read` | `?status=`. `WebhookPayload::lead` rows |
+| `GET` | `/ext/leads/{id}` | `leads:read` | `{data}`; an unknown id or number anywhere is 404 `{message: "Not found."}` |
+| `POST` | `/ext/leads` | `leads:write` | `name?`, `email`, `phone` (at least one of the two), `company?`, `subject?`, `message?`. Files a lead with `channel: api`, `form_name: "API: <key name>"`, the key as its source. **201** `{data}`. Not counted as a site conversion in Analytics |
+| `GET` | `/ext/orders` | `orders:read` | `?status=`, `?paid=1`. `WebhookPayload::order` |
+| `GET` | `/ext/orders/{number}` | `orders:read` | By order number |
+| `GET` | `/ext/customers` | `customers:read` | `WebhookPayload::customer` |
+| `GET` | `/ext/customers/{id}` | `customers:read` | |
+| `GET` | `/ext/tickets` | `tickets:read` | `?status=`. `WebhookPayload::ticket` |
+| `GET` | `/ext/tickets/{reference}` | `tickets:read` | Adds `messages`: **public messages only**, each as `TicketMessageResource` |
+| `GET` | `/ext/subscribers` | `subscribers:read` | `?status=`. `WebhookPayload::subscriber` |
+| `POST` | `/ext/subscribers` | `subscribers:write` | `email`, `first_name?`, `last_name?`, `company?`, `phone?`, `group_ids[]?` (≤ 50). 200 `{outcome, data}` |
+| `GET` | `/ext/store/products` | `products:read` | `id, sku, name, slug, status, price_paise` (as stored, GST-inclusive), `compare_at_paise, track_stock, stock, in_stock, variations[{id, sku, name, price_paise, stock}], updated_at` |
+| `PUT` | `/ext/store/stock` | `stock:write` | `{items: [{sku, stock}]}`, 1–100, no SKU twice, `stock` 0–1,000,000. 200 `{updated: [sku], refused: [{sku, message}]}` |
+
+**Lists** return the house `{data, meta, links}` envelope. `?since=` takes
+records **updated** at or after an **ISO 8601** instant (`2026-10-23T09:30:00+05:30`,
+`…Z`, with or without seconds or a fraction); a plain `Y-m-d` is the start of
+that day in the app's timezone. It is read as an instant whatever its offset.
+Anything else (`yesterday`, an array) is a 422 on `since`. `?per_page=` 1–100
+(422 outside), default 50; `?page=`. Rows are ordered `updated_at` then `id`
+ascending, so an integration pages forward and resumes from the last
+`updated_at` it saw. An unknown `?status=` is ignored, not refused.
+
+**What is sent is what a webhook is sent.** Every record is built by
+`WebhookPayload`: there are no internal notes, no `status_note`, no
+`access_token` anywhere. A sensitive ticket's `description` — and the `body` of
+a sensitive message in a ticket read — is the redaction sentence, never the
+words.
+
+**Writes go through the site's own implementations.**
+
+- *Lead*: `LeadIntake`. The page envelope (`_source_url`…) is not read; the
+  source is the key.
+- *Subscriber*: `SubscriberIntake` with source `api`. `outcome` is what intake
+  says; an address on the suppression list is `outcome: "suppressed"` with
+  `data: null` and is **never re-subscribed**; a known address is only
+  enriched. A `group_ids` entry that does not exist, or names the derived
+  "Existing customers" group, is a 422 on `group_ids.N`.
+- *Stock*: each SKU is resolved to a variation first, then a product, and the
+  change is recorded in the stock ledger as `API key "<name>"`. Refusals are
+  **per item** and stop nothing else: no row has that SKU; the SKU is on more
+  than one row; the product is not physical or does not count stock; or it is
+  a **variated product's own SKU** ("set stock on an option's SKU").
+
+**Refusals**, each `{message, reason}`:
+
+| Status | `reason` | When |
+|---|---|---|
+| 401 | `invalid_key` | No `Authorization` header, a malformed key, or one nobody has |
+| 401 | `revoked` | The key was revoked |
+| 401 | `expired` | Past `expires_at` |
+| 403 | `ip_not_allowed` | The key has an allowlist and this address is not in it |
+| 403 | `missing_scope` | The route's scope is not ticked on the key; the message names it |
+| 429 | `rate_limited` | Over **120 requests a minute for this key**; `Retry-After` is the wait in seconds |
+
+The 120 a minute is **per key** (not per route) and counts every request that
+presents a recognised key, refused ones included. Beside it the group has
+`throttle:240,1`, which under `ThrottleRequestsPerRoute` counts **per route and
+per address**, and is what bounds a key nobody has; its 429 carries no `reason`.
+Other statuses are the ordinary ones (404, 422 with `errors`, 503 during a
+restore or update).
+
+**The request log.** Every request that presented a recognised key — refused
+ones too — is logged against it after the response: method, **path without the
+query string** (truncated to 255), status, address, duration. A 429 writes no
+row. Rows are kept 30 days (`technoware:prune-api-key-requests`, 03:57).
+`last_used_at` and `last_used_ip` move only for a request that got through, at
+most once a minute.
+
+### Admin — API keys (`role:admin`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/api-keys` | Paginated by name (`?per_page=`, max 100, default 40). `meta.scopes` (`[{value, label, blurb}]`), `meta.base_url` |
+| `POST` | `/admin/api-keys` | `name` (≤ 120), `scopes[]` (≥ 1, from `meta.scopes`), `expires_at?` (a date in the future), `allowed_ips?` (a string, one address or CIDR range per line; commas also split; a bad line is a 422 naming it). **201** `{data: {…key resource…, key}}` — `data.key` is the plain key, **once** |
+| `GET` | `/admin/api-keys/{id}` | Bound by **id** |
+| `PATCH` | `/admin/api-keys/{id}` | The same fields, each optional. A revoked key is a 422. An unchanged `expires_at` already past may be sent again |
+| `POST` | `/admin/api-keys/{id}/roll` | Throttled 10/min. A new key under the same row; the old stops at once. 200 with `data.key` once. A revoked key is a 422 |
+| `POST` | `/admin/api-keys/{id}/revoke` | Idempotent; keeps the first `revoked_at`. Final |
+| `DELETE` | `/admin/api-keys/{id}` | **204**; its request log goes with it |
+| `GET` | `/admin/api-keys/{id}/requests` | Newest first, `?status=ok\|error` (below / at or above 400), `?per_page=` (max 100, default 25). Rows `{id, method, path, status, ip, duration_ms, created_at}`. `meta.counts` is `[{date, count}]` for each of the last 30 days, every day present |
+
+The key resource is `id, name, prefix, scopes, scope_labels, expires_at,
+is_expired, revoked_at, status (active|expired|revoked), allowed_ips (array),
+last_used_at, last_used_ip, created_by, created_at, updated_at, requests_30d`.
+**Neither the key nor its hash is ever in it.** The scopes are `leads:read`,
+`leads:write`, `orders:read`, `customers:read`, `tickets:read`,
+`subscribers:read`, `subscribers:write`, `products:read`, `stock:write`.
+**No admin request field may be named `key`** — it is on the activity log's
+context allowlist and the plain key must only travel out.
+
+---
+
 ## Not built yet
 
 Nothing outstanding in the brief. See `PROGRESS.md` for what remains before

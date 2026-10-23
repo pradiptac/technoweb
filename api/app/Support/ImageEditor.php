@@ -211,10 +211,8 @@ class ImageEditor
             imagesavealpha($source, true);
         }
 
-        if (! imageflip($source, $mode)) {
-            imagedestroy($source);
-            throw new RuntimeException('That image could not be flipped.');
-        }
+        // PHP 8 declares imageflip() as always returning true; a bad mode throws.
+        imageflip($source, $mode);
 
         return self::write($source, $mime, $destination, $transparent);
     }

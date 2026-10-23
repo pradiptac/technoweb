@@ -47,6 +47,7 @@ update. `config/` and `storage/` are yours: an update never touches them.
 | Choosing your digest and alerts | [35 — Your digest and alerts](35-digest-and-alerts.md) |
 | The bell, mentioning colleagues, team notes and editing together | [37 — Notifications, mentions and working together](37-notifications.md) |
 | Seeing who visits the site, with no cookies | [38 — Analytics](38-analytics.md) |
+| Letting another system read your leads and orders | [39 — API keys](39-api-keys.md) |
 
 ## The two addresses
 

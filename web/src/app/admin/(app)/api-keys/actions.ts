@@ -44,6 +44,13 @@ function expiryFrom(formData: FormData): string | null {
   return `${on} 23:59:59`;
 }
 
+/** "On a date" with no date would silently save no expiry. */
+function missingDate(formData: FormData): ApiKeyFormState | null {
+  return str(formData, "expiry") === "date" && !str(formData, "expires_on")
+    ? { error: "Check the highlighted fields.", fieldErrors: { expires_at: ["Choose the date the key should stop working."] } }
+    : null;
+}
+
 function payloadFrom(formData: FormData): ApiKeyPayload {
   return {
     name: str(formData, "name") ?? "",
@@ -70,6 +77,9 @@ function toState(error: unknown): ApiKeyFormState {
  * and shows it until the administrator moves on.
  */
 export async function createApiKeyAction(_p: ApiKeyFormState, formData: FormData): Promise<ApiKeyFormState> {
+  const missing = missingDate(formData);
+  if (missing) return missing;
+
   try {
     const created = await createApiKey(payloadFrom(formData));
     revalidatePath("/admin/api-keys");
@@ -83,6 +93,8 @@ export async function createApiKeyAction(_p: ApiKeyFormState, formData: FormData
 export async function updateApiKeyAction(_p: ApiKeyFormState, formData: FormData): Promise<ApiKeyFormState> {
   const id = Number(formData.get("id"));
   if (!id) return { error: "Missing key id." };
+  const missing = missingDate(formData);
+  if (missing) return missing;
 
   try {
     await updateApiKey(id, payloadFrom(formData));
