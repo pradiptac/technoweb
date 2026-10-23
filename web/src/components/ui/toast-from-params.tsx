@@ -318,6 +318,27 @@ const OUTCOMES: Record<string, Message> = {
     title: "Could not delete that registration",
     body: "Nothing was changed and it is still in the list. Try again in a moment.",
   },
+  "api-key-saved": { tone: "ok", title: "Key saved." },
+  "api-key-revoked": {
+    tone: "ok",
+    title: "Key revoked",
+    body: "It no longer works. Its request log was kept.",
+  },
+  "api-key-not-revoked": {
+    tone: "err",
+    title: "That key could not be revoked",
+    body: "The API refused it. Try again shortly.",
+  },
+  "api-key-deleted": {
+    tone: "ok",
+    title: "Key deleted",
+    body: "Its request log went with it.",
+  },
+  "api-key-not-deleted": {
+    tone: "err",
+    title: "That key could not be deleted",
+    body: "The API refused it. Try again shortly.",
+  },
   "webhook-deleted": {
     tone: "ok",
     title: "Webhook deleted",

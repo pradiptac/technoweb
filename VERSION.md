@@ -21,6 +21,18 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.189.0 — 2026-10-23
+
+**API keys: another system can ask the site for its records.**
+
+- System → API keys (administrators) makes a named key, ticked with exactly what it may do — read leads, orders, customers, tickets, subscribers and shop products, file a lead, add a subscriber, set stock by SKU — with an optional expiry and an optional list of allowed addresses. The key is shown once and only its fingerprint is kept; it can be rolled (a new key, the old one dead at once), revoked for good, or deleted.
+- An integration sends `Authorization: Bearer ak_…` to `/api/v1/ext/…`. Lists return the same records a webhook is sent — never internal notes, and a sensitive ticket's words are redacted — can be asked for only what changed since a date, and are limited to 120 requests a minute per key. A refusal says why (`invalid_key`, `revoked`, `expired`, `ip_not_allowed`, `missing_scope`, `rate_limited`).
+- Writes go through the site's own intakes: a lead filed by a key is channel `api` and is not counted as a website conversion; a subscriber who unsubscribed is never re-added; stock is set by SKU through the stock ledger under the key's name, refused per item.
+- Every request is logged against its key (path only, 30 days) and the key's screen shows a 30-day chart and the recent requests. Manual chapter 39, `docs/api-keys.md` and the Integration API section of `API.md`.
+- "On a date" with no date on the key form is now an error instead of a key that never expires.
+- System → Status finds the command-line PHP even when its php.ini prints startup warnings first (PHP 8.5 deprecates two session settings); it used to report that PHP did not answer.
+- The image editor's flip no longer checks a result PHP 8 always reports as success (static analysis is clean again).
+
 ## 0.188.1 — 2026-10-23
 
 **Fonts and code are no longer downloaded twice for visitors with the installed app.**

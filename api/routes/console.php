@@ -124,6 +124,9 @@ Schedule::command('technoware:prune-seo-suggestions')->dailyAt('03:50');
  */
 Schedule::command('technoware:prune-webhook-deliveries')->dailyAt('03:55');
 
+// API key request log: thirty days, as far back as a key's usage screen reads.
+Schedule::command('technoware:prune-api-key-requests')->dailyAt('03:57');
+
 /*
  * "How was it?" — the review request, once per order, a few days after
  * delivery. Hourly, and the command itself waits out the quiet hours, so an

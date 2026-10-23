@@ -145,7 +145,11 @@ final class SchedulerSetup
                 return null;
             }
 
-            if (! $process->isSuccessful() || ! preg_match('/^(\d+\.\d+\.\d+)\S*\|(\w[\w-]*)$/', trim($process->getOutput()), $m)) {
+            // The last line: a php.ini with deprecated settings prints startup warnings first.
+            $lines = preg_split('/\R/', trim($process->getOutput())) ?: [];
+            $last = trim((string) end($lines));
+
+            if (! $process->isSuccessful() || ! preg_match('/^(\d+\.\d+\.\d+)\S*\|(\w[\w-]*)$/', $last, $m)) {
                 return ['ok' => false, 'version' => null, 'sapi' => null];
             }
 

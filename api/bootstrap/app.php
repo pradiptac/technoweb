@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuthenticateApiKey;
 use App\Http\Middleware\EnsureNotRestoring;
 use App\Http\Middleware\EnsurePortalEnabled;
 use App\Http\Middleware\EnsureUserHasRole;
@@ -27,6 +28,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'portal' => EnsurePortalEnabled::class,
             'staff' => EnsureUserIsStaff::class,
             'activity' => RecordActivity::class,
+            // An API key on the /ext surface: `api.key` or `api.key:leads:read`.
+            'api.key' => AuthenticateApiKey::class,
             // Per route, not per caller: see ThrottleRequestsPerRoute.
             'throttle' => ThrottleRequestsPerRoute::class,
         ]);

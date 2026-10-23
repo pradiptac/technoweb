@@ -2,6 +2,7 @@
 
 namespace App\Support\Crm;
 
+use App\Models\ApiKey;
 use App\Models\ChatConversation;
 use App\Models\ContentBlock;
 use App\Models\Enquiry;
@@ -234,6 +235,20 @@ class LeadIntake
     }
 
     /**
+     * A lead filed through the integration API (`POST /ext/leads`, C6) —
+     * channel `api`, so the queue can tell a partner's system from a form, and
+     * the key is the source, so a lead says which integration sent it. The page
+     * comes from the request's envelope keys, the names the public forms post:
+     * a caller that knows the page its prospect was on may say so.
+     *
+     * @param  array<string, string|null>  $contact  name, email, phone, company, subject, message
+     */
+    public static function fromApi(ApiKey $key, array $contact, Request $request): ?Lead
+    {
+        return self::create($key, 'api', 'API: '.$key->name, $contact, $request);
+    }
+
+    /**
      * @param  array<string, string|null>|null  $page  Where this came from, when the
      *                                                 caller knows better than the request does.
      */
@@ -268,9 +283,12 @@ class LeadIntake
                 'ip_address' => $request->ip(),
             ]);
 
-            Conversions::record(match ($channel) {
-                'visit' => 'visit_requested', 'meeting' => 'meeting_booked', 'event' => 'event_registered', default => 'enquiry'
-            }, $page);
+            // An integration's lead is a system writing, not a site visitor (the desk-entry rule).
+            if ($channel !== 'api') {
+                Conversions::record(match ($channel) {
+                    'visit' => 'visit_requested', 'meeting' => 'meeting_booked', 'event' => 'event_registered', default => 'enquiry'
+                }, $page);
+            }
 
             return $lead;
         } catch (\Throwable $e) {

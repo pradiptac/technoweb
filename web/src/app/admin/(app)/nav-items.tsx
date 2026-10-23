@@ -6,7 +6,7 @@ import {
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChart,   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconMegaphone, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
-  IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug, IconChat, IconBackup, IconCloud, IconMeeting,
+  IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug, IconKey, IconChat, IconBackup, IconCloud, IconMeeting,
   IconProjector, IconSearch, IconTruck, IconContract,
 } from "@/components/icons";
 // A chrome glyph, which lives in `icons-ui` and is not re-exported by the map.
@@ -550,6 +550,13 @@ export const NAV: NavItem[] = [
         `AdminNavRolesTest` maps this row to `admin/webhooks` directly.
       */
       { role: "admin", href: "/admin/webhooks", label: "Webhooks", icon: IconPlug },
+      /*
+        API keys for the `/ext` surface, beside Webhooks: one pushes events out
+        and the other lets another system in. Same role for the same reason —
+        a key is a standing credential. The console path is the API's, so
+        `AdminNavRolesTest` maps this row to `admin/api-keys` directly.
+      */
+      { role: "admin", href: "/admin/api-keys", label: "API keys", icon: IconKey },
       /*
         Importing a WordPress / WooCommerce site. `role:admin` because one
         import writes content, the shop's catalogue and customer accounts at

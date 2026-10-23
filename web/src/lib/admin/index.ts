@@ -48,6 +48,7 @@ export * from "./tickets";
 export * from "./visits";
 export * from "./meetings";
 export * from "./webhooks";
+export * from "./api-keys";
 export * from "./wordpress-import";
 export * from "./site-import";
 export * from "./backups";

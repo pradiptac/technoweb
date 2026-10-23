@@ -1252,6 +1252,35 @@ const webhookDeliveries = [
     created_at: '2026-09-18T15:40:00+05:30', updated_at: '2026-09-19T05:40:00+05:30' },
 ];
 
+/* API keys for the `/ext` surface: `key` rides on the 201 and on a roll and on
+   nothing else, and `meta.scopes` on the index is the enum's own list. */
+const apiScopes = [
+  { value: 'leads:read', label: 'Read leads', blurb: 'List and open leads, with their status and score.' },
+  { value: 'leads:write', label: 'Create leads', blurb: 'Send a new lead in from another system.' },
+  { value: 'orders:read', label: 'Read orders', blurb: 'List and open shop orders, with their lines and totals.' },
+  { value: 'customers:read', label: 'Read customers', blurb: 'List and open portal customers.' },
+  { value: 'tickets:read', label: 'Read tickets', blurb: 'List and open support tickets. Internal notes are never included.' },
+  { value: 'subscribers:read', label: 'Read subscribers', blurb: 'List newsletter subscribers and their status.' },
+  { value: 'subscribers:write', label: 'Add subscribers', blurb: 'Add subscribers to the newsletter list.' },
+  { value: 'products:read', label: 'Read shop products', blurb: 'List shop products with price and availability.' },
+  { value: 'stock:write', label: 'Update stock', blurb: 'Set the stock level of a shop product or option.' },
+];
+const apiKeys = [
+  { id: 1, name: 'CRM sync', prefix: 'ak_mock0001', scopes: ['leads:read', 'leads:write'], scope_labels: ['Read leads', 'Create leads'],
+    expires_at: null, is_expired: false, revoked_at: null, status: 'active', allowed_ips: ['203.0.113.0/24'],
+    last_used_at: '2026-10-22T10:12:00+05:30', last_used_ip: '203.0.113.7', created_by: 'P. Nair', requests_30d: 14,
+    created_at: '2026-10-01T09:00:00+05:30', updated_at: '2026-10-22T10:12:00+05:30' },
+  { id: 2, name: 'Old stock script', prefix: 'ak_mock0002', scopes: ['stock:write'], scope_labels: ['Update stock'],
+    expires_at: null, is_expired: false, revoked_at: '2026-10-15T12:00:00+05:30', status: 'revoked', allowed_ips: [],
+    last_used_at: null, last_used_ip: null, created_by: 'P. Nair', requests_30d: 0,
+    created_at: '2026-10-02T09:30:00+05:30', updated_at: '2026-10-15T12:00:00+05:30' },
+];
+const apiKeyRequests = [
+  { id: 3, method: 'GET', path: '/api/v1/ext/leads?status=new', status: 200, ip: '203.0.113.7', duration_ms: 41, created_at: '2026-10-22T10:12:00+05:30' },
+  { id: 2, method: 'POST', path: '/api/v1/ext/leads', status: 422, ip: '203.0.113.7', duration_ms: 18, created_at: '2026-10-21T16:40:00+05:30' },
+  { id: 1, method: 'GET', path: '/api/v1/ext/me', status: 200, ip: '203.0.113.7', duration_ms: 9, created_at: '2026-10-21T16:39:00+05:30' },
+];
+
 /* Engineer visit requests (docs/visits.md). The mock's copy of the shapes
    `GET /visits/options`, the guest and portal reads and the console answer;
    the token is fixed so a browser check can open the guest page through
@@ -6348,6 +6377,51 @@ createServer(async (req, res) => {
         }
         if (req.method === 'DELETE') return json(res, 200, { message: 'Webhook deleted.' });
         return json(res, 200, { data: hook });
+      }
+    }
+
+    /*
+     * API keys. Answered from the fixture, the webhooks block's rule; `key` is
+     * on the create and the roll only. A revoked key refuses PATCH and roll,
+     * as the API does, on `name`.
+     */
+    if (p === '/admin/api-keys') {
+      if (req.method === 'POST') {
+        const body = await readJsonBody(req);
+        return json(res, 201, { data: {
+          ...apiKeys[0], id: 3, name: body.name || 'New key', scopes: body.scopes || [],
+          scope_labels: (body.scopes || []).map((v) => (apiScopes.find((o) => o.value === v) || { label: v }).label),
+          expires_at: body.expires_at || null, allowed_ips: [], last_used_at: null, last_used_ip: null, requests_30d: undefined,
+          prefix: 'ak_mock0003', key: 'ak_mock0003000000000000000000000000000000000000',
+        } });
+      }
+      return json(res, 200, {
+        ...paginate(apiKeys),
+        meta: { current_page: 1, last_page: 1, per_page: 40, total: apiKeys.length, scopes: apiScopes, base_url: 'http://127.0.0.1:8899/api/v1/ext' },
+      });
+    }
+    {
+      const m = p.match(/^\/admin\/api-keys\/(\d+)(\/roll|\/revoke|\/requests)?$/);
+      if (m) {
+        const apiKey = apiKeys.find((k) => k.id === Number(m[1]));
+        if (!apiKey) return json(res, 404, { message: 'Not found.' });
+        const revoked = apiKey.status === 'revoked';
+        const refused = () => json(res, 422, { message: 'This key has been revoked. Make a new one instead.', errors: { name: ['This key has been revoked. Make a new one instead.'] } });
+        if (m[2] === '/requests') {
+          const status = url.searchParams.get('status');
+          const shown = status === 'ok' ? apiKeyRequests.filter((r) => r.status < 400) : status === 'error' ? apiKeyRequests.filter((r) => r.status >= 400) : apiKeyRequests;
+          const counts = Array.from({ length: 30 }, (_, i) => ({ date: new Date(Date.UTC(2026, 9, 23 - 29 + i)).toISOString().slice(0, 10), count: i % 7 === 0 ? 2 : 0 }));
+          return json(res, 200, { ...paginate(shown), meta: { current_page: 1, last_page: 1, per_page: 25, total: shown.length, counts } });
+        }
+        if (m[2] === '/roll') return revoked ? refused() : json(res, 200, { data: { ...apiKey, prefix: 'ak_mock9999', key: 'ak_mock9999000000000000000000000000000000000000' } });
+        if (m[2] === '/revoke') return json(res, 200, { data: { ...apiKey, status: 'revoked', revoked_at: '2026-10-23T09:00:00+05:30' } });
+        if (req.method === 'PATCH') {
+          if (revoked) return refused();
+          const body = await readJsonBody(req);
+          return json(res, 200, { data: { ...apiKey, ...(body.name ? { name: body.name } : {}) } });
+        }
+        if (req.method === 'DELETE') { res.writeHead(204); return res.end(); }
+        return json(res, 200, { data: apiKey });
       }
     }
 

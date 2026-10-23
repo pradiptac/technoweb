@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\ActivityController;
 use App\Http\Controllers\Api\V1\Admin\AiImageController;
+use App\Http\Controllers\Api\V1\Admin\ApiKeyController;
 use App\Http\Controllers\Api\V1\Admin\ChatAdminController;
 use App\Http\Controllers\Api\V1\Admin\ClientErrorController as AdminClientErrorController;
 use App\Http\Controllers\Api\V1\Admin\CustomFontController;
@@ -269,4 +270,20 @@ Route::middleware('role:admin')->group(function () {
     Route::get('webhooks/{webhook:id}/deliveries/{delivery:id}', [WebhookController::class, 'delivery'])->name('webhooks.deliveries.show');
     Route::post('webhooks/{webhook:id}/deliveries/{delivery:id}/redeliver', [WebhookController::class, 'redeliver'])
         ->middleware('throttle:30,1')->name('webhooks.deliveries.redeliver');
+
+    /*
+     * API keys for the `/ext` integration surface. Administrator-only: a key
+     * reads leads, orders and customers from outside. The key is answered
+     * once — on the create and on a roll — and by no read; only its hash is
+     * stored.
+     */
+    Route::get('api-keys', [ApiKeyController::class, 'index'])->name('api-keys.index');
+    Route::post('api-keys', [ApiKeyController::class, 'store'])->name('api-keys.store');
+    Route::get('api-keys/{apiKey:id}', [ApiKeyController::class, 'show'])->name('api-keys.show');
+    Route::patch('api-keys/{apiKey:id}', [ApiKeyController::class, 'update'])->name('api-keys.update');
+    Route::delete('api-keys/{apiKey:id}', [ApiKeyController::class, 'destroy'])->name('api-keys.destroy');
+    Route::post('api-keys/{apiKey:id}/roll', [ApiKeyController::class, 'roll'])
+        ->middleware('throttle:10,1')->name('api-keys.roll');
+    Route::post('api-keys/{apiKey:id}/revoke', [ApiKeyController::class, 'revoke'])->name('api-keys.revoke');
+    Route::get('api-keys/{apiKey:id}/requests', [ApiKeyController::class, 'requests'])->name('api-keys.requests');
 });

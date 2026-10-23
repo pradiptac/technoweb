@@ -176,6 +176,7 @@ Contents:
   - Content-type presets — `docs/content-presets.md`
   - Notifications, mentions and edit awareness — `docs/notifications.md`
   - Native analytics — `docs/analytics.md`
+  - API keys — `docs/api-keys.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -3245,6 +3246,20 @@ The site counts its own visits, cookieless (0.188.0): page views, outbound click
 - Settings: `native_analytics_enabled` on Site → Settings → Analytics (public, seeded on); `native_analytics_exclude_ips` (checked by `Collector::refusalFor`, one address or CIDR per line) and `native_analytics_count_staff` on Settings → Infrastructure (private).
 - Countries come from two committed binaries (`api/resources/geo/country-v{4,6}.bin`, db-ip "IP to Country Lite", CC BY 4.0, credited in the manual's chapter 38) probed with a static file handle, or an edge country header; `php scripts/build-geo.php` rebuilds them and adds ~15 MB to the repo and the zip each time.
 - A headless browser names itself and is a bot: the probe sets a Chrome agent. `scripts/probes/native-analytics.mjs` needs a throwaway SEO manager and checks a visitor's pages, search and outbound click reach the screen and a staff load adds nothing.
+
+### API keys — `docs/api-keys.md`
+
+The incoming half of integration (0.189.0): another system asks for what a webhook would send it, and does three small writes.
+
+- Header only — `Authorization: Bearer ak_…`, never the query string. A key is `ak_` + 40 characters, kept only as `sha256`, shown once (on the create and the roll), never readable.
+- **Not Sanctum**: `ApiKey` never resolves as `$request->user()`; `api.key:<scope>` middleware puts it on the request's `api_key` attribute, outside `auth:sanctum`. An unknown scope on a route throws.
+- Refusals carry a `reason`: 401 `invalid_key`/`revoked`/`expired`, 403 `ip_not_allowed`/`missing_scope`, 429 `rate_limited` (120 a minute per key, every recognised-key request counts; `Retry-After`). The group's `throttle:240,1` counts per route and per address under `ThrottleRequestsPerRoute`.
+- Records are `WebhookPayload`, so every withholding holds for both surfaces (no internal notes; a sensitive ticket's description and sensitive messages redacted; a ticket read carries public messages only).
+- Writes go through the intakes: a lead is `channel: api`, `form_name: API: <key name>`, source the key, and is **not** a native-analytics conversion; a subscriber through `SubscriberIntake` (a suppressed address is never re-added, the customers group is refused); stock by SKU through `StockLedger`, refused per item (a variated product's own SKU, an ambiguous or unknown SKU, an untracked product).
+- Lists: `since` is ISO 8601 only (a bare date is that day's start in the app timezone), read as an instant; `per_page` 1–100, default 50; ordered `updated_at, id`.
+- Request log: path without the query (255), no row for a 429, 30 days (`technoware:prune-api-key-requests`, 03:57); `last_used_*` only for requests that got through, at most once a minute, through the query builder.
+- **No admin request field may be named `key`** — it is on `ActivityLogger`'s allowlist. `ApiKey` is fillable to `key_hash`, so request input is never mass-assigned.
+- Roll replaces the key under the same row; revoke is final (a revoked key is not edited or rolled); an unchanged expiry already past may be re-saved. Console at System → API keys; create and roll show the key in-page, never through a `?done=` redirect.
 
 ## Conventions
 

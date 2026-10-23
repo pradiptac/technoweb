@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Jobs\CheckRecordHealth;
 use App\Jobs\IndexRecordPassages;
 use App\Models\AnswerBlock;
+use App\Models\ApiKey;
 use App\Models\Backup;
 use App\Models\BackupRestore;
 use App\Models\BlogCategory;
@@ -381,6 +382,10 @@ class AppServiceProvider extends ServiceProvider
             'lead' => Lead::class,
             'lead_note' => LeadNote::class,
             'form_submission' => FormSubmission::class,
+
+            // An API key is bound on its console routes, so the activity log
+            // names it as the subject of a create, a revoke or a delete.
+            'api_key' => ApiKey::class,
 
             // Outgoing webhooks: the activity log names the hook a DELETE
             // was aimed at, and it has to be here for that to have a name.
