@@ -3483,3 +3483,61 @@ Google sign-in for staff (customers' Google sign-in, 0.133.0, stays).
 See @README.md for setup detail, Plesk deployment and the full change history,
 and @API.md for the endpoint reference — every route, what it returns, and the
 behaviour that is not obvious from the signature.
+## Incremental Development and Audit Policy
+
+### Default Behavior
+
+- Work incrementally.
+- Understand the relevant parts of the application before modifying code.
+- Prefer targeted inspection over repeatedly scanning the entire repository.
+- Do not perform a full project audit after every coding task.
+- Do not repeatedly inspect unrelated files without a specific reason.
+
+### Before Making Changes
+
+1. Identify the relevant files and dependencies.
+2. Inspect the existing implementation.
+3. Identify the expected behavior.
+4. Determine the smallest appropriate change.
+
+### After Making Changes
+
+1. Review the changes introduced by the current task.
+2. Inspect the resulting Git diff.
+3. Run targeted tests and validation.
+4. Check for regressions directly related to the change.
+5. Report the files changed and the checks performed.
+
+### Audit Scope
+
+- Review changed lines and modified files first.
+- Inspect related code only when necessary.
+- Expand the scope when a change affects authentication,
+  authorization, database integrity, shared APIs, or security boundaries.
+- Do not perform a complete repository audit unless explicitly requested.
+
+### Testing
+
+- Prefer targeted tests over the full test suite.
+- Run the full test suite when explicitly requested or when
+  the change's scope and risk justify it.
+- Never claim that an unexecuted test has passed.
+
+### Existing Changes
+
+- Preserve unrelated user changes.
+- Never revert, overwrite, or automatically stage unrelated changes.
+- Distinguish pre-existing problems from regressions introduced
+  by the current task.
+
+### Completion Report
+
+At the end of a coding task, report:
+
+- Changes implemented.
+- Files affected.
+- Targeted tests executed.
+- Test results.
+- Any unresolved risks.
+
+Do not launch a full project audit automatically.
