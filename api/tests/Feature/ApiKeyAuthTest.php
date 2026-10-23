@@ -176,4 +176,34 @@ class ApiKeyAuthTest extends TestCase
         $this->me($plain)->assertOk();
         $this->assertTrue($key->fresh()->last_used_at->greaterThan($first));
     }
+
+    public function test_a_long_path_is_logged_truncated_to_the_column(): void
+    {
+        Route::middleware(['api', 'api.key'])->get('/api/v1/ext/long/{x}', fn () => response()->json(['ok' => true]));
+        [$key, $plain] = $this->makeKey();
+
+        $this->me($plain, '/api/v1/ext/long/'.str_repeat('a', 400))->assertOk();
+
+        $this->assertSame(255, strlen(ApiKeyRequest::where('api_key_id', $key->id)->sole()->path));
+    }
+
+    public function test_a_rate_limited_request_is_not_logged(): void
+    {
+        [$key, $plain] = $this->makeKey();
+
+        for ($i = 0; $i < 121; $i++) {
+            $this->me($plain);
+        }
+
+        $this->assertSame(120, ApiKeyRequest::where('api_key_id', $key->id)->count());
+    }
+
+    public function test_the_ext_group_has_its_own_per_address_limit(): void
+    {
+        for ($i = 0; $i < 240; $i++) {
+            $this->getJson('/api/v1/ext/me')->assertStatus(401);
+        }
+
+        $this->getJson('/api/v1/ext/me')->assertStatus(429);
+    }
 }

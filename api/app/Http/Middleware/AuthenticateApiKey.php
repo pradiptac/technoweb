@@ -81,7 +81,8 @@ class AuthenticateApiKey
     {
         /** @var ApiKey|null $key */
         $key = $request->attributes->get('api_key_seen');
-        if ($key === null) {
+        // A throttled call is not logged: the rows themselves would be the flood.
+        if ($key === null || $response->getStatusCode() === 429) {
             return;
         }
 
@@ -90,7 +91,7 @@ class AuthenticateApiKey
             ApiKeyRequest::create([
                 'api_key_id' => $key->id,
                 'method' => $request->method(),
-                'path' => '/'.ltrim($request->path(), '/'),
+                'path' => mb_substr('/'.ltrim($request->path(), '/'), 0, 255),
                 'status' => $response->getStatusCode(),
                 'ip' => $request->ip(),
                 'duration_ms' => (int) round((microtime(true) - $started) * 1000),
