@@ -21,6 +21,12 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.188.1 — 2026-10-23
+
+**Fonts and code are no longer downloaded twice for visitors with the installed app.**
+
+- The site's service worker answered scripts, styles and fonts from its own cache, and Chrome will not reuse a preloaded file through a worker, so every preloaded font and code file was fetched twice on each page it controlled, the console's forms included. While online the browser's own cache serves them now; offline the worker still does. Found by the full audit against a production build of 0.187.0–0.188.0, which is otherwise clean in light, dark and at phone widths.
+
 ## 0.188.0 — 2026-10-21
 
 **Visit counting** — the site counts its own visits, without cookies, and shows them in the console.

@@ -15,8 +15,10 @@
  *   v=…    the application version, so a release replaces the static cache
  *
  * What it caches, and what it never touches:
- *   /_next/static/*   cache first — the file names are content hashes
- *   /_next/image, /storage/*, fonts   served from cache, refreshed behind
+ *   /_next/static/*, fonts   the browser's own cache while online (a
+ *                     preload is not reused through a worker); cache first
+ *                     offline
+ *   /_next/image, /storage/*   served from cache, refreshed behind
  *   a page navigation network first; the copy is kept for offline, and the
  *                     offline page is the answer when there is neither
  *   anything signed in, paying or holding a secret — never (NEVER_CACHE,
@@ -143,11 +145,19 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(page(event));
     return;
   }
-  if (url.pathname.startsWith("/_next/static/")) {
-    event.respondWith(cacheFirst(request));
+  /* Scripts, styles and fonts are left to the browser while it is online.
+     A page preloads them, and Chrome will not hand a preload to a request
+     the worker answers ("cross-world service worker resource mismatch"),
+     so answering here downloaded every preloaded chunk and font twice.
+     Their names are content hashes and they are served `immutable`, so the
+     browser's own cache already does what cache-first did; offline, the
+     worker still answers from the cache it filled. */
+  const asset = url.pathname.startsWith("/_next/static/") || request.destination === "font";
+  if (asset) {
+    if (!self.navigator.onLine) event.respondWith(cacheFirst(request));
     return;
   }
-  if (url.pathname.startsWith("/_next/image") || url.pathname.startsWith("/pwa-icon/") || request.destination === "font") {
+  if (url.pathname.startsWith("/_next/image") || url.pathname.startsWith("/pwa-icon/")) {
     event.respondWith(staleWhileRevalidate(event));
   }
 });
