@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Jobs\WriteSocialPost;
 use App\Models\BlogPost;
+use App\Models\CaseStudy;
 use App\Models\ContentType;
 use App\Models\Entry;
 use App\Models\SocialPost;
+use App\Support\Social\SocialDrafts;
 use App\Support\Social\SocialText;
 use App\Support\Writing\Writer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -163,5 +165,51 @@ class SocialDraftsTest extends TestCase
         $this->assertTrue($post->exists);
         $this->assertSame(1, BlogPost::query()->count());
         $this->assertSame(0, SocialPost::query()->count());
+    }
+
+    public function test_editing_an_already_published_pairless_post_makes_no_pair(): void
+    {
+        $post = SocialDrafts::suppressed(fn () => $this->blog());
+        $post->update(['title' => 'New switches, faster']);
+
+        $this->assertSame(0, SocialPost::query()->count());
+    }
+
+    public function test_a_post_created_published_forty_days_ago_makes_none(): void
+    {
+        $this->blog(['published_at' => now()->subDays(40)]);
+
+        $this->assertSame(0, SocialPost::query()->count());
+    }
+
+    public function test_draft_to_published_makes_one_pair(): void
+    {
+        $post = $this->blog(['status' => 'draft']);
+        $this->assertSame(0, SocialPost::query()->count());
+
+        $post->update(['status' => 'published', 'published_at' => now()]);
+        $this->assertSame(2, SocialPost::query()->count());
+    }
+
+    public function test_a_published_case_study_edited_again_makes_none(): void
+    {
+        $study = SocialDrafts::suppressed(fn () => CaseStudy::create([
+            'title' => 'A rollout', 'slug' => 'a-rollout', 'summary' => 'Done.', 'body' => '<p>Done.</p>', 'status' => 'published',
+        ]));
+        $study->update(['title' => 'A rollout, finished']);
+        $this->assertSame(0, SocialPost::query()->count());
+
+        // Created published, it counts as the transition.
+        CaseStudy::create(['title' => 'Another', 'slug' => 'another', 'summary' => 'Done.', 'body' => '<p>Done.</p>', 'status' => 'published']);
+        $this->assertSame(2, SocialPost::query()->count());
+    }
+
+    public function test_a_record_saved_inside_the_suppression_wrapper_makes_no_pair(): void
+    {
+        SocialDrafts::suppressed(fn () => $this->blog());
+        $this->assertSame(0, SocialPost::query()->count());
+
+        $this->blog(['slug' => 'after']); // and drafting resumes outside it
+        $this->assertSame(2, SocialPost::query()->count());
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\Social\SocialDrafts;
 use Illuminate\Database\Seeder;
 
 /**
@@ -24,7 +25,8 @@ class InstallSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([
+        // Placeholder and starter content is not news: no social drafts for it (C7).
+        SocialDrafts::suppressed(fn () => $this->call([
             RoleSeeder::class,
             TicketCategorySeeder::class,
             CatalogueSeeder::class,
@@ -44,6 +46,6 @@ class InstallSeeder extends Seeder
             NewsletterTemplateSeeder::class,
             // Five starter page templates (0.162.0); create-only by name.
             StarterTemplateSeeder::class,
-        ]);
+        ]));
     }
 }

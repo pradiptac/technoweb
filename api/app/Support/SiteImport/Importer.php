@@ -5,6 +5,7 @@ namespace App\Support\SiteImport;
 use App\Models\SiteImport;
 use App\Support\IndexNow;
 use App\Support\SiteImport\Steps\Step;
+use App\Support\Social\SocialDrafts;
 use App\Support\WordPress\Outcome;
 use App\Support\WordPress\Rendered\Parts;
 use App\Support\WordPress\Report;
@@ -70,7 +71,7 @@ final class Importer
 
     public function commit(SiteImport $import, CarbonImmutable $deadline): string
     {
-        return IndexNow::suppressed(fn () => $this->run($import, $deadline, dryRun: false));
+        return IndexNow::suppressed(fn () => SocialDrafts::suppressed(fn () => $this->run($import, $deadline, dryRun: false)));
     }
 
     private function run(SiteImport $import, CarbonImmutable $deadline, bool $dryRun): string

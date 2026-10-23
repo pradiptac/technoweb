@@ -15,6 +15,7 @@ use App\Models\SocialPost;
 use App\Models\User;
 use App\Support\Writing\Writer;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -24,11 +25,52 @@ class SocialDrafts
     /** How far back the sweep looks for a post that came due after its save. */
     public const SWEEP_DAYS = 30;
 
-    /** The saved-listener entry point. Never throws: a draft that cannot be made must not fail a publish. */
+    /** Set while a bulk write runs that must not draft per record (imports, seeders). */
+    private static bool $suppressed = false;
+
+    /**
+     * Run `$work` with drafting held back, as IndexNow::suppressed does: an import
+     * or a seeder writes hundreds of published records that nobody just published.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $work
+     * @return T
+     */
+    public static function suppressed(callable $work): mixed
+    {
+        $previous = self::$suppressed;
+        self::$suppressed = true;
+
+        try {
+            return $work();
+        } finally {
+            self::$suppressed = $previous;
+        }
+    }
+
+    /**
+     * The saved-listener entry point. Never throws: a draft that cannot be made must not fail a publish.
+     * It drafts on the transition to visible (visible after this save, not before) and, for posts and
+     * press releases, only when dated within the sweep's window, so editing old content drafts nothing.
+     */
     public static function onSaved(Model $m): void
     {
+        if (self::$suppressed) {
+            return;
+        }
+
         try {
-            self::draftIfDue($m);
+            // In a saved listener the originals are still the pre-save values (a new model holds only its defaults).
+            $status = $m->getOriginal('status');
+            $before = ($status instanceof \BackedEnum ? $status->value : $status) === PublishStatus::Published->value
+                && (! ($m instanceof BlogPost || $m instanceof Entry) || ($m->getOriginal('published_at') !== null && Carbon::parse($m->getOriginal('published_at'))->lte(now())));
+            $stale = ($m instanceof BlogPost || $m instanceof Entry)
+                && $m->published_at !== null && $m->published_at->lt(now()->subDays(self::SWEEP_DAYS));
+
+            if (! $before && ! $stale) {
+                self::draftIfDue($m);
+            }
         } catch (\Throwable $e) {
             Log::warning('Social posts: could not draft', ['type' => $m->getMorphClass(), 'id' => $m->getKey(), 'error' => $e->getMessage()]);
         }
