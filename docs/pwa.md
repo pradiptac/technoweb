@@ -44,9 +44,19 @@ full navigation, which the page handler answers). The list is in `sw.js` and
 **Navigations are network first.** A good answer is kept (40 pages, oldest
 dropped) so it opens offline; with neither network nor copy, the offline page
 answers at the requested address — which is why its "Try again" is a plain
-`<a href="">`, working with no JavaScript. `/_next/static/*` is cache first
-(content-hashed names); `/_next/image`, `/storage/*`, fonts and the icons are
-served from cache and refreshed behind (120 entries).
+`<a href="">`, working with no JavaScript. `/_next/image`, `/storage/*` and
+the icons are served from cache and refreshed behind (120 entries).
+
+**`/_next/static/*` and fonts are the browser's own while it is online**
+(0.188.1). Chrome will not hand a `<link rel="preload">` to a request the
+worker answers — it logs "a preload … is not used because it is a cross-world
+service worker resource mismatch" — so answering them cache first downloaded
+every preloaded font and chunk twice on every page the worker controlled, the
+console's entity forms included. They are content-hashed and `immutable`, so
+the HTTP cache already does what cache first did; the worker answers them from
+its cache only when `navigator.onLine` is false. The audit only sees this on
+`next start` (no worker in dev) and only once a page is controlled, which is
+why a single-route run looked clean.
 
 **The offline page is precached with everything it names.** On install the
 worker fetches `/offline` and every `/_next/static/` stylesheet and script in
