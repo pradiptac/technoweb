@@ -42,7 +42,7 @@ class SocialText
         $words = preg_split('/\s+/u', $text) ?: [];
         while ($words !== []) {
             array_pop($words);
-            $candidate = rtrim(implode(' ', $words), ' ,;:—-.').'…';
+            $candidate = preg_replace('/[\s,;:—\-.]+$/u', '', implode(' ', $words)).'…';
             if (self::xFits($candidate, $url)) {
                 return $candidate;
             }

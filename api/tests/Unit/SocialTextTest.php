@@ -40,6 +40,20 @@ class SocialTextTest extends TestCase
         $this->assertSame('Short — and sweet', SocialText::fallback(SocialNetwork::X, 'Short', 'and sweet', $url));
     }
 
+    public function test_x_fallback_trimming_keeps_multibyte_text_valid(): void
+    {
+        $url = 'https://example.com/post';
+
+        // "Ā" is C4 80 and "औ" is E0 A4 94: their last bytes are in the "—" byte set.
+        foreach (['ĀĀĀĀĀ', 'औऔऔऔऔ'] as $word) {
+            $text = SocialText::fallback(SocialNetwork::X, $word, trim(str_repeat($word.' ', 80)), $url);
+
+            $this->assertTrue(mb_check_encoding($text, 'UTF-8'), $word);
+            $this->assertTrue(SocialText::xFits($text, $url), $word);
+            $this->assertStringEndsWith($word.'…', $text);
+        }
+    }
+
     public function test_linkedin_fallback_carries_title_summary_and_link(): void
     {
         $text = SocialText::fallback(SocialNetwork::LinkedIn, 'Title', 'A summary.', 'https://example.com/p');
