@@ -68,7 +68,8 @@ class ApiKeyAdminTest extends TestCase
         $id = $res->json('data.id');
 
         $show = $this->actingAs($admin, 'sanctum')->getJson("/api/v1/admin/api-keys/{$id}")
-            ->assertOk()->assertJsonMissingPath('data.key')->assertJsonMissingPath('data.key_hash');
+            ->assertOk()->assertJsonMissingPath('data.key')->assertJsonMissingPath('data.key_hash')
+            ->assertJsonMissingPath('data.requests_30d');
         $index = $this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/api-keys')
             ->assertOk()->assertJsonMissingPath('data.0.key')->assertJsonMissingPath('data.0.key_hash')
             ->assertJsonPath('data.0.requests_30d', 0)
@@ -187,6 +188,23 @@ class ApiKeyAdminTest extends TestCase
             ->assertOk()->assertJsonCount(2, 'data');
         $this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/api-keys')
             ->assertJsonPath('data.0.requests_30d', 2);
+    }
+
+    public function test_an_unchanged_past_expiry_can_be_saved_but_a_changed_one_must_be_future(): void
+    {
+        $admin = $this->admin();
+        $key = $this->make(['expires_at' => now()->addDay()]);
+        $iso = $key->fresh()->expires_at->toIso8601String();
+        $this->travel(3)->days();
+
+        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/api-keys/{$key->id}", ['name' => 'Renamed', 'expires_at' => $iso])
+            ->assertOk()->assertJsonPath('data.name', 'Renamed')->assertJsonPath('data.status', 'expired');
+        $this->assertSame('Renamed', $key->fresh()->name);
+
+        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/api-keys/{$key->id}", ['expires_at' => now()->subHour()->toIso8601String()])
+            ->assertUnprocessable()->assertJsonValidationErrors('expires_at');
+        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/api-keys/{$key->id}", ['expires_at' => now()->addDay()->toIso8601String()])
+            ->assertOk()->assertJsonPath('data.status', 'active');
     }
 
     public function test_delete_removes_the_key_and_its_log(): void

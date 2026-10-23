@@ -88,7 +88,7 @@ class ApiKeyController extends Controller
         }
         $apiKey->save();
 
-        return response()->json(['data' => (new ApiKeyResource($apiKey->load('creator')))->toArray($request)]);
+        return response()->json(['data' => (new ApiKeyResource($apiKey->load('creator')))->resolve($request)]);
     }
 
     /** A new key in place of the old one; the old one stops working at once. */
@@ -109,7 +109,7 @@ class ApiKeyController extends Controller
             $apiKey->forceFill(['revoked_at' => now()])->save();
         }
 
-        return response()->json(['data' => (new ApiKeyResource($apiKey->load('creator')))->toArray($request)]);
+        return response()->json(['data' => (new ApiKeyResource($apiKey->load('creator')))->resolve($request)]);
     }
 
     public function destroy(ApiKey $apiKey): JsonResponse
@@ -161,7 +161,7 @@ class ApiKeyController extends Controller
     private function withKey(ApiKey $key, string $plain, Request $request, int $status = 200): JsonResponse
     {
         return response()->json([
-            'data' => (new ApiKeyResource($key->load('creator')))->toArray($request) + ['key' => $plain],
+            'data' => (new ApiKeyResource($key->load('creator')))->resolve($request) + ['key' => $plain],
         ], $status);
     }
 }
