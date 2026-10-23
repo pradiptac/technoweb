@@ -6,7 +6,7 @@ import { Form } from "@/components/ui/form";
 import { FormActions } from "@/components/admin/form-actions";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Alert, Field, Input } from "@/components/ui/input";
-import { SecretOnce } from "./secret-once";
+import { SecretOnce } from "@/components/admin/secret-once";
 import {
   createWebhookAction, deleteWebhookAction, updateWebhookAction, type WebhookFormState,
 } from "./actions";

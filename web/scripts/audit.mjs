@@ -133,6 +133,9 @@ const ADMIN_ROUTES = [
   // entry below, because nothing seeds a webhook and its id is whatever an
   // administrator made.
   "/admin/webhooks", "/admin/webhooks/new",
+  // API keys: the list and the form; the edit screen (with its request log) is a
+  // DISCOVER entry below, for the same reason as a webhook's.
+  "/admin/api-keys", "/admin/api-keys/new",
   "/admin/imports/wordpress", "/admin/imports/site", "/admin/backups", "/admin/backups/settings",
   // System → Status and Updates (2026-09-28, docs/distribution.md).
   "/admin/system/status", "/admin/system/updates",
@@ -287,6 +290,7 @@ const DISCOVER = [
   { from: "/admin/locations", match: /^\/admin\/locations\/\d+$/, admin: true },
   { from: "/admin/users", match: /^\/admin\/users\/\d+$/, admin: true },
   { from: "/admin/webhooks", match: /^\/admin\/webhooks\/\d+$/, admin: true },
+  { from: "/admin/api-keys", match: /^\/admin\/api-keys\/\d+$/, admin: true },
   { from: "/admin/store/products", match: /^\/admin\/store\/products\/\d+$/, admin: true },
   { from: "/admin/store/categories", match: /^\/admin\/store\/categories\/\d+$/, admin: true },
   { from: "/admin/store/tags", match: /^\/admin\/store\/tags\/\d+$/, admin: true },

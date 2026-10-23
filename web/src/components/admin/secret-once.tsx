@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { IconCheck } from "@/components/icons-ui";
 
 /**
- * The signing secret, shown the one time the API hands it over.
+ * A secret — a webhook's signing secret, an API key — shown the one time the
+ * API hands it over.
  *
  * `warn` and not dismissible: this is the only place the value will ever be
  * readable, and an alert that can be closed by reflex is how somebody ends
@@ -15,7 +16,16 @@ import { IconCheck } from "@/components/icons-ui";
  * refused clipboard (an insecure origin, an embedded browser) is reported
  * rather than ticked past; the value is still on screen to select by hand.
  */
-export function SecretOnce({ secret, name }: { secret: string; name?: string }) {
+export function SecretOnce({
+  secret, name, label = "signing secret", lost = "rotate it from the form and update the other end",
+}: {
+  secret: string;
+  name?: string;
+  /** What the value is called in the heading: "signing secret", "API key". */
+  label?: string;
+  /** What to do when it is lost, finishing "if it is lost, …". */
+  lost?: string;
+}) {
   const [state, setState] = useState<"idle" | "done" | "failed">("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -33,20 +43,20 @@ export function SecretOnce({ secret, name }: { secret: string; name?: string }) 
   }
 
   return (
-    <Alert tone="warn" dismissible={false} title={name ? `${name}'s signing secret — shown once` : "Signing secret — shown once"}>
+    <Alert tone="warn" dismissible={false} title={name ? `${name}'s ${label} — shown once` : `${label[0].toUpperCase()}${label.slice(1)} — shown once`}>
       <p className="mb-2">
-        Put this in the receiving system now. It is encrypted here and cannot be
-        read back; if it is lost, rotate it from the form and update the other end.
+        Save it where it is needed now. It cannot be
+        read back; if it is lost, {lost}.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <code className="min-w-0 break-all rounded border border-line-strong bg-card px-2.5 py-1.5 font-mono text-13 text-ink select-all">
           {secret}
         </code>
-        <Button type="button" size="sm" variant="secondary" onClick={copy} aria-label={state === "done" ? "Secret copied" : "Copy the secret"}>
+        <Button type="button" size="sm" variant="secondary" onClick={copy} aria-label={state === "done" ? "Copied" : `Copy the ${label}`}>
           {state === "done" ? <><IconCheck className="size-3.5" aria-hidden /> Copied</> : "Copy"}
         </Button>
         <span role="status" className="sr-only">
-          {state === "done" ? "The secret was copied to the clipboard." : state === "failed" ? "The secret could not be copied. Select it and copy by hand." : ""}
+          {state === "done" ? "Copied to the clipboard." : state === "failed" ? "It could not be copied. Select it and copy by hand." : ""}
         </span>
       </div>
       {state === "failed" && (
