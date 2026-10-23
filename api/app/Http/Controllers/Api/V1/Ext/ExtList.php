@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Ext;
 
 use App\Support\PaginatedEnvelope;
 use BackedEnum;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,19 +20,36 @@ final class ExtList
     public static function page(Request $request, Builder $query, callable $map): JsonResponse
     {
         $request->validate([
-            'since' => 'nullable|date',
+            'since' => ['nullable', 'string', fn ($a, $v, $fail) => self::since($v) ?? $fail('Give `since` as an ISO 8601 date and time.')],
             'per_page' => 'nullable|integer|between:1,100',
-        ], ['since.date' => 'Give `since` as an ISO 8601 date and time.']);
+        ]);
 
         if ($request->filled('since')) {
-            $query->where('updated_at', '>=', $request->date('since'));
+            $query->where('updated_at', '>=', self::since($request->query('since')));
         }
 
         $rows = $query->orderBy('updated_at')->orderBy('id')
-            ->paginate((int) $request->query('per_page', 25))->withQueryString();
+            ->paginate($request->integer('per_page') ?: 50)->withQueryString();
         $rows->through($map);
 
         return response()->json(PaginatedEnvelope::from($rows));
+    }
+
+    /**
+     * `since` as an instant in the app's timezone, which is what `updated_at`
+     * is stored in; ISO 8601 only (not strtotime's "yesterday").
+     */
+    private static function since(mixed $value): ?Carbon
+    {
+        foreach (['Y-m-d\TH:i:sp', 'Y-m-d\TH:i:s.up', 'Y-m-d\TH:ip'] as $format) {
+            if (Carbon::canBeCreatedFromFormat($value, $format)) {
+                return Carbon::createFromFormat($format, $value)->setTimezone(config('app.timezone'));
+            }
+        }
+
+        return Carbon::canBeCreatedFromFormat($value, '!Y-m-d')
+            ? Carbon::createFromFormat('!Y-m-d', $value, config('app.timezone'))
+            : null;
     }
 
     /**

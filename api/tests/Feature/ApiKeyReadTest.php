@@ -123,12 +123,40 @@ class ApiKeyReadTest extends TestCase
         $this->assertSame(['new@example.test'], array_column($res->json('data'), 'email'));
     }
 
+    public function test_since_is_an_instant_whatever_offset_it_carries(): void
+    {
+        $this->lead('now@example.test'); // updated_at is now, stored in the app timezone (IST)
+        $plain = $this->key(['leads:read']);
+        $count = fn (string $since) => $this->read('leads?since='.urlencode($since), $plain)->assertOk()->json('meta.total');
+
+        $utc = now()->utc();
+        $this->assertSame(1, $count($utc->copy()->subMinute()->format('Y-m-d\TH:i:s\Z')));
+        $this->assertSame(0, $count($utc->copy()->addMinute()->format('Y-m-d\TH:i:s\Z')));
+        $this->assertSame(1, $count($utc->copy()->subMinute()->format('Y-m-d\TH:i:s.v\Z')));
+
+        $tokyo = now()->setTimezone('+09:00');
+        $this->assertSame(1, $count($tokyo->copy()->subMinute()->format('Y-m-d\TH:i:sP')));
+        $this->assertSame(0, $count($tokyo->copy()->addMinute()->format('Y-m-d\TH:i:sP')));
+
+        $this->assertSame(1, $count(now()->format('Y-m-d'))); // a plain date is the app's day
+    }
+
+    public function test_per_page_defaults_to_50_and_an_empty_value_is_the_default(): void
+    {
+        $plain = $this->key(['leads:read']);
+
+        $this->read('leads', $plain)->assertJsonPath('meta.per_page', 50);
+        $this->read('leads?per_page=', $plain)->assertOk()->assertJsonPath('meta.per_page', 50);
+    }
+
     public function test_a_malformed_since_or_per_page_is_422(): void
     {
         $plain = $this->key(['leads:read']);
 
-        $this->read('leads?since=yesterday-ish', $plain)->assertStatus(422)
-            ->assertJsonPath('errors.since.0', 'Give `since` as an ISO 8601 date and time.');
+        foreach (['yesterday-ish', 'yesterday', '2026-13-45', 'tomorrow'] as $bad) {
+            $this->read('leads?since='.urlencode($bad), $plain)->assertStatus(422)
+                ->assertJsonPath('errors.since.0', 'Give `since` as an ISO 8601 date and time.');
+        }
         $this->read('leads?per_page=500', $plain)->assertStatus(422)->assertJsonValidationErrors('per_page');
     }
 
