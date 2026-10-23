@@ -98,7 +98,7 @@ middleware alias taking the scope: `api.key:leads:read`. JSON only; send
 | `GET` | `/ext/me` | any valid key | `{name, prefix, scopes, expires_at}` — lets an integration check its own key |
 | `GET` | `/ext/leads` | `leads:read` | `WebhookPayload::lead` rows |
 | `GET` | `/ext/leads/{id}` | `leads:read` | |
-| `POST` | `/ext/leads` | `leads:write` | `name`, `email`, `phone`, `company`, `subject`, `message` (at least an email or a phone), `source_url?`, `utm_*?`. Files a lead with `channel = 'api'` through `LeadIntake::fromApi()`; source is the key. **201** with the lead |
+| `POST` | `/ext/leads` | `leads:write` | `name`, `email`, `phone`, `company`, `subject`, `message` (at least an email or a phone), the public forms' page envelope (`_source_url`, `_utm_source`…). Files a lead with `channel = 'api'` through `LeadIntake::fromApi()`; source is the key. **201** with the lead |
 | `GET` | `/ext/orders` | `orders:read` | `WebhookPayload::order` |
 | `GET` | `/ext/orders/{number}` | `orders:read` | by order number |
 | `GET` | `/ext/customers` | `customers:read` | `WebhookPayload::customer` |
@@ -191,8 +191,7 @@ requests_30d`. Never the key or its hash.
 - `ApiKey` is **not** a Sanctum tokenable and never resolves as
   `$request->user()`; the middleware puts it on the request as an attribute
   (`$request->attributes->get('api_key')`).
-- `LeadSource`/`channel` vocabulary gains `api` wherever channels are listed
-  (lead filters, scoring labels, the console's channel select, the mock).
+- A lead filed by a key has `channel = 'api'` and `form_name = 'API: <key name>'`; there is no channel list to extend (the console filters on the raw value).
 
 ## Left to the builder
 
