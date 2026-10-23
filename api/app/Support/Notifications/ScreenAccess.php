@@ -115,6 +115,7 @@ final class ScreenAccess
         ['/admin/settings/email-templates', 'admin', false],
         ['/admin/users', 'admin', false],
         ['/admin/webhooks', 'admin', false],
+        ['/admin/api-keys', 'admin', false],
         ['/admin/imports/wordpress', 'admin', false],
         ['/admin/imports/site', 'admin', false],
         ['/admin/backups', 'admin', false],
