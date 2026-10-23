@@ -76,6 +76,16 @@ final class Writer
         if (! $surface->authorise($user, $input)) {
             return WritingResult::refused('You cannot use writing help here.', 403);
         }
+
+        return $this->runSystem($surface, $input);
+    }
+
+    /**
+     * run() for a caller that is the system itself (a job drafting a social post):
+     * no user to authorise, the same refusals, cap counting and fence.
+     */
+    public function runSystem(Surface $surface, WritingInput $input): WritingResult
+    {
         if ($refusal = self::refusal()) {
             return WritingResult::refused($refusal);
         }

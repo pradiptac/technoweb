@@ -1,0 +1,108 @@
+<?php
+
+namespace App\Support\Social;
+
+use App\Enums\PublishStatus;
+use App\Enums\SocialNetwork;
+use App\Enums\SocialPostStatus;
+use App\Jobs\WriteSocialPost;
+use App\Models\BlogPost;
+use App\Models\CaseStudy;
+use App\Models\ContentType;
+use App\Models\Entry;
+use App\Models\Event;
+use App\Models\SocialPost;
+use App\Models\User;
+use App\Support\Writing\Writer;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+/** Makes the LinkedIn and X drafts for a published record: on publish, by the sweep, or by hand. */
+class SocialDrafts
+{
+    /** How far back the sweep looks for a post that came due after its save. */
+    public const SWEEP_DAYS = 30;
+
+    /** The saved-listener entry point. Never throws: a draft that cannot be made must not fail a publish. */
+    public static function onSaved(Model $m): void
+    {
+        try {
+            self::draftIfDue($m);
+        } catch (\Throwable $e) {
+            Log::warning('Social posts: could not draft', ['type' => $m->getMorphClass(), 'id' => $m->getKey(), 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Visible now and no automatic pair yet is the whole test, so it is idempotent.
+     * Not locked: two saves racing in the same instant could make two pairs (acceptable; the editor discards one).
+     */
+    private static function draftIfDue(Model $m): bool
+    {
+        if (! ($m instanceof BlogPost || $m instanceof CaseStudy || $m instanceof Event || $m instanceof Entry)
+            || ! SocialSubjects::isVisible($m)
+            || SocialPost::query()->where('subject_type', $m->getMorphClass())->where('subject_id', $m->getKey())->where('source', 'publish')->exists()) {
+            return false;
+        }
+        self::forRecord($m, 'publish', null);
+
+        return true;
+    }
+
+    /** @return array{0: SocialPost, 1: SocialPost} the LinkedIn post, then the X post */
+    public static function forRecord(Model $m, string $source, ?User $by): array
+    {
+        if (! ($m instanceof BlogPost || $m instanceof CaseStudy || $m instanceof Event || $m instanceof Entry)) {
+            throw new \InvalidArgumentException('Not a record social posts can be about.');
+        }
+        $pending = Writer::refusal() === null;
+        $title = SocialSubjects::title($m);
+        $summary = SocialSubjects::summary($m);
+        $url = SocialSubjects::publicUrl($m);
+
+        $posts = DB::transaction(fn () => array_map(fn (SocialNetwork $network) => SocialPost::query()->create([
+            'network' => $network,
+            'status' => SocialPostStatus::Draft,
+            'subject_type' => $m->getMorphClass(),
+            'subject_id' => $m->getKey(),
+            'text' => SocialText::fallback($network, $title, $summary, $url),
+            'url' => $url,
+            'source' => $source,
+            'ai_pending' => $pending,
+            'drafted_by' => $by?->id,
+        ]), [SocialNetwork::LinkedIn, SocialNetwork::X]));
+
+        if ($pending) {
+            foreach ($posts as $post) {
+                WriteSocialPost::dispatch($post->id)->afterCommit();
+            }
+        }
+
+        return [$posts[0], $posts[1]];
+    }
+
+    /** Posts and press releases that came due after their save (a future date), published in the last 30 days. */
+    public static function sweep(): int
+    {
+        $window = [now()->subDays(self::SWEEP_DAYS), now()];
+        $without = fn (string $alias) => SocialPost::query()->where('subject_type', $alias)->where('source', 'publish')->select('subject_id');
+        $drafted = 0;
+
+        $records = BlogPost::query()->where('status', PublishStatus::Published)->whereBetween('published_at', $window)
+            ->whereNotIn('id', $without('blog_post'))->get()
+            ->concat(Entry::query()->where('status', PublishStatus::Published)->whereBetween('published_at', $window)
+                ->whereIn('content_type_id', ContentType::query()->where('preset', SocialSubjects::PRESET)->select('id'))
+                ->whereNotIn('id', $without('entry'))->get());
+
+        foreach ($records as $record) {
+            try {
+                $drafted += self::draftIfDue($record) ? 1 : 0;
+            } catch (\Throwable $e) {
+                Log::warning('Social posts: sweep could not draft', ['type' => $record->getMorphClass(), 'id' => $record->getKey(), 'error' => $e->getMessage()]);
+            }
+        }
+
+        return $drafted;
+    }
+}

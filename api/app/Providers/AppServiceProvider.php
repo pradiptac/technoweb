@@ -116,6 +116,7 @@ use App\Support\QueueHealth;
 use App\Support\Search\Indexable;
 use App\Support\Search\Indexer;
 use App\Support\Search\SemanticSettings;
+use App\Support\Social\SocialDrafts;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Mail\Markdown;
@@ -494,6 +495,11 @@ class AppServiceProvider extends ServiceProvider
             };
             $class::saved($reindexOwner);
             $class::deleted($reindexOwner);
+        }
+
+        // LinkedIn and X drafts for a record that is published (C7); onSaved is guarded and never fails a save.
+        foreach ([BlogPost::class, CaseStudy::class, Event::class, Entry::class] as $class) {
+            $class::saved(fn ($model) => SocialDrafts::onSaved($model));
         }
     }
 }

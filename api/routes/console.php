@@ -369,6 +369,9 @@ Schedule::command('technoware:check-links')->everyFifteenMinutes()->withoutOverl
 // The nightly re-check of every record, its score and the day's snapshot.
 Schedule::command('technoware:health-sweep')->dailyAt('02:50');
 
+// LinkedIn and X drafts for a post or press release that came due after its save (C7).
+Schedule::command('technoware:draft-social-posts')->everyTenMinutes()->withoutOverlapping(10)->runInBackground();
+
 // Search by meaning (0.182.0, docs/semantic-search.md): catch what saves missed, embed what waits.
 Schedule::command('technoware:index-search')->dailyAt('03:10');
 
