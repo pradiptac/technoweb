@@ -283,9 +283,12 @@ class LeadIntake
                 'ip_address' => $request->ip(),
             ]);
 
-            Conversions::record(match ($channel) {
-                'visit' => 'visit_requested', 'meeting' => 'meeting_booked', 'event' => 'event_registered', default => 'enquiry'
-            }, $page);
+            // An integration's lead is a system writing, not a site visitor (the desk-entry rule).
+            if ($channel !== 'api') {
+                Conversions::record(match ($channel) {
+                    'visit' => 'visit_requested', 'meeting' => 'meeting_booked', 'event' => 'event_registered', default => 'enquiry'
+                }, $page);
+            }
 
             return $lead;
         } catch (\Throwable $e) {

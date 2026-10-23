@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\PublishStatus;
 use App\Enums\SuppressionReason;
+use App\Models\AnalyticsHit;
 use App\Models\ApiKey;
 use App\Models\Lead;
 use App\Models\NewsletterGroup;
@@ -58,6 +59,13 @@ class ApiKeyWriteTest extends TestCase
         $this->assertSame($this->apiKey->id, $lead->source_id);
         $this->assertSame('API: ERP sync', $lead->form_name);
         $this->assertSame('https://partner.example/landing?x=1', $lead->source_url);
+    }
+
+    public function test_an_api_lead_is_not_a_site_visitors_conversion(): void
+    {
+        $this->as(['leads:write'])->postJson('/api/v1/ext/leads', ['email' => 'asha@example.test'])->assertCreated();
+
+        $this->assertSame(0, AnalyticsHit::count());
     }
 
     public function test_a_lead_needs_an_email_or_a_phone(): void
