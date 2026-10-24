@@ -86,17 +86,27 @@ export function StoreHero({ slider }: { slider: SliderRecord }) {
             re-pointing one element at new text would not replay it.
           */}
           <div key={index} className="motion-safe:animate-[gallery-fade_.4s_ease-out]">
+            {slide.kicker && (
+              <p className="mb-3 text-12 font-semibold uppercase tracking-[.12em] text-brand-ink">{slide.kicker}</p>
+            )}
             {slide.heading && (
               <h2 className="display-2 text-balance">{slide.heading}</h2>
             )}
             {slide.caption && (
               <p className="lede measure mt-4">{slide.caption}</p>
             )}
-            {slide.link_url && slide.link_label && (
-              <ButtonLink href={slide.link_url} className="mt-6 rounded-full">
-                {slide.link_label}
-                <IconArrowRight className="size-4" />
-              </ButtonLink>
+            {((slide.link_url && slide.link_label) || (slide.link2_url && slide.link2_label)) && (
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                {slide.link_url && slide.link_label && (
+                  <ButtonLink href={slide.link_url} className="rounded-full">
+                    {slide.link_label}
+                    <IconArrowRight className="size-4" />
+                  </ButtonLink>
+                )}
+                {slide.link2_url && slide.link2_label && (
+                  <ButtonLink href={slide.link2_url} variant="secondary" className="rounded-full">{slide.link2_label}</ButtonLink>
+                )}
+              </div>
             )}
 
             {count > 1 && (

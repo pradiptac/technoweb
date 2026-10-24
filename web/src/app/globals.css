@@ -132,6 +132,11 @@
      a slide's caption inside a section painted slate blue kept its white
      words and lost its dark ground, 3.4:1 (2026-09-19). */
   --color-scrim:      #12140d;
+  /* The same shade the other way round, for a slide whose words are dark: a
+     light opaque stop (the dark band's ink) and the ink that stays dark on it.
+     Neither is re-derived by a section background (2026-10-24). */
+  --color-scrim-light:     #f6f7f2;
+  --color-scrim-light-ink: #12140d;
   /*
    * The top bar and the panel under it. Five tokens of their own rather than
    * the dark band's, because the bar's colour is a setting (`theme_topbar`)

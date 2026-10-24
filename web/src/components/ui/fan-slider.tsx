@@ -181,6 +181,7 @@ export function FanSlider({
         {/* The words, under the picture — always rendered at one height so the
             stage above never moves between a captioned slide and a bare one. */}
         <div key={index} className="gallery-fade min-h-[2.75rem] px-4 text-center">
+          {current.kicker && <p className="text-12 font-semibold uppercase tracking-[.12em] text-muted">{current.kicker}</p>}
           {current.heading && (
             current.link_url ? (
               <a href={current.link_url} className="text-14 font-semibold text-ink hover:text-brand-ink hover:underline">{current.heading}</a>
@@ -189,6 +190,9 @@ export function FanSlider({
             )
           )}
           {current.caption && <p className="mt-0.5 line-clamp-1 text-12 text-muted">{current.caption}</p>}
+          {current.link2_url && current.link2_label && (
+            <a href={current.link2_url} className="mt-0.5 inline-block py-1 text-12 font-semibold text-brand-ink hover:underline">{current.link2_label}</a>
+          )}
         </div>
 
         {/* The pill: arrows either side of the dots. */}

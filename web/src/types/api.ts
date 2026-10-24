@@ -2859,6 +2859,15 @@ export type Slide = {
   fit?: string | null;
   /** How long this slide stays, in ms (2000–60000); null means the slider's `interval_ms`. */
   duration_ms?: number | null;
+  /** A short line above the heading. */
+  kicker?: string | null;
+  /** A second button; drawn only when both its address and its label are set. */
+  link2_url?: string | null;
+  link2_label?: string | null;
+  /** `light` words (the default) or `dark` words on a light shade. The API's list. */
+  text_tone?: string | null;
+  /** How far the opaque shade reaches: `soft`, `standard` (the default) or `strong`. The API's list. */
+  overlay?: string | null;
 };
 
 /**
