@@ -61,7 +61,7 @@ export function Home({
             size={56}
             mask="radial-gradient(ellipse 90% 70% at 50% 0%, #000 20%, transparent 78%)"
           />
-          <Container className="relative grid items-center gap-12 pt-14 pb-16 lg:grid-cols-[1fr_1.05fr] lg:gap-16 lg:pt-20 lg:pb-20 [&>*]:min-w-0">
+          <Container className="relative grid items-center gap-12 pt-8 pb-16 lg:grid-cols-[1fr_1.05fr] lg:items-start lg:gap-16 lg:pt-12 lg:pb-20 [&>*]:min-w-0">
             <div>
               <span className="font-mono text-12 font-semibold uppercase tracking-[.14em] text-brand-300">
                 <span aria-hidden className="text-dark-muted">{"// "}</span>{kicker}

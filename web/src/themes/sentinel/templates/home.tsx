@@ -60,8 +60,8 @@ export function Home({
       <Backdrop variant={motionFor(settings).hero} tone="dark" size={64} mask="radial-gradient(ellipse 60% 70% at 80% 30%, #000 10%, transparent 70%)" />
       {/* The glow behind the frame: a brand radial at low alpha, which changes no computed colour. */}
       <div aria-hidden className="pointer-events-none absolute -right-40 top-10 size-[640px] rounded-full bg-brand-500/20 blur-[120px]" />
-      <Container className="relative pt-14 pb-12 lg:pt-20 lg:pb-16">
-        <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+      <Container className="relative pt-8 pb-12 lg:pt-12 lg:pb-16">
+        <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr] lg:items-start lg:gap-16">
           <div className="min-w-0">
             <p className="flex items-center gap-2.5 text-13 text-brand-300">
               <i aria-hidden className="sentinel-dot size-2 rounded-full bg-brand-300" />

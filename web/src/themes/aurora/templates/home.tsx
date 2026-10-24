@@ -49,7 +49,7 @@ export function Home({
 
   const hero = (
     <section className="aurora-wash relative overflow-hidden">
-      <Container className="relative flex flex-col items-center pt-14 pb-12 text-center lg:pt-20 lg:pb-16">
+      <Container className="relative flex flex-col items-center pt-8 pb-12 text-center lg:pt-12 lg:pb-16">
         <span className="inline-flex items-center gap-2 rounded-full bg-card/70 px-4 py-1.5 text-12-5 font-semibold text-brand-ink backdrop-blur-sm">{kicker}</span>
         <HeroTitle className="display-1 mt-6 max-w-[22ch] text-balance [overflow-wrap:anywhere]">{heading}</HeroTitle>
         <p className="lede mt-5 max-w-[60ch] text-ink-2">{lede}</p>
