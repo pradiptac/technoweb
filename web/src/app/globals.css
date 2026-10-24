@@ -2907,6 +2907,20 @@ summary:focus-visible {
   @keyframes slide-fade-in  { from { opacity: 0; } to { opacity: 1; } }
   @keyframes slide-zoom-in  { from { opacity: 0; transform: scale(1.035); } to { opacity: 1; transform: scale(1); } }
 
+  /*
+   * The slow zoom (Ken Burns): `data-media-effect` is on a slide's picture
+   * wrapper only while that slide is on screen, so it restarts each time. It
+   * animates the CSS `scale` and `translate` properties (not `transform`, the
+   * Tailwind v4 trap), lasts the slide's own duration (`--media-effect-ms`) and
+   * holds its last frame. The wrapper's parent clips it, so nothing widens.
+   */
+  @keyframes media-zoom-in  { from { scale: 1; } to { scale: 1.12; } }
+  @keyframes media-zoom-out { from { scale: 1.12; } to { scale: 1; } }
+  @keyframes media-drift    { from { scale: 1.1; translate: -2.5% -1.5%; } to { scale: 1.1; translate: 2.5% 1.5%; } }
+  [data-media-effect="zoom_in"]  { animation: media-zoom-in  var(--media-effect-ms, 6000ms) linear both; }
+  [data-media-effect="zoom_out"] { animation: media-zoom-out var(--media-effect-ms, 6000ms) linear both; }
+  [data-media-effect="drift"]    { animation: media-drift    var(--media-effect-ms, 6000ms) linear both; }
+
   .slide-fade-in  { animation: slide-fade-in  var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
   .slide-zoom-in  { animation: slide-zoom-in  var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
 

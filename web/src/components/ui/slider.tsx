@@ -285,6 +285,9 @@ export function Slider({
                 priority={priority && i === 0}
                 painted={Boolean(painted[i])}
                 onPaint={() => markPainted(i)}
+                effect={slider.media_effect}
+                active={i === index}
+                delayMs={slideDelay(slide, slider)}
               />
               {/*
                 Re-keyed on becoming current, so the entrance replays each
@@ -342,6 +345,10 @@ export function Slider({
                 placeholder={role === "current" && outgoing === null}
                 painted={Boolean(painted[i])}
                 onPaint={() => markPainted(i)}
+                effect={slider.media_effect}
+                // The outgoing slide keeps zooming under the one fading in; only a neighbour is at rest.
+                active={role !== "neighbour"}
+                delayMs={slideDelay(slides[i], slider)}
               />
               {/*
                 The words animate only while the slide is current; a class

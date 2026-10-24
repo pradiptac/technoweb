@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useState, type CSSProperties, type ReactNode } from "react";
+import Image, { getImageProps } from "next/image";
 import { focalStyle } from "@/lib/focal";
 import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ import type { Slide } from "@/types/api";
  */
 export function SlideMedia({
   slide, autoplay, eager, priority, painted, onPaint, className, sizes, placeholder = true,
+  effect, active = false, delayMs = 6000,
 }: {
   slide: Slide;
   sizes: string;
@@ -32,6 +33,12 @@ export function SlideMedia({
   className?: string;
   /** Whether to draw the skeleton under an unpainted slide at all. */
   placeholder?: boolean;
+  /** The slider's slow zoom (`zoom_in`, `zoom_out`, `drift`); images only. */
+  effect?: string | null;
+  /** Whether this slide is on screen (or still leaving it): the zoom runs only then, restarting when it turns true. */
+  active?: boolean;
+  /** How long the zoom takes — the slide's own duration. */
+  delayMs?: number;
 }) {
   // `contain` shows the whole picture; the bars it leaves are filled by a blurred, enlarged copy of the same picture.
   const contain = slide.fit === "contain";
@@ -89,36 +96,116 @@ export function SlideMedia({
             )}
           </span>
         )}
-        <Image
-          src={slide.url}
-          alt={slide.alt ?? ""}
-          fill
-          sizes={sizes}
-          // `priority` is eager and high-priority in one; a neighbour that is
-          // merely eager keeps the browser's default priority.
-          priority={priority}
-          loading={eager && !priority ? "eager" : undefined}
-          /*
-            `complete` covers the image that was already in cache.
-
-            A cached file can finish before React attaches `onLoad`, so a
-            placeholder cleared only by that event would sit over a picture
-            that is fully there — on a second visit, which is every visit
-            after the first.
-          */
-          ref={(el) => { if (el?.complete) onPaint(); }}
-          onLoad={onPaint}
-          // A broken image must not pulse forever. It leaves the alt text
-          // and the empty box, which is what a broken image is.
-          onError={onPaint}
-          className={cn(contain ? "object-contain" : "object-cover", className)}
-          // The file's focal point: a slide is the most cropped picture on
-          // the site (a 2400px photograph in a 16:9 strip, then a 4:3 card
-          // on a phone), and the point says which part to keep.
-          style={focalStyle(slide.focus)} {...blurProps(slide.blur)}
-        />
+        <ZoomBox effect={effect} active={active} delayMs={delayMs}>
+        {slide.mobile_url ? (
+          <PhonePicture slide={slide} src={slide.url} phoneSrc={slide.mobile_url} sizes={sizes} priority={priority} eager={eager} painted={painted} onPaint={onPaint} className={cn(contain ? "object-contain" : "object-cover", className)} />
+        ) : (
+          <Image
+            src={slide.url}
+            alt={slide.alt ?? ""}
+            fill
+            sizes={sizes}
+            // `priority` is eager and high-priority in one; a neighbour that is
+            // merely eager keeps the browser's default priority.
+            priority={priority}
+            loading={eager && !priority ? "eager" : undefined}
+            /*
+              `complete` covers the image that was already in cache.
+  
+              A cached file can finish before React attaches `onLoad`, so a
+              placeholder cleared only by that event would sit over a picture
+              that is fully there — on a second visit, which is every visit
+              after the first.
+            */
+            ref={(el) => { if (el?.complete) onPaint(); }}
+            onLoad={onPaint}
+            // A broken image must not pulse forever. It leaves the alt text
+            // and the empty box, which is what a broken image is.
+            onError={onPaint}
+            className={cn(contain ? "object-contain" : "object-cover", className)}
+            // The file's focal point: a slide is the most cropped picture on
+            // the site (a 2400px photograph in a 16:9 strip, then a 4:3 card
+            // on a phone), and the point says which part to keep.
+            style={focalStyle(slide.focus)} {...blurProps(slide.blur)}
+          />
+        )}
+        </ZoomBox>
         </>
       ) : null}
+    </>
+  );
+}
+
+/**
+ * Clips the sharp picture and carries the slow zoom (`globals.css`).
+ *
+ * The animated element is the inner span and the clip is its parent, so the
+ * picture grows inside a box that never widens. `data-media-effect` exists only
+ * while the slide is active: taking it off resets the animation and putting it
+ * back restarts it, without remounting the `<img>` (a remount mid-crossfade is
+ * the flicker `docs/sliders.md` describes). No effect, no wrapper: the markup
+ * is what it was.
+ */
+function ZoomBox({ effect, active, delayMs, children }: { effect?: string | null; active: boolean; delayMs: number; children: ReactNode }) {
+  if (!effect || effect === "none") return <>{children}</>;
+  return (
+    <span className="absolute inset-0 overflow-hidden">
+      <span
+        className="absolute inset-0"
+        data-media-effect={active ? effect : undefined}
+        style={{ "--media-effect-ms": `${delayMs}ms` } as CSSProperties}
+      >
+        {children}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * One `<picture>` with a phone crop: the browser picks one source and
+ * downloads only that file. Built with `getImageProps` so both go through the
+ * optimiser (an SVG passes through unchanged and has no `srcSet`).
+ *
+ * A `<source>` carries no style, so each focal point is a custom property on
+ * the `<picture>` and the `<img>` switches between them with a media query —
+ * the phone picture never inherits the wide picture's point. The same goes for
+ * the blur preview, drawn as a span that goes once the picture has painted.
+ */
+function PhonePicture({ slide, src, phoneSrc, sizes, priority, eager, painted, onPaint, className }: {
+  slide: Slide; src: string; phoneSrc: string; sizes: string; priority: boolean; eager: boolean;
+  painted: boolean; onPaint: () => void; className?: string;
+}) {
+  const { props: wide } = getImageProps({
+    src, alt: slide.alt ?? "", fill: true, sizes, priority,
+    loading: eager && !priority ? "eager" : undefined,
+    className: cn("[object-position:var(--focus,50%_50%)] max-md:[object-position:var(--focus-m,50%_50%)]", className),
+  });
+  const { props: phone } = getImageProps({ src: phoneSrc, alt: "", fill: true, sizes: "100vw" });
+  const wideBlur = slide.blur && slide.blur.startsWith("data:image/") ? slide.blur : null;
+  const phoneBlur = slide.mobile_blur && slide.mobile_blur.startsWith("data:image/") ? slide.mobile_blur : wideBlur;
+  const vars = {
+    "--focus": slide.focus ?? undefined,
+    "--focus-m": slide.mobile_focus ?? undefined,
+    "--blur": wideBlur ? `url("${wideBlur}")` : undefined,
+    "--blur-m": phoneBlur ? `url("${phoneBlur}")` : undefined,
+  } as CSSProperties;
+  return (
+    <>
+      {!painted && wideBlur && (
+        <span aria-hidden className="absolute inset-0 overflow-hidden" style={vars}>
+          <span className="absolute inset-0 scale-110 bg-cover bg-center blur-xl [background-image:var(--blur)] max-md:[background-image:var(--blur-m)]" />
+        </span>
+      )}
+      <picture style={vars}>
+        <source media="(max-width: 767px)" srcSet={phone.srcSet ?? phone.src} sizes={phone.sizes} />
+        <img
+          {...wide}
+          alt={slide.alt ?? ""}
+          ref={(el) => { if (el?.complete) onPaint(); }}
+          onLoad={onPaint}
+          onError={onPaint}
+        />
+      </picture>
     </>
   );
 }

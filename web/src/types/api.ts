@@ -2868,6 +2868,11 @@ export type Slide = {
   text_tone?: string | null;
   /** How far the opaque shade reaches: `soft`, `standard` (the default) or `strong`. The API's list. */
   overlay?: string | null;
+  /** A portrait crop shown below 768px, with its own alt text, focal point and blur preview. */
+  mobile_url?: string | null;
+  mobile_alt?: string | null;
+  mobile_focus?: string | null;
+  mobile_blur?: string | null;
 };
 
 /**
@@ -2988,6 +2993,8 @@ export type Slider = {
   height?: string | null;
   height_mobile?: string | null;
   height_desktop?: string | null;
+  /** The slow zoom on image slides: `none`, `zoom_in`, `zoom_out` or `drift`. The API's list. */
+  media_effect?: string | null;
   /**
    * Admin only. True for a slider a page reads by slug (`homepage-hero`,
    * `store-hero`); `reserved_for` says which, in the API's words, so the
