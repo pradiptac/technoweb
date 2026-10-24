@@ -78,7 +78,11 @@ class WritingSettingsTest extends TestCase
     {
         $this->seed(SettingsSeeder::class);
         $secret = 'sk-or-v1-0123456789abcdef0123456789abcdefa7';
-        Setting::where('key', 'openrouter_api_key')->firstOrFail()->update(['value' => $secret]);
+        // Stored the way the settings screen stores it: encrypted. The hint must
+        // come from the decrypted key, never the ciphertext (which starts eyJpdiI6).
+        $row = Setting::where('key', 'openrouter_api_key')->firstOrFail();
+        $row->setPlainValue($secret);
+        $row->save();
         Setting::flushCache();
 
         $res = $this->actingAs($this->user(), 'sanctum')->getJson('/api/v1/admin/settings')->assertOk();

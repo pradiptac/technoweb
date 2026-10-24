@@ -91,7 +91,8 @@ class SettingController extends Controller
                 'is_set' => filled($s->value),
                 // First 8 and last 2 characters of a long typed key, so the
                 // saved one can be recognised — see SecretHint for the exclusions.
-                'hint' => $s->is_secret ? SecretHint::for($s->key, $s->value) : null,
+                // From the decrypted key: the column holds the ciphertext.
+                'hint' => $s->is_secret ? SecretHint::for($s->key, $s->plainValue()) : null,
                 // A resolved URL for the settings that hold a media path, so
                 // the picker can show a preview without the frontend having to
                 // know how storage paths map to URLs.
