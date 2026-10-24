@@ -2995,6 +2995,8 @@ export type Slider = {
   height_desktop?: string | null;
   /** The slow zoom on image slides: `none`, `zoom_in`, `zoom_out` or `drift`. The API's list. */
   media_effect?: string | null;
+  /** `dots` (the default), `progress` (dots and a progress line), `thumbnails` or `none`. The API's list; `full` layout only. */
+  navigation?: string | null;
   /**
    * Admin only. True for a slider a page reads by slug (`homepage-hero`,
    * `store-hero`); `reserved_for` says which, in the API's words, so the

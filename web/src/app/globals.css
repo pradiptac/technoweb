@@ -2921,6 +2921,10 @@ summary:focus-visible {
   [data-media-effect="zoom_out"] { animation: media-zoom-out var(--media-effect-ms, 6000ms) linear both; }
   [data-media-effect="drift"]    { animation: media-drift    var(--media-effect-ms, 6000ms) linear both; }
 
+  /* The slider's progress line: `scale` (not `transform`), from the left edge, over the slide's own delay. */
+  @keyframes slide-progress { from { scale: 0 1; } to { scale: 1 1; } }
+  .slide-progress-fill { transform-origin: left center; animation: slide-progress var(--slide-progress-ms, 6000ms) linear both; }
+
   .slide-fade-in  { animation: slide-fade-in  var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
   .slide-zoom-in  { animation: slide-zoom-in  var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
 

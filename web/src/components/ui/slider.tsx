@@ -7,6 +7,7 @@ import type { Slider as SliderData } from "@/types/api";
 import { SlideMedia } from "@/components/ui/slide-media";
 import { SlideCaption, captionAnimationFor } from "@/components/ui/slide-caption";
 import { Chevron, PlayPause, arrow } from "@/components/ui/slider-controls";
+import { SlideThumbs } from "@/components/ui/slide-thumbs";
 import { sliderFrameAttrs } from "@/lib/slider-frame";
 
 /**
@@ -103,6 +104,7 @@ export function Slider({
   const transition = slider.transition || "slide";
   const isNative = transition === "slide";
   const captionAnimation = captionAnimationFor(slider);
+  const navigation = slider.navigation || "dots";
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   // The slide the native track is scrolling away from, until the scroll settles.
@@ -379,27 +381,50 @@ export function Slider({
             <Chevron />
           </button>
 
-          <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
-            {slides.map((slide, i) => (
-              <button
-                key={slide.id}
-                type="button"
-                onClick={() => goTo(i)}
-                aria-label={`Go to slide ${i + 1}`}
-                aria-current={i === index}
-                // 24px of hit area around a 7px dot: the dot is the affordance,
-                // the padding is the target.
-                className="grid size-6 place-items-center"
-              >
+          {navigation === "thumbnails" ? (
+            <SlideThumbs slides={slides} index={index} onGo={goTo} smooth={motionOk} />
+          ) : navigation !== "none" && (
+            <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
+              {slides.map((slide, i) => (
+                <button
+                  key={slide.id}
+                  type="button"
+                  onClick={() => goTo(i)}
+                  aria-label={`Go to slide ${i + 1}`}
+                  aria-current={i === index}
+                  // 24px of hit area around a 7px dot: the dot is the affordance,
+                  // the padding is the target.
+                  className="grid size-6 place-items-center"
+                >
+                  <span
+                    className={cn(
+                      "block size-[7px] rounded-full transition-colors",
+                      i === index ? "bg-card" : "bg-card/45",
+                    )}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/*
+            The progress line: the fill's `scale` runs over this slide's own
+            delay. It is mounted only while the autoplay clock is running, so a
+            pause (hover, focus, hidden tab, the button) removes it and the
+            resume restarts it — the same restart `useAutoplay` makes of its
+            timer, so the line and the clock cannot disagree. Re-keyed per slide.
+          */}
+          {navigation === "progress" && slider.autoplay && motionOk && (
+            <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-card/40">
+              {autoplay && (
                 <span
-                  className={cn(
-                    "block size-[7px] rounded-full transition-colors",
-                    i === index ? "bg-card" : "bg-card/45",
-                  )}
+                  key={index}
+                  className="slide-progress-fill absolute inset-0 bg-brand-500"
+                  style={{ "--slide-progress-ms": `${slideDelay(slides[index], slider)}ms` } as CSSProperties}
                 />
-              </button>
-            ))}
-          </div>
+              )}
+            </div>
+          )}
 
           {slider.autoplay && (
             <PlayPause playing={wantsPlay} onToggle={() => setOverride(!wantsPlay)} />
