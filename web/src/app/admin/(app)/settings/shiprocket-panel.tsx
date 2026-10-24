@@ -124,8 +124,8 @@ export function ShiprocketPanel({ status, rows }: { status?: ShiprocketStatus; r
         {status.error && !result.ok && !result.error && (
           <Alert tone="warn" title="Shiprocket refused the last request" dismissible={false}>{status.error}</Alert>
         )}
-        {result.error && <Alert tone="err" title="That did not work">{result.error}</Alert>}
-        {result.ok && !result.error && <Alert tone="ok" title="Done">{result.ok}</Alert>}
+        {result.error && <Alert tone="err" nonce={result} title="That did not work">{result.error}</Alert>}
+        {result.ok && !result.error && <Alert tone="ok" nonce={result} title="Done">{result.ok}</Alert>}
 
         {on && (
           status.active ? (

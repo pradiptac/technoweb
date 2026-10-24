@@ -92,8 +92,8 @@ export function ZohoBooksPanel({ status, rows }: { status?: ZohoBooksStatus; row
         {status.error && !result.ok && !result.error && (
           <Alert tone="warn" title="Zoho Books refused the last request" dismissible={false}>{status.error}</Alert>
         )}
-        {result.error && <Alert tone="err" title="That did not work">{result.error}</Alert>}
-        {result.ok && !result.error && <Alert tone="ok" title="Done">{result.ok}</Alert>}
+        {result.error && <Alert tone="err" nonce={result} title="That did not work">{result.error}</Alert>}
+        {result.ok && !result.error && <Alert tone="ok" nonce={result} title="Done">{result.ok}</Alert>}
 
         <MailboxConnection
           account={status.account}

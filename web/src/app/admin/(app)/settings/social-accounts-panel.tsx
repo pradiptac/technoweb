@@ -64,8 +64,8 @@ export function SocialAccountsPanel({ status, rows }: { status?: SocialAccountsS
       {lastError && !result.ok && !result.error && (
         <Alert tone="warn" title="The last attempt was refused" dismissible={false}>{lastError}</Alert>
       )}
-      {result.error && <Alert tone="err" title="That did not work">{result.error}</Alert>}
-      {result.ok && !result.error && <Alert tone="ok" title="Done">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="That did not work">{result.error}</Alert>}
+      {result.ok && !result.error && <Alert tone="ok" nonce={result} title="Done">{result.ok}</Alert>}
       {li.connected && expired && (
         <Alert tone="warn" title="The connection has expired" dismissible={false}>
           LinkedIn&apos;s access ran out on {formatDate(li.expires_at, "long")}, so approving a post copies the text and opens LinkedIn

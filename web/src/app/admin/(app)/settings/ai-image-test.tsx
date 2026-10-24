@@ -17,8 +17,8 @@ export function AiImageTest() {
 
   return (
     <div className="mb-6 sm:col-span-2">
-      {result.error && <Alert tone="err" title="The model could not make a picture">{result.error}</Alert>}
-      {result.ok && !result.error && <Alert tone="ok" title="The model answered">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="The model could not make a picture">{result.error}</Alert>}
+      {result.ok && !result.error && <Alert tone="ok" nonce={result} title="The model answered">{result.ok}</Alert>}
       <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => start(async () => setResult(await testAiImageAction()))}>
         {busy ? "Making a test picture…" : "Test this model"}
       </Button>

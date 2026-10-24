@@ -47,8 +47,8 @@ export function MeetingsGooglePanel({ status, rows }: { status?: MeetingsGoogleS
       {lastError && !result.ok && !result.error && (
         <Alert tone="warn" title="The last attempt was refused" dismissible={false}>{lastError}</Alert>
       )}
-      {result.error && <Alert tone="err" title="That did not work">{result.error}</Alert>}
-      {result.ok && !result.error && <Alert tone="ok" title="Done">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="That did not work">{result.error}</Alert>}
+      {result.ok && !result.error && <Alert tone="ok" nonce={result} title="Done">{result.ok}</Alert>}
 
       <div className="mb-4">
         <MailboxConnection

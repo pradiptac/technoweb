@@ -180,8 +180,8 @@ export function MailPanel({ status, rows }: { status: MailStatus; rows: SettingG
         </Alert>
       )}
 
-      {result.error && <Alert tone="err" title="That did not work">{result.error}</Alert>}
-      {result.ok && <Alert tone="ok" title="Done">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="That did not work">{result.error}</Alert>}
+      {result.ok && <Alert tone="ok" nonce={result} title="Done">{result.ok}</Alert>}
 
       <Field
         label="Send mail through" htmlFor="setting__mail_transport"

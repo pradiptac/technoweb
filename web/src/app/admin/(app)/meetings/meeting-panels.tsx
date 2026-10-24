@@ -42,7 +42,7 @@ export function MeetingMovePanel({
         The customer and the host are told, and the calendar event moves with the same Meet link.
       </p>
 
-      {state.error && <Alert tone="err" title="Could not move it">{state.error}</Alert>}
+      {state.error && <Alert tone="err" nonce={state} title="Could not move it">{state.error}</Alert>}
 
       <Field label="Host" htmlFor="move_host" variant="float-static" error={err("host_id")}>
         <Select id="move_host" name="host_id" value={host ?? ""} onChange={(e) => setHost(e.currentTarget.value ? Number(e.currentTarget.value) : null)}>
@@ -92,7 +92,7 @@ export function MeetingCancelPanel({ meeting }: { meeting: AdminMeeting }) {
       <h2 className="mb-1 text-13 font-semibold">Cancel the meeting</h2>
       <p className="mb-3 text-12-5 text-muted">The calendar event is deleted and the customer is emailed.</p>
 
-      {state.error && <Alert tone="err" title="Could not cancel it">{state.error}</Alert>}
+      {state.error && <Alert tone="err" nonce={state} title="Could not cancel it">{state.error}</Alert>}
 
       <Field label="Reason (sent to the customer)" htmlFor="cancel_reason" error={err("reason")}>
         <Textarea id="cancel_reason" name="reason" rows={2} maxLength={500} />
@@ -126,7 +126,7 @@ export function MeetingOutcomePanel({ meeting, started, mine = false }: { meetin
     <Form action={formAction} state={state} className={panel}>
       <h2 className="mb-3 text-13 font-semibold">{canRecord ? "Outcome and notes" : "Notes"}</h2>
 
-      {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
+      {state.error && <Alert tone="err" nonce={state} title="Could not save">{state.error}</Alert>}
 
       {canRecord ? (
         <Field label="Outcome" htmlFor="outcome" variant="float-static" error={err("status")}
@@ -173,8 +173,8 @@ export function MeetingGooglePanel({ meeting }: { meeting: AdminMeeting }) {
         </p>
       )}
 
-      {result.error && <Alert tone="err" title="That did not work">{result.error}</Alert>}
-      {result.ok && !result.error && <Alert tone="ok" title="Retrying">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="That did not work">{result.error}</Alert>}
+      {result.ok && !result.error && <Alert tone="ok" nonce={result} title="Retrying">{result.ok}</Alert>}
 
       {g.status === "failed" && meeting.status === "scheduled" && (
         <Button
