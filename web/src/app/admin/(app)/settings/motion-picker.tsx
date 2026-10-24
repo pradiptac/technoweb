@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Backdrop } from "@/components/ui/backdrop";
 import {
-  BUTTONS, CARDS, HEROS, KINETIC_SITE, LOADERS, MICRO, PAGES, PROGRESS, REVEALS, SPLASH_NOTE,
+  BUTTONS, CARDS, FEELS, HEROS, KINETIC_SITE, LOADERS, MICRO, PAGES, PROGRESS, REVEALS, SPLASH_NOTE, TEXTS,
   type HeroVariant, type MotionChoice,
 } from "@/lib/motion-choices";
 import { MOTION_PRESETS, type MotionPreset } from "@/lib/motion-presets";
 import type { SettingRow } from "@/lib/admin";
 import { IconArrowRight } from "@/components/icons-ui";
+import { MagneticButtons } from "@/components/ui/magnetic-buttons";
 
 /**
- * The Motion tab: eight choices, each a row of tiles, under a row of
+ * The Motion tab: twelve choices, each a row of tiles, under a row of
  * presets (`lib/motion-presets.ts`) that set seven of them at once.
  *
  * Every tile is a label around an `sr-only` radio — the theme cards'
@@ -46,6 +47,8 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
   const [progress, setProgress] = useState(stored.motion_progress || PROGRESS[0].id);
   const [headline, setHeadline] = useState(stored.motion_headline || KINETIC_SITE[0].id);
   const [micro, setMicro] = useState(stored.motion_micro || MICRO[0].id);
+  const [feel, setFeel] = useState(stored.motion_feel || FEELS[0].id);
+  const [text, setText] = useState(stored.motion_text || TEXTS[0].id);
 
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -56,6 +59,7 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
       setting__motion_loader: loader, setting__motion_splash: splash, setting__motion_hero: hero,
       setting__motion_cards: cards, setting__motion_progress: progress,
       setting__motion_headline: headline, setting__motion_micro: micro,
+      setting__motion_feel: feel, setting__motion_text: text,
     };
     for (const input of el.querySelectorAll<HTMLInputElement>('input[type="radio"]')) {
       const should = input.value === chosen[input.name];
@@ -74,12 +78,12 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
   const current: Record<string, string> = {
     motion_reveal: reveal, motion_buttons: buttons, motion_page: page, motion_loader: loader,
     motion_hero: hero, motion_cards: cards, motion_progress: progress,
-    motion_headline: headline, motion_micro: micro,
+    motion_headline: headline, motion_micro: micro, motion_feel: feel, motion_text: text,
   };
   const setters: Record<string, (v: string) => void> = {
     motion_reveal: setReveal, motion_buttons: setButtons, motion_page: setPage, motion_loader: setLoader,
     motion_hero: setHero, motion_cards: setCards, motion_progress: setProgress,
-    motion_headline: setHeadline, motion_micro: setMicro,
+    motion_headline: setHeadline, motion_micro: setMicro, motion_feel: setFeel, motion_text: setText,
   };
   const applies = (preset: MotionPreset) => Object.entries(preset.values).every(([k, v]) => current[k] === v);
   const apply = (preset: MotionPreset) => {
@@ -91,6 +95,8 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
     // Both columns of the settings grid: a picker is one control, and in one
     // column its tiles stopped at half the screen (the ThemePicker rule).
     <div ref={ref} className="space-y-8 sm:col-span-2">
+      {/* The magnetic tile is previewed live; the island only acts under a tile that asks for it. */}
+      {buttons === "magnetic" && <MagneticButtons />}
       <div>
         <p className="mb-2 text-11-5 font-semibold uppercase tracking-[.1em] text-muted">Start from a preset</p>
         <div className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-2 lg:grid-cols-5">
@@ -164,6 +170,26 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
         preview={(c) => (
           <span className="flex h-14 items-center justify-center" data-motion-micro={c.id}>
             <Button type="button" size="sm" variant="secondary" tabIndex={-1}>Learn more <IconArrowRight className="size-4" /></Button>
+          </span>
+        )}
+      />
+
+      <Choices
+        name="setting__motion_feel" legend="Overall feel" value={feel} onChange={setFeel} choices={FEELS}
+        intro="Whether the whole site moves on its usual easing or on springs. Fluid makes every transition that uses the site's easing overshoot a little and settle: menus, drawers, cards, reveals. These are the live rules: hover the button."
+        preview={(c) => (
+          <span className="flex h-14 items-center justify-center" data-motion-feel={c.id}>
+            <Button type="button" size="sm" variant="secondary" tabIndex={-1} className="hover:-translate-y-1.5">Enquire</Button>
+          </span>
+        )}
+      />
+
+      <Choices
+        name="setting__motion_text" legend="Section headings" value={text} onChange={setText} choices={TEXTS}
+        intro="How the words of a section heading arrive when the section scrolls into view. A section that chooses its own heading effect keeps it. Hover a tile to replay it."
+        preview={(c) => (
+          <span className="flex h-14 items-center justify-center gap-1 text-15 font-semibold text-ink" data-demo={`text-${c.id}`} aria-hidden>
+            {["Keep", "it", "moving"].map((w, i) => <span key={w} style={{ "--w": i } as CSSProperties}>{w}</span>)}
           </span>
         )}
       />

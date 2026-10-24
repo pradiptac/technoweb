@@ -743,6 +743,8 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   motion_cards: { label: "Cards" },
   motion_headline: { label: "Hero heading" },
   motion_micro: { label: "Small interactions" },
+  motion_feel: { label: "Overall feel" },
+  motion_text: { label: "Section headings" },
   motion_page: { label: "Page transitions" },
   motion_loader: { label: "While the next page loads" },
   motion_progress: {
@@ -1330,7 +1332,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
   references: ["ticket_reference_prefix", "visit_reference_prefix", "meeting_reference_prefix", "order_number_prefix", "return_reference_prefix"],
   login: ["login_backdrop", "login_intensity", "login_speed", "login_image_path", "login_message"],
   // `motion_reveal` first: it is the row the form draws the whole picker on.
-  motion: ["motion_reveal", "motion_buttons", "motion_cards", "motion_headline", "motion_micro", "motion_page", "motion_loader", "motion_progress",
+  motion: ["motion_reveal", "motion_buttons", "motion_cards", "motion_headline", "motion_micro", "motion_feel", "motion_text", "motion_page", "motion_loader", "motion_progress",
            "motion_splash", "motion_hero"],
   seo: ["default_meta_description", "default_og_image", "landing_page_cap",
         "seo_ai_enabled", "seo_ai_daily_cap", "ai_writing_daily_cap", "ai_writing_style", "ai_writing_avoid",

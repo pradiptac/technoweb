@@ -11,6 +11,7 @@ import { PwaLoader } from "@/components/pwa/pwa-loader";
 import { pwaFor } from "@/lib/pwa";
 import { lookAttrs, lookFor } from "@/lib/look";
 import { CardTilt } from "@/components/ui/card-tilt";
+import { MagneticButtons } from "@/components/ui/magnetic-buttons";
 import { brandName } from "@/lib/brand";
 import { APP_VERSION } from "@/lib/version";
 import { loadChrome } from "@/lib/chrome";
@@ -176,6 +177,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
       */}
       {/* Cards leaning towards the pointer — shipped only when chosen (Motion → Cards). */}
       {motion.cards === "tilt" && <CardTilt />}
+      {motion.buttons === "magnetic" && <MagneticButtons />}
       <PwaLoader
         enabled={pwa.enabled}
         prompt={pwa.prompt}

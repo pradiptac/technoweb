@@ -1,5 +1,5 @@
 /**
- * How the public site and the portal move — seven settings, one list each.
+ * How the public site and the portal move — twelve settings, one list each.
  *
  * Plain data, no client imports, so the settings picker and the area
  * layouts can both read it. Every id here is a value the `motion` settings
@@ -40,6 +40,8 @@ export const BUTTONS: MotionChoice[] = [
   { id: "shine", label: "Shine", note: "A highlight sweeps across the face on hover." },
   { id: "ripple", label: "Ripple", note: "A pulse spreads from the centre when pressed." },
   { id: "flat", label: "Flat", note: "Colour change only. No movement at all." },
+  { id: "spring", label: "Spring", note: "Rises 2px on hover with an overshooting spring, squashes to 95% when pressed and springs back past rest on release." },
+  { id: "magnetic", label: "Magnetic", note: "On a computer the button drifts up to 6px towards the pointer while it is over it and springs back when it leaves. Springy like Spring on a phone." },
 ];
 
 /**
@@ -54,6 +56,7 @@ export const CARDS: MotionChoice[] = [
   { id: "tilt", label: "Tilt", note: "A card leans towards the pointer in 3-D as it moves across it." },
   { id: "float", label: "Float", note: "A card rises further and casts a deeper shadow. More presence." },
   { id: "still", label: "Still", note: "Cards do not move. The border and colour still answer the pointer." },
+  { id: "spring", label: "Spring", note: "A card rises 6px on a spring and its picture eases up to 104%; both settle back on a spring when the pointer leaves." },
 ];
 
 export const PAGES: MotionChoice[] = [
@@ -117,6 +120,27 @@ export const KINETIC_SITE: MotionChoice[] = KINETIC.filter((c) => c.id !== "rota
 export const MICRO: MotionChoice[] = [
   { id: "lively", label: "Lively", note: "Links, arrows, switches, tick boxes, copy buttons and card icons answer the pointer with a small movement." },
   { id: "none", label: "None", note: "Colour changes only. Nothing moves." },
+  { id: "fluid", label: "Fluid", note: "Everything Lively does, with arrows and card icons moving further on a bouncy spring." },
+];
+
+/**
+ * How the whole site feels (`motion_feel`, 0.192.0). **Standard is first and
+ * the default**; Fluid swaps the site's own easing token for a spring and
+ * lengthens the durations, so every transition that uses them (buttons,
+ * cards, menus, drawers, reveals, toasts) turns springy at once. Leaving is
+ * left quick (globals.css, "Fluid motion").
+ */
+export const FEELS: MotionChoice[] = [
+  { id: "standard", label: "Standard", note: "The easing the site has always had. The current behaviour." },
+  { id: "fluid", label: "Fluid", note: "Springy, physical motion everywhere: things overshoot a little and settle. Leaving stays quick." },
+];
+
+/** How a section heading's words arrive when the section is revealed (`motion_text`, 0.192.0). */
+export const TEXTS: MotionChoice[] = [
+  { id: "none", label: "None", note: "Headings arrive with their section. The current behaviour." },
+  { id: "rise", label: "Rise", note: "The words rise one after another on a spring." },
+  { id: "blur", label: "Blur", note: "The words sharpen from a soft blur one after another." },
+  { id: "wave", label: "Wave", note: "The words rise and settle in a ripple from left to right, with a little overshoot." },
 ];
 
 export type HeroVariant = "grid" | "aurora" | "dots" | "none";
@@ -196,6 +220,8 @@ export type Motion = {
   progress: string;
   headline: string;
   micro: string;
+  feel: string;
+  text: string;
 };
 
 const pick = (list: MotionChoice[], id: string | undefined): string =>
@@ -214,6 +240,8 @@ export function motionFor(settings: Record<string, string | undefined>): Motion 
     progress: pick(PROGRESS, settings.motion_progress),
     headline: pick(KINETIC_SITE, settings.motion_headline),
     micro: pick(MICRO, settings.motion_micro),
+    feel: pick(FEELS, settings.motion_feel),
+    text: pick(TEXTS, settings.motion_text),
   };
 }
 
@@ -230,5 +258,7 @@ export function motionAttrs(m: Motion): Record<string, string> {
     "data-motion-cards": m.cards,
     "data-motion-progress": m.progress,
     "data-motion-micro": m.micro,
+    "data-motion-feel": m.feel,
+    "data-motion-text": m.text,
   };
 }

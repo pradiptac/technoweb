@@ -1250,6 +1250,39 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   }
 }
 
+/*
+ * Spring and Magnetic (0.192.0, docs/motion.md "Fluid motion"). Spring: a
+ * two-pixel rise on a bouncy spring, a quick squash to .95 on press and the
+ * same spring carrying the release past 1. Magnetic: the same, with the
+ * button drifting up to 6px towards the pointer (`--mx`/`--my`, written in
+ * pixels by components/ui/magnetic-buttons.tsx, fine pointers only). Both
+ * transition `translate` and `scale` - never `transform` - and leave colour
+ * on the ordinary curve, because a colour that overshoots flickers.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  :is([data-motion-buttons="spring"], [data-motion-buttons="magnetic"]) .btn:not(:disabled) {
+    transition:
+      translate var(--duration-spring-button) var(--ease-spring-bouncy),
+      scale var(--duration-spring-button) var(--ease-spring-bouncy),
+      color var(--duration-base) var(--ease-brand),
+      background-color var(--duration-base) var(--ease-brand),
+      border-color var(--duration-base) var(--ease-brand),
+      box-shadow var(--duration-base) var(--ease-brand),
+      opacity var(--duration-base) var(--ease-brand);
+  }
+  :is([data-motion-buttons="spring"], [data-motion-buttons="magnetic"]) .btn:active:not(:disabled) {
+    scale: .95;
+    translate: none;
+    transition: scale var(--duration-fast) var(--ease-brand), translate var(--duration-fast) var(--ease-brand);
+  }
+  [data-motion-buttons="spring"] .btn:hover:not(:disabled, :active) { translate: 0 -2px; }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  [data-motion-buttons="magnetic"] .btn:hover:not(:disabled, :active) {
+    translate: calc(var(--mx, 0) * 1px) calc(var(--my, 0) * 1px - 2px);
+  }
+}
+
 /* ------------------------------------------------------- page transitions */
 /*
  * `.page-enter` wraps `{children}` of each area layout (components/ui/
@@ -4491,6 +4524,22 @@ section[data-page-section="rich_text"] + section[data-page-section="rich_text"] 
 }
 [data-motion-cards="still"] :is([data-card], [data-tile]):hover { translate: none; }
 
+/* Spring (0.192.0): the card rises 6px and its picture eases to 104% on a
+   spring, and both come back on one when the pointer leaves. The picture's
+   box clips it (a tile's media well), so nothing widens. */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  /* The attribute twice: a theme's own card idiom (\`[data-theme] [data-collection] [data-tile]:hover\`) is four deep. */
+  [data-motion-cards="spring"][data-motion-cards="spring"] :is([data-card], [data-tile]) {
+    transition:
+      translate var(--duration-spring-card) var(--ease-spring-soft),
+      box-shadow var(--duration-base) var(--ease-brand),
+      border-color var(--duration-base) var(--ease-brand);
+  }
+  [data-motion-cards="spring"][data-motion-cards="spring"] :is([data-card], [data-tile]):hover { translate: 0 -6px; box-shadow: var(--shadow-float); }
+  [data-motion-cards="spring"] :is([data-card], [data-tile]) img { transition: scale var(--duration-spring-card) var(--ease-spring-soft); }
+  [data-motion-cards="spring"] :is([data-card], [data-tile]):hover img { scale: 1.04; }
+}
+
 /* The Motion tab's Cards tiles: lift and tilt cannot use the live rules
    inside the console (lift is the card's own utility, tilt needs the page's
    pointer island), so each tile shows its effect on hover with the same
@@ -5566,27 +5615,27 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
  * horizontal but stays inside its own button's padding, so the document
  * never widens.
  */
-[data-motion-micro="lively"] [data-prose] a {
+:is([data-motion-micro="lively"], [data-motion-micro="fluid"]) [data-prose] a {
   text-decoration-thickness: 1px; text-underline-offset: 2px;
   transition: text-decoration-thickness var(--duration-fast) var(--ease-brand), text-underline-offset var(--duration-fast) var(--ease-brand), color var(--duration-fast) var(--ease-brand);
 }
-[data-motion-micro="lively"] [data-prose] a:is(:hover, :focus-visible) { text-decoration-thickness: 2px; text-underline-offset: 3px; }
+:is([data-motion-micro="lively"], [data-motion-micro="fluid"]) [data-prose] a:is(:hover, :focus-visible) { text-decoration-thickness: 2px; text-underline-offset: 3px; }
 
 @media (prefers-reduced-motion: no-preference) {
-  :is([data-motion-micro="lively"], [data-console]) :is(.btn, a, button) svg[data-icon="arrow-right"] { transition: translate var(--duration-fast) var(--ease-brand); }
-  :is([data-motion-micro="lively"], [data-console]) :is(.btn, a, button):is(:hover, :focus-visible) svg[data-icon="arrow-right"] { translate: 3px 0; }
+  :is([data-motion-micro="lively"], [data-motion-micro="fluid"], [data-console]) :is(.btn, a, button) svg[data-icon="arrow-right"] { transition: translate var(--duration-fast) var(--ease-brand); }
+  :is([data-motion-micro="lively"], [data-motion-micro="fluid"], [data-console]) :is(.btn, a, button):is(:hover, :focus-visible) svg[data-icon="arrow-right"] { translate: 3px 0; }
 
-  :is([data-motion-micro="lively"], [data-console]) [data-switch]::after { transition-timing-function: cubic-bezier(.34, 1.56, .64, 1); }
+  :is([data-motion-micro="lively"], [data-motion-micro="fluid"], [data-console]) [data-switch]::after { transition-timing-function: cubic-bezier(.34, 1.56, .64, 1); }
 
-  :is([data-motion-micro="lively"], [data-console]) input:is([type="checkbox"]:not([role="switch"]), [type="radio"]):checked:focus-visible,
-  :is([data-motion-micro="lively"], [data-console]) input:is([type="checkbox"]:not([role="switch"]), [type="radio"]):checked:active { animation: micro-pop 160ms var(--ease-brand); }
+  :is([data-motion-micro="lively"], [data-motion-micro="fluid"], [data-console]) input:is([type="checkbox"]:not([role="switch"]), [type="radio"]):checked:focus-visible,
+  :is([data-motion-micro="lively"], [data-motion-micro="fluid"], [data-console]) input:is([type="checkbox"]:not([role="switch"]), [type="radio"]):checked:active { animation: micro-pop 160ms var(--ease-brand); }
 
-  :is([data-motion-micro="lively"], [data-console]) [data-copied] { transition: scale var(--duration-base) var(--ease-brand), opacity var(--duration-base) var(--ease-brand); }
+  :is([data-motion-micro="lively"], [data-motion-micro="fluid"], [data-console]) [data-copied] { transition: scale var(--duration-base) var(--ease-brand), opacity var(--duration-base) var(--ease-brand); }
   @starting-style {
-    :is([data-motion-micro="lively"], [data-console]) [data-copied] { scale: .8; opacity: 0; }
+    :is([data-motion-micro="lively"], [data-motion-micro="fluid"], [data-console]) [data-copied] { scale: .8; opacity: 0; }
   }
 
-  :is([data-motion-micro="lively"], [data-console]) :is(input, select, textarea)[aria-invalid="true"] { animation: field-refused 600ms var(--ease-brand) 1; }
+  :is([data-motion-micro="lively"], [data-motion-micro="fluid"], [data-console]) :is(input, select, textarea)[aria-invalid="true"] { animation: field-refused 600ms var(--ease-brand) 1; }
 
   html[data-console-motion="subtle"] [data-console] :is(.btn, a, button):is(:hover, :focus-visible) svg[data-icon="arrow-right"] { translate: none; }
   html[data-console-motion="subtle"] [data-console] [data-switch]::after { transition-timing-function: var(--ease-brand); }
@@ -5596,8 +5645,94 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
   @keyframes field-refused { from { outline: 6px solid color-mix(in oklab, var(--color-err) 35%, transparent); outline-offset: 0; } to { outline: 6px solid transparent; outline-offset: 6px; } }
 }
 @media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
-  [data-motion-micro="lively"] [data-tile] [data-tile-icon] { transition: scale var(--duration-base) var(--ease-brand); }
-  [data-motion-micro="lively"] [data-tile]:hover [data-tile-icon] { scale: 1.08; }
+  :is([data-motion-micro="lively"], [data-motion-micro="fluid"]) [data-tile] [data-tile-icon] { transition: scale var(--duration-base) var(--ease-brand); }
+  :is([data-motion-micro="lively"], [data-motion-micro="fluid"]) [data-tile]:hover [data-tile-icon] { scale: 1.08; }
+}
+
+/*
+ * Fluid motion (0.192.0, docs/motion.md "Fluid motion"). Two springs as
+ * CSS `linear()` curves, each with a cubic-bezier fallback first for a
+ * browser without it:
+ *   soft   - damping ratio .55, ~13% overshoot (cards, headings, the tokens);
+ *   bouncy - damping ratio .32, ~35% overshoot (buttons, wave headings).
+ * `motion_feel: fluid` swaps the site's own easing token for the soft spring
+ * and lengthens fast/base/slow so the overshoot can be seen; every
+ * transition that uses the tokens goes springy at once. `--ease-exit` and
+ * `--duration-exit` are left alone: leaving stays quick and accelerating.
+ */
+:root {
+  --ease-spring-soft: cubic-bezier(.34, 1.3, .64, 1);
+  --ease-spring-bouncy: cubic-bezier(.34, 1.56, .64, 1);
+  --duration-spring-button: 600ms;
+  --duration-spring-card: 520ms;
+}
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --ease-spring-soft: linear(0, 0.066, 0.225, 0.424, 0.624, 0.801, 0.94, 1.038, 1.097, 1.123, 1.125, 1.11, 1.088, 1.062, 1.038, 1.017, 1.002, 0.992, 0.986, 0.984, 0.985, 0.987, 0.99, 0.994, 0.996, 0.999, 1, 1.001, 1);
+    --ease-spring-bouncy: linear(0, 0.11, 0.377, 0.701, 0.999, 1.216, 1.328, 1.34, 1.278, 1.175, 1.063, 0.969, 0.907, 0.881, 0.888, 0.916, 0.954, 0.991, 1.02, 1.037, 1.041, 1.036, 1.024, 1.011, 0.999, 0.99, 0.986, 0.986, 0.989, 0.993, 0.998, 1.002, 1.004, 1.005, 1);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-feel="fluid"] {
+    --ease-brand: var(--ease-spring-soft);
+    --duration-fast: 200ms;
+    --duration-base: 320ms;
+    --duration-slow: 450ms;
+  }
+
+  /* Fluid small interactions: the arrow and a card's icon on the spring. */
+  [data-motion-micro="fluid"] :is(.btn, a, button) svg[data-icon="arrow-right"] { transition: translate var(--duration-base) var(--ease-spring-bouncy); }
+  [data-motion-micro="fluid"] :is(.btn, a, button):is(:hover, :focus-visible) svg[data-icon="arrow-right"] { translate: 5px 0; }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  [data-motion-micro="fluid"] [data-tile] [data-tile-icon] { transition: scale var(--duration-spring-card) var(--ease-spring-bouncy); }
+  [data-motion-micro="fluid"] [data-tile]:hover [data-tile-icon] { scale: 1.14; }
+}
+
+/*
+ * Moving headings (`motion_text`): a section heading's words (`SectionHead`
+ * and the media-and-text heading render each in `<span data-word style="--w">`)
+ * arrive when the section they sit in is revealed. Keyed on the reveal
+ * observer's `data-aos-animate` on an ancestor `[data-aos]`; a heading with no
+ * such ancestor (a section whose reveal is None) is never hidden. The hidden
+ * state lives only here - no-preference, `html[data-aos-ready]` (set after
+ * hydration, never under reduced motion) - and carries no transition; the
+ * shown state does. A section with its own `style.headline` (`data-headline`)
+ * keeps that. Words are `inline-block` so `translate` and `filter` apply, and
+ * only ever move vertically.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-aos-ready] :is([data-motion-text="rise"], [data-motion-text="blur"], [data-motion-text="wave"]) [data-section-heading]:not([data-headline] *) [data-word] {
+    display: inline-block;
+  }
+  html[data-aos-ready] [data-motion-text="rise"] [data-aos]:not([data-aos-animate], [data-reveal-static] *) [data-section-heading]:not([data-headline] *) [data-word] { opacity: 0; translate: 0 .4em; }
+  html[data-aos-ready] [data-motion-text="wave"] [data-aos]:not([data-aos-animate], [data-reveal-static] *) [data-section-heading]:not([data-headline] *) [data-word] { opacity: 0; translate: 0 .6em; }
+  html[data-aos-ready] [data-motion-text="blur"] [data-aos]:not([data-aos-animate], [data-reveal-static] *) [data-section-heading]:not([data-headline] *) [data-word] { opacity: 0; filter: blur(6px); }
+
+  html[data-aos-ready] [data-motion-text="rise"] [data-aos][data-aos-animate] [data-section-heading]:not([data-headline] *) [data-word] {
+    transition: opacity var(--duration-slow) var(--ease-brand), translate 600ms var(--ease-spring-soft);
+    transition-delay: calc(min(var(--w, 0), 12) * 55ms);
+  }
+  html[data-aos-ready] [data-motion-text="wave"] [data-aos][data-aos-animate] [data-section-heading]:not([data-headline] *) [data-word] {
+    transition: opacity var(--duration-slow) var(--ease-brand), translate 800ms var(--ease-spring-bouncy);
+    transition-delay: calc(min(var(--w, 0), 12) * 80ms);
+  }
+  html[data-aos-ready] [data-motion-text="blur"] [data-aos][data-aos-animate] [data-section-heading]:not([data-headline] *) [data-word] {
+    transition: opacity 600ms var(--ease-brand), filter 600ms var(--ease-brand);
+    transition-delay: calc(min(var(--w, 0), 12) * 60ms);
+  }
+
+  /* The Motion tab's heading tiles: hover replays the arrival on the same numbers. */
+  .motion-tile [data-demo^="text-"] > span { display: inline-block; }
+  .motion-tile:hover [data-demo="text-rise"] > span { animation: k-text-rise 600ms var(--ease-spring-soft) backwards; animation-delay: calc(var(--w) * 55ms); }
+  .motion-tile:hover [data-demo="text-wave"] > span { animation: k-text-wave 800ms var(--ease-spring-bouncy) backwards; animation-delay: calc(var(--w) * 80ms); }
+  .motion-tile:hover [data-demo="text-blur"] > span { animation: k-text-blur 600ms var(--ease-brand) backwards; animation-delay: calc(var(--w) * 60ms); }
+  @keyframes k-text-rise { from { opacity: 0; translate: 0 .4em; } }
+  @keyframes k-text-wave { from { opacity: 0; translate: 0 .6em; } }
+  @keyframes k-text-blur { from { opacity: 0; filter: blur(6px); } }
+
+  /* The Cards tile for Spring: the live rule needs the card itself hovered, a 40px target. */
+  .motion-tile:hover [data-demo="cards-spring"] { translate: 0 -3px; box-shadow: var(--shadow-2); transition-duration: var(--duration-spring-card); transition-timing-function: var(--ease-spring-soft); }
 }
 
 /* The console's "Saved ✓" (form-actions.tsx) and the new-items badge pop (admin-nav.tsx), 0.171.0. */

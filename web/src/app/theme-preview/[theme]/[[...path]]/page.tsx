@@ -16,6 +16,7 @@ import { PreviewBridge } from "@/components/layout/preview-bridge";
 import { ActionBar } from "@/components/layout/action-bar";
 import { actionBarFor } from "@/lib/action-bar";
 import { CardTilt } from "@/components/ui/card-tilt";
+import { MagneticButtons } from "@/components/ui/magnetic-buttons";
 import { noIndex } from "@/lib/no-index";
 import { buildMetadata } from "@/lib/seo";
 import { activeTheme, forcePreviewTheme } from "@/themes";
@@ -81,6 +82,7 @@ export default async function ThemePreviewPage({
         {/* The appearance screen's live preview talks to this page (same origin only). */}
         <PreviewBridge />
         {chrome.motion.cards === "tilt" && <CardTilt />}
+        {chrome.motion.buttons === "magnetic" && <MagneticButtons />}
         {/* The reading-progress line (Motion → Reading progress), CSS only. */}
         <div data-scroll-progress aria-hidden="true" />
         <div className="bg-warn-soft px-4 py-2 text-center text-12-5 text-warn">
