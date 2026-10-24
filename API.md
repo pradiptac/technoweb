@@ -5064,7 +5064,7 @@ every ramp, both schemes, the identity hues — is derived on the frontend from
 these five colours; see `CLAUDE.md` for the rules that make any input pass
 WCAG AA.
 
-**The `motion` group is eight keys and all of them are public**, for the same
+**The `motion` group is public, every key of it** (eight keys when it began, ten with 0.192.0), for the same
 reason. `motion_reveal` (`lift`, `float`, `fade`, `zoom`, `blur`, `none`),
 `motion_buttons` (`lift`, `glow`, `scale`, `shine`, `ripple`, `flat`),
 `motion_page` (`none`, `fade`, `rise`, `zoom`, and since 0.115.0 `crossfade`
@@ -5082,6 +5082,13 @@ to the public site and the customer portal; the console reads none of them.
 
 - **`motion_headline`**: how a hero's heading arrives — `none` (the default), `type`, `decode` or `highlight`. `rotate` needs a hero's own word list, so the frontend never offers it site-wide and resolves it as `none` here.
 - **`motion_micro`**: small interactions — `lively` (**the default**, the client's exception to the first-entry rule) or `none`.
+
+**Two motion keys were added in 0.192.0**, checked for shape like the rest (the lists live in `web/src/lib/motion-choices.ts`, which falls back to the first entry):
+
+- **`motion_feel`**: `standard` (the default) or `fluid` — the site's easing tokens become a spring and the durations lengthen.
+- **`motion_text`**: how a section heading arrives — `none` (the default), `rise`, `blur` or `wave`.
+
+0.192.0 also adds ids to three existing keys: `motion_buttons` gains `spring` and `magnetic`, `motion_cards` gains `spring`, and `motion_micro` gains `fluid`. Both new keys are seeded in the public `motion` group, which is now ten keys.
 
 **The `login` group is public and holds four rows** — the sign-in screens
 render before anybody is authenticated. `login_backdrop` is `image` or one

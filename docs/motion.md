@@ -600,3 +600,54 @@ A hero's heading can move: **rotating words**, **typewriter**, **decode** or
 Field focus is unchanged: the `field` class already transitions its ring.
 
 `scripts/probes/micro-interactions.mjs` samples each effect. Its console half runs only with credentials. Run probes with `BASE=http://localhost:3000`: `shared.mjs` defaults to `127.0.0.1`, which is a different cookie host from a probe's own default.
+
+## Fluid motion (0.192.0, 2026-10-24)
+
+Two new settings and five new ids, all in the public `motion` group, shape-checked by the API and listed in `web/src/lib/motion-choices.ts`. **Every first entry stays the default and today's behaviour**: an install that never opens the Motion tab renders the same markup apart from two attributes at their default values (`data-motion-feel="standard"`, `data-motion-text="none"`). The rules are in `globals.css` ("Spring and Magnetic", "Fluid motion", "Moving headings" and the theme-heading block after it), keyed on the attributes `motionAttrs()` stamps on `.public-site` and the portal wrapper, so the console is excluded by construction.
+
+**Two springs, as CSS `linear()` curves.** Each has a cubic-bezier fallback declared first and the `linear()` value under `@supports (transition-timing-function: linear(0, 1))`.
+
+| Token | Damping / omega | Overshoot | Fallback |
+|---|---|---|---|
+| `--ease-spring-soft` | .55 / 11 | ~12.5% | `cubic-bezier(.34, 1.3, .64, 1)` |
+| `--ease-spring-bouncy` | .32 / 17 | ~34% | `cubic-bezier(.34, 1.56, .64, 1)` |
+
+`--duration-spring-button` is 600ms and `--duration-spring-card` 520ms.
+
+**`motion_feel`: `standard` (default) or `fluid`.**
+- Under `[data-motion-feel="fluid"]` the site's own tokens are remapped: `--ease-brand` becomes the soft spring and `--duration-fast/base/slow` go from 150/200/300ms to **200/320/450ms**, so the overshoot has time to be seen.
+- Everything already written against the tokens (buttons, cards, menus, drawers, reveals, toasts) turns springy at once, with no component touched.
+- **`--ease-exit` and `--duration-exit` are not remapped.** Leaving stays short and accelerating: an exit that overshoots would briefly come back.
+
+**`motion_buttons`: `spring` and `magnetic`.**
+- **Spring:** hover rises 2px on the bouncy spring (600ms), a press squashes to `scale: .95`, and the release springs past 1.
+- **Magnetic:** a fine pointer pulls the button up to 6px towards it while it is over it; it springs back on leaving. On a phone only the press and release apply.
+- The magnetic part is `components/ui/magnetic-buttons.tsx`, one client island mounted in the marketing layout **only when the setting is `magnetic`**. It adds **one delegated `pointermove`** on the wrapper (no listener per button), throttled with `requestAnimationFrame`, and writes `--mx`/`--my` (at most 6px either way) on the hovered `.btn`, which the CSS reads through `translate`. It acts only with a fine pointer and `useMotionOk()`, and imports no icon map.
+
+**`motion_cards`: `spring`.**
+- A card rises 6px on the soft spring (520ms) and its picture eases to `scale: 1.04`.
+- **The rule uses a doubled attribute selector** (`[data-motion-cards="spring"][data-motion-cards="spring"]`), because themes restyle `[data-collection] [data-tile]:hover` four attributes deep and a single one lost every tie.
+
+**`motion_micro`: `fluid`.**
+- Everything `lively` does, plus the arrow nudge goes to **5px on the bouncy spring** and a tile's icon scales to **1.14x** on the card spring.
+- **The pointer-side underline the plan mentioned was not built**: it needed a pseudo-element on links that themes already draw with, and the rule that a tile's `::before`/`::after` are not touched won.
+
+**`motion_text`: `none` (default), `rise`, `blur`, `wave`.**
+- **Rise:** 0.4em up and fade, soft spring, 600ms, 55ms between words.
+- **Blur:** sharpens from 6px, 600ms, 60ms between words.
+- **Wave:** 0.6em up with overshoot on the bouncy spring, 800ms, 80ms between words.
+- The stagger is `min(--w, 12)`, so the 13th word and later arrive together with the 13th. `--w` is the index `SectionHead` and `HeadlineWords` write on each `<span data-word>`.
+- Words are `inline-block` (only inside the guard), because `translate` does not move an inline box.
+- **The start state** (`opacity: 0` plus the offset or blur) applies only inside `@media (prefers-reduced-motion: no-preference)`, `html[data-aos-ready]` and an ancestor `[data-aos]` that has not yet been stamped `data-aos-animate`, and never to `[data-reveal-static]` or a heading in a section with its own `style.headline` (`[data-headline]`). It carries no transition; the shown state does. A heading in no `[data-aos]` is never hidden.
+
+**Theme section headings arrive too.** `SectionHeader` (and the stack block's heading) renders no word spans, so the heading moves **as a whole**, without a markup change:
+- The pieces are found by class (`h2.display-2.mt-3.5.text-balance` without `data-section-heading`, the `span` before it and the `p.lede` after it). The kicker only fades, because it is inline.
+- The `h2` and then the lede arrive one `--th-step` later each (the same 55/80/60ms), with the same distance, curve and duration as the words.
+- **Inside a revealed `[data-aos]`** the start state is hidden and the arrival is a transition on `data-aos-animate`.
+- **With no `[data-aos]` above it** (a homepage section's default reveal is None) it is not hidden by the observer: where `animation-timeline: view()` exists it arrives on its own view timeline over `cover 3vh` to `cover 21vh` (the lede 3vh later), `backwards` fill only, so it ends at its natural style; elsewhere it is simply there.
+- A `style.headline` section (`[data-headline]`) and a `SectionHead` heading are left alone.
+- Opacity, `translate` and `filter` only; never a colour; nothing horizontal.
+
+**The console.** The Motion tab draws the two new settings like the others (`motion-picker.tsx`): the feel row previews the real token remap on a button, and the heading tiles replay their arrival on hover with the same numbers. The picker mounts `MagneticButtons` when Magnetic is chosen.
+
+`scripts/probes/fluid-motion.mjs` checks all of it on Classic and one other theme at 1280 and 390, including a real theme heading, with a throwaway administrator, and restores the settings afterwards.

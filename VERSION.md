@@ -21,6 +21,17 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.192.0 — 2026-10-24
+
+**The site can move fluidly: springs, magnetic buttons, spring cards and headings that arrive.** Site → Settings → Motion gains two settings and five choices, all off until chosen.
+
+- **Overall feel — Fluid:** the site's own easing becomes a spring and its durations lengthen slightly (200/320/450ms), so menus, drawers, cards and reveals overshoot a little and settle. Leaving stays quick.
+- **Buttons — Spring and Magnetic:** a button rises, squashes when pressed and bounces back; Magnetic also drifts up to 6px towards the pointer on a computer.
+- **Cards — Spring:** a card rises on a spring and its picture eases up 4%.
+- **Section headings — Rise, Blur, Wave:** a heading's words arrive one after another; a theme's section heading, which has no word spans, arrives as a whole with its kicker and lede one step behind. A heading in no revealed section arrives as it is scrolled into view, where the browser supports it, and is otherwise simply there.
+- **Small interactions — Fluid:** Lively plus a bouncier arrow nudge and a larger card icon.
+- Nothing moves under a device's reduced-motion setting, nothing changes colour, nothing widens the page, and no markup changes at the default choices. `scripts/probes/fluid-motion.mjs` checks all of it.
+
 ## 0.191.0 — 2026-10-24
 
 **The hero slider grows eight features, and the footer's social icons get four more styles.**

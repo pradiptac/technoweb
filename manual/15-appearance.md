@@ -259,16 +259,37 @@ move. The console keeps its own quieter motion whatever you choose.
 | Setting | What it decides | Choices |
 |---|---|---|
 | **Sections arriving** | How a section comes into view on scroll | Lift, Float, Fade, Zoom, Focus, Assemble, Cascade, Unfold, None |
-| **Buttons** | What a button does under the pointer | Lift, Glow, Scale, Shine, Ripple, Flat |
+| **Overall feel** | Whether the whole site moves on its usual easing or on springs: menus, drawers, cards and reveals overshoot a little and settle. Leaving stays quick | Standard (the default), Fluid |
+| **Buttons** | What a button does under the pointer | Lift, Glow, Scale, Shine, Ripple, Flat, Spring, Magnetic |
+| **Cards** | What a card does under the pointer | Lift, Tilt, Float, Still, Spring |
+| **Section headings** | How the words of a section heading arrive when the section scrolls into view | None (the default), Rise, Blur, Wave |
 | **Page transitions** | How the next page arrives | None, Fade, Rise, Zoom |
 | **While the next page loads** | What shows while it loads | None, Bar, Pulse |
 | **First-visit splash** | A small loader for about a second on the first page of a visit | Off, On |
 | **Behind a heading** | The backdrop behind the homepage hero, plain page headings and the closing band | Grid, Aurora, Dots, Plain |
 | **Hero heading** | How a hero's heading arrives when the page opens | None, Typewriter, Decode, Highlight |
-| **Small interactions** | Links, arrows, switches, tick boxes, copy buttons and card icons answering the pointer with a small movement | Lively (the default), None |
+| **Small interactions** | Links, arrows, switches, tick boxes, copy buttons and card icons answering the pointer with a small movement | Lively (the default), Fluid, None |
 
 A section's own **Appear** choice (above) overrides **Sections arriving** for
 that section.
+
+### Fluid motion
+
+Four of the choices above are springy, and none of them is on until you pick it:
+
+- **Overall feel: Fluid** makes everything that already moves overshoot a little
+  and settle, and lengthens those movements slightly so you can see it. Closing a
+  menu or drawer stays quick.
+- **Buttons: Spring** lifts a button on hover, squashes it a little when pressed
+  and lets it bounce back. **Magnetic** also draws the button up to 6 pixels
+  towards the pointer on a computer; on a phone it squashes and bounces like Spring.
+- **Cards: Spring** lifts a card on a spring and eases its picture up a little.
+- **Section headings** make a heading's words arrive one after another: **Rise**,
+  **Blur** or **Wave** (a ripple with a little overshoot). A heading that is not
+  part of a revealed section arrives as you scroll it into view. A page-builder
+  section that has its own heading effect keeps it.
+
+Visitors who asked their device for less motion see none of this, whatever you choose.
 
 ### Moving hero headings
 
