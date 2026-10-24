@@ -4992,7 +4992,7 @@ its footer icon instead of linking nowhere.
 
 **Credentials are never returned.** Rows flagged `is_secret` — the SMTP
 password and the API key — are encrypted at rest and come back as
-`value: null` with `is_set: true`. A blank submit means *unchanged*, because
+`value: null` with `is_set: true` and a `hint` (0.191.0): the first 8 and last 2 characters (`sk-or-v1…a7`) of a value that is at least 20 characters and one line, else `null` — always null for `*_password`, `service_account`, `private_key` and `_refresh_token`/`_access_token` keys (`App\Support\SecretHint`). A blank submit means *unchanged*, because
 the form can never show the current value and treating blank as a delete would
 wipe the SMTP password on every unrelated save. Clearing one is the separate
 endpoint above.

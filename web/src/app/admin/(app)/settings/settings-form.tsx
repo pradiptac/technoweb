@@ -508,7 +508,7 @@ function GroupPanel({
                     autoComplete="new-password"
                     // No defaultValue: the API does not send one back,
                     // and a real credential must never sit in the DOM.
-                    placeholder={row.is_set ? "••••••••  (saved)" : meta.placeholder}
+                    placeholder={row.is_set ? (row.hint ? `${row.hint}  (saved)` : "••••••••  (saved)") : meta.placeholder}
                   />
                 </Field>
                 {row.is_set && <ClearSecretButton settingKey={row.key} label={meta.label} />}

@@ -1665,7 +1665,7 @@ check does not rely on that. An absent `Origin` passes (not a browser), a
 SMTP credentials and `integrations` holds the API key. They are excluded from
 the public `/settings` whitelist, marked `is_secret`, encrypted at rest, and
 never returned to the browser — the admin response says only whether a value
-is set. A blank submit means "unchanged", because the form can never show the
+is set, plus a `hint` (first 8 and last 2 characters, `App\Support\SecretHint`) for a long single-line typed key only — never for passwords, service-account/private-key files or OAuth tokens. A blank submit means "unchanged", because the form can never show the
 current value; clearing one is a separate endpoint. When adding a setting, ask
 which of those two lists it belongs on before adding it to the seeder.
 

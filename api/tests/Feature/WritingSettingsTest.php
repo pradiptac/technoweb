@@ -74,6 +74,22 @@ class WritingSettingsTest extends TestCase
         $this->assertNull(WritingSettings::refusalFor('seo_ai_daily_cap', 'anything'));
     }
 
+    public function test_a_saved_key_carries_a_hint_and_never_the_value(): void
+    {
+        $this->seed(SettingsSeeder::class);
+        $secret = 'sk-or-v1-0123456789abcdef0123456789abcdefa7';
+        Setting::where('key', 'openrouter_api_key')->firstOrFail()->update(['value' => $secret]);
+        Setting::flushCache();
+
+        $res = $this->actingAs($this->user(), 'sanctum')->getJson('/api/v1/admin/settings')->assertOk();
+        $row = collect($res->json('data.integrations'))->firstWhere('key', 'openrouter_api_key');
+
+        $this->assertTrue($row['is_set']);
+        $this->assertNull($row['value']);
+        $this->assertSame('sk-or-v1…a7', $row['hint']);
+        $this->assertStringNotContainsString($secret, $res->getContent());
+    }
+
     public function test_the_settings_endpoint_refuses_a_bad_cap(): void
     {
         $this->seed(SettingsSeeder::class);
