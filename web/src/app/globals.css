@@ -5735,6 +5735,62 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
   .motion-tile:hover [data-demo="cards-spring"] { translate: 0 -3px; box-shadow: var(--shadow-2); transition-duration: var(--duration-spring-card); transition-timing-function: var(--ease-spring-soft); }
 }
 
+/*
+ * Theme section headings arrive too (`motion_text`). `SectionHeader` renders
+ * no word spans, so the heading moves as a whole: the kicker fades, the `h2`
+ * and the lede after it do the chosen effect, each one step later. The markup
+ * is untouched - the pieces are found by their classes (`h2.display-2.mt-3.5
+ * .text-balance` is the theme heading and the stack block's; the builder's
+ * `SectionHead` has `data-section-heading` and keeps its word spans).
+ *   - Inside a revealed `[data-aos]` the start state is hidden and the
+ *     arrival is a transition on `data-aos-animate`, like the words.
+ *   - With no `[data-aos]` above it (a homepage section's default reveal is
+ *     None) it is never hidden by the observer: where scroll-driven animation
+ *     exists it arrives on its own view timeline, and where it does not it is
+ *     simply there.
+ * A section with its own `style.headline` (`data-headline`) is left alone.
+ * Opacity, `translate` and `filter` only; the kicker is inline, so it fades.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-aos-ready] [data-motion-text="rise"] { --th-y: .4em; --th-f: none; --th-dur: 600ms; --th-ease: var(--ease-spring-soft); --th-step: 55ms; }
+  html[data-aos-ready] [data-motion-text="wave"] { --th-y: .6em; --th-f: none; --th-dur: 800ms; --th-ease: var(--ease-spring-bouncy); --th-step: 80ms; }
+  html[data-aos-ready] [data-motion-text="blur"] { --th-y: 0px; --th-f: blur(6px); --th-dur: 600ms; --th-ease: var(--ease-brand); --th-step: 60ms; }
+
+  html[data-aos-ready] :is([data-motion-text="rise"], [data-motion-text="blur"], [data-motion-text="wave"]) [data-aos]:not([data-aos-animate], [data-reveal-static] *) :is(h2.display-2.mt-3\.5.text-balance:not([data-section-heading]), h2.display-2.mt-3\.5.text-balance:not([data-section-heading]) + p.lede):not([data-headline] *) {
+    opacity: 0; translate: 0 var(--th-y); filter: var(--th-f);
+  }
+  html[data-aos-ready] :is([data-motion-text="rise"], [data-motion-text="blur"], [data-motion-text="wave"]) [data-aos]:not([data-aos-animate], [data-reveal-static] *) span:has(+ h2.display-2.mt-3\.5.text-balance:not([data-section-heading])):not([data-headline] *) {
+    opacity: 0;
+  }
+
+  html[data-aos-ready] :is([data-motion-text="rise"], [data-motion-text="blur"], [data-motion-text="wave"]) [data-aos][data-aos-animate] :is(span:has(+ h2.display-2.mt-3\.5.text-balance:not([data-section-heading])), h2.display-2.mt-3\.5.text-balance:not([data-section-heading]), h2.display-2.mt-3\.5.text-balance:not([data-section-heading]) + p.lede):not([data-headline] *) {
+    transition: opacity var(--duration-slow) var(--ease-brand), translate var(--th-dur) var(--th-ease), filter var(--th-dur) var(--ease-brand);
+  }
+  html[data-aos-ready] :is([data-motion-text="rise"], [data-motion-text="blur"], [data-motion-text="wave"]) [data-aos][data-aos-animate] h2.display-2.mt-3\.5.text-balance:not([data-section-heading], [data-headline] *) { transition-delay: var(--th-step); }
+  html[data-aos-ready] :is([data-motion-text="rise"], [data-motion-text="blur"], [data-motion-text="wave"]) [data-aos][data-aos-animate] h2.display-2.mt-3\.5.text-balance:not([data-section-heading]) + p.lede:not([data-headline] *) { transition-delay: calc(2 * var(--th-step)); }
+
+  @supports (animation-timeline: view()) {
+    @keyframes k-head-in { from { opacity: 0; translate: 0 var(--th-y); filter: var(--th-f); } }
+    @keyframes k-head-fade { from { opacity: 0; } }
+
+    html[data-aos-ready] :is([data-motion-text="rise"], [data-motion-text="blur"], [data-motion-text="wave"]) span:has(+ h2.display-2.mt-3\.5.text-balance:not([data-section-heading])):not([data-aos] *, [data-headline] *, [data-reveal-static] *) {
+      animation: k-head-fade var(--th-ease) backwards;
+      animation-timeline: view();
+      animation-range: cover 0vh cover 18vh;
+    }
+    html[data-aos-ready] :is([data-motion-text="rise"], [data-motion-text="blur"], [data-motion-text="wave"]) h2.display-2.mt-3\.5.text-balance:not([data-section-heading]):not([data-aos] *, [data-headline] *, [data-reveal-static] *) {
+      animation: k-head-in var(--th-ease) backwards;
+      animation-timeline: view();
+      animation-range: cover 3vh cover 21vh;
+    }
+    html[data-aos-ready] :is([data-motion-text="rise"], [data-motion-text="blur"], [data-motion-text="wave"]) h2.display-2.mt-3\.5.text-balance:not([data-section-heading]) + p.lede:not([data-aos] *, [data-headline] *, [data-reveal-static] *) {
+      animation: k-head-in var(--th-ease) backwards;
+      animation-timeline: view();
+      animation-range: cover 6vh cover 24vh;
+    }
+  }
+}
+
 /* The console's "Saved ✓" (form-actions.tsx) and the new-items badge pop (admin-nav.tsx), 0.171.0. */
 [data-console] button[data-saved-swap] { position: relative; }
 [data-console] button[data-saved-swap] > :not([data-saved]) { visibility: hidden; }

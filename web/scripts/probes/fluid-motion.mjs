@@ -22,6 +22,11 @@
  *   - a revealed heading's words (injected into the page, so it does not rely
  *     on a builder page existing) start hidden and end at opacity 1, no
  *     translate, no filter, for rise, blur and wave; wave overshoots;
+ *   - a real theme section heading (SectionHeader's h2, no word spans) under
+ *     /theme-preview/classic at 1280, wave: in a revealed [data-aos] it starts
+ *     hidden and moves when revealed; with none above it, it arrives on its
+ *     view timeline (mid-scroll it is part-way) - and either way ends at
+ *     opacity 1 with no translate and no filter;
  *   - under reducedMotion 'reduce' the words are visible at once, nothing
  *     transitions and data-aos-ready is not set;
  *   - scrollWidth <= innerWidth and no console error or page error.
@@ -260,6 +265,45 @@ async function run(theme, w, phase) {
   await page.context().close();
 }
 
+/** A real SectionHeader heading: no word spans, found by its classes. */
+async function themeHeading(theme, w) {
+  const label = `${theme}@${w} theme heading`;
+  const page = await newPage(w);
+  await open(page, theme);
+  const SEL = "main h2.display-2.mt-3\\.5.text-balance:not([data-section-heading])";
+  const info = await page.evaluate((sel) => {
+    const el = [...document.querySelectorAll(sel)].find((h) => h.getBoundingClientRect().top + scrollY > innerHeight * 1.5 && !h.closest("[data-headline], [data-reveal-static]"));
+    if (!el) return null;
+    el.setAttribute("data-probe", "th");
+    return { aos: !!el.closest("[data-aos]"), text: el.textContent.slice(0, 40) };
+  }, SEL);
+  if (!info) { console.log(`skip ${label}: no section heading below the first screen on this page`); await page.context().close(); return; }
+  console.log(`     ${label}: "${info.text}" ${info.aos ? "inside a [data-aos] reveal" : "with no [data-aos] above it"}`);
+  const read = () => page.evaluate(() => { const cs = getComputedStyle(document.querySelector('[data-probe="th"]')); return { o: cs.opacity, t: cs.translate, f: cs.filter }; });
+  const top = (frac) => page.evaluate((f) => { const r = document.querySelector('[data-probe="th"]').getBoundingClientRect(); scrollTo({ top: scrollY + r.top - innerHeight * f, behavior: "instant" }); }, frac);
+  if (info.aos) {
+    await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
+    await page.waitForTimeout(300);
+    ok((await read()).o === "0", `${label}: hidden before its section is revealed`);
+    await page.evaluate(() => document.querySelector('[data-probe="th"]').scrollIntoView({ block: "center", behavior: "instant" }));
+    await startSampler(page, '[data-probe="th"]', "translate", 1500);
+    const mid = await endSampler(page);
+    ok(Math.max(...mid.map((m) => Math.abs(num(m)))) > 0.5, `${label}: moves while arriving (max |y| ${Math.max(...mid.map((m) => Math.abs(num(m)))).toFixed(2)}px)`);
+  } else {
+    await top(0.88);
+    await page.waitForTimeout(400);
+    const m = await read();
+    ok(parseFloat(m.o) < 1 && num(m.t) !== 0, `${label}: part-way mid-scroll (opacity ${m.o}, translate ${m.t})`);
+    await top(0.5);
+  }
+  await page.waitForTimeout(1500);
+  const e = await read();
+  ok(e.o === "1" && (e.t === "none" || e.t === "0px") && e.f === "none", `${label}: ends at opacity 1, no translate, no filter ${JSON.stringify(e)}`);
+  ok(await noOverflow(page), `${label}: no horizontal overflow`);
+  ok(page.__errors.length === 0, `${label}: no console or page errors ${page.__errors.join(" | ").slice(0, 200)}`);
+  await page.context().close();
+}
+
 async function reduced(theme) {
   const label = `${theme}@1280 reduced`;
   const page = await newPage(1280, true);
@@ -302,6 +346,7 @@ try {
   await save(admin, { motion_feel: "fluid", motion_text: "wave", motion_buttons: "spring", motion_cards: "spring", motion_micro: "fluid" });
   for (const t of THEMES) for (const w of [1280, 390]) await run(t, w, "spring");
   await reduced("classic");
+  await themeHeading("classic", 1280);
 
   await save(admin, { motion_buttons: "magnetic" });
   for (const t of THEMES) for (const w of [1280, 390]) await run(t, w, "magnetic");
