@@ -23,7 +23,7 @@ return [
      * OpenRouter, not here.
      *
      * `AI_MODEL` is an OpenRouter model id, `maker/model`. Unset, it is
-     * `google/gemini-2.5-flash` (`AiModel::DEFAULT`), which a free Google AI
+     * `google/gemini-3.5-flash` (`AiModel::DEFAULT`), which a Google AI
      * Studio key added at OpenRouter can call. A bare `gpt-…` left from
      * before is read as `openai/gpt-…` by `ChatSettings::model()` — a stored
      * or configured choice is renamed, never swapped for the default.
@@ -35,7 +35,7 @@ return [
         // `?:` rather than a default: a present-but-blank `OPENROUTER_API_KEY=`
         // is an empty string, which a default would not look past.
         'key' => env('OPENROUTER_API_KEY') ?: env('AI_API_KEY'),
-        'model' => env('AI_MODEL', 'google/gemini-2.5-flash'),
+        'model' => env('AI_MODEL', 'google/gemini-3.5-flash'),
     ],
 
     // Hunter.io, for verifying newsletter addresses. Read second, after the

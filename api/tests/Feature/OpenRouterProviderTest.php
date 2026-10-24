@@ -135,7 +135,7 @@ class OpenRouterProviderTest extends TestCase
         $this->answers($this->ok('{"a": 1}'));
 
         $this->ask(300, [
-            'model' => 'google/gemini-2.5-flash-lite',
+            'model' => 'google/gemini-3.5-flash-lite',
             'temperature' => 0,
             'response_format' => ['type' => 'json_object'],
             'timeout' => 90,
@@ -144,7 +144,7 @@ class OpenRouterProviderTest extends TestCase
         Http::assertSent(function (Request $request) {
             $body = $request->data();
 
-            return $body['model'] === 'google/gemini-2.5-flash-lite'
+            return $body['model'] === 'google/gemini-3.5-flash-lite'
                 && $body['temperature'] === 0
                 && $body['response_format'] === ['type' => 'json_object']
                 && $body['max_tokens'] === 300
@@ -165,14 +165,14 @@ class OpenRouterProviderTest extends TestCase
         $this->key();
         $this->answers($this->ok());
 
-        foreach (['google/gemini-2.5-flash', 'google/gemma-4-31b-it:free', 'anthropic/claude-sonnet-5.5', 'openai/gpt-4o-mini', 'nvidia/some-model:free'] as $model) {
+        foreach (['google/gemini-3.5-flash', 'google/gemma-4-31b-it:free', 'anthropic/claude-sonnet-5.5', 'openai/gpt-4o-mini', 'nvidia/some-model:free'] as $model) {
             $this->ask(10, ['model' => $model]);
         }
 
         $sent = Http::recorded()->map(fn (array $pair) => [$pair[0]->data()['model'], $pair[0]->data()['provider'] ?? null])->all();
 
         $this->assertSame([
-            ['google/gemini-2.5-flash', ['only' => ['google-ai-studio'], 'allow_fallbacks' => false]],
+            ['google/gemini-3.5-flash', ['only' => ['google-ai-studio'], 'allow_fallbacks' => false]],
             ['google/gemma-4-31b-it:free', ['only' => ['google-ai-studio'], 'allow_fallbacks' => false]],
             ['anthropic/claude-sonnet-5.5', ['only' => ['anthropic'], 'allow_fallbacks' => false]],
             ['openai/gpt-4o-mini', ['only' => ['openai'], 'allow_fallbacks' => false]],
@@ -192,19 +192,19 @@ class OpenRouterProviderTest extends TestCase
         $this->key();
         $this->answers($this->ok());
 
-        $this->ask(5, ['model' => 'google/gemini-2.5-pro']);
-        $this->ask(3500, ['model' => 'google/gemini-2.5-flash']);
+        $this->ask(5, ['model' => 'google/gemini-3.1-pro-preview']);
+        $this->ask(3500, ['model' => 'google/gemini-3.5-flash']);
         $this->ask(5, ['model' => 'openai/gpt-4.1']);
-        $this->ask(5, ['model' => 'google/gemini-2.5-flash-lite']);
+        $this->ask(5, ['model' => 'google/gemini-3.5-flash-lite']);
         $this->ask(5, ['model' => 'somebody/unknown-thinker']);
 
         $sent = Http::recorded()->map(fn (array $pair) => [$pair[0]->data()['model'], $pair[0]->data()['max_tokens']])->all();
 
         $this->assertSame([
-            ['google/gemini-2.5-pro', 5 + 1024],
-            ['google/gemini-2.5-flash', 7000],
+            ['google/gemini-3.1-pro-preview', 5 + 1024],
+            ['google/gemini-3.5-flash', 7000],
             ['openai/gpt-4.1', 5],
-            ['google/gemini-2.5-flash-lite', 5],
+            ['google/gemini-3.5-flash-lite', 5],
             ['somebody/unknown-thinker', 5],
         ], $sent);
     }
@@ -252,11 +252,11 @@ class OpenRouterProviderTest extends TestCase
         config(['services.openrouter.model' => null]);
 
         // Nothing chosen anywhere: the Google default.
-        $this->assertSame('google/gemini-2.5-flash', ChatSettings::model());
+        $this->assertSame('google/gemini-3.5-flash', ChatSettings::model());
 
-        config(['services.openrouter.model' => 'google/gemini-2.5-pro']);
+        config(['services.openrouter.model' => 'google/gemini-3.1-pro-preview']);
 
-        $this->assertSame('google/gemini-2.5-pro', ChatSettings::model());
+        $this->assertSame('google/gemini-3.1-pro-preview', ChatSettings::model());
 
         // An `AI_MODEL` written when OpenAI was called directly: the same
         // model, under the name OpenRouter has for it.
@@ -301,7 +301,7 @@ class OpenRouterProviderTest extends TestCase
             ],
         ]], 400);
 
-        $reply = $this->ask(5, ['model' => 'google/gemini-2.5-flash-lite']);
+        $reply = $this->ask(5, ['model' => 'google/gemini-3.5-flash-lite']);
 
         $this->assertFalse($reply->ok);
         $this->assertSame(
@@ -333,7 +333,7 @@ class OpenRouterProviderTest extends TestCase
         ]], 429);
         Log::spy();
 
-        $reply = $this->ask(120, ['model' => 'google/gemini-2.5-flash']);
+        $reply = $this->ask(120, ['model' => 'google/gemini-3.5-flash']);
 
         $this->assertFalse($reply->ok);
         $this->assertSame('Provider returned error — Google AI Studio: '.$google, $reply->error);
@@ -346,7 +346,7 @@ class OpenRouterProviderTest extends TestCase
                 && $context['code'] === '429'
                 && $context['maker'] === 'Google AI Studio'
                 && $context['raw'] === $google
-                && $context['model'] === 'google/gemini-2.5-flash'
+                && $context['model'] === 'google/gemini-3.5-flash'
                 // The key is in no log line.
                 && ! str_contains((string) json_encode($context), 'sk-or-v1-test');
         });

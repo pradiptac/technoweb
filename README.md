@@ -2095,16 +2095,16 @@ above it is as it was.
   Settings → API keys (*OpenRouter API key*), encrypted and never returned.
   It replaces `openai_api_key`. The `.env` fallback is `OPENROUTER_API_KEY`
   (then `AI_API_KEY`), with `AI_MODEL` defaulting to
-  `google/gemini-2.5-flash`; the config key is `services.openrouter`.
+  `google/gemini-3.5-flash`; the config key is `services.openrouter`.
 - **The key is created at openrouter.ai → Keys.** To run on your own provider
   accounts, add those keys *inside OpenRouter* (Settings → Integrations,
   "bring your own key"), not here. This client uses a **free Google AI Studio
-  key** there, which is why the default model is **Gemini 2.5 Flash**; an
+  key** there, which is why the default model is **Gemini 3.5 Flash**; an
   OpenAI model works only when an OpenAI key, or OpenRouter credit, is on the
   OpenRouter account.
 - **Models offered** (`App\Enums\AiModel`, OpenRouter ids):
-  `google/gemini-2.5-flash` (default), `google/gemini-2.5-flash-lite`,
-  `google/gemini-2.5-pro`, `openai/gpt-4o-mini`, `openai/gpt-4.1-mini`,
+  `google/gemini-3.5-flash` (default), `google/gemini-3.5-flash-lite`,
+  `google/gemini-3.1-pro-preview`, `openai/gpt-4o-mini`, `openai/gpt-4.1-mini`,
   `openai/gpt-4o`, `openai/gpt-4.1`, `anthropic/claude-haiku-5.5`,
   `anthropic/claude-sonnet-5.5`, `anthropic/claude-opus-5.5` (0.164.0; an
   Anthropic key added at OpenRouter). A stored value outside the list is still
@@ -2148,7 +2148,7 @@ inside a ```` ```json ```` block, where a GPT model returns the object bare.
 inside of a fence, then the outermost braces — and never repairs the
 contents; `SeoAssistant::decode()` and the chatbot's intake judge share it.
 
-**A thinking model can spend a small cap before it writes.** Gemini 2.5 Flash
+**A thinking model can spend a small cap before it writes.** Gemini 3.5 Flash
 and Pro draw their reasoning from the same `max_tokens` as the answer, so a
 five-token model test or a 120-token intake reading can come back empty from
 a model that is working. `OpenRouterProvider::allowance()` gives those models

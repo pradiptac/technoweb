@@ -67,7 +67,7 @@ class SeoAiModelsTest extends TestCase
     public function test_the_models_endpoint_lists_the_twelve_and_says_what_is_in_use(): void
     {
         $this->key();
-        $this->setting('seo_ai_model', 'google/gemini-2.5-flash');
+        $this->setting('seo_ai_model', 'google/gemini-3.5-flash');
         $this->setting('chatbot_model', 'openai/gpt-4.1-mini', 'string', 'chatbot');
         // Off: the list is wanted before anything is switched on.
         $this->setting('seo_ai_enabled', '0', 'boolean');
@@ -76,15 +76,15 @@ class SeoAiModelsTest extends TestCase
             ->getJson('/api/v1/admin/seo/ai/models')
             ->assertOk()
             ->assertJsonStructure(['data' => [['value', 'label', 'description']], 'meta' => ['seo_model', 'chatbot_model', 'key_configured', 'custom']])
-            ->assertJsonPath('meta.seo_model', 'google/gemini-2.5-flash')
+            ->assertJsonPath('meta.seo_model', 'google/gemini-3.5-flash')
             ->assertJsonPath('meta.chatbot_model', 'openai/gpt-4.1-mini')
             ->assertJsonPath('meta.key_configured', true)
             ->assertJsonPath('meta.custom', false);
 
         $this->assertSame([
-            'google/gemini-2.5-flash',
-            'google/gemini-2.5-flash-lite',
-            'google/gemini-2.5-pro',
+            'google/gemini-3.5-flash',
+            'google/gemini-3.5-flash-lite',
+            'google/gemini-3.1-pro-preview',
             'google/gemma-4-31b-it:free',
             'google/gemma-4-26b-a4b-it:free',
             'openai/gpt-4o-mini',
@@ -96,11 +96,11 @@ class SeoAiModelsTest extends TestCase
             'anthropic/claude-opus-5.5',
         ], array_column($response->json('data'), 'value'));
 
-        $this->assertSame('Gemini 2.5 Flash (Google)', collect($response->json('data'))->firstWhere('value', 'google/gemini-2.5-flash')['label']);
+        $this->assertSame('Gemini 3.5 Flash (Google)', collect($response->json('data'))->firstWhere('value', 'google/gemini-3.5-flash')['label']);
         $this->assertSame(['value', 'label', 'description'], array_keys($response->json('data.0')));
 
         // The same rows the assistant's own meta sends.
-        $this->assertSame(AiModel::options('google/gemini-2.5-flash'), $response->json('data'));
+        $this->assertSame(AiModel::options('google/gemini-3.5-flash'), $response->json('data'));
 
         // It read settings. It called nobody, and the key's value is nowhere in it.
         Http::assertNothingSent();
@@ -136,9 +136,9 @@ class SeoAiModelsTest extends TestCase
             ->assertJsonPath('meta.key_configured', false)
             // Blank SEO model → the chatbot's → the default, which is a
             // Google model a free AI Studio key can call.
-            ->assertJsonPath('meta.seo_model', 'google/gemini-2.5-flash')
-            ->assertJsonPath('meta.chatbot_model', 'google/gemini-2.5-flash')
-            ->assertJsonPath('data.0.value', 'google/gemini-2.5-flash')
+            ->assertJsonPath('meta.seo_model', 'google/gemini-3.5-flash')
+            ->assertJsonPath('meta.chatbot_model', 'google/gemini-3.5-flash')
+            ->assertJsonPath('data.0.value', 'google/gemini-3.5-flash')
             ->assertJsonCount(12, 'data');
     }
 
@@ -166,15 +166,15 @@ class SeoAiModelsTest extends TestCase
         ])]);
 
         $this->actingAs($this->staff('seo_manager'))
-            ->postJson('/api/v1/admin/seo/ai/test-model', ['model' => 'google/gemini-2.5-flash-lite'])
+            ->postJson('/api/v1/admin/seo/ai/test-model', ['model' => 'google/gemini-3.5-flash-lite'])
             ->assertOk()
-            ->assertJsonPath('data.model', 'google/gemini-2.5-flash-lite')
+            ->assertJsonPath('data.model', 'google/gemini-3.5-flash-lite')
             ->assertJsonPath('data.ok', true)
             ->assertJsonPath('data.tokens', 14);
 
         Http::assertSentCount(1);
         Http::assertSent(fn (Request $request) => $request->url() === 'https://openrouter.ai/api/v1/chat/completions'
-            && $request->data()['model'] === 'google/gemini-2.5-flash-lite'
+            && $request->data()['model'] === 'google/gemini-3.5-flash-lite'
             && $request->hasHeader('Authorization', 'Bearer sk-or-v1-test'));
 
         // A test is not a suggestion: it spends none of the day's cap.
@@ -225,7 +225,7 @@ class SeoAiModelsTest extends TestCase
             ->assertJsonPath('errors.model.0', 'No endpoints found for openai/gpt-9-enormous.');
 
         $this->actingAs($user)
-            ->postJson('/api/v1/admin/seo/ai/test-model', ['model' => 'google/gemini-2.5-flash-lite'])
+            ->postJson('/api/v1/admin/seo/ai/test-model', ['model' => 'google/gemini-3.5-flash-lite'])
             ->assertStatus(422)
             ->assertJsonPath('errors.model.0', 'Provider returned error — Google AI Studio: API key not valid. Please pass a valid API key.');
 
@@ -263,7 +263,7 @@ class SeoAiModelsTest extends TestCase
             ->assertJsonPath('errors.model.0', 'Provider returned error — Google AI Studio: '.$google);
 
         Http::assertSentCount(1);
-        Http::assertSent(fn (Request $request) => $request->data()['model'] === 'google/gemini-2.5-flash');
+        Http::assertSent(fn (Request $request) => $request->data()['model'] === 'google/gemini-3.5-flash');
     }
 
     public function test_with_no_key_it_refuses_without_calling_anybody(): void

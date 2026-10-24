@@ -90,7 +90,7 @@ stored key unreadable.
 `OPENROUTER_API_KEY` in `api/.env` is the alternative for an operator who would
 rather keep credentials out of the database. Setting both is harmless; the
 settings row wins. `AI_MODEL` beside it is an OpenRouter model id
-(`maker/model`); unset it is `google/gemini-2.5-flash`, and a bare `gpt-…`
+(`maker/model`); unset it is `google/gemini-3.5-flash`, and a bare `gpt-…`
 left from before is read as `openai/gpt-…`.
 
 **Nothing about the provider reaches the browser.** Rule 3 — the panel talks to
@@ -103,7 +103,7 @@ OpenRouter routes a request to the maker its model id names, and it can do
 that on the account holder's **own** key for that maker — "bring your own
 key", under Settings → Integrations in the OpenRouter account. That is the
 arrangement this client runs: a **free Google AI Studio key** saved there,
-which is why the default model is **Gemini 2.5 Flash**.
+which is why the default model is **Gemini 3.5 Flash**.
 
 The consequence for whoever deploys this: **a model answers only when its
 maker's key — or OpenRouter credit — is on that OpenRouter account.** The
@@ -111,9 +111,9 @@ models offered (`App\Enums\AiModel`):
 
 | Model id | Needs, at OpenRouter |
 |---|---|
-| `google/gemini-2.5-flash` (the default) | a Google AI Studio key, or credit |
-| `google/gemini-2.5-flash-lite` | the same |
-| `google/gemini-2.5-pro` | the same |
+| `google/gemini-3.5-flash` (the default) | a Google AI Studio key, or credit |
+| `google/gemini-3.5-flash-lite` | the same |
+| `google/gemini-3.1-pro-preview` | the same |
 | `google/gemma-4-31b-it:free`, `google/gemma-4-26b-a4b-it:free` | nothing: free at OpenRouter (0.165.0), with tight per-minute and per-day limits, and free providers may keep prompts for training |
 | `openai/gpt-4o-mini` | an OpenAI key, or credit |
 | `openai/gpt-4.1-mini` | the same |
@@ -348,7 +348,7 @@ Then, in this order — the first at OpenRouter, the rest in the console:
 3. On the same tab, choose the model in **Model to test** and press **Test
    this model**. It tests the saved key, so save first. A refusal is shown in
    OpenRouter's words; fix it there before going on.
-4. Set `chatbot_model` (Settings → API keys, beside the key) if `google/gemini-2.5-flash`,
+4. Set `chatbot_model` (Settings → API keys, beside the key) if `google/gemini-3.5-flash`,
    the default a blank resolves to, is not what you want — and test that one.
 5. Check `chatbot_daily_reply_cap`. The default of 500 is a real ceiling, not a
    placeholder — decide it deliberately.

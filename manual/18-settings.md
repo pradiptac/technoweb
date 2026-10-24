@@ -246,9 +246,9 @@ The models offered:
 
 | Model | Works with |
 |---|---|
-| Gemini 2.5 Flash (Google) — used when you choose nothing | A free Google AI Studio key added at OpenRouter |
-| Gemini 2.5 Flash-Lite (Google) — the quickest and lightest | The same |
-| Gemini 2.5 Pro (Google) — the strongest and slowest; for content work, not for the chat assistant | The same |
+| Gemini 3.5 Flash (Google) — used when you choose nothing | A free Google AI Studio key added at OpenRouter |
+| Gemini 3.5 Flash-Lite (Google) — the quickest and lightest | The same |
+| Gemini 3.1 Pro preview (Google) — the strongest and slowest; for content work, not for the chat assistant | The same |
 | Gemma 4 31B — free, Gemma 4 26B — free (Google) | Nothing extra: they are free on OpenRouter (see below) |
 | GPT-4o mini, GPT-4.1 mini, GPT-4o, GPT-4.1 (OpenAI) | An OpenAI key, or paid credit, in your OpenRouter account |
 | Claude Haiku, Sonnet, Opus 5.5 (Anthropic) | An Anthropic key, or paid credit, in your OpenRouter account |
@@ -298,7 +298,7 @@ changes by itself:
   OpenRouter, so it is not carried over.
 - **A model you had chosen is kept**, under OpenRouter's name for it
   (*GPT-4o mini* stays GPT-4o mini). If you had left the model blank, it
-  now means *Gemini 2.5 Flash (Google)*. Both model choices have moved to
+  now means *Gemini 3.5 Flash (Google)*. Both model choices have moved to
   **System → Settings → API keys**, beside the key.
 
 **Until you save an OpenRouter key, every AI feature is off**: the SEO

@@ -285,13 +285,13 @@ class PageDraftTest extends TestCase
     {
         $this->enable();
         $this->catalogue();
-        $this->setting('seo_ai_model', 'google/gemini-2.5-flash');
+        $this->setting('seo_ai_model', 'google/gemini-3.5-flash');
         $fake = $this->fakeProvider(self::reply(self::goodSections()));
 
         $this->draft()->assertCreated();
 
         $this->assertSame(90, $fake->lastOptions['timeout']);
-        $this->assertSame('google/gemini-2.5-flash', $fake->lastOptions['model']);
+        $this->assertSame('google/gemini-3.5-flash', $fake->lastOptions['model']);
         $this->assertSame(['type' => 'json_object'], $fake->lastOptions['response_format']);
     }
 

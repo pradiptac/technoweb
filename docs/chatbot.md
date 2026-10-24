@@ -357,7 +357,7 @@ inside one fence per source.
 `OpenRouterProvider` replaced `OpenAiProvider` behind the same `AiProvider`
 interface: one key (`openrouter_api_key`, `OPENROUTER_API_KEY` then
 `AI_API_KEY` in `.env`), one endpoint, and the maker as a prefix on the model
-id — `google/gemini-2.5-flash` is `AiModel::DEFAULT`. The client's own Google
+id — `google/gemini-3.5-flash` is `AiModel::DEFAULT`. The client's own Google
 AI Studio and OpenAI keys are saved **at OpenRouter** (bring your own key) and
 never here. Full account in `docs/chatbot-architecture.md`, "The provider is
 OpenRouter"; the traps the move brought with it:
@@ -383,7 +383,7 @@ nothing of Google's allowance, which the SEO assistant's bulk runs draw on
 too.
 
 **A thinking model can spend a small cap before it writes a word.** The
-intake judge asks for ~120 tokens and a model test for five; Gemini 2.5 Flash
+intake judge asks for ~120 tokens and a model test for five; Gemini 3.5 Flash
 and Pro draw their reasoning from the same `max_tokens`, so a cap sized for
 the answer alone comes back as an empty reply with `finish_reason: length`
 from a model working perfectly. `AiModel::thinks()` and

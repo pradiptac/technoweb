@@ -71,9 +71,9 @@ OpenRouter those are "bring your own key": the maker's key is saved in the
 OpenRouter account (its Settings → Integrations) and OpenRouter spends it when
 it routes a call there. So this side holds **one** key, `openrouter_api_key`
 in the private `integrations` group, and the maker is a prefix on the model id
-(`google/gemini-2.5-flash`, `openai/gpt-4o-mini`) rather than a second
+(`google/gemini-3.5-flash`, `openai/gpt-4o-mini`) rather than a second
 integration. `App\Enums\AiModel` is the list; `AiModel::DEFAULT` is
-`google/gemini-2.5-flash`, because a default that needed a second, paid
+`google/gemini-3.5-flash`, because a default that needed a second, paid
 maker's key would be a default that fails on the first press.
 
 **What that costs: nothing here can know which makers a key can reach.** It is
@@ -120,7 +120,7 @@ caps on this side do not know about the maker's.
 is drawn from the same `max_tokens` as its answer, so a cap sized for the
 answer alone — five tokens to prove a model, 120 for an intake reading — can
 be spent before a word is written, and comes back as an empty reply from a
-model that is working perfectly. `AiModel::thinks()` names them (Gemini 2.5
+model that is working perfectly. `AiModel::thinks()` names them (Gemini 3.5
 Flash and Pro) and `OpenRouterProvider::allowance()` sends the caller's cap
 again on top, never less than 1,024. A model outside the enum is sent the
 caller's figure untouched, like everything else about it.
