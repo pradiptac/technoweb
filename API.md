@@ -6706,6 +6706,97 @@ context allowlist and the plain key must only travel out.
 
 ---
 
+## Admin — social posts
+
+LinkedIn and X drafts for published blog posts, case studies, events and
+press-release entries, reviewed and approved by a person (0.190.0,
+`docs/social-posts.md`). Nothing posts without an approve call.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/social-posts` | `role:content_manager`. `?status=` (a status; **absent means `draft`**; `all` lifts the filter; an unknown value falls back to `draft`), `?network=` (`linkedin`, `x`; unknown ignored), `?per_page=` (1–100, default 25). Newest first. `meta`: `networks` (`[{value, label, limit, connected}]`; `connected` is LinkedIn's `ready()` and always false for X), `statuses` (`[{value, label}]`), `waiting` (all drafts) |
+| `GET` | `/admin/social-posts/{id}` | Digits only |
+| `PATCH` | `/admin/social-posts/{id}` | `text` (required, ≤ 20,000). Allowed in `draft`, `failed` and `unconfirmed`; one conditional update. 422 on `text` ("This post can no longer be edited.") otherwise |
+| `POST` | `/admin/social-posts/draft` | Throttled 20/min. `type` (`blog_post`, `case_study`, `event`, `entry`), `id`. Makes a pair with `source: manual`. **201** `{data: [linkedin, x]}`. 422 on `id` unless the record exists, is supported (an entry only when its type is the press-release preset) and is visible now |
+| `POST` | `/admin/social-posts/{id}/approve` | Throttled 20/min. `text` (required, the text to send), `confirm` (boolean; required to approve from `unconfirmed`), `manual` (boolean; LinkedIn only — skip the API and open the share page) |
+| `POST` | `/admin/social-posts/{id}/discard` | `draft`, `failed` or `unconfirmed` only. 422 on `status` otherwise |
+| `GET` | `/admin/settings/social` | `role:admin`. `{data: {linkedin: {configured, connected, ready, account, organization: {id, name} \| null, expires_at, error, callback_path}}}`. `ready` is the one answer to "will an approval post"; `error` is the last LinkedIn refusal of the token. No token or secret is ever returned |
+| `POST` | `/admin/settings/social/linkedin/authorize` | `redirect_uri`, checked exactly against `/admin/settings/social/linkedin/callback` on this site. `{data: {url}}`. 422 until a client ID and secret are saved |
+| `POST` | `/admin/settings/social/linkedin/callback` | `code`, `state` → `{data: {account, organization_id}}`. A state is single-use. With one administered page and none chosen, it is chosen |
+| `POST` | `/admin/settings/social/linkedin/disconnect` | Revokes the token at LinkedIn and forgets it; the chosen page is kept |
+| `GET` | `/admin/settings/social/linkedin/organizations` | `{data: [{id, name}]}` — up to ten pages the connected person administers. 422 "Connect LinkedIn first." or LinkedIn's words |
+| `POST` | `/admin/settings/social/linkedin/organization` | `id` (digits, ≤ 20), `name?` (≤ 120). Chooses (or types) the page posts go to |
+
+**The post** is `{id, network, network_label, status, status_label, text, url,
+source, ai_pending, x_length, limit, drafted_by, approved_by, approved_at,
+sent_at, remote_url, error, created_at, subject}`. `source` is `publish` (made
+when the record went live) or `manual`. `x_length` is the count X will make
+with the appended link (text, a space, 23), null on LinkedIn, and `limit` the
+network's (280 or 3,000). `ai_pending` is true until the writing assistant has
+answered or been passed over. `subject` is `{type, id, title, kind, admin_path,
+public_url, image}`, null once the record has been deleted. `remote_url` is the
+live post on LinkedIn; the network's own id is not sent. `error` is the network's
+words, or the "couldn't confirm" sentence.
+
+**Statuses:** `draft`, `sending`, `sent`, `shared_manually`, `failed`,
+`unconfirmed`, `discarded`. Approving claims a `draft` or `failed` post — or an
+`unconfirmed` one only with `confirm: true` — with a conditional update, so two
+presses send once; a post with any other status is refused.
+
+**Approve answers** `{data: <post>, meta: {open_url}}` with 200 on success.
+`open_url` is null when LinkedIn took the post (`sent`); otherwise it is the
+address to open, and the post is `shared_manually`:
+
+- **X, always:** `https://x.com/intent/post?text=<urlencoded>&url=<urlencoded>`.
+  X is never posted through an API; the person presses Post there.
+- **LinkedIn, when not ready** (not connected, no page chosen, token ended or
+  refused) **or with `manual: true`:**
+  `https://www.linkedin.com/sharing/share-offsite/?url=<urlencoded>`. It carries
+  no text.
+
+If the post went through the API it is `sent`, with `remote_url` and `sent_at`.
+**If it could not be confirmed** — a connection error, a timeout, any 5xx, or an
+unexpected failure after the claim — the answer is 200 with the post
+`unconfirmed` and `error` "We couldn't confirm LinkedIn received this. Check the
+page before trying again." (the post may have gone out; do not send it again
+without looking). A 4xx from LinkedIn leaves the post `failed` with LinkedIn's
+words in `error` (cut to 300 characters) and is answered as a refusal (below),
+with the failed post in `data`. A 401 also stores the words as
+`social_linkedin_error`, which makes `ready` false until the connection is made
+again.
+
+**Refusals** are 422 `{message, errors: {text: [message]}, data: <post>}` — the
+post's state is in `data` so the screen can redraw it. The messages: "That is
+too long for X." (the text plus a space and the link over 280, each URL counted
+as 23); "LinkedIn allows up to 3,000 characters."; "Discarded posts cannot be
+sent."; "Check LinkedIn first — confirm to send it again." (an `unconfirmed` post
+without `confirm`); "This post has already been sent."; "That page is no longer
+published." (the record was withdrawn or deleted; the post keeps its status).
+LinkedIn's own words for a 4xx arrive the same way, with the post `failed`. A validation error is the ordinary 422 keyed by field.
+
+**Role.** Review, edit, draft, approve and discard are `role:content_manager`;
+the `/admin/settings/social` routes are `role:admin`. A send is bounded at 15
+seconds.
+
+**Automatic drafts.** A pair (LinkedIn and X) is made once per record when it
+first goes live, and once only: a blog post or press release dated within the
+last 30 days when it is saved visible, a case study or event when it is
+published. `technoware:draft-social-posts`, every ten minutes, makes the pair
+for a post or press release that was saved with a future date that has since
+passed. A manual pair is made as often as asked. Imports and seeders make none.
+Deleting the record deletes its `draft`, `failed`, `unconfirmed` and `discarded`
+posts. `approve`, `discard` and `draft` are written to the activity log (the
+network and the outcome, never the text).
+
+**Settings.** The private group `social_accounts`: `social_linkedin_oauth_client_id`,
+`social_linkedin_oauth_client_secret` (secret), and the rows the endpoints write
+— the token, its expiry, the account, `social_linkedin_organization_id` and
+`_name`, and `social_linkedin_error`. None is on the public `/settings` map
+(`social`, the profile-URL group, is a different group). A LinkedIn token has no
+refresh token: it lasts about sixty days and the connection is made again.
+
+---
+
 ## Not built yet
 
 Nothing outstanding in the brief. See `PROGRESS.md` for what remains before

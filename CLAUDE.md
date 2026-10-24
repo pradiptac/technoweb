@@ -177,6 +177,7 @@ Contents:
   - Notifications, mentions and edit awareness — `docs/notifications.md`
   - Native analytics — `docs/analytics.md`
   - API keys — `docs/api-keys.md`
+  - LinkedIn and X posts — `docs/social-posts.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -3260,6 +3261,23 @@ The incoming half of integration (0.189.0): another system asks for what a webho
 - Request log: path without the query (255), no row for a 429, 30 days (`technoware:prune-api-key-requests`, 03:57); `last_used_*` only for requests that got through, at most once a minute, through the query builder.
 - **No admin request field may be named `key`** — it is on `ActivityLogger`'s allowlist. `ApiKey` is fillable to `key_hash`, so request input is never mass-assigned.
 - Roll replaces the key under the same row; revoke is final (a revoked key is not edited or rolled); an unchanged expiry already past may be re-saved. Console at System → API keys; create and roll show the key in-page, never through a `?done=` redirect.
+### LinkedIn and X posts — `docs/social-posts.md`
+
+Drafts of LinkedIn and X posts for what is published, reviewed and approved by a person (0.190.0). Nothing is posted unread.
+
+- Subjects are `blog_post`, `case_study`, `event` and `entry` **only when its content type's `preset` is `newsroom_releases`**; "visible" is one definition (`SocialSubjects::isVisible`, entries via `Entry::scopePublished`) asked by the button, the automatic drafts and the send.
+- One automatic pair per record ever (any `source = publish` row stops it); manual drafts (`source = manual`) any number of times for a published record. The `saved` hook drafts on the transition to visible, and for posts and press releases only when `published_at` is within 30 days — otherwise editing every old post after deploy would draft it and burn the AI cap.
+- `technoware:draft-social-posts` (every ten minutes) takes only records saved with a **future** date that has since passed (`published_at > updated_at`, last 30 days) — a record the hook already saw is never the sweep's — and moves a post stuck in `sending` for five minutes to `unconfirmed`.
+- Imports and seeders never draft (`SocialDrafts::suppressed`, mirroring `IndexNow::suppressed`); a draft that cannot be made never fails a publish (caught, logged at `warning`).
+- The draft exists at once with plain fallback text and `ai_pending`; `WriteSocialPost` (the `Writer` through `SocialSurface`, one call per network, counted against `ai_writing_daily_cap`) replaces it only if it is still the untouched fallback. The model never writes a URL (stripped; `[CHECK` refused); the site appends the link, and the LinkedIn text and fallback carry none.
+- X: 280 characters, each URL counted as 23, so **256 plain characters** of text once the space and the link are added (`SocialText::xFits`; 256 fits, 257 does not). LinkedIn: 3,000. Both are re-checked at approval.
+- **X is never sent through an API in this release** (it needs a paid X developer plan): approving returns `https://x.com/intent/post?text=…&url=…` as `meta.open_url` and marks the post `shared_manually`. No X connection, OAuth slot or sender exists.
+- LinkedIn posts through the API when `LinkedInPoster::ready()` (connected, a page chosen, token not ended, no `social_linkedin_error`); otherwise — or with `manual: true`, "Copy and open instead" — it is `shared_manually` and `meta.open_url` is `linkedin.com/sharing/share-offsite/?url=` with no text. The URL is re-resolved at approval.
+- A send is bounded at 15 s. A connection error, a timeout, **a 5xx** or any `Throwable` after the claim is `unconfirmed` (LinkedIn may have made the post; a retry could post it twice); retry needs `confirm: true`. A 4xx is `failed` with LinkedIn's words and retries freely; a 401 also writes `social_linkedin_error`. The claim is a conditional update, so two presses send once.
+- Statuses `draft`, `sending`, `sent`, `shared_manually`, `failed`, `unconfirmed`, `discarded`. Text is editable, and a post discardable, in `draft`, `failed` and `unconfirmed`. Deleting a record deletes its unsent drafts; `sent`/`shared_manually` rows stay as history.
+- LinkedIn gives an ordinary app no refresh token (`OAuthProvider::issuesRefreshToken()`): the token lasts about sixty days, its expiry is stored, Settings warns from seven days before, and an ended token falls back to the share page. Scopes `w_organization_social r_organization_admin`; the callback is `/admin/settings/social/linkedin/callback`; the page is chosen from the list or its ID typed. `LinkedInPoster::LINKEDIN_VERSION` (`202610`) is a header to move forward before 2027-10.
+- The settings are the **private** group `social_accounts`, never `social` (the public profile-URL group `/settings` publishes). Review and approval are `role:content_manager`; the connection is `role:admin`.
+- Approve, discard and draft are written to the activity log with the network and the outcome, never the text; `social_post` is in the morph map. No test makes a network call.
 
 ## Conventions
 
