@@ -153,6 +153,8 @@ const ADMIN_ROUTES = [
   "/admin/events", "/admin/events/new", "/admin/events/settings",
   // Tenders (0.174.0): the list, the form and the category list.
   "/admin/tenders", "/admin/tenders/new", "/admin/tenders/categories", "/admin/tenders/categories/new",
+  // LinkedIn and X drafts (C7): the review list, and the LinkedIn connection under Settings. The panel opens on a press, which neither audit makes.
+  "/admin/social-posts", "/admin/settings/social",
   // The downloads centre (0.131.0): the list, both new forms, the categories.
   "/admin/downloads", "/admin/downloads/new", "/admin/downloads/categories", "/admin/downloads/categories/new",
   // Custom fields and content types (docs/custom-content.md).

@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { RevisionPanel } from "@/components/admin/revision-panel";
 import { RecordNotesPanel } from "@/components/admin/record-notes-panel";
+import { DraftSocialButton } from "@/components/admin/draft-social-button";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
@@ -59,6 +60,7 @@ export default async function EditBlogPostPage({
           <RecordNotesPanel type="blog_post" id={post.id} />
           <RevisionPanel type="blog_post" id={post.id} />
           <PreviewLinkPanel type="blog_post" id={post.id} />
+          {post.status === "published" && <DraftSocialButton type="blog_post" id={post.id} />}
         </span>
         {post.status === "published" && (
           <Link

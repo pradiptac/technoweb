@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { RevisionPanel } from "@/components/admin/revision-panel";
 import { RecordNotesPanel } from "@/components/admin/record-notes-panel";
+import { DraftSocialButton } from "@/components/admin/draft-social-button";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
@@ -53,6 +54,7 @@ export default async function EditCaseStudyPage({
           <RecordNotesPanel type="case_study" id={study.id} />
           <RevisionPanel type="case_study" id={study.id} />
           <PreviewLinkPanel type="case_study" id={study.id} />
+          {study.status === "published" && <DraftSocialButton type="case_study" id={study.id} />}
         </span>
         {study.status === "published" && (
           <Link

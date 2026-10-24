@@ -61,3 +61,4 @@ export * from "./health";
 export * from "./semantic-search";
 export * from "./writing";
 export * from "./notifications";
+export * from "./social-posts";

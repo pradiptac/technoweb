@@ -335,6 +335,8 @@ export const NAV: NavItem[] = [
     links: [
       { role: "content_manager", href: "/admin/knowledge-base", label: "Knowledge base", icon: IconEducation },
       { role: "content_manager", href: "/admin/case-studies", label: "Case studies", icon: IconCert },
+      // LinkedIn and X drafts for what has been published (docs/social-posts.md); approving is the content manager's call.
+      { role: "content_manager", href: "/admin/social-posts", label: "Social posts", icon: IconMegaphone },
       { role: "content_manager", href: "/admin/pages", label: "Pages", icon: IconLayers },
       // Saved sections and page templates (docs/page-builder.md "The library").
       { role: "content_manager", href: "/admin/pages/library", label: "Section library", icon: IconBox },
@@ -541,6 +543,8 @@ export const NAV: NavItem[] = [
         skipping the newest entry in the sidebar.
       */
       { role: "admin", href: "/admin/settings/email-templates", label: "Email templates", icon: IconMail },
+      // The company's LinkedIn connection: a standing credential like the mailbox, so it sits beside the mail screens and is an administrator's.
+      { role: "admin", href: "/admin/settings/social", label: "Social accounts", icon: IconNetwork },
       { role: "admin", href: "/admin/users", label: "Staff", icon: IconUsers },
       /*
         Outgoing webhooks, beside Staff and behind the same role: a hook is

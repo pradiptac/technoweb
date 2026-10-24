@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { RevisionPanel } from "@/components/admin/revision-panel";
 import { RecordNotesPanel } from "@/components/admin/record-notes-panel";
+import { DraftSocialButton } from "@/components/admin/draft-social-button";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
 import { getEntries, getEntry, getPageBuilderOptions } from "@/lib/admin";
@@ -51,6 +52,8 @@ export default async function EditEntryPage({
           <RecordNotesPanel type="entry" id={entry.id} />
           <RevisionPanel type="entry" id={entry.id} />
           <PreviewLinkPanel type="entry" id={entry.id} />
+          {/* Only a press release is shared: the API refuses every other content type. */}
+          {entry.status === "published" && meta.type.preset === "newsroom_releases" && <DraftSocialButton type="entry" id={entry.id} />}
         </span>
         {entry.status === "published" && meta.type.is_active && (
           <Link href={entry.path} className="py-1 text-13-5 font-semibold text-brand-ink hover:underline">

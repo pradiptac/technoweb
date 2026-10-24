@@ -2319,6 +2319,77 @@ const paginate = (rows) => ({
   meta:{ current_page:1, last_page:1, per_page:24, total:rows.length },
 });
 
+/* ---------------- Social posts (C7, docs/social-posts.md) ----------------
+ *
+ * LinkedIn and X drafts for published records. The statuses, labels and the
+ * approve rules are the API's: X never posts (it hands back x.com's intent
+ * address and is marked shared by hand), LinkedIn posts when connected and
+ * otherwise hands back the share page, an X text over 280 (links counted as
+ * 23, plus the appended link) is a 422 on `text`.
+ */
+const SOCIAL_STATUSES = [
+  ['draft', 'Waiting'], ['sending', 'Sending'], ['sent', 'Sent'], ['shared_manually', 'Shared by hand'],
+  ['failed', 'Failed'], ['unconfirmed', "Couldn't confirm"], ['discarded', 'Discarded'],
+];
+const socialLinkedIn = { connected: false, organization: null, account: null };
+const socialXLength = (text) => {
+  let links = 0;
+  const bare = text.replace(/https?:\/\/\S+/gu, () => { links++; return ''; });
+  return Array.from(bare).length + links * 23;
+};
+const socialPosts = [];
+const socialSubjects = {
+  case_study: (id) => {
+    const c = caseStudies.find((s) => s.id === id);
+    return c && { id: c.id, title: c.title, summary: c.summary, kind: 'Case study', admin_path: `/admin/case-studies/${c.id}`, url: `https://www.technoware.in/case-studies/${c.slug}` };
+  },
+};
+function socialPair(subjectType, subject, source = 'publish') {
+  const base = {
+    subject_type: subjectType, subject_id: subject.id, url: subject.url, source, drafted_by: source === 'manual' ? 'Priya Nair' : null,
+    approved_by: null, approved_at: null, sent_at: null, remote_url: null, error: null, ai_pending: false,
+  };
+  const id = Math.max(0, ...socialPosts.map((p) => p.id)) + 1;
+  const created_at = new Date().toISOString();
+  const pair = [
+    { ...base, id, network: 'linkedin', status: 'draft', created_at, text: `${subject.title}\n\n${subject.summary}\n\n${subject.url}` },
+    { ...base, id: id + 1, network: 'x', status: 'draft', created_at, ai_pending: true, text: `${subject.title} — ${subject.summary}`.slice(0, 200) },
+  ];
+  socialPosts.unshift(...pair);
+  return pair;
+}
+const adminSocialPost = (p) => {
+  const made = socialSubjects[p.subject_type]?.(p.subject_id);
+  const isX = p.network === 'x';
+  return {
+    id: p.id, network: p.network, network_label: isX ? 'X' : 'LinkedIn',
+    status: p.status, status_label: SOCIAL_STATUSES.find(([v]) => v === p.status)[1],
+    text: p.text, url: p.url, source: p.source, ai_pending: p.ai_pending,
+    x_length: isX ? socialXLength(p.text) + 1 + 23 : null, limit: isX ? 280 : 3000,
+    drafted_by: p.drafted_by, approved_by: p.approved_by, approved_at: p.approved_at, sent_at: p.sent_at,
+    remote_url: p.remote_url, error: p.error, created_at: p.created_at,
+    subject: made ? { type: p.subject_type, id: made.id, title: made.title, kind: made.kind, admin_path: made.admin_path, public_url: made.url, image: null } : null,
+  };
+};
+const socialMeta = () => ({
+  networks: [
+    { value: 'linkedin', label: 'LinkedIn', limit: 3000, connected: socialLinkedIn.connected && Boolean(socialLinkedIn.organization) },
+    { value: 'x', label: 'X', limit: 280, connected: false },
+  ],
+  statuses: SOCIAL_STATUSES.map(([value, label]) => ({ value, label })),
+  waiting: socialPosts.filter((p) => p.status === 'draft').length,
+});
+{
+  // A waiting pair and one already sent, so the list is not empty on a fresh mock.
+  socialPair('case_study', socialSubjects.case_study(1));
+  socialPosts.push({
+    id: 90, network: 'linkedin', status: 'sent', text: 'Six plants, one network.', url: 'https://www.technoware.in/case-studies/hospital-wifi',
+    source: 'publish', ai_pending: false, subject_type: 'case_study', subject_id: 2, drafted_by: null, approved_by: 'Priya Nair',
+    approved_at: '2026-10-20T10:00:00+05:30', sent_at: '2026-10-20T10:00:03+05:30', remote_url: 'https://www.linkedin.com/feed/update/urn:li:share:1',
+    error: null, created_at: '2026-10-19T09:00:00+05:30',
+  });
+}
+
 /* ---------------- AEO + GEO (docs/aeo-geo-contract.md) ----------------
  *
  * The nine answer-block kinds, in the enum's own order, on every admin
@@ -3935,6 +4006,96 @@ createServer(async (req, res) => {
     }
     /* Zoho Books (docs/store.md "Zoho Books invoices"): Store → Settings'
        panel, as an install that has not connected it. */
+    /* Social posts (docs/social-posts.md): the review list, a draft pair, edit, approve and discard,
+       and Settings → Social accounts' LinkedIn connection. `draft` sits above the id routes. */
+    if (p === '/admin/social-posts' && req.method === 'GET') {
+      const status = url.searchParams.get('status') || 'draft';
+      const network = url.searchParams.get('network');
+      const rows = socialPosts
+        .filter((x) => status === 'all' || x.status === status)
+        .filter((x) => !network || x.network === network)
+        .sort((a, b) => b.id - a.id);
+      const page = paginate(rows.map(adminSocialPost));
+      page.meta.per_page = 25;
+      return json(res, 200, { ...page, meta: { ...page.meta, ...socialMeta() } });
+    }
+    if (p === '/admin/social-posts/draft' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const subject = socialSubjects[body.type]?.(Number(body.id));
+      if (!subject) {
+        const message = 'Only a published blog post, case study, event or press release can be shared.';
+        return json(res, 422, { message, errors: { id: [message] } });
+      }
+      return json(res, 201, { data: socialPair(body.type, subject, 'manual').map(adminSocialPost) });
+    }
+    const socialRoute = p.match(/^\/admin\/social-posts\/(\d+)(?:\/(approve|discard))?$/);
+    if (socialRoute) {
+      const post = socialPosts.find((x) => x.id === Number(socialRoute[1]));
+      if (!post) return json(res, 404, { message: 'Not found.' });
+      const action = socialRoute[2];
+      const open = ['draft', 'failed', 'unconfirmed'].includes(post.status);
+      if (!action && req.method === 'GET') return json(res, 200, { data: adminSocialPost(post) });
+      if (!action && req.method === 'PATCH') {
+        if (!open) return json(res, 422, { message: 'This post can no longer be edited.', errors: { text: ['This post can no longer be edited.'] } });
+        post.text = (await readJsonBody(req)).text;
+        return json(res, 200, { data: adminSocialPost(post) });
+      }
+      if (action === 'discard' && req.method === 'POST') {
+        if (!open) return json(res, 422, { message: 'This post cannot be discarded.', errors: { status: ['This post cannot be discarded.'] } });
+        post.status = 'discarded';
+        return json(res, 200, { data: adminSocialPost(post) });
+      }
+      if (action === 'approve' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const refuse = (message) => json(res, 422, { message, errors: { text: [message] }, data: adminSocialPost(post) });
+        const isX = post.network === 'x';
+        if (isX ? socialXLength(body.text) + 24 > 280 : body.text.length > 3000) return refuse(isX ? 'That is too long for X.' : 'LinkedIn allows up to 3,000 characters.');
+        if (!['draft', 'failed'].includes(post.status) && !(post.status === 'unconfirmed' && body.confirm)) {
+          return refuse(post.status === 'unconfirmed' ? 'Check LinkedIn first — confirm to send it again.' : 'This post has already been sent.');
+        }
+        Object.assign(post, { text: body.text, approved_by: 'Priya Nair', approved_at: new Date().toISOString(), error: null });
+        if (isX) {
+          post.status = 'shared_manually';
+          const open_url = `https://x.com/intent/post?text=${encodeURIComponent(body.text)}&url=${encodeURIComponent(post.url)}`;
+          return json(res, 200, { data: adminSocialPost(post), meta: { open_url } });
+        }
+        if (!socialLinkedIn.connected || !socialLinkedIn.organization) {
+          post.status = 'shared_manually';
+          const open_url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(post.url)}`;
+          return json(res, 200, { data: adminSocialPost(post), meta: { open_url } });
+        }
+        Object.assign(post, { status: 'sent', sent_at: new Date().toISOString(), remote_url: 'https://www.linkedin.com/feed/update/urn:li:share:2' });
+        return json(res, 200, { data: adminSocialPost(post), meta: { open_url: null } });
+      }
+    }
+    if (p === '/admin/settings/social' && req.method === 'GET') {
+      return json(res, 200, { data: { linkedin: {
+        configured: true, connected: socialLinkedIn.connected, ready: socialLinkedIn.connected && Boolean(socialLinkedIn.organization),
+        account: socialLinkedIn.account, organization: socialLinkedIn.organization,
+        expires_at: socialLinkedIn.connected ? '2026-12-20T00:00:00+05:30' : null,
+        error: null, callback_path: '/admin/settings/social/linkedin/callback',
+      } } });
+    }
+    if (p === '/admin/settings/social/linkedin/authorize' && req.method === 'POST') {
+      return json(res, 422, { message: 'Save the client ID and secret first.', errors: { redirect_uri: ['Save the client ID and secret first.'] } });
+    }
+    if (p === '/admin/settings/social/linkedin/callback' && req.method === 'POST') {
+      Object.assign(socialLinkedIn, { connected: true, account: 'Priya Nair' });
+      return json(res, 200, { data: { account: 'Priya Nair', organization_id: socialLinkedIn.organization?.id ?? null } });
+    }
+    if (p === '/admin/settings/social/linkedin/disconnect' && req.method === 'POST') {
+      Object.assign(socialLinkedIn, { connected: false, account: null });
+      return json(res, 200, { data: { connected: false } });
+    }
+    if (p === '/admin/settings/social/linkedin/organizations' && req.method === 'GET') {
+      if (!socialLinkedIn.connected) return json(res, 422, { message: 'Connect LinkedIn first.' });
+      return json(res, 200, { data: [{ id: '10101010', name: 'Technoware Systems' }, { id: '20202020', name: null }] });
+    }
+    if (p === '/admin/settings/social/linkedin/organization' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      socialLinkedIn.organization = { id: body.id, name: body.name ?? null };
+      return json(res, 200, { data: socialLinkedIn.organization });
+    }
     /* A palette read from the logo (0.173.0): two colours, so the two
        readings that differ, with the bar as the darker of them. */
     if (p === '/admin/settings/palette-from-logo' && req.method === 'POST') {
@@ -5930,6 +6091,13 @@ createServer(async (req, res) => {
           s('shiprocket_parcel_height', '10', { group: 'shiprocket' }),
           s('shiprocket_webhook_token', null, { group: 'shiprocket', is_secret: true, is_set: false }),
           s('shiprocket_error', null, { group: 'shiprocket' }),
+        ],
+        /* Social accounts → LinkedIn (C7): the app's client; the token, page and error rows are hidden by the console. */
+        social_accounts: [
+          s('social_linkedin_oauth_client_id', 'mock-client-id', { group: 'social_accounts' }),
+          s('social_linkedin_oauth_client_secret', null, { group: 'social_accounts', is_secret: true, is_set: true }),
+          s('social_linkedin_organization_id', null, { group: 'social_accounts' }), s('social_linkedin_organization_name', null, { group: 'social_accounts' }),
+          s('social_linkedin_error', null, { group: 'social_accounts' }),
         ],
         push: [
           s('push_api_key', 'AIzaMockKey000000000000000000000000000', { group: 'push' }), s('push_project_id', 'technoware-push', { group: 'push' }),

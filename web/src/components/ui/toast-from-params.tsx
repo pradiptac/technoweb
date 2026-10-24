@@ -43,6 +43,16 @@ const OUTCOMES: Record<string, Message> = {
   created: { tone: "ok", title: "Created." },
   saved: { tone: "ok", title: "Saved." },
 
+  // Social posts (C7). A lookup, never a sentence from the URL: the key says what happened.
+  "social-sent": { tone: "ok", title: "Posted to LinkedIn", body: "It is on the company's LinkedIn page now." },
+  "social-shared": {
+    tone: "ok",
+    title: "Opened for posting",
+    // The honest half: nothing has been posted until the person presses Post over there.
+    body: "Finish posting it on the network; the text is filled in or on your clipboard. It is marked as shared by hand.",
+  },
+  "social-discarded": { tone: "ok", title: "Post discarded", body: "It will not be sent." },
+  "social-drafted": { tone: "ok", title: "Drafts made", body: "A LinkedIn post and an X post are waiting for you to check." },
   "lead-deleted": {
     tone: "ok",
     title: "Lead deleted",
