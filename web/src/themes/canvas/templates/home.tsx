@@ -51,7 +51,7 @@ export function Home({
   const bg = { sections: options.sections, seeds: homeSeeds(settings) };
 
   const hero = (
-    <section className="pt-14 pb-16 lg:pt-24 lg:pb-24">
+    <section className="pt-8 pb-16 lg:pt-12 lg:pb-24">
       <Container className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16 [&>*]:min-w-0">
         <div>
           <span className="inline-block rounded-full bg-surface-2 px-3 py-1 text-13 font-medium text-ink">{kicker}</span>

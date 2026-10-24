@@ -33,6 +33,18 @@ class SlideResource extends JsonResource
             'link_url' => $this->link_url,
             'link_label' => $this->link_label,
             'caption_position' => $this->caption_position?->value,
+            'kicker' => $this->kicker,
+            'link2_url' => $this->link2_url,
+            'link2_label' => $this->link2_label,
+            // The phone picture, resolved exactly like `url`; null when unset.
+            'mobile_url' => $this->mobile_media_path ? MediaUrl::for($this->mobile_media_path) : null,
+            'mobile_alt' => $this->mobile_media_path ? MediaMeta::alt($this->mobile_media_path) : null,
+            'mobile_focus' => MediaMeta::focus($this->mobile_media_path),
+            'mobile_blur' => MediaMeta::blur($this->mobile_media_path),
+            'text_tone' => $this->text_tone->value,
+            'overlay' => $this->overlay->value,
+            'duration_ms' => $this->duration_ms,
+            'fit' => $this->fit->value,
         ];
     }
 }

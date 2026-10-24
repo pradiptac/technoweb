@@ -52,8 +52,8 @@ export function BackupDestinationPanel({
       {lastError && !result.ok && !result.error && (
         <Alert tone="warn" title="The last attempt was refused" dismissible={false}>{lastError}</Alert>
       )}
-      {result.error && <Alert tone="err" title="That did not work">{result.error}</Alert>}
-      {result.ok && !result.error && <Alert tone="ok" title="It worked">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="That did not work">{result.error}</Alert>}
+      {result.ok && !result.error && <Alert tone="ok" nonce={result} title="It worked">{result.ok}</Alert>}
 
       {key === "gdrive" && drive && (
         <div className="mb-4">

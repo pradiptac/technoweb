@@ -57,7 +57,7 @@ export function Home({
     // horizontal overflow on the document — measured at 16px at 1440 by
     // `scripts/probes/strip-modes.mjs`, which reads `scrollWidth` per theme.
     <section className="overflow-hidden border-b border-line-strong">
-      <Container className="grid items-center gap-10 pt-12 pb-12 lg:grid-cols-[7fr_5fr] lg:gap-14 lg:pt-16 lg:pb-16">
+      <Container className="grid items-center gap-10 pt-8 pb-12 lg:grid-cols-[7fr_5fr] lg:gap-14 lg:pt-12 lg:pb-16">
         <div className="min-w-0">
           <p className="text-11-5 font-semibold uppercase tracking-[.16em] text-muted">{kicker}</p>
           <HeroTitle className="display-1 mt-5 max-w-[18ch] text-balance [overflow-wrap:anywhere]">{heading}</HeroTitle>

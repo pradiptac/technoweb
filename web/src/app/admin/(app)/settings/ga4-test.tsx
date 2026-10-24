@@ -31,8 +31,8 @@ export function Ga4Test({ configured, lastError }: { configured: boolean; lastEr
       {lastError && !result.ok && !result.error && (
         <Alert tone="err" title="Google Analytics refused the last read" dismissible={false}>{lastError}</Alert>
       )}
-      {result.error && <Alert tone="err" title="Google refused the property">{result.error}</Alert>}
-      {result.ok && !result.error && <Alert tone="ok" title="The property answers">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="Google refused the property">{result.error}</Alert>}
+      {result.ok && !result.error && <Alert tone="ok" nonce={result} title="The property answers">{result.ok}</Alert>}
 
       <div className="flex flex-wrap items-center gap-3">
         <Button

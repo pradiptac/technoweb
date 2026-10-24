@@ -182,8 +182,8 @@ function ChannelSection({
         </div>
       )}
 
-      {result.error && <Alert tone="err" title="The test did not go">{result.error}</Alert>}
-      {result.ok && <Alert tone="ok" title="Sent">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="The test did not go">{result.error}</Alert>}
+      {result.ok && <Alert tone="ok" nonce={result} title="Sent">{result.ok}</Alert>}
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-0 flex-1 sm:max-w-[22rem]">

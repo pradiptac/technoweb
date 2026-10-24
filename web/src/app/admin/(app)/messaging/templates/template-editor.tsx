@@ -73,7 +73,7 @@ export function TemplateEditor({ template, meta }: { template?: MessageTemplate;
         <Form action={formAction} state={state} noValidate>
           {template && <input type="hidden" name="id" value={template.id} />}
           <input type="hidden" name="buttons" value={JSON.stringify(buttons)} />
-          {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
+          {state.error && <Alert tone="err" nonce={state} title="Could not save">{state.error}</Alert>}
 
           {template && (
             <div className="mb-4 flex flex-wrap items-center gap-2 text-12-5 text-muted">
@@ -237,8 +237,8 @@ function TemplateTools({ template }: { template: MessageTemplate }) {
   return (
     <section className="mt-6 border-t border-line pt-4" aria-labelledby="template-tools">
       <h2 id="template-tools" className="mb-3 text-15 font-semibold">Approval and testing</h2>
-      {result.error && <Alert tone="err" title="That did not work">{result.error}</Alert>}
-      {result.ok && <Alert tone="ok" title="Sent">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="That did not work">{result.error}</Alert>}
+      {result.ok && <Alert tone="ok" nonce={result} title="Sent">{result.ok}</Alert>}
 
       {approval && (
         <div className="mb-4">

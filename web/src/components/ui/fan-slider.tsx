@@ -5,7 +5,8 @@ import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
 import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
-import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
+import { sliderFrameAttrs } from "@/lib/slider-frame";
+import { slideDelay, useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
 import { Slider } from "@/components/ui/slider";
 import { Chevron, PlayPause } from "@/components/ui/slider-controls";
@@ -67,7 +68,7 @@ export function FanSlider({
   const wantsPlay = override ?? slider.autoplay;
   const autoplay = wantsPlay && motionOk && !paused && !hidden && count > 1;
   const advance = useCallback(() => goTo(index + 1), [goTo, index]);
-  useAutoplay(autoplay, slider.interval_ms, advance);
+  useAutoplay(autoplay, slideDelay(slides[index], slider), advance, index);
 
   if (count === 0) return null;
   if (count < 2) return <Slider slider={slider} className={className} aspect={aspect} priority={priority} />;
@@ -81,8 +82,9 @@ export function FanSlider({
       <section
         aria-roledescription="carousel"
         aria-label={slider.name}
+        {...sliderFrameAttrs(slider)}
         className={cn(
-          "group relative flex w-full min-w-0 flex-col overflow-clip rounded-xl border border-line-strong bg-card",
+          "slider-frame group relative flex w-full min-w-0 flex-col overflow-clip rounded-xl border border-line-strong bg-card",
           aspect,
           // The counter, the card, two lines of words and the pill, whatever
           // the ratio asks for — `min-height` beats `aspect-ratio`.
@@ -91,7 +93,7 @@ export function FanSlider({
         style={{
           // 42% of the well: the fan of five then spans ~90% of it. Measured
           // at 30% the current picture was 160px in a 533px hero column.
-          "--card-w": "clamp(120px, 42cqw, 360px)",
+          "--card-w": "min(clamp(120px, 42cqw, 360px), max(72px, calc((var(--slider-cap) - 11.5rem) / 1.15)))",
           "--card-h": "calc(var(--card-w) * 1.15)",
         } as CSSProperties}
         onPointerEnter={() => setPaused(true)}
@@ -179,6 +181,7 @@ export function FanSlider({
         {/* The words, under the picture — always rendered at one height so the
             stage above never moves between a captioned slide and a bare one. */}
         <div key={index} className="gallery-fade min-h-[2.75rem] px-4 text-center">
+          {current.kicker && <p className="text-12 font-semibold uppercase tracking-[.12em] text-muted">{current.kicker}</p>}
           {current.heading && (
             current.link_url ? (
               <a href={current.link_url} className="text-14 font-semibold text-ink hover:text-brand-ink hover:underline">{current.heading}</a>
@@ -187,6 +190,9 @@ export function FanSlider({
             )
           )}
           {current.caption && <p className="mt-0.5 line-clamp-1 text-12 text-muted">{current.caption}</p>}
+          {current.link2_url && current.link2_label && (
+            <a href={current.link2_url} className="mt-0.5 inline-block py-1 text-12 font-semibold text-brand-ink hover:underline">{current.link2_label}</a>
+          )}
         </div>
 
         {/* The pill: arrows either side of the dots. */}

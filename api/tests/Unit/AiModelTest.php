@@ -15,9 +15,9 @@ class AiModelTest extends TestCase
     public function test_the_twelve_models_are_openrouter_ids_with_googles_first_and_the_default_first_of_all(): void
     {
         $this->assertSame([
-            'google/gemini-2.5-flash',
-            'google/gemini-2.5-flash-lite',
-            'google/gemini-2.5-pro',
+            'google/gemini-3.5-flash',
+            'google/gemini-3.5-flash-lite',
+            'google/gemini-3.1-pro-preview',
             'google/gemma-4-31b-it:free',
             'google/gemma-4-26b-a4b-it:free',
             'openai/gpt-4o-mini',
@@ -32,7 +32,7 @@ class AiModelTest extends TestCase
         // A Google model: the key the client starts with is a free Google AI
         // Studio one, and a default that needed a second maker's key would
         // fail on the first press.
-        $this->assertSame('google/gemini-2.5-flash', AiModel::DEFAULT);
+        $this->assertSame('google/gemini-3.5-flash', AiModel::DEFAULT);
         $this->assertNotNull(AiModel::tryFrom(AiModel::DEFAULT));
         $this->assertSame(AiModel::DEFAULT, AiModel::cases()[0]->value, 'the default is the first option a select shows');
         $this->assertStringStartsWith('The default.', AiModel::from(AiModel::DEFAULT)->description());
@@ -67,7 +67,7 @@ class AiModelTest extends TestCase
             array_filter(AiModel::cases(), fn (AiModel $m) => $m->thinks()),
         ));
 
-        $this->assertSame(['google/gemini-2.5-flash', 'google/gemini-2.5-pro'], $thinking);
+        $this->assertSame(['google/gemini-3.5-flash', 'google/gemini-3.1-pro-preview'], $thinking);
         $this->assertFalse(AiModel::Gemma431BFree->thinks());
         $this->assertFalse(AiModel::Gemma426BFree->thinks());
     }
@@ -75,7 +75,7 @@ class AiModelTest extends TestCase
     public function test_an_unknown_stored_value_is_offered_back_and_never_replaced(): void
     {
         $this->assertCount(12, AiModel::options());
-        $this->assertCount(12, AiModel::options('google/gemini-2.5-pro'));
+        $this->assertCount(12, AiModel::options('google/gemini-3.1-pro-preview'));
         $this->assertCount(12, AiModel::options(''));
 
         $options = AiModel::options('somebody/their-own-model');
@@ -100,7 +100,7 @@ class AiModelTest extends TestCase
             'padded' => ['  gpt-4o ', 'openai/gpt-4o'],
             'blank' => ['', ''],
             'already openai' => ['openai/gpt-4.1', 'openai/gpt-4.1'],
-            'another maker' => ['google/gemini-2.5-flash', 'google/gemini-2.5-flash'],
+            'another maker' => ['google/gemini-3.5-flash', 'google/gemini-3.5-flash'],
             // A fine-tune is an OpenAI account's own model, which OpenRouter
             // cannot route to; a prefix would only disguise that.
             'a fine-tune' => ['ft:gpt-4o-mini:acme::abc123', 'ft:gpt-4o-mini:acme::abc123'],

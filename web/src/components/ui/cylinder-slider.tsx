@@ -5,7 +5,8 @@ import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
 import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
-import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
+import { sliderFrameAttrs } from "@/lib/slider-frame";
+import { slideDelay, useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
 import { Slider } from "@/components/ui/slider";
 import { Chevron, PlayPause } from "@/components/ui/slider-controls";
@@ -77,7 +78,7 @@ export function CylinderSlider({
   const wantsPlay = override ?? slider.autoplay;
   const autoplay = wantsPlay && motionOk && !paused && !hidden && count >= 5;
   const advance = useCallback(() => turn(1), [turn]);
-  useAutoplay(autoplay, slider.interval_ms, advance);
+  useAutoplay(autoplay, slideDelay(slides[index], slider), advance, index);
 
   if (count === 0) return null;
   if (count < 5) return <Slider slider={slider} className={className} aspect={aspect} priority={priority} />;
@@ -92,13 +93,14 @@ export function CylinderSlider({
       <section
         aria-roledescription="carousel"
         aria-label={slider.name}
+        {...sliderFrameAttrs(slider)}
         className={cn(
-          "group relative flex w-full min-w-0 flex-col overflow-clip rounded-xl border border-line-strong bg-card",
+          "slider-frame group relative flex w-full min-w-0 flex-col overflow-clip rounded-xl border border-line-strong bg-card",
           aspect,
           "min-h-[calc(var(--card-h)_+_10rem)]",
         )}
         style={{
-          "--card-w": "clamp(120px, 26cqw, 280px)",
+          "--card-w": "min(clamp(120px, 26cqw, 280px), max(72px, calc((var(--slider-cap) - 10rem) / 1.25)))",
           "--card-h": "calc(var(--card-w) * 1.25)",
           "--r": `calc(var(--card-w) * ${radiusFactor.toFixed(4)})`,
         } as CSSProperties}

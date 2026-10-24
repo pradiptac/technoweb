@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type FocusEvent } from "react";
 import { cn } from "@/lib/utils";
-import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
+import { slideDelay, useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
 import { SlideMedia } from "@/components/ui/slide-media";
 import { SlideCaption, captionAnimationFor } from "@/components/ui/slide-caption";
 import { Chevron, PlayPause, arrow } from "@/components/ui/slider-controls";
+import { SlideThumbs } from "@/components/ui/slide-thumbs";
+import { sliderFrameAttrs } from "@/lib/slider-frame";
 
 /**
  * A carousel built on CSS scroll-snap rather than a carousel library.
@@ -102,8 +104,11 @@ export function Slider({
   const transition = slider.transition || "slide";
   const isNative = transition === "slide";
   const captionAnimation = captionAnimationFor(slider);
+  const navigation = slider.navigation || "dots";
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
+  // The slide the native track is scrolling away from, until the scroll settles.
+  const [leaving, setLeaving] = useState<number | null>(null);
   // Paused under the pointer and while anything inside has focus — a
   // courtesy, not a control; the Pause button is the control.
   const [paused, setPaused] = useState(false);
@@ -167,14 +172,21 @@ export function Slider({
     const el = track.current;
     if (!el) return;
     let frame = 0;
+    let settle = 0;
+    let last = el.clientWidth ? Math.round(el.scrollLeft / el.clientWidth) : 0;
     const onScroll = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        if (el.clientWidth) setIndex(Math.round(el.scrollLeft / el.clientWidth));
+        if (!el.clientWidth) return;
+        const next = Math.round(el.scrollLeft / el.clientWidth);
+        // The slide being left stays "leaving" (its slow zoom keeps running) until the scroll settles.
+        if (next !== last) { setLeaving(last); last = next; setIndex(next); }
       });
+      clearTimeout(settle);
+      settle = window.setTimeout(() => setLeaving(null), 200);
     };
     el.addEventListener("scroll", onScroll, { passive: true });
-    return () => { el.removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); };
+    return () => { el.removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); clearTimeout(settle); };
   }, [isNative]);
 
   // Drops the outgoing slide once the incoming one has fully covered it.
@@ -189,7 +201,7 @@ export function Slider({
   const wantsPlay = override ?? slider.autoplay;
   const autoplay = wantsPlay && motionOk && !paused && !hidden && slides.length > 1;
   const advance = useCallback(() => goTo(index + 1), [goTo, index]);
-  useAutoplay(autoplay, slider.interval_ms, advance);
+  useAutoplay(autoplay, slideDelay(slides[index], slider), advance, index);
 
   if (slides.length === 0) return null;
 
@@ -233,25 +245,28 @@ export function Slider({
     return [...roles.entries()].sort((a, b) => order[a[1]] - order[b[1]]);
   })();
 
-  return (
-    <section
-      aria-roledescription="carousel"
-      aria-label={slider.name}
-      // `bg-card`, not `bg-surface` (2026-09-20): the shell has to be opaque
-      // so a fade never flashes the page, and it also has to be a *ground* —
-      // on Classic's hero `bg-surface` computed the same colour as the
-      // section behind it, which is the "card without a ground" the audit
-      // fails, and `bg-card` is what carries the card gradient that rule
-      // expects. Under dark the two were always distinct; in light they were
-      // both white until this.
-      className={cn("group relative min-w-0 overflow-hidden rounded-xl border border-line-strong bg-card", className)}
-      onPointerEnter={() => setPaused(true)}
-      onPointerLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) setPaused(false);
-      }}
-    >
+  // Thumbnails sit in flow below the picture, outside the frame that is capped
+  // and clipped, so they never cover a caption; every other mode draws inside.
+  const below = navigation === "thumbnails" && slides.length > 1;
+  const pauseOnPresence = {
+    onPointerEnter: () => setPaused(true),
+    onPointerLeave: () => setPaused(false),
+    onFocusCapture: () => setPaused(true),
+    onBlurCapture: (e: FocusEvent<HTMLElement>) => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node)) setPaused(false);
+    },
+  };
+  // `bg-card`, not `bg-surface` (2026-09-20): the shell has to be opaque
+  // so a fade never flashes the page, and it also has to be a *ground* —
+  // on Classic's hero `bg-surface` computed the same colour as the
+  // section behind it, which is the "card without a ground" the audit
+  // fails, and `bg-card` is what carries the card gradient that rule
+  // expects. Under dark the two were always distinct; in light they were
+  // both white until this.
+  const frameClass = cn("slider-frame group relative min-w-0 overflow-hidden rounded-xl border border-line-strong bg-card", below && "min-h-0 grow", className);
+
+  const frameBody = (
+    <>
       {isNative ? (
         <div
           ref={track}
@@ -272,6 +287,7 @@ export function Slider({
               role="group"
               aria-roledescription="slide"
               aria-label={`${i + 1} of ${slides.length}`}
+              data-slider-stage
               className={cn("relative w-full shrink-0 snap-start", aspect)}
             >
               <SlideMedia
@@ -282,6 +298,9 @@ export function Slider({
                 priority={priority && i === 0}
                 painted={Boolean(painted[i])}
                 onPaint={() => markPainted(i)}
+                effect={slider.media_effect}
+                active={i === index || i === leaving}
+                delayMs={slideDelay(slide, slider)}
               />
               {/*
                 Re-keyed on becoming current, so the entrance replays each
@@ -309,6 +328,7 @@ export function Slider({
           fade over white reads as a flash.
         */
         <div
+          data-slider-stage
           className={cn("relative w-full bg-dark", aspect)}
           style={{ "--slider-transition-ms": `${TRANSITION_MS}ms` } as CSSProperties}
         >
@@ -338,6 +358,10 @@ export function Slider({
                 placeholder={role === "current" && outgoing === null}
                 painted={Boolean(painted[i])}
                 onPaint={() => markPainted(i)}
+                effect={slider.media_effect}
+                // The outgoing slide keeps zooming under the one fading in; only a neighbour is at rest.
+                active={role !== "neighbour"}
+                delayMs={slideDelay(slides[i], slider)}
               />
               {/*
                 The words animate only while the slide is current; a class
@@ -359,27 +383,48 @@ export function Slider({
             <Chevron />
           </button>
 
-          <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
-            {slides.map((slide, i) => (
-              <button
-                key={slide.id}
-                type="button"
-                onClick={() => goTo(i)}
-                aria-label={`Go to slide ${i + 1}`}
-                aria-current={i === index}
-                // 24px of hit area around a 7px dot: the dot is the affordance,
-                // the padding is the target.
-                className="grid size-6 place-items-center"
-              >
+          {navigation !== "none" && navigation !== "thumbnails" && (
+            <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
+              {slides.map((slide, i) => (
+                <button
+                  key={slide.id}
+                  type="button"
+                  onClick={() => goTo(i)}
+                  aria-label={`Go to slide ${i + 1}`}
+                  aria-current={i === index}
+                  // 24px of hit area around a 7px dot: the dot is the affordance,
+                  // the padding is the target.
+                  className="grid size-6 place-items-center"
+                >
+                  <span
+                    className={cn(
+                      "block size-[7px] rounded-full transition-colors",
+                      i === index ? "bg-card" : "bg-card/45",
+                    )}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/*
+            The progress line: the fill's `scale` runs over this slide's own
+            delay. It is mounted only while the autoplay clock is running, so a
+            pause (hover, focus, hidden tab, the button) removes it and the
+            resume restarts it — the same restart `useAutoplay` makes of its
+            timer, so the line and the clock cannot disagree. Re-keyed per slide.
+          */}
+          {navigation === "progress" && slider.autoplay && motionOk && (
+            <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-card/40">
+              {autoplay && (
                 <span
-                  className={cn(
-                    "block size-[7px] rounded-full transition-colors",
-                    i === index ? "bg-card" : "bg-card/45",
-                  )}
+                  key={index}
+                  className="slide-progress-fill absolute inset-0 bg-brand-500"
+                  style={{ "--slide-progress-ms": `${slideDelay(slides[index], slider)}ms` } as CSSProperties}
                 />
-              </button>
-            ))}
-          </div>
+              )}
+            </div>
+          )}
 
           {slider.autoplay && (
             <PlayPause playing={wantsPlay} onToggle={() => setOverride(!wantsPlay)} />
@@ -392,6 +437,19 @@ export function Slider({
           </p>
         </>
       )}
+    </>
+  );
+
+  return below ? (
+    // The carousel is the outer box, so the callers' height still lands on the
+    // frame inside it; `h-full` only matters where a parent gives it a height.
+    <section aria-roledescription="carousel" aria-label={slider.name} className="flex h-full min-w-0 flex-col gap-2" {...pauseOnPresence}>
+      <div className={frameClass} {...sliderFrameAttrs(slider)}>{frameBody}</div>
+      <SlideThumbs slides={slides} index={index} onGo={goTo} smooth={motionOk} />
+    </section>
+  ) : (
+    <section aria-roledescription="carousel" aria-label={slider.name} className={frameClass} {...sliderFrameAttrs(slider)} {...pauseOnPresence}>
+      {frameBody}
     </section>
   );
 }

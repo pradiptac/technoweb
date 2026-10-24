@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { IconArrowRight } from "@/components/icons-ui";
+import { ButtonLink } from "@/components/ui/button";
 import type { Slider as SliderData, Slide } from "@/types/api";
 
 /**
@@ -40,15 +41,41 @@ const ANCHOR: Record<string, string> = {
 };
 
 const SCRIM: Record<string, string> = {
-  "top-left": "bg-linear-to-br from-scrim to-transparent",
-  "top-centre": "bg-linear-to-b from-scrim to-transparent",
-  "top-right": "bg-linear-to-bl from-scrim to-transparent",
+  "top-left": "bg-linear-to-br",
+  "top-centre": "bg-linear-to-b",
+  "top-right": "bg-linear-to-bl",
   "middle-left": "",
   "middle-centre": "",
   "middle-right": "",
-  "bottom-left": "bg-linear-to-tr from-scrim to-transparent",
-  "bottom-centre": "bg-linear-to-t from-scrim to-transparent",
-  "bottom-right": "bg-linear-to-tl from-scrim to-transparent",
+  "bottom-left": "bg-linear-to-tr",
+  "bottom-centre": "bg-linear-to-t",
+  "bottom-right": "bg-linear-to-tl",
+};
+
+/*
+  Text colour and shade strength (0.191.0). `light` words stand on the dark
+  scrim, `dark` words on `--color-scrim-light` — both opaque at the edge, so the
+  audit still sees the ground. Strength moves where the opaque stop *ends*,
+  never its alpha: `soft` finishes fading sooner, `strong` holds the opaque
+  colour a third of the way in. `standard` is exactly the old look. Literal
+  class names throughout, or Tailwind never emits them.
+*/
+const TONE = {
+  light: {
+    from: "from-scrim", via: "via-scrim", panel: "bg-scrim",
+    heading: "text-white", body: "text-[rgba(255,255,255,.85)]", kicker: "text-[rgba(255,255,255,.85)]",
+    primary: "bg-card text-ink hover:bg-brand-50", second: "onDarkOutline" as const, secondClass: "text-white border-[rgba(255,255,255,.55)] hover:border-white",
+  },
+  dark: {
+    from: "from-scrim-light", via: "via-scrim-light", panel: "bg-scrim-light",
+    heading: "text-scrim-light-ink", body: "text-scrim-light-ink", kicker: "text-scrim-light-ink",
+    primary: "bg-scrim-light-ink text-scrim-light hover:opacity-90", second: "secondary" as const, secondClass: "",
+  },
+};
+const SHADE: Record<string, { fade: string; pad: string }> = {
+  soft: { fade: "to-70%", pad: "p-3 sm:p-4" },
+  standard: { fade: "", pad: "p-4 sm:p-6" },
+  strong: { fade: "via-35%", pad: "p-5 sm:p-8" },
 };
 
 const CAPTION_ANIMATIONS = new Set(["none", "fade", "rise", "slide", "zoom"]);
@@ -69,7 +96,21 @@ function anim(animation: string, i: number): { className?: string; style?: CSSPr
 }
 
 export function SlideCaption({ slide, animation = "none" }: { slide: Slide; animation?: string }) {
-  if (!slide.heading && !slide.caption && !slide.link_url) return null;
+  if (!slide.heading && !slide.caption && !slide.link_url && !slide.kicker) return null;
+
+  // An unknown value falls back to the old look, the rule the position follows.
+  const tone = slide.text_tone === "dark" ? TONE.dark : TONE.light;
+  const overlay = slide.overlay === "soft" || slide.overlay === "strong" ? slide.overlay : "standard";
+  const shade = SHADE[overlay]!;
+  const hasSecond = Boolean(slide.link2_url && slide.link2_label);
+  // The stagger counts the lines actually drawn, so a missing kicker leaves no gap in it.
+  let step = 0;
+  const a = {
+    kicker: slide.kicker ? anim(animation, step++) : {},
+    heading: slide.heading ? anim(animation, step++) : {},
+    caption: slide.caption ? anim(animation, step++) : {},
+    buttons: slide.link_url ? anim(animation, step++) : {},
+  };
 
   // An unknown value falls back rather than rendering an unpositioned block —
   // a stored value outlives the rule that accepted it, the reason
@@ -105,6 +146,8 @@ export function SlideCaption({ slide, animation = "none" }: { slide: Slide; anim
         middle ? "px-12" : "px-4",
         ANCHOR[position],
         SCRIM[position],
+        // The edge stop is opaque; strength only moves where it ends.
+        SCRIM[position] && cn(tone.from, "to-transparent", overlay === "strong" && tone.via, shade.fade),
       )}
     >
       <div
@@ -124,13 +167,19 @@ export function SlideCaption({ slide, animation = "none" }: { slide: Slide; anim
           // The panel the middle row needs, and nothing at all for the rows
           // that fade from an edge — a panel there would sit inside its own
           // gradient and read as a box drawn on the picture for no reason.
-          middle && "rounded-lg bg-scrim p-4 sm:p-6",
+          // Strength widens the panel's padding only; it stays opaque.
+          middle && cn("rounded-lg", tone.panel, shade.pad),
         )}
       >
+        {slide.kicker && (
+          <p className={cn("mb-1.5 text-12 font-semibold uppercase tracking-[.12em]", tone.kicker, a.kicker.className)} style={a.kicker.style}>
+            {slide.kicker}
+          </p>
+        )}
         {slide.heading && (
           <p
-            className={cn("font-display text-[18px] font-semibold tracking-[-.02em] text-white sm:text-24", anim(animation, 0).className)}
-            style={anim(animation, 0).style}
+            className={cn("font-display text-[18px] font-semibold tracking-[-.02em] sm:text-24", tone.heading, a.heading.className)}
+            style={a.heading.style}
           >
             {slide.heading}
           </p>
@@ -150,20 +199,33 @@ export function SlideCaption({ slide, animation = "none" }: { slide: Slide; anim
         */}
         {slide.caption && (
           <p
-            className={cn("mt-1.5 line-clamp-4 text-13-5 leading-[1.5] text-[rgba(255,255,255,.85)] sm:line-clamp-none sm:text-15", anim(animation, 1).className)}
-            style={anim(animation, 1).style}
+            className={cn("mt-1.5 line-clamp-4 text-13-5 leading-[1.5] sm:line-clamp-none sm:text-15", tone.body, a.caption.className)}
+            style={a.caption.style}
           >
             {slide.caption}
           </p>
         )}
-        {slide.link_url && (
-          <Link
-            href={slide.link_url}
-            className={cn("mt-3 inline-flex items-center gap-1.5 rounded bg-card px-3 py-2 text-13 font-semibold text-ink hover:bg-brand-50", anim(animation, 2).className)}
-            style={anim(animation, 2).style}
-          >
-            {slide.link_label || "Read more"} <IconArrowRight className="size-3.5" />
-          </Link>
+        {(slide.link_url || hasSecond) && (
+          // Wraps below `sm`; the first stays the primary, the second is outlined to read on the shade.
+          <div className={cn("mt-3 flex flex-wrap items-center gap-2", a.buttons.className, position.endsWith("centre") && "justify-center", position.endsWith("right") && "justify-end")} style={a.buttons.style}>
+            {slide.link_url && (
+              <Link
+                href={slide.link_url}
+                className={cn("inline-flex items-center gap-1.5 rounded px-3 py-2 text-13 font-semibold", tone.primary)}
+              >
+                {slide.link_label || "Read more"} <IconArrowRight className="size-3.5" />
+              </Link>
+            )}
+            {hasSecond && (
+              <ButtonLink
+                href={slide.link2_url!}
+                variant={tone.second}
+                className={cn("rounded px-3 py-2 text-13", tone.secondClass)}
+              >
+                {slide.link2_label}
+              </ButtonLink>
+            )}
+          </div>
         )}
       </div>
     </div>

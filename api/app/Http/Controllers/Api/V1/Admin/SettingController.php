@@ -38,6 +38,7 @@ use App\Support\Messaging\Providers\GoogleRbm;
 use App\Support\Net\PublicHost;
 use App\Support\Search\Indexer;
 use App\Support\Search\SemanticSettings;
+use App\Support\SecretHint;
 use App\Support\Seo\GoogleServiceAccount;
 use App\Support\Store\CartReminders;
 use App\Support\Store\Fulfilment;
@@ -88,6 +89,10 @@ class SettingController extends Controller
                 // So the UI can say "configured" rather than showing a blank
                 // box that looks like nothing was ever saved.
                 'is_set' => filled($s->value),
+                // First 8 and last 2 characters of a long typed key, so the
+                // saved one can be recognised — see SecretHint for the exclusions.
+                // From the decrypted key: the column holds the ciphertext.
+                'hint' => $s->is_secret ? SecretHint::for($s->key, $s->plainValue()) : null,
                 // A resolved URL for the settings that hold a media path, so
                 // the picker can show a preview without the frontend having to
                 // know how storage paths map to URLs.

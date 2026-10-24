@@ -4,12 +4,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
-import type { SlideCaptionPositionOption, SlidePayload } from "@/lib/admin";
+import type { SliderMeta, SlidePayload, SliderTransitionOption } from "@/lib/admin";
 import type { Slide } from "@/types/api";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";
 
 /**
- * A slide row: what will be posted, plus the two URLs that never are.
+ * A slide row: what will be posted, plus the three URLs that never are.
  *
  * `CoverField` renders its preview from a URL and cannot derive one from a
  * stored path, so a row carrying only the path showed the empty "no image
@@ -17,13 +17,25 @@ import { ReorderButtons } from "@/components/admin/reorder-buttons";
  * placeholders on a slider with slides in it. The resource returns both;
  * keeping only the path is what threw the preview away. Stripped before the
  * row is serialised.
+ *
+ * `durationText` is what the "Show for" box holds, in seconds as typed: the
+ * API takes milliseconds, and converting on every keystroke would turn "3." into
+ * "3" under the cursor. It becomes `duration_ms` when the row is serialised.
  */
-type Row = SlidePayload & { key: string; mediaUrl: string | null; posterUrl: string | null };
+type Row = SlidePayload & {
+  key: string;
+  mediaUrl: string | null;
+  posterUrl: string | null;
+  mobileUrl: string | null;
+  durationText: string;
+};
 
 const BLANK: SlidePayload = {
   kind: "image", media_path: null, poster_path: null, youtube_url: null,
   alt_text: "", heading: "", caption: "", link_url: "", link_label: "",
   caption_position: "bottom-left",
+  kicker: "", link2_url: "", link2_label: "", mobile_media_path: null,
+  text_tone: "light", overlay: "standard", fit: "cover",
 };
 
 /**
@@ -41,6 +53,9 @@ const IMAGE_SIZE_HINT =
 const POSTER_SIZE_HINT =
   "Shown until a visitor presses play, at the same size as the video.";
 
+const MOBILE_HINT =
+  "Optional. Shown instead of the picture above on screens under 768px.";
+
 /**
  * The slides, edited as a list and submitted as one JSON field.
  *
@@ -54,12 +69,15 @@ const POSTER_SIZE_HINT =
  * again must not lose the image that was already chosen.
  */
 export function SlideRepeater({
-  slides, captionPositions = [],
+  slides, meta = {}, errors,
 }: {
   slides: Slide[];
-  /** From `meta.caption_positions` — never a list written out here. */
-  captionPositions?: SlideCaptionPositionOption[];
+  /** The API's option lists — never written out here. */
+  meta?: SliderMeta;
+  /** The save's 422, keyed `slides.N.field`; shown under the control it names. */
+  errors?: Record<string, string[]>;
 }) {
+  const { caption_positions: captionPositions = [], text_tones: tones = [], overlays = [], fits = [] } = meta;
   const [rows, setRows] = useState<Row[]>(() =>
     slides.map((s, i) => ({
       key: `s${s.id}-${i}`,
@@ -68,8 +86,10 @@ export function SlideRepeater({
       // and the preview needs the URL, so both are kept.
       media_path: pathOf(s.url),
       poster_path: pathOf(s.poster_url),
+      mobile_media_path: pathOf(s.mobile_url ?? null),
       mediaUrl: s.url,
       posterUrl: s.poster_url,
+      mobileUrl: s.mobile_url ?? null,
       youtube_url: s.youtube_id ?? null,
       alt_text: s.alt ?? "",
       heading: s.heading ?? "",
@@ -77,10 +97,17 @@ export function SlideRepeater({
       link_url: s.link_url ?? "",
       link_label: s.link_label ?? "",
       caption_position: s.caption_position ?? "bottom-left",
+      kicker: s.kicker ?? "",
+      link2_url: s.link2_url ?? "",
+      link2_label: s.link2_label ?? "",
+      text_tone: s.text_tone ?? "light",
+      overlay: s.overlay ?? "standard",
+      fit: s.fit ?? "cover",
+      durationText: s.duration_ms ? String(s.duration_ms / 1000) : "",
     })),
   );
 
-  const patch = (i: number, next: Partial<SlidePayload>) =>
+  const patch = (i: number, next: Partial<Row>) =>
     setRows((r) => r.map((row, n) => (n === i ? { ...row, ...next } : row)));
 
   const move = (i: number, by: number) =>
@@ -91,6 +118,10 @@ export function SlideRepeater({
       [copy[i], copy[to]] = [copy[to], copy[i]];
       return copy;
     });
+
+  const err = (i: number, field: string) => errors?.[`slides.${i}.${field}`]?.[0];
+  const blurb = (list: SliderTransitionOption[], value: string | null | undefined) =>
+    list.find((o) => o.value === value)?.blurb;
 
   return (
     <div>
@@ -193,21 +224,48 @@ export function SlideRepeater({
                     onPathChange={(path) => patch(i, { poster_path: path })}
                   />
                 )}
+                {/* Image slides only: a video or YouTube slide ignores it. A raster, because it is drawn through the image optimiser. */}
+                {row.kind === "image" && (
+                  <>
+                    <CoverField
+                      name={`mobile-${row.key}`}
+                      label="Phone picture"
+                      defaultPath={row.mobile_media_path ?? null}
+                      defaultUrl={row.mobileUrl}
+                      accept=".png,.jpg,.jpeg,.webp"
+                      hint={MOBILE_HINT}
+                      spec="slide-mobile"
+                      onPathChange={(path) => patch(i, { mobile_media_path: path })}
+                    />
+                    {err(i, "mobile_media_path") && (
+                      <p role="alert" className="-mt-3 mb-3 text-13 text-err">{err(i, "mobile_media_path")}</p>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <Field label="Kicker" htmlFor={`k-${row.key}`} error={err(i, "kicker")} hint="A short line above the heading.">
+                <Input id={`k-${row.key}`} maxLength={60} value={row.kicker ?? ""} onChange={(e) => patch(i, { kicker: e.target.value })} />
+              </Field>
               <Field label="Heading" htmlFor={`h-${row.key}`}>
                 <Input id={`h-${row.key}`} value={row.heading ?? ""} onChange={(e) => patch(i, { heading: e.target.value })} />
               </Field>
               <Field label="Caption" htmlFor={`c-${row.key}`}>
                 <Input id={`c-${row.key}`} value={row.caption ?? ""} onChange={(e) => patch(i, { caption: e.target.value })} />
               </Field>
-              <Field label="Link URL" htmlFor={`lu-${row.key}`}>
+              <Field label="Link URL" htmlFor={`lu-${row.key}`} error={err(i, "link_url")}>
                 <Input id={`lu-${row.key}`} value={row.link_url ?? ""} onChange={(e) => patch(i, { link_url: e.target.value })} placeholder="/solutions/networking" />
               </Field>
-              <Field label="Link label" htmlFor={`ll-${row.key}`}>
+              <Field label="Link label" htmlFor={`ll-${row.key}`} error={err(i, "link_label")}>
                 <Input id={`ll-${row.key}`} value={row.link_label ?? ""} onChange={(e) => patch(i, { link_label: e.target.value })} />
+              </Field>
+              <Field label="Second button URL" htmlFor={`lu2-${row.key}`} error={err(i, "link2_url")} hint="Drawn only when both the address and the label are set.">
+                <Input id={`lu2-${row.key}`} value={row.link2_url ?? ""} onChange={(e) => patch(i, { link2_url: e.target.value })} placeholder="/contact" />
+              </Field>
+              <Field label="Second button label" htmlFor={`ll2-${row.key}`} error={err(i, "link2_label")}>
+                <Input id={`ll2-${row.key}`} maxLength={60} value={row.link2_label ?? ""} onChange={(e) => patch(i, { link2_label: e.target.value })} />
               </Field>
               {captionPositions.length > 0 && (
                 /*
@@ -235,6 +293,45 @@ export function SlideRepeater({
                   </Select>
                 </Field>
               )}
+              {tones.length > 0 && (
+                <Field label="Text colour" htmlFor={`tt-${row.key}`} variant="float-static" error={err(i, "text_tone")} hint={blurb(tones, row.text_tone)}>
+                  <Select id={`tt-${row.key}`} value={row.text_tone ?? "light"} onChange={(e) => patch(i, { text_tone: e.target.value })}>
+                    {tones.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
+              {overlays.length > 0 && (
+                <Field label="Shade behind the words" htmlFor={`ov-${row.key}`} variant="float-static" error={err(i, "overlay")} hint={blurb(overlays, row.overlay)}>
+                  <Select id={`ov-${row.key}`} value={row.overlay ?? "standard"} onChange={(e) => patch(i, { overlay: e.target.value })}>
+                    {overlays.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
+              {fits.length > 0 && row.kind !== "youtube" && (
+                <Field label="Picture fit" htmlFor={`fit-${row.key}`} variant="float-static" error={err(i, "fit")} hint={blurb(fits, row.fit)}>
+                  <Select id={`fit-${row.key}`} value={row.fit ?? "cover"} onChange={(e) => patch(i, { fit: e.target.value })}>
+                    {fits.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
+              <Field
+                label="Show for (seconds)"
+                htmlFor={`d-${row.key}`}
+                error={err(i, "duration_ms")}
+                hint="Between 2 and 60. Blank uses the slider's own time."
+              >
+                <Input
+                  id={`d-${row.key}`} type="number" min={2} max={60} step={0.5}
+                  value={row.durationText}
+                  onChange={(e) => patch(i, { durationText: e.target.value })}
+                />
+              </Field>
             </div>
           </li>
         ))}
@@ -247,7 +344,7 @@ export function SlideRepeater({
         className="mt-4"
         onClick={() => setRows((r) => [
       ...r,
-      { ...BLANK, key: `new-${r.length}-${r.length + 1}`, mediaUrl: null, posterUrl: null },
+      { ...BLANK, key: `new-${r.length}-${r.length + 1}`, mediaUrl: null, posterUrl: null, mobileUrl: null, durationText: "" },
     ])}
       >
         Add slide
@@ -257,29 +354,36 @@ export function SlideRepeater({
 }
 
 /**
+ * The row without the fields that are the client's business only.
+ *
+ * `key` is React's; the three URLs are the previews'. The API takes paths, and
+ * posting a URL beside one would be a second answer to where the file is.
+ * `durationText` becomes milliseconds here; blank is null, which the API reads
+ * as "the slider's own interval".
+ */
+function stripKey({ key, mediaUrl, posterUrl, mobileUrl, durationText, ...slide }: Row): SlidePayload {
+  void key;
+  void mediaUrl;
+  void posterUrl;
+  void mobileUrl;
+  const seconds = durationText.trim() === "" ? null : Number(durationText);
+  return { ...slide, duration_ms: seconds === null || Number.isNaN(seconds) ? null : Math.round(seconds * 1000) };
+}
+
+/**
  * The stored path from a resolved URL.
  *
  * The public resource hands back `…/storage/media/2026/08/x.jpg` and the form
  * has to submit `media/2026/08/x.jpg`. Splitting on the storage segment rather
  * than stripping a known origin keeps this working when the API host differs
- * between environments, which it does.
+ * between environments, which it does. The `?v=` an edited file's address
+ * carries is dropped: a stored path with a query string is a filename that
+ * does not exist.
  */
-/**
- * The row without the fields that are the client's business only.
- *
- * `key` is React's; the two URLs are the preview's. The API takes paths, and
- * posting a URL beside one would be a second answer to where the file is.
- */
-function stripKey({ key, mediaUrl, posterUrl, ...slide }: Row): SlidePayload {
-  void key;
-  void mediaUrl;
-  void posterUrl;
-  return slide;
-}
-
 function pathOf(url: string | null): string | null {
   if (!url) return null;
   const marker = "/storage/";
   const at = url.indexOf(marker);
-  return at === -1 ? url : url.slice(at + marker.length);
+  const path = at === -1 ? url : url.slice(at + marker.length);
+  return path.split("?")[0];
 }

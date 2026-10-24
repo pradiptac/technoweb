@@ -5,7 +5,8 @@ import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
 import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
-import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
+import { sliderFrameAttrs } from "@/lib/slider-frame";
+import { slideDelay, useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
 import { Slider } from "@/components/ui/slider";
 import { Chevron, PlayPause } from "@/components/ui/slider-controls";
@@ -224,7 +225,7 @@ export function RippleSlider({
   const wantsPlay = override ?? slider.autoplay;
   const autoplay = wantsPlay && motionOk && !paused && !hidden && count > 1;
   const advance = useCallback(() => { void goTo(index + 1); }, [goTo, index]);
-  useAutoplay(autoplay, slider.interval_ms, advance);
+  useAutoplay(autoplay, slideDelay(slides[index], slider), advance, index);
 
   if (count === 0) return null;
   if (count < 2) return <Slider slider={slider} className={className} aspect={aspect} priority={priority} sizes={sizes} />;
@@ -237,7 +238,8 @@ export function RippleSlider({
     <section
       aria-roledescription="carousel"
       aria-label={slider.name}
-      className={cn("group relative w-full min-w-0 overflow-clip rounded-xl bg-scrim", aspect, className)}
+      {...sliderFrameAttrs(slider)}
+      className={cn("slider-frame group relative w-full min-w-0 overflow-clip rounded-xl bg-scrim", aspect, className)}
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}

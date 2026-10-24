@@ -34,7 +34,7 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
       the padding halves, which is the difference; the stacked hero below
       `lg` is taller than any phone and is not asked to fit.
     */
-    <section className="relative overflow-hidden bg-linear-to-b from-brand-50 to-transparent to-62% pt-12 pb-[72px] max-[479px]:pt-12 lg:pt-20 lg:pb-24 lg:[@media(max-height:820px)]:pt-10 lg:[@media(max-height:820px)]:pb-12">
+    <section className="relative overflow-hidden bg-linear-to-b from-brand-50 to-transparent to-62% pt-8 pb-[72px] lg:pt-12 lg:pb-24 lg:[@media(max-height:820px)]:pt-10 lg:[@media(max-height:820px)]:pb-12">
       {/* The backdrop the motion setting chose — by default the faint
           blueprint grid, faded out toward the bottom, that was always here. */}
       <Backdrop

@@ -46,7 +46,7 @@ through getting both. Do these in this order:
    nothing: each is used only once it is switched on, and each keeps to its
    own daily ceiling.
 3. On the same tab, choose **Model for the website assistant** and save.
-   *Gemini 2.5 Flash (Google)* is the default and works with a free Google
+   *Gemini 3.5 Flash (Google)* is the default and works with a free Google
    key.
 4. Still on that tab, pick the same model under **Model to test** and press
    **Test this model**. Go on only when it says **The model answered**. If
@@ -65,7 +65,7 @@ proves the whole chain works.
 
 ### If you use a free Google key
 
-A Google AI Studio key costs nothing, and it is what *Gemini 2.5 Flash* runs
+A Google AI Studio key costs nothing, and it is what *Gemini 3.5 Flash* runs
 on by default. Two things come with "free", and you should know both before
 you switch the assistant on:
 

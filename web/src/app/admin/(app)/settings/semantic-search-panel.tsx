@@ -40,8 +40,8 @@ export function SemanticSearchPanel() {
   return (
     <div className="mb-6 mt-2 border-y border-line py-4 sm:col-span-2">
       {status?.error && <Alert tone="err" title="OpenRouter refused the last request" dismissible={false}><span className="[overflow-wrap:anywhere]">{status.error}</span></Alert>}
-      {result.error && <Alert tone="err" title="That did not work">{result.error}</Alert>}
-      {result.ok && !result.error && <Alert tone="ok" title="Done">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="That did not work">{result.error}</Alert>}
+      {result.ok && !result.error && <Alert tone="ok" nonce={result} title="Done">{result.ok}</Alert>}
 
       {status ? (
         <ul className="mb-3 space-y-1 text-13 text-ink-2">

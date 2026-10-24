@@ -69,7 +69,7 @@ anything in this codebase had asked for before.
 model the key can call.** `OpenRouterProvider` replaced `OpenAiProvider`
 behind the same interface (the key was `openai_api_key`; an upgrade step
 deletes it rather than copying it, because an OpenAI key is refused there).
-The ids in `AiModel` are OpenRouter's — `google/gemini-2.5-flash` is the
+The ids in `AiModel` are OpenRouter's — `google/gemini-3.5-flash` is the
 default — and each is routed to its maker on the client's *own* key for that
 maker, saved in their OpenRouter account. Nothing here can read which keys
 that account holds, so "Test this model" on Settings → API keys

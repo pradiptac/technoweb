@@ -20,8 +20,8 @@ export function HunterTest({ configured }: { configured: boolean }) {
 
   return (
     <div className="mt-2 border-t border-line pt-4 sm:col-span-2">
-      {result.error && <Alert tone="err" title="Hunter refused the key">{result.error}</Alert>}
-      {result.ok && !result.error && <Alert tone="ok" title="The key works">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="Hunter refused the key">{result.error}</Alert>}
+      {result.ok && !result.error && <Alert tone="ok" nonce={result} title="The key works">{result.ok}</Alert>}
 
       <div className="flex flex-wrap items-center gap-3">
         <Button

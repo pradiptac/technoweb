@@ -35,6 +35,12 @@ function payload(formData: FormData) {
     layout: String(formData.get("layout") ?? "full"),
     transition: String(formData.get("transition") ?? "slide"),
     caption_animation: String(formData.get("caption_animation") ?? "none"),
+    media_effect: String(formData.get("media_effect") ?? "none"),
+    navigation: String(formData.get("navigation") ?? "dots"),
+    height: String(formData.get("height") ?? "theme"),
+    // Only drawn (and only required) for a fixed height; the API stores null otherwise.
+    height_mobile: String(formData.get("height_mobile") ?? "") || null,
+    height_desktop: String(formData.get("height_desktop") ?? "") || null,
     autoplay: formData.get("autoplay") === "1",
     interval_ms: Number(formData.get("interval_ms")) || 6000,
     slides: readSlides(formData),

@@ -255,7 +255,7 @@ settles both:
   `seo_ai_model` holding a bare OpenAI id — `gpt-4o-mini` — get their maker in
   front, `openai/gpt-4o-mini`, which is OpenRouter's name for the same model;
   sent bare it is refused there as no model at all. A blank stays blank (it
-  means "the default", now `google/gemini-2.5-flash`), and a value already
+  means "the default", now `google/gemini-3.5-flash`), and a value already
   naming a maker, or one that does not look like OpenAI's, is left exactly as
   it is. `AI_MODEL` in `config/api.env` is a file no step may edit, so it is
   read through the same rename (`AiModel::qualify()`) on every request.

@@ -1161,6 +1161,18 @@ const sliders = [
   },
 ];
 
+/* The 0.191.0 slider fields, at the API's defaults (the mock has no admin slider
+   endpoint, so there is no meta to carry): a fixture without them would let a
+   renderer that assumed the keys exist pass CI. */
+for (const sl of sliders) {
+  Object.assign(sl, { media_effect: 'none', navigation: 'dots', height: 'theme', height_mobile: null, height_desktop: null, ...sl });
+  sl.slides = sl.slides.map((s) => ({
+    kicker: null, link2_url: null, link2_label: null,
+    mobile_url: null, mobile_alt: null, mobile_focus: null, mobile_blur: null,
+    text_tone: 'light', overlay: 'standard', duration_ms: null, fit: 'cover', ...s,
+  }));
+}
+
 /* The lead pipeline. Two rows so the queue shows a scored lead and a
    backfilled one that was never scored — the console renders those
    differently, and a fixture with only the first hides that. */
@@ -2557,7 +2569,7 @@ const answerContent = (blocks, faqs, entity) => ({
    (`SeoAiAction::options()`), labels and blurbs included, because the
    console draws only what this list carries. */
 const SEO_AI_META = {
-  enabled: true, configured: true, model: 'google/gemini-2.5-flash',
+  enabled: true, configured: true, model: 'google/gemini-3.5-flash',
   /* OpenRouter ids — every AI feature goes through OpenRouter, so a model is
      named `<provider>/<model>`. The same seven the API offers as `options`
      on `chatbot_model` and `seo_ai_model`. */
@@ -2569,9 +2581,9 @@ const SEO_AI_META = {
     { value: 'anthropic/claude-haiku-5.5', label: 'Claude Haiku 5.5 (Anthropic)', description: 'Anthropic’s quickest and cheapest.' },
     { value: 'anthropic/claude-sonnet-5.5', label: 'Claude Sonnet 5.5 (Anthropic)', description: 'Anthropic’s all-rounder.' },
     { value: 'anthropic/claude-opus-5.5', label: 'Claude Opus 5.5 (Anthropic)', description: 'Anthropic’s strongest.' },
-    { value: 'google/gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (Google)', description: 'Google\'s cheapest and quickest.' },
-    { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash (Google)', description: 'Quick and capable. The default.' },
-    { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro (Google)', description: 'The strongest Google model offered here.' },
+    { value: 'google/gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite (Google)', description: 'Google\'s cheapest and quickest.' },
+    { value: 'google/gemini-3.5-flash', label: 'Gemini 3.5 Flash (Google)', description: 'Quick and capable. The default.' },
+    { value: 'google/gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro preview (Google)', description: 'The strongest Google model offered here, as a preview.' },
     { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B — free (Google)', description: 'Free on OpenRouter, with tight per-minute and per-day limits; free providers may keep prompts for training.' },
     { value: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B — free (Google)', description: 'Free on OpenRouter, with tight per-minute and per-day limits; free providers may keep prompts for training.' },
   ],
@@ -5527,7 +5539,7 @@ createServer(async (req, res) => {
           /* Each average carries its own biggest wins, ranked the way `top_issues` is, opened through `?aeo_check=` / `?geo_check=`. */
           aeo: { value: 62, band: 'fair', top_issues: topIssues(AEO_SCORES), groups: { answer: 'Answers', structure: 'Structure', links: 'Links' } },
           geo: { value: 48, band: 'poor', top_issues: topIssues(GEO_SCORES), groups: { entity: 'Entity', authority: 'Authority', content: 'Content' } } },
-        ai: { enabled: false, configured: false, model: 'google/gemini-2.5-flash', models: [], actions: [], today: { runs: 0, cap: 100, remaining: 100, reached: false } },
+        ai: { enabled: false, configured: false, model: 'google/gemini-3.5-flash', models: [], actions: [], today: { runs: 0, cap: 100, remaining: 100, reached: false } },
         search: { configured: false, days: 28, error: null },
         analytics: { configured: true, source: 'native', days: 28, error: null },
         types: [{ value: 'solution', label: 'Solutions' }],

@@ -22,8 +22,8 @@ export function GscTest({ configured, lastError }: { configured: boolean; lastEr
       {lastError && !result.ok && !result.error && (
         <Alert tone="warn" title="Search Console refused the last read" dismissible={false}>{lastError}</Alert>
       )}
-      {result.error && <Alert tone="err" title="Google refused the account">{result.error}</Alert>}
-      {result.ok && !result.error && <Alert tone="ok" title="The account works">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="Google refused the account">{result.error}</Alert>}
+      {result.ok && !result.error && <Alert tone="ok" nonce={result} title="The account works">{result.ok}</Alert>}
 
       <div className="flex flex-wrap items-center gap-3">
         <Button

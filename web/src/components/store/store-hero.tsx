@@ -6,9 +6,10 @@ import { focalStyle } from "@/lib/focal";
 import { blurProps } from "@/lib/blur";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { useAutoplay, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
+import { slideDelay, useAutoplay, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import { Slider } from "@/components/ui/slider";
 import { IconArrowRight } from "@/components/icons-ui";
+import { sliderFrameAttrs } from "@/lib/slider-frame";
 import type { Slider as SliderRecord } from "@/types/api";
 
 /**
@@ -54,7 +55,7 @@ export function StoreHero({ slider }: { slider: SliderRecord }) {
 
   const autoplay = slider.autoplay && motionOk && !taken && count > 1;
   const advance = useCallback(() => setIndex((i) => (i + 1) % count), [count]);
-  useAutoplay(autoplay, slider.interval_ms, advance);
+  useAutoplay(autoplay, slideDelay(slides[index], slider), advance, index);
 
   if (count === 0) return null;
   if (slides.some((s) => s.kind !== "image")) {
@@ -85,17 +86,27 @@ export function StoreHero({ slider }: { slider: SliderRecord }) {
             re-pointing one element at new text would not replay it.
           */}
           <div key={index} className="motion-safe:animate-[gallery-fade_.4s_ease-out]">
+            {slide.kicker && (
+              <p className="mb-3 text-12 font-semibold uppercase tracking-[.12em] text-brand-ink">{slide.kicker}</p>
+            )}
             {slide.heading && (
               <h2 className="display-2 text-balance">{slide.heading}</h2>
             )}
             {slide.caption && (
               <p className="lede measure mt-4">{slide.caption}</p>
             )}
-            {slide.link_url && slide.link_label && (
-              <ButtonLink href={slide.link_url} className="mt-6 rounded-full">
-                {slide.link_label}
-                <IconArrowRight className="size-4" />
-              </ButtonLink>
+            {((slide.link_url && slide.link_label) || (slide.link2_url && slide.link2_label)) && (
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                {slide.link_url && slide.link_label && (
+                  <ButtonLink href={slide.link_url} className="rounded-full">
+                    {slide.link_label}
+                    <IconArrowRight className="size-4" />
+                  </ButtonLink>
+                )}
+                {slide.link2_url && slide.link2_label && (
+                  <ButtonLink href={slide.link2_url} variant="secondary" className="rounded-full">{slide.link2_label}</ButtonLink>
+                )}
+              </div>
             )}
 
             {count > 1 && (
@@ -133,7 +144,7 @@ export function StoreHero({ slider }: { slider: SliderRecord }) {
               change the height of the hero between slides — which would move
               everything below it as the carousel ran.
             */}
-            <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-surface shadow-2 sm:aspect-[16/10]">
+            <div {...sliderFrameAttrs(slider)} className="slider-frame relative aspect-[4/3] overflow-hidden rounded-xl bg-surface shadow-2 sm:aspect-[16/10]">
               {/*
                 Every slide is mounted and stacked; only the current one is
                 opaque. Rendering just the active slide and keying it on its id

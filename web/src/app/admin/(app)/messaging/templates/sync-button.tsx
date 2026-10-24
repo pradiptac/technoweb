@@ -19,8 +19,8 @@ export function SyncButton({ channel, label }: { channel: string; label: string 
         onClick={() => start(async () => setResult(await syncMessageTemplatesAction(channel)))}>
         {busy ? "Syncing…" : `Sync ${label} approvals`}
       </Button>
-      {result.error && <Alert tone="err" title="Sync did not work">{result.error}</Alert>}
-      {result.ok && <Alert tone="ok" title="Synced">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="Sync did not work">{result.error}</Alert>}
+      {result.ok && <Alert tone="ok" nonce={result} title="Synced">{result.ok}</Alert>}
     </>
   );
 }

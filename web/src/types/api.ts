@@ -2855,6 +2855,24 @@ export type Slide = {
    * copy of it here would be drift nothing type-checks across the wire.
    */
   caption_position?: string | null;
+  /** `cover` (fill and crop) or `contain` (the whole picture over a blurred copy). The API's list. */
+  fit?: string | null;
+  /** How long this slide stays, in ms (2000–60000); null means the slider's `interval_ms`. */
+  duration_ms?: number | null;
+  /** A short line above the heading. */
+  kicker?: string | null;
+  /** A second button; drawn only when both its address and its label are set. */
+  link2_url?: string | null;
+  link2_label?: string | null;
+  /** `light` words (the default) or `dark` words on a light shade. The API's list. */
+  text_tone?: string | null;
+  /** How far the opaque shade reaches: `soft`, `standard` (the default) or `strong`. The API's list. */
+  overlay?: string | null;
+  /** A portrait crop shown below 768px, with its own alt text, focal point and blur preview. */
+  mobile_url?: string | null;
+  mobile_alt?: string | null;
+  mobile_focus?: string | null;
+  mobile_blur?: string | null;
 };
 
 /**
@@ -2971,6 +2989,14 @@ export type Slider = {
   interval_ms: number;
   slides?: Slide[];
   slides_count?: number;
+  /** `theme` (the caller's aspect), `screen` or `fixed`; the fixed steps are `short`/`medium`/`tall`, null otherwise. */
+  height?: string | null;
+  height_mobile?: string | null;
+  height_desktop?: string | null;
+  /** The slow zoom on image slides: `none`, `zoom_in`, `zoom_out` or `drift`. The API's list. */
+  media_effect?: string | null;
+  /** `dots` (the default), `progress` (dots and a progress line), `thumbnails` or `none`. The API's list; `full` layout only. */
+  navigation?: string | null;
   /**
    * Admin only. True for a slider a page reads by slug (`homepage-hero`,
    * `store-hero`); `reserved_for` says which, in the API's words, so the

@@ -354,9 +354,9 @@ dropdown shows them:
 
 | Id | |
 |---|---|
-| `google/gemini-2.5-flash` | `AiModel::DEFAULT` — what a blank `seo_ai_model`, a blank `chatbot_model` and an unset `AI_MODEL` all resolve to |
-| `google/gemini-2.5-flash-lite` | the lightest, and the gentlest on a free key's limits |
-| `google/gemini-2.5-pro` | thinks before it answers; for content work and page drafts |
+| `google/gemini-3.5-flash` | `AiModel::DEFAULT` — what a blank `seo_ai_model`, a blank `chatbot_model` and an unset `AI_MODEL` all resolve to |
+| `google/gemini-3.5-flash-lite` | the lightest, and the gentlest on a free key's limits |
+| `google/gemini-3.1-pro-preview` | thinks before it answers; for content work and page drafts |
 | `google/gemma-4-31b-it:free` | 0.165.0. Free at OpenRouter — see "Free models" below |
 | `google/gemma-4-26b-a4b-it:free` | the same, the lighter one |
 | `openai/gpt-4o-mini` | |

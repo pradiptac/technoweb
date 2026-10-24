@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Log;
  * The website assistant and its intake judge, the SEO assistant, alt text,
  * article drafts and page drafts all resolve `AiProvider` from the container
  * and all arrive here. OpenRouter speaks the OpenAI wire format and routes a
- * request to whichever maker the model id names (`google/gemini-2.5-flash`,
+ * request to whichever maker the model id names (`google/gemini-3.5-flash`,
  * `openai/gpt-4o-mini`), so this is one key, one endpoint and one bill
  * to read — and the client keeps their own OpenAI and Google AI Studio keys
  * *at OpenRouter* (bring your own key), not here. See `App\Enums\AiModel`.

@@ -53,7 +53,7 @@ export function Home({
 
   const hero = (
     <section className="bg-brand-900 text-white">
-      <Container className="grid items-center gap-10 pt-12 pb-12 lg:grid-cols-[1.15fr_1fr] lg:gap-16 lg:pt-16 lg:pb-14 [&>*]:min-w-0">
+      <Container className="grid items-center gap-10 pt-8 pb-12 lg:grid-cols-[1.15fr_1fr] lg:gap-16 lg:pt-12 lg:pb-14 [&>*]:min-w-0">
         <div>
           <span className="text-12 font-semibold uppercase tracking-[.14em] text-brand-200">{kicker}</span>
           <HeroTitle className="display-1 mt-4 text-balance">{heading}</HeroTitle>

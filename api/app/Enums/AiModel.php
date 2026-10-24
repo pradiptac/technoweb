@@ -80,9 +80,9 @@ enum AiModel: string
     // Google's first, and the default first of all: the order is the order
     // of the console's dropdown, and the first option is what a select shows
     // when nothing is chosen.
-    case Gemini25Flash = 'google/gemini-2.5-flash';
-    case Gemini25FlashLite = 'google/gemini-2.5-flash-lite';
-    case Gemini25Pro = 'google/gemini-2.5-pro';
+    case Gemini35Flash = 'google/gemini-3.5-flash';
+    case Gemini35FlashLite = 'google/gemini-3.5-flash-lite';
+    case Gemini31ProPreview = 'google/gemini-3.1-pro-preview';
     case Gemma431BFree = 'google/gemma-4-31b-it:free';
     case Gemma426BFree = 'google/gemma-4-26b-a4b-it:free';
     case Gpt4oMini = 'openai/gpt-4o-mini';
@@ -102,14 +102,14 @@ enum AiModel: string
      * a default that fails on the first press. A choice already *stored* is
      * never moved to this: only a blank resolves here.
      */
-    public const DEFAULT = 'google/gemini-2.5-flash';
+    public const DEFAULT = 'google/gemini-3.5-flash';
 
     public function label(): string
     {
         return match ($this) {
-            self::Gemini25Flash => 'Gemini 2.5 Flash (Google)',
-            self::Gemini25FlashLite => 'Gemini 2.5 Flash-Lite (Google)',
-            self::Gemini25Pro => 'Gemini 2.5 Pro (Google)',
+            self::Gemini35Flash => 'Gemini 3.5 Flash (Google)',
+            self::Gemini35FlashLite => 'Gemini 3.5 Flash-Lite (Google)',
+            self::Gemini31ProPreview => 'Gemini 3.1 Pro preview (Google)',
             self::Gemma431BFree => 'Gemma 4 31B — free (Google)',
             self::Gemma426BFree => 'Gemma 4 26B — free (Google)',
             self::Gpt4oMini => 'GPT-4o mini (OpenAI)',
@@ -133,9 +133,9 @@ enum AiModel: string
     public function description(): string
     {
         return match ($this) {
-            self::Gemini25Flash => 'The default. Google’s all-rounder: follows a brief well and handles long pages. Works with a free Google AI Studio key added at OpenRouter, within that key’s limits.',
-            self::Gemini25FlashLite => 'Google’s lightest and quickest. Fine for titles, descriptions, keywords and alt text, and the gentlest on a free key’s limits.',
-            self::Gemini25Pro => 'Google’s strongest and slowest: it thinks before it answers, and the thinking counts as usage. For content work and page drafts, not for the website assistant.',
+            self::Gemini35Flash => 'The default. Google’s all-rounder: follows a brief well and handles long pages. A Google AI Studio key added at OpenRouter is enough, within that key’s limits.',
+            self::Gemini35FlashLite => 'Google’s lightest and quickest. Fine for titles, descriptions, keywords and alt text, and the gentlest on a key’s limits. A Google AI Studio key added at OpenRouter is enough.',
+            self::Gemini31ProPreview => 'Google’s strongest, and only offered as a preview, so it can change or go. It thinks before it answers, and the thinking counts as usage. For content work and page drafts, not for the website assistant. A Google AI Studio key added at OpenRouter is enough.',
             self::Gemma431BFree => 'Google’s larger open Gemma model, free on OpenRouter. Tight per-minute and per-day limits; a bulk run will hit them. Free providers may keep prompts for training, so leave customer details out. Models can disappear: press Test this model.',
             self::Gemma426BFree => 'Google’s lighter Gemma model, free on OpenRouter and quicker than the 31B. Tight per-minute and per-day limits; a bulk run will hit them. Free providers may keep prompts for training, so leave customer details out. Models can disappear: press Test this model.',
             self::Gpt4oMini => 'OpenAI’s cheapest and quickest. Needs an OpenAI key, or credit, in the OpenRouter account.',
@@ -159,7 +159,7 @@ enum AiModel: string
      * provider gives these models headroom above the caller's cap for that
      * reason (`OpenRouterProvider::allowance()`).
      *
-     * Gemini 2.5 Pro always thinks; 2.5 Flash thinks when it judges the
+     * Gemini 3.1 Pro always thinks; 3.5 Flash thinks when it judges the
      * question needs it. Flash-Lite does not unless asked, and nothing here
      * asks. Headroom on a model that turns out not to need it costs nothing —
      * a cap is a ceiling, and a reply ends where the answer ends.
@@ -167,7 +167,7 @@ enum AiModel: string
     public function thinks(): bool
     {
         return match ($this) {
-            self::Gemini25Flash, self::Gemini25Pro => true,
+            self::Gemini35Flash, self::Gemini31ProPreview => true,
             default => false,
         };
     }

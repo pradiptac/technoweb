@@ -18,6 +18,16 @@ export type SlidePayload = {
   link_url?: string | null;
   link_label?: string | null;
   caption_position?: string | null;
+  kicker?: string | null;
+  link2_url?: string | null;
+  link2_label?: string | null;
+  /** The phone picture's stored path (the resource sends it back as `mobile_url`). */
+  mobile_media_path?: string | null;
+  text_tone?: string | null;
+  overlay?: string | null;
+  fit?: string | null;
+  /** Milliseconds; null means the slider's own interval. */
+  duration_ms?: number | null;
 };
 
 /**
@@ -38,6 +48,13 @@ export type SliderMeta = {
   caption_animations?: SliderTransitionOption[];
   layouts?: SliderTransitionOption[];
   caption_positions?: SlideCaptionPositionOption[];
+  media_effects?: SliderTransitionOption[];
+  navigations?: SliderTransitionOption[];
+  heights?: SliderTransitionOption[];
+  height_steps?: SlideCaptionPositionOption[];
+  text_tones?: SliderTransitionOption[];
+  overlays?: SliderTransitionOption[];
+  fits?: SliderTransitionOption[];
 };
 
 export type SliderPayload = {
@@ -47,6 +64,11 @@ export type SliderPayload = {
   layout?: string;
   transition?: string;
   caption_animation?: string;
+  media_effect?: string;
+  navigation?: string;
+  height?: string;
+  height_mobile?: string | null;
+  height_desktop?: string | null;
   autoplay?: boolean;
   interval_ms?: number;
   /** Replaced wholesale — send the complete set, like faqs. */

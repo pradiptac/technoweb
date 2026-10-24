@@ -56,7 +56,7 @@ export function Home({
       <section className="relative overflow-hidden bg-linear-135 from-brand-900 to-accent-900 text-dark-ink">
         <Image src="/themes/summit/plexus.jpg" alt="" aria-hidden fill sizes="100vw" priority className="object-cover opacity-30" />
         <Backdrop variant={motionFor(settings).hero} tone="dark" size={56} mask="radial-gradient(ellipse 70% 60% at 50% 0%, #000 10%, transparent 75%)" />
-        <Container className="relative flex flex-col items-center pt-10 pb-14 text-center lg:pt-12 lg:pb-16">
+        <Container className="relative flex flex-col items-center pt-8 pb-14 text-center lg:pt-12 lg:pb-16">
           <span className="inline-flex items-center gap-2 rounded-full border border-dark-line bg-dark-2 px-3.5 py-1.5 text-12 font-semibold text-brand-300">
             <i aria-hidden className="size-1.5 rounded-full bg-brand-300" />
             {kicker}

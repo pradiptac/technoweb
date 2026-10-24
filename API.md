@@ -807,7 +807,7 @@ pages that were found: a worse answer than the model would have given, and a far
 better one than an apology. The provider is OpenRouter (0.116.0; the key and
 the model list are under "Admin — the AI SEO assistant"), and the model is
 `chatbot_model`, an OpenRouter id — blank means `AI_MODEL`, then
-`google/gemini-2.5-flash`.
+`google/gemini-3.5-flash`.
 
 **The assistant asks who it is talking to before it answers anything.** After
 the greeting it collects the visitor's details one question at a time — name,
@@ -4992,7 +4992,7 @@ its footer icon instead of linking nowhere.
 
 **Credentials are never returned.** Rows flagged `is_secret` — the SMTP
 password and the API key — are encrypted at rest and come back as
-`value: null` with `is_set: true`. A blank submit means *unchanged*, because
+`value: null` with `is_set: true` and a `hint` (0.191.0): the first 8 and last 2 characters (`sk-or-v1…a7`) of a value that is at least 20 characters and one line, else `null` — always null for `*_password`, `service_account`, `private_key` and `_refresh_token`/`_access_token` keys (`App\Support\SecretHint`). A blank submit means *unchanged*, because
 the form can never show the current value and treating blank as a delete would
 wipe the SMTP password on every unrelated save. Clearing one is the separate
 endpoint above.
@@ -5706,8 +5706,8 @@ or the OpenRouter account has credit.
 list both pickers offer (`seo_ai_model`, `chatbot_model` — both rows are in
 the `integrations` group since 0.116.0, drawn on Settings → API keys beside
 the key and the model test), Google's first:
-`google/gemini-2.5-flash` (**the default**), `google/gemini-2.5-flash-lite`,
-`google/gemini-2.5-pro`, then `openai/gpt-4o-mini`, `openai/gpt-4.1-mini`,
+`google/gemini-3.5-flash` (**the default**), `google/gemini-3.5-flash-lite`,
+`google/gemini-3.1-pro-preview`, then `openai/gpt-4o-mini`, `openai/gpt-4.1-mini`,
 `openai/gpt-4o`, `openai/gpt-4.1`, and since 0.164.0 Anthropic's
 `anthropic/claude-haiku-5.5`, `anthropic/claude-sonnet-5.5`,
 `anthropic/claude-opus-5.5`, and since 0.165.0 two free Google models,
@@ -5765,7 +5765,7 @@ pages it found). The refusal is logged at `warning` with the status, code,
 maker and raw message. No request is sent a second time on a refusal.
 
 **A model that thinks before it answers is given headroom.** For
-`google/gemini-2.5-flash` and `google/gemini-2.5-pro` the `max_tokens` sent
+`google/gemini-3.5-flash` and `google/gemini-3.1-pro-preview` the `max_tokens` sent
 is the caller's cap plus the same again, and never less than 1,024 more: the
 thinking is drawn from the same allowance as the answer, so a small cap (5 to
 prove a model, 120 for an alt text) could otherwise be spent before a word

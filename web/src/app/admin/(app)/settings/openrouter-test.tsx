@@ -51,8 +51,8 @@ export function OpenRouterTest({ configured }: { configured: boolean }) {
 
   return (
     <div className="mb-6 mt-2 border-y border-line py-4 sm:col-span-2">
-      {result.error && <Alert tone="err" title="OpenRouter refused the request">{result.error}</Alert>}
-      {result.ok && !result.error && <Alert tone="ok" title="The model answered">{result.ok}</Alert>}
+      {result.error && <Alert tone="err" nonce={result} title="OpenRouter refused the request">{result.error}</Alert>}
+      {result.ok && !result.error && <Alert tone="ok" nonce={result} title="The model answered">{result.ok}</Alert>}
 
       <div className="flex flex-wrap items-end gap-3">
         {info && info.models.length > 0 && (

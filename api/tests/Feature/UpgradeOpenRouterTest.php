@@ -97,15 +97,15 @@ class UpgradeOpenRouterTest extends TestCase
 
     public function test_a_qualified_model_and_a_blank_one_are_left_alone(): void
     {
-        Setting::put('chatbot_model', 'google/gemini-2.5-flash');
+        Setting::put('chatbot_model', 'google/gemini-3.5-flash');
         Setting::put('seo_ai_model', null);
 
         app(MoveAiToOpenRouter::class)->run();
 
-        $this->assertSame('google/gemini-2.5-flash', $this->stored('chatbot_model'));
+        $this->assertSame('google/gemini-3.5-flash', $this->stored('chatbot_model'));
         $this->assertNull($this->stored('seo_ai_model'));
         // Blank still means "whatever the site uses".
-        $this->assertSame('google/gemini-2.5-flash', SeoAiSettings::model());
+        $this->assertSame('google/gemini-3.5-flash', SeoAiSettings::model());
     }
 
     /**
@@ -123,7 +123,7 @@ class UpgradeOpenRouterTest extends TestCase
         app(MoveAiToOpenRouter::class)->run();
 
         $this->assertNull($this->stored('chatbot_model'));
-        $this->assertSame('google/gemini-2.5-flash', ChatSettings::model());
+        $this->assertSame('google/gemini-3.5-flash', ChatSettings::model());
 
         $this->assertSame('openai/gpt-4o-mini', $this->stored('seo_ai_model'));
         $this->assertSame('openai/gpt-4o-mini', SeoAiSettings::model());

@@ -114,6 +114,8 @@ export type SettingRow = {
   is_secret?: boolean;
   /** Whether a value is stored. The only thing the UI can know about a secret. */
   is_set?: boolean;
+  /** First 8 and last 2 characters of a long typed key (`sk-or-v1…a7`), else null. */
+  hint?: string | null;
   /** Resolved preview URL for the *_path settings that hold a media file. */
   url?: string | null;
   /**

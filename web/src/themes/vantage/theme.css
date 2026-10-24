@@ -281,3 +281,10 @@ html[data-announcement-closed] [data-theme="vantage"] { --h-info-bar: 0px; }
 [data-theme="vantage"] [data-team] [data-team-name] { font-size: 21px; }
 [data-theme="vantage"] [data-team] [data-team-bio] { -webkit-line-clamp: 3; }
 [data-theme="vantage"] [data-team] [data-team-contact] { margin-top: 0; padding-top: 14px; }
+
+/*
+  The hero is exactly the window from the page top (the header and info bar are
+  lifted over it), so the slider cap that subtracts them everywhere else would
+  stop it ~100px short here.
+*/
+[data-theme="vantage"] .vantage-hero .slider-frame { --slider-max: 100svh; }

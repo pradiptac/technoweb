@@ -172,7 +172,7 @@ Chapter 18, "API keys", has the steps.
    **Test this model**. **The model answered** means it is ready; a refusal
    is shown in OpenRouter's own words and says what is missing.
 3. In **SEO → Settings**, set **AI SEO assistant** to 1.
-4. The model is *Gemini 2.5 Flash (Google)* unless you changed it in step 2.
+4. The model is *Gemini 3.5 Flash (Google)* unless you changed it in step 2.
    The Google models work with a free Google AI Studio key added at
    OpenRouter; the OpenAI models need an OpenAI key, or paid credit, there. A
    model your account cannot use fails on every request, so test it again

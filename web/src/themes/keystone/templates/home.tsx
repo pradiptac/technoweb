@@ -53,7 +53,7 @@ export function Home({
 
   const hero = (
     <section className="relative overflow-hidden">
-      <Container className="relative flex flex-col items-center pt-14 pb-10 text-center lg:pt-20 lg:pb-14">
+      <Container className="relative flex flex-col items-center pt-8 pb-10 text-center lg:pt-12 lg:pb-14">
         <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3.5 py-1.5 text-12 font-semibold text-brand-ink">{kicker}</span>
         <GradientHeading as={heroLevel()} className="display-1 mt-6 max-w-[24ch] text-balance [overflow-wrap:anywhere]" text={heading} />
         <p className="lede mt-5 max-w-[62ch] text-ink-2">{lede}</p>

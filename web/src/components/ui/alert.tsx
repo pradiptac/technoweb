@@ -22,7 +22,7 @@ import { usePresence } from "@/lib/hooks/use-presence";
  * where they always did.
  */
 export function Alert({
-  tone = "info", title, children, dismissible = true,
+  tone = "info", title, children, dismissible = true, nonce,
 }: {
   tone?: "ok" | "warn" | "err" | "info";
   title: string;
@@ -36,6 +36,13 @@ export function Alert({
    * important, where dismissing it would leave nothing behind.
    */
   dismissible?: boolean;
+  /**
+   * A value that changes for each new outcome (e.g. the result object a test
+   * button stores). A new nonce raises the console toast again even when tone
+   * and title are unchanged — otherwise pressing "Test" twice with the same
+   * answer leaves an Alert mounted with the same key and shows nothing.
+   */
+  nonce?: unknown;
 }) {
   /*
     Dismissed is a state; gone is a moment later. `usePresence` keeps the
@@ -58,21 +65,24 @@ export function Alert({
     "Settings saved" cards (measured 2026-09-17: one press of Save on the
     brand form, two toasts). The ref survives that simulated remount where a
     dependency list cannot, and the same message re-rendered raises nothing;
-    the body goes along as the toast's second line. `err` keeps the toast
+    the body goes along as the toast's second line. A changed `nonce` counts as
+    a new message too (same tone and title, new press). `err` keeps the toast
     rule that a failure stays until it is dismissed, and every field the
     server named is still marked in place.
   */
   const asToast = useContext(AlertsAsToasts) && dismissible && (tone === "ok" || tone === "err");
   const toast = useToast();
   const raised = useRef<string | null>(null);
+  const raisedNonce = useRef<unknown>(undefined);
   useEffect(() => {
     const key = `${tone}\u0000${title ?? ""}`;
-    if (!asToast || raised.current === key) return;
+    if (!asToast || (raised.current === key && raisedNonce.current === nonce)) return;
     raised.current = key;
+    raisedNonce.current = nonce;
     toast({ tone, title, body: children });
     // `children` is a fresh node each render; the message is the tone and the title.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [asToast, tone, title, toast]);
+  }, [asToast, tone, title, nonce, toast]);
 
   if (!mounted || asToast) return null;
 

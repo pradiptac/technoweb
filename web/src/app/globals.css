@@ -132,6 +132,11 @@
      a slide's caption inside a section painted slate blue kept its white
      words and lost its dark ground, 3.4:1 (2026-09-19). */
   --color-scrim:      #12140d;
+  /* The same shade the other way round, for a slide whose words are dark: a
+     light opaque stop (the dark band's ink) and the ink that stays dark on it.
+     Neither is re-derived by a section background (2026-10-24). */
+  --color-scrim-light:     #f6f7f2;
+  --color-scrim-light-ink: #12140d;
   /*
    * The top bar and the panel under it. Five tokens of their own rather than
    * the dark band's, because the bar's colour is a setting (`theme_topbar`)
@@ -2902,6 +2907,24 @@ summary:focus-visible {
   @keyframes slide-fade-in  { from { opacity: 0; } to { opacity: 1; } }
   @keyframes slide-zoom-in  { from { opacity: 0; transform: scale(1.035); } to { opacity: 1; transform: scale(1); } }
 
+  /*
+   * The slow zoom (Ken Burns): `data-media-effect` is on a slide's picture
+   * wrapper only while that slide is on screen, so it restarts each time. It
+   * animates the CSS `scale` and `translate` properties (not `transform`, the
+   * Tailwind v4 trap), lasts the slide's own duration (`--media-effect-ms`) and
+   * holds its last frame. The wrapper's parent clips it, so nothing widens.
+   */
+  @keyframes media-zoom-in  { from { scale: 1; } to { scale: 1.12; } }
+  @keyframes media-zoom-out { from { scale: 1.12; } to { scale: 1; } }
+  @keyframes media-drift    { from { scale: 1.1; translate: -2.5% -1.5%; } to { scale: 1.1; translate: 2.5% 1.5%; } }
+  [data-media-effect="zoom_in"]  { animation: media-zoom-in  var(--media-effect-ms, 6000ms) linear both; }
+  [data-media-effect="zoom_out"] { animation: media-zoom-out var(--media-effect-ms, 6000ms) linear both; }
+  [data-media-effect="drift"]    { animation: media-drift    var(--media-effect-ms, 6000ms) linear both; }
+
+  /* The slider's progress line: `scale` (not `transform`), from the left edge, over the slide's own delay. */
+  @keyframes slide-progress { from { scale: 0 1; } to { scale: 1 1; } }
+  .slide-progress-fill { transform-origin: left center; animation: slide-progress var(--slide-progress-ms, 6000ms) linear both; }
+
   .slide-fade-in  { animation: slide-fade-in  var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
   .slide-zoom-in  { animation: slide-zoom-in  var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
 
@@ -5509,3 +5532,50 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
   height: 1.15em;
   vertical-align: -0.2em;
 }
+
+/*
+ * Slider frames: never taller than the screen (0.191.0).
+ *
+ * `.slider-frame` is on the box every slider layout draws — the carousel
+ * section, the cards/fan/cylinder/ripple well, the shop hero's picture. The cap
+ * is always on; a theme's `aspect-*` still sets the shape and the media crops
+ * around its focal point when that shape would be taller than the screen.
+ * `svh`, so a phone's collapsing address bar does not make it jump;
+ * `--h-info-bar` is the announcement bar's one line, defined just below for
+ * every theme (Vantage's own rule says the same numbers) and 0 without a bar.
+ *
+ * `--slider-cap` is the frame's own ceiling, and the stacked layouts size their
+ * cards from it (`min()` in their inline `--card-w`) because their `min-height`
+ * would otherwise beat the cap. Fixed heights re-define it, so the cap, the
+ * height and the cards all follow one number. Unlayered, so it beats the
+ * `aspect-*` and `lg:h-full` utilities a theme passes.
+ *
+ * `[data-slider-stage]` is the slide box inside a carousel: it carries the same
+ * ceiling, or an aspect-ratio slide would overflow its (clipped) frame instead
+ * of being shortened.
+ */
+/* The announcement bar sits above the header on every theme, so every hero's cap leaves room for it. */
+.public-site:has(.announcement-bar) { --h-info-bar: 24px; }
+@media (width >= 40rem) { .public-site:has(.announcement-bar) { --h-info-bar: 27px; } }
+html[data-announcement-closed] .public-site { --h-info-bar: 0px; }
+.slider-frame {
+  --slider-max: calc(100svh - var(--h-site-header, 0px) - var(--h-info-bar, 0px));
+  --slider-cap: var(--slider-max);
+  max-height: var(--slider-cap);
+}
+[data-slider-stage] { max-height: var(--slider-cap); }
+
+.slider-frame[data-h-mobile="short"]  { --slider-cap: min(16rem, var(--slider-max)); }
+.slider-frame[data-h-mobile="medium"] { --slider-cap: min(22rem, var(--slider-max)); }
+.slider-frame[data-h-mobile="tall"]   { --slider-cap: min(28rem, var(--slider-max)); }
+@media (width >= 64rem) {
+  .slider-frame[data-h-desktop="short"]  { --slider-cap: min(24rem, var(--slider-max)); }
+  .slider-frame[data-h-desktop="medium"] { --slider-cap: min(34rem, var(--slider-max)); }
+  .slider-frame[data-h-desktop="tall"]   { --slider-cap: min(44rem, var(--slider-max)); }
+}
+
+/* Screen and Fixed set the height itself and switch the aspect ratio off. */
+.slider-frame:is([data-height="screen"], [data-height="fixed"]) { height: var(--slider-cap); aspect-ratio: auto; }
+.slider-frame:is([data-height="screen"], [data-height="fixed"]) [data-slider-stage] { height: 100%; aspect-ratio: auto; }
+/* A floor, so a landscape phone still shows a usable banner. */
+.slider-frame[data-height="screen"] { min-height: 22rem; }

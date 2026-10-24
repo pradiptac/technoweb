@@ -30,6 +30,8 @@ export const IMAGE_SPECS = {
   /** Full-width hero, slider slide, video poster. */
   hero: { ratio: 16 / 9, width: 1920, height: 1080 },
   slide: { ratio: 16 / 9, width: 1920, height: 1080 },
+  /** The phone picture of a slide, shown below 768px. */
+  "slide-mobile": { ratio: 4 / 5, width: 1080, height: 1350 },
   /** The section banner behind a page heading. */
   banner: { ratio: 2000 / 560, width: 2000, height: 560 },
   /** The sign-in screen's picture. */

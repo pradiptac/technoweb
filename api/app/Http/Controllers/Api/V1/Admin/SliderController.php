@@ -4,8 +4,14 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\SlideCaptionAnimation;
 use App\Enums\SlideCaptionPosition;
+use App\Enums\SlideFit;
+use App\Enums\SlideMediaEffect;
+use App\Enums\SlideOverlay;
+use App\Enums\SliderHeight;
 use App\Enums\SliderLayout;
+use App\Enums\SliderNavigation;
 use App\Enums\SliderTransition;
+use App\Enums\SlideTextTone;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSliderRequest;
 use App\Http\Requests\UpdateSliderRequest;
@@ -42,7 +48,7 @@ class SliderController extends Controller
         $slides = $data['slides'] ?? null;
         unset($data['slides']);
 
-        $slider = Slider::create($data);
+        $slider = Slider::create(self::heightSteps($data));
         $this->syncSlides($slider, $slides);
 
         return (new SliderResource($slider->load('slides')))->response()->setStatusCode(201);
@@ -60,7 +66,7 @@ class SliderController extends Controller
         $slides = array_key_exists('slides', $data) ? ($data['slides'] ?? []) : null;
         unset($data['slides']);
 
-        $slider->update($data);
+        $slider->update(self::heightSteps($data));
         $this->syncSlides($slider, $slides);
 
         return new SliderResource($slider->load('slides'));
@@ -97,7 +103,7 @@ class SliderController extends Controller
      * record to read them off — the same reason `GalleryController` and
      * `/admin/menus/new` carry their own meta.
      *
-     * @return array{transitions: list<array<string, string>>, caption_animations: list<array<string, string>>, layouts: list<array<string, string>>, caption_positions: list<array<string, string>>}
+     * @return array{transitions: list<array<string, string>>, caption_animations: list<array<string, string>>, layouts: list<array<string, string>>, caption_positions: list<array<string, string>>, media_effects: list<array<string, string>>, navigations: list<array<string, string>>, heights: list<array<string, string>>, height_steps: list<array<string, string>>, text_tones: list<array<string, string>>, overlays: list<array<string, string>>, fits: list<array<string, string>>}
      */
     private static function meta(): array
     {
@@ -106,7 +112,24 @@ class SliderController extends Controller
             'caption_animations' => SlideCaptionAnimation::options(),
             'layouts' => SliderLayout::options(),
             'caption_positions' => SlideCaptionPosition::options(),
+            'media_effects' => SlideMediaEffect::options(),
+            'navigations' => SliderNavigation::options(),
+            'heights' => SliderHeight::options(),
+            'height_steps' => SliderHeight::steps(),
+            'text_tones' => SlideTextTone::options(),
+            'overlays' => SlideOverlay::options(),
+            'fits' => SlideFit::options(),
         ];
+    }
+
+    /** The phone and desktop steps mean something only for a fixed height. */
+    private static function heightSteps(array $data): array
+    {
+        if (isset($data['height']) && $data['height'] !== 'fixed') {
+            $data['height_mobile'] = $data['height_desktop'] = null;
+        }
+
+        return $data;
     }
 
     private function syncSlides(Slider $slider, ?array $slides): void
@@ -132,6 +155,14 @@ class SliderController extends Controller
                 // row that predates the column, and an empty string is not
                 // a position — it would fail the cast on the way back out.
                 'caption_position' => ($slide['caption_position'] ?? null) ?: 'bottom-left',
+                'kicker' => $slide['kicker'] ?? null,
+                'link2_url' => $slide['link2_url'] ?? null,
+                'link2_label' => $slide['link2_label'] ?? null,
+                'mobile_media_path' => $slide['mobile_media_path'] ?? null,
+                'duration_ms' => $slide['duration_ms'] ?? null,
+                'text_tone' => ($slide['text_tone'] ?? null) ?: 'light',
+                'overlay' => ($slide['overlay'] ?? null) ?: 'standard',
+                'fit' => ($slide['fit'] ?? null) ?: 'cover',
                 // The order the editor submitted, not a number they maintain.
                 'sort_order' => $i,
             ]);
