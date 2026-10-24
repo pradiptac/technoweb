@@ -867,12 +867,12 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   social_style: {
     label: "How the icons are drawn",
-    hint: "Flip tiles spell the word below and turn into the icons when somebody points at them; phones and touch screens show the icons straight away.",
+    hint: "How the footer shows your social profiles, on every theme. Flip tiles spell the word below and turn into the icons when somebody points at them; phones and touch screens show the icons straight away.",
   },
   social_flip_word: {
     label: "Word on the flip tiles",
     placeholder: "FOLLOW",
-    hint: "Up to seven letters or digits, one per tile — CONTACT fits. A letter past the last profile gets a tile of its own that is not a link; a profile past the end of the word shows its network's initial.",
+    hint: "Flip tiles only. Up to seven letters or digits, one per tile — CONTACT fits. A letter past the last profile gets a tile of its own that is not a link; a profile past the end of the word shows its network's initial.",
   },
   /* Native analytics (0.188.0, docs/analytics.md). */
   native_analytics_enabled: {

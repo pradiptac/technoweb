@@ -87,7 +87,12 @@ class SocialStyleSettingsTest extends TestCase
 
         $row = collect($this->getJson('/api/v1/admin/settings')->assertOk()->json('data.social'))
             ->firstWhere('key', 'social_style');
-        $this->assertSame(['flip', 'dock'], array_column($row['options'], 'value'));
+        $this->assertSame(['flip', 'dock', 'circles', 'outline', 'pills', 'minimal'], array_column($row['options'], 'value'));
+
+        foreach (['circles', 'outline', 'pills', 'minimal'] as $style) {
+            $this->save(['social_style' => $style])->assertOk();
+            $this->assertSame($style, Setting::get('social_style'));
+        }
     }
 
     public function test_the_word_is_letters_and_digits_and_stored_in_capitals(): void

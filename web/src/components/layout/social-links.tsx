@@ -49,6 +49,9 @@ const PROFILES = [
   { key: "social_reddit", label: "Reddit", initial: "R", Icon: IconReddit, brand: "#FF4500" },
 ] as const;
 
+/** The four server-rendered row styles; anything else is flip, or dock. */
+const ROW_STYLES = ["circles", "outline", "pills", "minimal"] as const;
+
 export function SocialLinks({ settings }: { settings: SiteSettings }) {
   const links = PROFILES
     .map((p) => ({ ...p, href: settings[p.key] }))
@@ -58,10 +61,16 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
 
   const company = settings.company_name ?? brandName();
 
-  if (settings.social_style !== "dock") {
-    // Email follows the profiles as a tile of its own, as it does in the
-    // source component — the address the header and the footer plates use.
-    const email = settings.support_email ?? contact.email;
+  // Email follows the profiles as a tile of its own, as it does in the
+  // source component — the address the header and the footer plates use.
+  const email = settings.support_email ?? contact.email;
+  const style = settings.social_style ?? "";
+
+  if ((ROW_STYLES as readonly string[]).includes(style)) {
+    return <SocialRow style={style as (typeof ROW_STYLES)[number]} links={links} email={email} company={company} />;
+  }
+
+  if (style !== "dock") {
     const flip: FlipLink[] = [
       ...links.map(({ key, label, initial, href, Icon, brand }) => ({ key, label, initial, href, Icon, brand, external: true })),
       ...(email ? [{ key: "email", label: "Email", initial: "E", href: `mailto:${email}`, Icon: IconMail, brand: "var(--color-dark-ink)", external: false }] : []),
@@ -231,5 +240,41 @@ function SocialFlip({ links, word, company }: { links: FlipLink[]; word: string 
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * Circles, outline, pills and minimal (0.191.0): one list of links, four
+ * looks, all in `globals.css` under `.social-row--<style>`. Each link hands
+ * its network's graded fill (`--color-social-<net>-fill`) to the CSS as
+ * `--fill`; nothing else here is colour. Email is the last link, as in flip.
+ */
+function SocialRow({ style, links, email, company }: {
+  style: (typeof ROW_STYLES)[number];
+  links: { key: string; label: string; href: string; Icon: (p: { className?: string }) => ReactElement }[];
+  email: string | undefined;
+  company: string;
+}) {
+  const all = [
+    ...links.map(({ key, label, href, Icon }) => ({ net: key.replace("social_", ""), label, href, Icon, external: true })),
+    ...(email ? [{ net: "email", label: "Email", href: `mailto:${email}`, Icon: IconMail, external: false }] : []),
+  ];
+  return (
+    <ul className={`social-row social-row--${style}`}>
+      {all.map(({ net, label, href, Icon, external }) => (
+        <li key={net}>
+          <a
+            href={href}
+            {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            aria-label={external ? `${company} on ${label}` : `Email ${company}`}
+            style={{ "--fill": `var(--color-social-${net}-fill)` } as CSSProperties}
+            className="social-row__link"
+          >
+            <Icon />
+            {style === "pills" && <span>{label}</span>}
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }

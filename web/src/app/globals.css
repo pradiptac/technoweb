@@ -583,6 +583,23 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   --color-social-x: #000000;
   --color-social-facebook: #1877f2;
   --color-social-telegram: #26a5e4;
+  /*
+   * The footer's circle, outline, pill and minimal styles (0.191.0): a fill a
+   * WHITE glyph sits on, per network, the same in both schemes. The published
+   * colours above are for a state under the pointer; these are what rests, so
+   * each is graded white-on-fill (WCAG 1.4.11, 3:1): linkedin 5.69, x 18.88,
+   * facebook 4.23, instagram 4.04, youtube 4.00, whatsapp 4.14 (the teal
+   * #128c7e - its green is 1.98), reddit 4.61, email 6.66. Here and not in
+   * @theme for the reason above: the footer reads them from an inline style.
+   */
+  --color-social-linkedin-fill: #0a66c2;
+  --color-social-x-fill: #111111;
+  --color-social-facebook-fill: #1877f2;
+  --color-social-instagram-fill: #e4405f;
+  --color-social-youtube-fill: #ff0000;
+  --color-social-whatsapp-fill: #128c7e;
+  --color-social-reddit-fill: #d93a00;
+  --color-social-email-fill: #55621f;
 }
 
 :root[data-scheme="dark"] {
@@ -4065,6 +4082,76 @@ nav:has([data-panel-host]:hover) [data-panel-host]:not(:hover) > .panel-drop { t
       translate var(--duration-base) var(--ease-brand),
       scale var(--duration-base) var(--ease-brand);
   }
+}
+
+/* ------------------------------------------------------- social rows
+ *
+ * The footer's four other ways to show the profiles (0.191.0, social_style
+ * circles / outline / pills / minimal) - components/layout/social-links.tsx,
+ * server-rendered, no client JS. Each link carries its network's graded fill
+ * as `--fill` (`--color-social-<net>-fill`, white on it is >= 3:1). Everything
+ * but a fill takes the footer's own ink through `currentColor`, so the same
+ * markup reads on a light footer and a dark one.
+ *
+ * Motion is only in the no-preference block, on the CSS `scale`/`translate`
+ * properties and a pseudo-element's, never `transition-transform` (the v4
+ * trap). Under reduced motion the hover state still shows, without moving.
+ * Targets are 36px below `sm` and 40px from it; the row wraps.
+ */
+.social-row { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.5rem; padding: 0; list-style: none; }
+.social-row__link {
+  position: relative; isolation: isolate;
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  min-width: 2.25rem; min-height: 2.25rem; text-decoration: none;
+}
+.social-row__link svg { position: relative; z-index: 1; width: 1.25rem; height: 1.25rem; flex: none; }
+@media (min-width: 40rem) { .social-row__link { min-width: 2.5rem; min-height: 2.5rem; } }
+
+/* circles: the network's fill, a white glyph, a hairline of the footer's ink so it reads on any ground. */
+.social-row--circles .social-row__link {
+  border-radius: 9999px; background-color: var(--fill);
+  box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 25%, transparent);
+}
+.social-row--circles .social-row__link svg { color: white; }
+.social-row--circles .social-row__link:is(:hover, :focus-visible) {
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 55%, transparent);
+}
+
+/* outline: a ring and a glyph in the footer's ink; a fill rises under the glyph, which turns white. */
+.social-row--outline .social-row__link { border-radius: 9999px; border: 1.5px solid currentColor; }
+.social-row--outline .social-row__link::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; border-radius: inherit;
+  background-color: var(--fill); opacity: 0; transform-origin: bottom;
+}
+.social-row--outline .social-row__link:is(:hover, :focus-visible)::before { opacity: 1; }
+.social-row--outline .social-row__link:is(:hover, :focus-visible) svg { color: white; }
+
+/* pills: the icon and the network's name; the border takes a share of the network's colour. */
+.social-row--pills .social-row__link {
+  padding: 0 .875rem 0 .75rem; border-radius: 9999px; font-size: .875rem; font-weight: 600; line-height: 1.25; white-space: nowrap;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+}
+.social-row--pills .social-row__link:is(:hover, :focus-visible) { border-color: color-mix(in srgb, var(--fill) 60%, currentColor); }
+
+/* minimal: quiet glyphs; the one pointed at brightens and gains a bar in its network's colour. */
+.social-row--minimal .social-row__link svg { width: 1.5rem; height: 1.5rem; opacity: .72; }
+.social-row--minimal .social-row__link:is(:hover, :focus-visible) svg { opacity: 1; }
+.social-row--minimal .social-row__link::after {
+  content: ""; position: absolute; left: 22%; right: 22%; bottom: .25rem; height: 2px; border-radius: 1px;
+  background-color: var(--fill); opacity: 0;
+}
+.social-row--minimal .social-row__link:is(:hover, :focus-visible)::after { opacity: 1; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .social-row--circles .social-row__link { transition: translate var(--duration-base) var(--ease-brand), box-shadow var(--duration-base) var(--ease-brand); }
+  .social-row--circles .social-row__link:is(:hover, :focus-visible) { translate: 0 -2px; }
+  .social-row--outline .social-row__link::before { opacity: 1; scale: 1 0; transition: scale var(--duration-base) var(--ease-brand); }
+  .social-row--outline .social-row__link:is(:hover, :focus-visible)::before { scale: 1 1; }
+  .social-row--outline .social-row__link svg { transition: color var(--duration-base) var(--ease-brand); }
+  .social-row--pills .social-row__link { transition: border-color var(--duration-base) var(--ease-brand); }
+  .social-row--minimal .social-row__link svg { transition: opacity var(--duration-base) var(--ease-brand); }
+  .social-row--minimal .social-row__link::after { opacity: 1; scale: 0 1; transition: scale var(--duration-base) var(--ease-brand); }
+  .social-row--minimal .social-row__link:is(:hover, :focus-visible)::after { scale: 1 1; }
 }
 
 /* ------------------------------------------------------- wishlist heart

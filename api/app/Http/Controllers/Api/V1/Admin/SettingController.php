@@ -218,6 +218,10 @@ class SettingController extends Controller
     public const SOCIAL_STYLES = [
         ['value' => 'flip', 'label' => 'Flip tiles', 'description' => 'A letter on each tile, spelling the word below; pointing at the row flips them one after another to the icons. Phones show the icons.'],
         ['value' => 'dock', 'label' => 'Magnifying dock', 'description' => 'The icons in bordered tiles that grow under the pointer, each taking its brand colour.'],
+        ['value' => 'circles', 'label' => 'Brand-colour circles', 'description' => 'Round buttons filled with the colour of each network and a white icon; they lift a little under the pointer.'],
+        ['value' => 'outline', 'label' => 'Outline, fills on hover', 'description' => 'Round outlines in the footer ink that fill with the colour of the network when pointed at.'],
+        ['value' => 'pills', 'label' => 'Labelled pills', 'description' => 'The icon and the name of the network in a rounded pill, so nobody has to guess which is which.'],
+        ['value' => 'minimal', 'label' => 'Minimal icon row', 'description' => 'Plain icons in the footer ink, dimmed; the one under the pointer brightens and gains an underline in its brand colour.'],
     ];
 
     /**
