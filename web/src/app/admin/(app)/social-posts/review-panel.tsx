@@ -53,7 +53,7 @@ export function ReviewPanel({
   const [text, setText] = useState(post.text);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [done, setDone] = useState<{ status: string; openUrl: string | null; note?: string } | null>(null);
+  const [done, setDone] = useState<Done | null>(null);
   const [busy, start] = useTransition();
   const router = useRouter();
 
@@ -76,15 +76,17 @@ export function ReviewPanel({
         return;
       }
 
+      // Whether the text is on the clipboard: a refused write must not be reported as a copy.
+      let copied = false;
       if (out.openUrl) {
         // LinkedIn's share page takes only the address, so the text rides on the clipboard.
-        if (!isX) await navigator.clipboard.writeText(text).catch(() => undefined);
+        if (!isX) copied = await navigator.clipboard.writeText(text).then(() => true, () => false);
         window.open(out.openUrl, "_blank", "noopener");
       }
 
       if (out.done) announce(out.done);
       else router.refresh();
-      setDone({ status: out.status ?? "", openUrl: out.openUrl ?? null, note: out.error });
+      setDone({ status: out.status ?? "", openUrl: out.openUrl ?? null, note: out.error, copied, text });
     });
   };
 
@@ -236,11 +238,32 @@ export function ReviewPanel({
 }
 
 /** What happened, after an approval — and the way in if the browser held the new window back. */
-function DoneNote({ done, isX }: { done: { status: string; openUrl: string | null; note?: string }; isX: boolean }) {
+type Done = { status: string; openUrl: string | null; note?: string; copied: boolean; text: string };
+
+function DoneNote({ done, isX }: { done: Done; isX: boolean }) {
+  const [copiedNow, setCopiedNow] = useState(false);
+
   if (done.status === "unconfirmed") {
     return (
       <Alert tone="warn" title="We couldn't confirm" dismissible={false}>
         {done.note ?? "We couldn't confirm LinkedIn received this. Check the page before trying again."}
+      </Alert>
+    );
+  }
+
+  // The clipboard refused the write (Safari, or the click's activation ran out): the text is shown to copy by hand.
+  if (done.openUrl && !isX && !done.copied) {
+    return (
+      <Alert tone="warn" title="Copy the text yourself" dismissible={false}>
+        The text could not be copied for you. Copy it here, then paste it into the LinkedIn box.{" "}
+        <a href={done.openUrl} target="_blank" rel="noopener" className="font-semibold underline">Open LinkedIn</a> if it did not open.
+        <Textarea aria-label="Approved text" readOnly rows={8} value={done.text} className="mt-2" onFocus={(e) => e.currentTarget.select()} />
+        <Button
+          type="button" size="sm" variant="secondary" className="mt-2"
+          onClick={() => navigator.clipboard.writeText(done.text).then(() => setCopiedNow(true), () => undefined)}
+        >
+          {copiedNow ? "Copied" : "Copy"}
+        </Button>
       </Alert>
     );
   }
