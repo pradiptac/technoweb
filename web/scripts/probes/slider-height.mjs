@@ -5,9 +5,12 @@ import { readFileSync } from "node:fs";
  * A slider is never taller than the visible screen, in any theme.
  *
  * Opens `/theme-preview/<id>` for every theme in `src/themes/manifests.ts` at
- * 360x640, 390x844, 1280x720, 1366x650 and 1920x1080 and fails when the first
- * carousel on the page (the homepage hero) is taller than the viewport, or when
- * `documentElement.scrollWidth` is wider than `innerWidth`. Atelier's
+ * 360x640, 390x844, 1280x720, 1366x650 and 1920x1080, scrolled to the top, and
+ * fails when the hero slider (the first `.slider-frame` carousel in the page —
+ * every theme's home opens on it) ends below the visible screen
+ * (`bottom > innerHeight + 1`; Vantage's hero is exactly the window from the
+ * page top, so it passes with `bottom == innerHeight`), when no slider is found
+ * at all, or when `documentElement.scrollWidth` is wider than `innerWidth`. Atelier's
  * `aspect-[4/5]` hero (~830px on a 1440x800 screen) and Launch's phone hero were
  * the cases this was written for. It reads whatever `homepage-hero` currently is
  * — so run it again after setting that slider's Height to Screen and to Fixed.
@@ -51,25 +54,31 @@ for (const theme of THEMES) {
     await page.goto(`${BASE}/theme-preview/${theme}`, { waitUntil: "load", timeout: 120000 });
     await page.waitForLoadState("networkidle").catch(() => {});
     const r = await page.evaluate(() => {
-      const el = document.querySelector('[aria-roledescription="carousel"]');
+      window.scrollTo(0, 0);
+      const el = document.querySelector('.slider-frame[aria-roledescription="carousel"]');
       const box = el?.getBoundingClientRect();
       return {
         found: Boolean(el),
+        top: box ? Math.round(box.top) : 0,
+        bottom: box ? Math.round(box.bottom) : 0,
         height: box ? Math.round(box.height) : 0,
+        label: el?.getAttribute("aria-label") ?? "",
+        attrs: el ? [...el.attributes].filter((a) => a.name.startsWith("data-h")).map((a) => `${a.name}=${a.value}`).join(" ") : "",
         scrollWidth: document.documentElement.scrollWidth,
         innerWidth: window.innerWidth,
         innerHeight: window.innerHeight,
       };
     });
     const problems = [];
-    if (!r.found) { console.log(`-    ${theme} ${w}x${h}: no slider on the page`); }
+    if (!r.found) problems.push("no hero slider found (is `homepage-hero` published?)");
     else {
       seen++;
-      if (r.height > r.innerHeight) problems.push(`slider ${r.height}px > screen ${r.innerHeight}px`);
+      if (r.top >= r.innerHeight) problems.push(`the first slider starts at ${r.top}px, below the screen — not the hero`);
+      if (r.bottom > r.innerHeight + 1) problems.push(`slider bottom ${r.bottom}px > screen ${r.innerHeight}px`);
     }
     if (r.scrollWidth > r.innerWidth) problems.push(`page scrolls sideways (${r.scrollWidth} > ${r.innerWidth})`);
     if (problems.length) { failures++; console.log(`FAIL ${theme} ${w}x${h}: ${problems.join("; ")}`); }
-    else if (r.found) console.log(`ok   ${theme} ${w}x${h}: ${r.height}px`);
+    else console.log(`ok   ${theme} ${w}x${h}: top ${r.top} bottom ${r.bottom} (${r.height}px) "${r.label}" ${r.attrs}`);
   }
 }
 

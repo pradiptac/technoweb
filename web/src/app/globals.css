@@ -5518,7 +5518,8 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
  * is always on; a theme's `aspect-*` still sets the shape and the media crops
  * around its focal point when that shape would be taller than the screen.
  * `svh`, so a phone's collapsing address bar does not make it jump;
- * `--h-info-bar` exists only under Vantage, so it defaults to nothing.
+ * `--h-info-bar` is the announcement bar's one line, defined just below for
+ * every theme (Vantage's own rule says the same numbers) and 0 without a bar.
  *
  * `--slider-cap` is the frame's own ceiling, and the stacked layouts size their
  * cards from it (`min()` in their inline `--card-w`) because their `min-height`
@@ -5530,6 +5531,10 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
  * ceiling, or an aspect-ratio slide would overflow its (clipped) frame instead
  * of being shortened.
  */
+/* The announcement bar sits above the header on every theme, so every hero's cap leaves room for it. */
+.public-site:has(.announcement-bar) { --h-info-bar: 24px; }
+@media (width >= 40rem) { .public-site:has(.announcement-bar) { --h-info-bar: 27px; } }
+html[data-announcement-closed] .public-site { --h-info-bar: 0px; }
 .slider-frame {
   --slider-max: calc(100svh - var(--h-site-header, 0px) - var(--h-info-bar, 0px));
   --slider-cap: var(--slider-max);
