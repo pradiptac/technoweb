@@ -5,8 +5,14 @@ namespace App\Http\Requests;
 use App\Enums\PublishStatus;
 use App\Enums\SlideCaptionAnimation;
 use App\Enums\SlideCaptionPosition;
+use App\Enums\SlideFit;
+use App\Enums\SlideMediaEffect;
+use App\Enums\SlideOverlay;
+use App\Enums\SliderHeight;
 use App\Enums\SliderLayout;
+use App\Enums\SliderNavigation;
 use App\Enums\SliderTransition;
+use App\Enums\SlideTextTone;
 use App\Support\LinkPattern;
 use App\Support\YouTube;
 use Illuminate\Foundation\Http\FormRequest;
@@ -67,6 +73,14 @@ class StoreSliderRequest extends FormRequest
             // the carousel into a strobe or a still.
             'interval_ms' => ['sometimes', 'integer', 'min:2000', 'max:60000'],
 
+            // The hero features: refused outside the list, the `transition` rule.
+            'media_effect' => ['sometimes', Rule::enum(SlideMediaEffect::class)],
+            'navigation' => ['sometimes', Rule::enum(SliderNavigation::class)],
+            'height' => ['sometimes', Rule::enum(SliderHeight::class)],
+            // Needed only for a fixed height; the controller stores null otherwise.
+            'height_mobile' => ['nullable', 'required_if:height,fixed', Rule::in(SliderHeight::STEPS)],
+            'height_desktop' => ['nullable', 'required_if:height,fixed', Rule::in(SliderHeight::STEPS)],
+
             'slides' => ['sometimes', 'array', 'max:20'],
             'slides.*.kind' => ['required', 'in:image,video,youtube'],
             // Required for the two kinds that are a file; a YouTube slide has
@@ -87,6 +101,19 @@ class StoreSliderRequest extends FormRequest
             // value outside it means the two sides have drifted and
             // silently correcting it would hide that.
             'slides.*.caption_position' => ['nullable', Rule::enum(SlideCaptionPosition::class)],
+            'slides.*.kicker' => ['nullable', 'string', 'max:60'],
+            // The second button: both halves or neither.
+            'slides.*.link2_url' => ['nullable', 'required_with:slides.*.link2_label', 'string', 'max:2048', LinkPattern::RULE],
+            'slides.*.link2_label' => ['nullable', 'required_with:slides.*.link2_url', 'string', 'max:60'],
+            // The phone picture: a library image, not a document and not a file in the bin.
+            'slides.*.mobile_media_path' => [
+                'nullable', 'string', 'max:255',
+                Rule::exists('media', 'path')->whereNull('deleted_at')->where(fn ($q) => $q->where('mime', 'like', 'image/%')),
+            ],
+            'slides.*.text_tone' => ['nullable', Rule::enum(SlideTextTone::class)],
+            'slides.*.overlay' => ['nullable', Rule::enum(SlideOverlay::class)],
+            'slides.*.fit' => ['nullable', Rule::enum(SlideFit::class)],
+            'slides.*.duration_ms' => ['nullable', 'integer', 'min:2000', 'max:60000'],
             // Null here means the URL was not a YouTube video link — the
             // parser refuses anything else, including a lookalike host.
             'slides.*.youtube_id' => ['nullable', 'required_if:slides.*.kind,youtube', 'string', 'max:20'],

@@ -19,6 +19,11 @@ class SliderResource extends JsonResource
             'layout' => $this->layout?->value,
             'transition' => $this->transition?->value,
             'caption_animation' => $this->caption_animation?->value,
+            'media_effect' => $this->media_effect->value,
+            'navigation' => $this->navigation->value,
+            'height' => $this->height->value,
+            'height_mobile' => $this->height_mobile,
+            'height_desktop' => $this->height_desktop,
             'autoplay' => (bool) $this->autoplay,
             'interval_ms' => $this->interval_ms,
             // What the console reads to ask twice before deleting. The API

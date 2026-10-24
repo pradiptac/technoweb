@@ -4,7 +4,10 @@ namespace App\Models;
 
 use App\Enums\PublishStatus;
 use App\Enums\SlideCaptionAnimation;
+use App\Enums\SlideMediaEffect;
+use App\Enums\SliderHeight;
 use App\Enums\SliderLayout;
+use App\Enums\SliderNavigation;
 use App\Enums\SliderTransition;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -52,7 +55,8 @@ class Slider extends Model
         'store-hero' => 'the shop front',
     ];
 
-    protected $fillable = ['name', 'slug', 'status', 'layout', 'transition', 'caption_animation', 'autoplay', 'interval_ms'];
+    protected $fillable = ['name', 'slug', 'status', 'layout', 'transition', 'caption_animation', 'autoplay', 'interval_ms',
+        'media_effect', 'navigation', 'height', 'height_mobile', 'height_desktop'];
 
     /**
      * Mirrors the column defaults, because a database default only applies on
@@ -63,7 +67,10 @@ class Slider extends Model
      * `StoreProductVariation` declare `$attributes` for, found the same way:
      * by a test that created a record and asked about it without a round trip.
      */
-    protected $attributes = ['layout' => 'full', 'caption_animation' => 'none'];
+    protected $attributes = [
+        'layout' => 'full', 'caption_animation' => 'none',
+        'media_effect' => 'none', 'navigation' => 'dots', 'height' => 'theme',
+    ];
 
     protected function casts(): array
     {
@@ -72,6 +79,9 @@ class Slider extends Model
             'layout' => SliderLayout::class,
             'transition' => SliderTransition::class,
             'caption_animation' => SlideCaptionAnimation::class,
+            'media_effect' => SlideMediaEffect::class,
+            'navigation' => SliderNavigation::class,
+            'height' => SliderHeight::class,
             'autoplay' => 'boolean',
             'interval_ms' => 'integer',
         ];
