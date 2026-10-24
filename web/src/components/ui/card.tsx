@@ -151,7 +151,7 @@ export function SectionHeader({
           {kicker}
         </span>
       )}
-      <h2 className="display-2 mt-3.5 text-balance">{title}</h2>
+      <h2 data-section-title="" className="display-2 mt-3.5 text-balance">{title}</h2>
       {lede && <p className="lede mt-4">{lede}</p>}
     </div>
   );

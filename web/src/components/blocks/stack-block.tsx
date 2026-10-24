@@ -89,7 +89,7 @@ function StackHeader({ content }: { content: StackContent }) {
         <span className="text-12 font-semibold uppercase tracking-[.13em] text-secondary-ink">{content.kicker}</span>
       )}
       {content.heading
-        ? <h2 className="display-2 mt-3.5 text-balance">{content.heading}</h2>
+        ? <h2 data-section-title="" className="display-2 mt-3.5 text-balance">{content.heading}</h2>
         : <h2 className="sr-only">Technology stack</h2>}
       {content.lede && <p className="lede mt-4">{content.lede}</p>}
     </div>

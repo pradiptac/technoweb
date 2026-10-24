@@ -641,7 +641,7 @@ Two new settings and five new ids, all in the public `motion` group, shape-check
 - **The start state** (`opacity: 0` plus the offset or blur) applies only inside `@media (prefers-reduced-motion: no-preference)`, `html[data-aos-ready]` and an ancestor `[data-aos]` that has not yet been stamped `data-aos-animate`, and never to `[data-reveal-static]` or a heading in a section with its own `style.headline` (`[data-headline]`). It carries no transition; the shown state does. A heading in no `[data-aos]` is never hidden.
 
 **Theme section headings arrive too.** `SectionHeader` (and the stack block's heading) renders no word spans, so the heading moves **as a whole**, without a markup change:
-- The pieces are found by class (`h2.display-2.mt-3.5.text-balance` without `data-section-heading`, the `span` before it and the `p.lede` after it). The kicker only fades, because it is inline.
+- The heading is `h2[data-section-title]` (set by `SectionHeader` and the stack block; an attribute, so the default rendering does not change), with the `span` before it and the `p.lede` after it. The kicker only fades, because it is inline.
 - The `h2` and then the lede arrive one `--th-step` later each (the same 55/80/60ms), with the same distance, curve and duration as the words.
 - **Inside a revealed `[data-aos]`** the start state is hidden and the arrival is a transition on `data-aos-animate`.
 - **With no `[data-aos]` above it** (a homepage section's default reveal is None) it is not hidden by the observer: where `animation-timeline: view()` exists it arrives on its own view timeline over `cover 3vh` to `cover 21vh` (the lede 3vh later), `backwards` fill only, so it ends at its natural style; elsewhere it is simply there.
