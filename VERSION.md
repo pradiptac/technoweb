@@ -21,6 +21,19 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.191.0 — 2026-10-24
+
+**The hero slider grows eight features, and the footer's social icons get four more styles.**
+
+- Site → Sliders: a slide can carry a **kicker** line and a **second button**, a separate **phone picture** (one file is downloaded, whichever applies), its own **text colour** (Light or Dark) and **shade** (Soft, Standard, Strong), a **Picture fit** (fill, or show the whole picture) and its own **time on screen**. A slider can move its pictures slowly (**Zoom in, Zoom out, Drift**, off under reduced motion) and navigate by **dots, dots and a progress line, thumbnails under the picture** or arrows only. A shade changes how far its solid colour reaches, never how transparent it is, so contrast stays checkable.
+- **No slider is ever taller than the visible screen**, whatever the theme: Atelier's and Launch's tall heroes no longer push the page below the fold. A slider's **Height** can also be *Fill the screen* or a chosen Short, Medium or Tall for phones and for larger screens. Every theme was measured at five screen sizes; the Vantage hero keeps its full window.
+- Settings → Social profiles: four new ways to show the icons beside Flip tiles and the dock — **Brand-colour circles, Outline that fills on hover, Labelled pills and a Minimal icon row**. The colours behind a white icon are graded for contrast (WhatsApp uses a deeper teal than its published green, which is too pale under white).
+- Shop: a **return window per product**, highlighted on the product page.
+- The hero starts closer to the main menu in nine themes.
+- A saved API key shows its first 8 and last 2 characters, taken from the decrypted key rather than the stored ciphertext, so the hint is the key's and not a slice of its encryption.
+- AI: **Gemini 3.5 Flash** is the default model and the retired Gemini 2.5 models are gone from the list. A repeated "Test this model" result shows its notice again instead of staying silent.
+- `docs/sliders.md` "Hero features", `docs/site-chrome.md` "Social row styles", `API.md` and the manual's Sliders and Social profiles sections.
+
 ## 0.190.0 — 2026-10-24
 
 **LinkedIn and X posts: drafts for what you publish, approved by a person.**

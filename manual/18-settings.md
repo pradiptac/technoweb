@@ -60,10 +60,15 @@ Full web addresses for LinkedIn, X, Facebook, Instagram, YouTube, WhatsApp and
 Reddit. Leave one blank and its icon disappears — far better than linking to a
 profile that is not yours.
 
-**How the icons are drawn** — *Flip tiles* spell a word (up to seven letters,
-set in **Word on the flip tiles**) and turn into the icons under the pointer;
-phones show the icons straight away. Or *Magnifying dock* — the icons in
-tiles that grow under the pointer.
+**How the icons are drawn** — six styles, the same on every theme. *Flip tiles*
+spell a word (up to seven letters, set in **Word on the flip tiles**, which
+applies to this style only) and turn into the icons under the pointer; phones
+show the icons straight away. *Magnifying dock*: the icons in tiles that grow
+under the pointer. *Brand-colour circles*: round buttons in each network's
+colour. *Outline, fills on hover*: round outlines that fill with the network's
+colour when pointed at. *Labelled pills*: the icon and the name of the network,
+so nobody has to guess which is which. *Minimal icon row*: plain icons that
+brighten and gain an underline under the pointer.
 
 ## Reference numbers
 

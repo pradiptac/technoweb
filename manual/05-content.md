@@ -852,6 +852,24 @@ button.
   how the words arrive.
 - **Advance slides automatically** moves the slides on by themselves;
   visitors always get a Pause button.
+- **On each slide** you can also set a **kicker** (a small line above the
+  heading), a **second button** (it needs both its link and its label), a
+  **phone picture** (shown instead of the main picture on screens under 768px
+  wide, so choose a portrait crop), the **text colour** (Light or Dark, to
+  match your picture), the **shade behind the words** (Soft, Standard or
+  Strong), **Picture fit** (fill the frame, or show the whole picture) and
+  **Show for**, how many seconds this slide stays; blank uses the slider's own
+  time.
+- **Picture motion** (None, Zoom in, Zoom out, Drift) slowly moves the picture
+  while its slide is showing, and is not used when a visitor has asked their
+  device for less motion. **Navigation** is Dots, Dots and progress line,
+  Thumbnails (small pictures under the slider) or Arrows only.
+- **Height**: a slider is never taller than the visible screen, whatever the
+  theme. Leave it on *The theme's shape*, choose *Fill the screen*, or choose
+  *Choose a height* and pick Short, Medium or Tall for phones and for larger
+  screens.
+- Picture motion, the phone picture, the progress line and thumbnails apply to
+  the Full width layout; the other layouts show what they can.
 - Two sliders are used by the site itself: **homepage-hero** and
   **store-hero**. Deleting either asks you to confirm, because the homepage
   or shop front falls back to its plain design without it.

@@ -468,6 +468,62 @@ Reddit (`social_reddit`) is the seventh profile: `IconReddit` is drawn here
 from filled shapes; `#FF4500` is 5.39:1 on the footer's `#12140d`, but white
 on it is 3.44:1, so the blog sidebar's filled button is `#D93A00` (4.61:1).
 
+## Social row styles (0.191.0)
+
+`social_style` has six values, one list (`SettingController::SOCIAL_STYLES`,
+sent as `options`): `flip` (the default, and the fallback for any unknown value)
+and `dock` as above, and four chosen by the same setting for every theme,
+**circles**, **outline**, **pills** and **minimal**. Every footer layout already
+draws the row through `SocialLinks`, so each style is a small server component
+in `components/layout/social-links.tsx` plus a block in `globals.css`
+(`.social-row--<style>`); there is no client JavaScript, the hover is CSS. All
+four use the `PROFILES` table and the filtering flip uses (a blank URL is
+dropped, nothing renders when none is set) and add the email link; the row
+wraps, targets are 36px below `sm` and 40px from it, and each link keeps its
+accessible name.
+
+- **circles**: a disc filled with the network's colour and a white glyph, with a
+  hairline of the footer's ink at 25% so it reads on a light footer too; lifts
+  2px (`translate`) under the pointer.
+- **outline**: a 1.5px ring and glyph in `currentColor`; a fill rises from the
+  bottom (`::before`, `scale: 1 0` to `1 1`) and the glyph turns white. Under
+  reduced motion the fill appears without the rise.
+- **pills**: the icon and the network's name in a rounded pill, the border a
+  share of the footer's ink that takes some of the network's colour when pointed
+  at. A name is never truncated.
+- **minimal**: dimmed glyphs; the one pointed at brightens and gains a 2px bar
+  in the network's colour. The glyph's own colour never depends on a brand hex.
+
+Motion is only inside `prefers-reduced-motion: no-preference`, on `scale` and
+`translate` (never `transition-transform`) and on a pseudo-element, so the
+audit's computed `color` and `background-color` are undisturbed; reduced motion
+keeps the hover state without moving.
+
+**The fill is graded, which is why the published colours are not used.** The
+`--color-social-<net>` tokens are the networks' own colours, for a state under
+the pointer on the dark footer. A white glyph on a resting fill is a different
+pairing, and WhatsApp's `#25D366` is 1.98:1 under white. Each
+`--color-social-<net>-fill` is measured white-on-fill against WCAG 1.4.11's 3:1
+and is the same in both schemes:
+
+| | fill | white on it |
+|---|---|---|
+| LinkedIn | `#0a66c2` | 5.69 |
+| X | `#111111` | 18.88 |
+| Facebook | `#1877f2` | 4.23 |
+| Instagram | `#e4405f` | 4.04 |
+| YouTube | `#ff0000` | 4.00 |
+| WhatsApp | `#128c7e` | 4.14 |
+| Reddit | `#d93a00` | 4.61 |
+| Email | `#55621f` | 6.66 |
+
+They live in the `:root` social block in `globals.css` with the published
+colours, **not** in `@theme`, because the footer reads them from an inline style
+(`--fill` on each link) and Tailwind drops a `@theme` variable nothing in a
+class references. `scripts/probes/social-styles.mjs` sets each style in turn on
+every theme preview at 360 and 1280 in light and dark, checks target size,
+overflow, the hover state and reduced motion, and restores the setting.
+
 ## The phone action bar, the coming-soon page and the 404 (0.122.0)
 
 ### The action bar

@@ -489,6 +489,13 @@ at. `items.*.group` is validated against the tabs in the same payload, and an
 item naming one that does not exist is **refused**: filed under a missing tab it
 would be in the gallery, in the database, and on screen nowhere.
 
+**The public slider and slide carry the hero features** (0.191.0): the slider adds
+`media_effect`, `navigation`, `height`, `height_mobile` and `height_desktop`; each
+slide adds `kicker`, `link2_url`, `link2_label`, `mobile_url` with `mobile_alt`,
+`mobile_focus` and `mobile_blur` (resolved exactly like `url`, null when no phone
+picture is set), `text_tone`, `overlay`, `fit` and `duration_ms`. The phone
+picture is an image only and is ignored for a video or YouTube slide.
+
 **A slider with no slides is a 404, not an empty carousel.** The frontend's
 fallback is "render nothing" — and on the homepage, "render the NOC panel
 instead" — so an empty success would produce a track with two arrows that do
@@ -3816,7 +3823,7 @@ mid-save.
 | Certifications | `/admin/certifications` | `issuer`, `certificate_number`, `image_path` (the certificate itself, drawn 3:4 portrait), `file_path` (a media-library PDF), `issued_on`, `valid_until`, `description`. Titled `name`; **no slug, no `seo`** — listed on `/certifications`, no page of its own. `is_expired` on the admin resource |
 | Clients | `/admin/clients` | `logo_path`, `website_url` (http(s) only), `industry_id`, `note`, `is_featured`. Titled `name`; no slug, no `seo` |
 | Team members | `/admin/team-members` | `designation`, `department`, `photo_path`, `bio`, `email`, `linkedin_url`, `certifications[{name,issuer,credential_id,issued_on,expires_on}]` — **replaced wholesale**, `[]` clears. `meta.departments` on the index and the read. Titled `name`; no slug, no `seo`, **no phone** |
-| Sliders | `/admin/sliders` | `layout` (`full`, `split`, `cards`, `fan` — sent as `meta.layouts`; `cards` is the stacked-cards carousel and `fan` the fanned photo gallery, under both of which `transition` is ignored and two slides are the minimum), `transition`, `caption_animation` (how the words arrive: `none`/`fade`/`rise`/`slide`/`zoom`, refused outside the list, sent as `meta.caption_animations`), `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one. `meta.transitions` carries the options, defaulting to `slide` rather than `fade` as Galleries does — see below |
+| Sliders | `/admin/sliders` | `layout` (`full`, `split`, `cards`, `fan` — sent as `meta.layouts`; `cards` is the stacked-cards carousel and `fan` the fanned photo gallery, under both of which `transition` is ignored and two slides are the minimum), `transition`, `caption_animation` (how the words arrive: `none`/`fade`/`rise`/`slide`/`zoom`, refused outside the list, sent as `meta.caption_animations`), `autoplay`, `interval_ms`, `slides[]`, and since 0.191.0 `media_effect` (`none`, `zoom_in`, `zoom_out`, `drift`), `navigation` (`dots`, `progress`, `thumbnails`, `none`) and `height` (`theme`, `screen`, `fixed`; `fixed` requires `height_mobile` and `height_desktop`, each `short`/`medium`/`tall`, and any other height stores them null). Each slide takes `kicker` (60), `link2_url` + `link2_label` (the second button: both or neither, `LinkPattern`, label 60), `mobile_media_path` (a library image shown below 768px), `text_tone` (`light`, `dark`), `overlay` (`soft`, `standard`, `strong`), `fit` (`cover`, `contain`) and `duration_ms` (2000-60000, null = the slider's `interval_ms`); a value outside its list is a 422. Defaults are the old behaviour. `meta` carries `transitions`, `caption_animations`, `layouts`, `caption_positions`, `media_effects`, `navigations`, `heights`, `height_steps`, `text_tones`, `overlays` and `fits`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one. `meta.transitions` carries the options, defaulting to `slide` rather than `fade` as Galleries does — see below |
 | Galleries | `/admin/galleries` | `subtitle`, `transition`, `autoplay`, `interval_ms`, `groups[]`, `items[]`. Titled `name`, and **no `seo`** — same reason as a slider. `meta.transitions` carries the options |
 | Forms | `/admin/forms` | `submit_label`, `success_message`, `redirect_url`, `notify_email`, `embed_enabled`, `fields[]` (each with `settings` and `show_if`). Titled `name`, and **no `seo`**. Its submissions, uploads and export are under "Forms: the builder, submissions and uploads" below |
 | Popups | `/admin/popups` | `image_path`, `body` (rich text — a picture, a message, or both; neither is a 422 on `body`), `link_url`, `link_new_tab`, `sections[]`, `paths[]`, `size`, `frequency`, `trigger` (`delay`, the default, or `exit` — exit intent; refused outside the list), `delay_ms`, `starts_at`, `ends_at`, `sort_order`. Titled `name`, and **no `slug` and no `seo`** — a popup has no URL of its own and is not embedded by shortcode either. `meta` carries `sections`, `sizes`, `frequencies` and `triggers`; the admin resource adds `match_paths`, what the two lists resolve to |
@@ -5263,8 +5270,10 @@ reads the app id out of the reviews snippet rather than injecting it.
 
 **The `social` group is public** and holds the seven profile URLs —
 LinkedIn, X, Facebook, Instagram, YouTube, WhatsApp and, since 2026-09-24,
-`social_reddit` — plus how the footer draws them: `social_style` (`flip` or
-`dock`, offered as `options`, refused outside them) and `social_flip_word`
+`social_reddit` — plus how the footer draws them: `social_style` (`flip`,
+`dock`, `circles`, `outline`, `pills` or `minimal`, offered as `options` with a
+label and a description each, refused outside them; `social_flip_word` applies
+to `flip` only) and `social_flip_word`
 (letters and digits, at most 7 — one tile each — stored in capitals). A blank URL hides its
 icon.
 

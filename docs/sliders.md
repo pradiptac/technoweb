@@ -329,3 +329,123 @@ the canvas without CORS on `/storage`. The canvas paints only during a
 change; the real `<img>` is always underneath (alt, LCP, no-JS). No WebGL, a
 lost context, reduced motion or an SVG slide → the crossfade. Two slides
 minimum.
+
+## Hero features (0.191.0)
+
+Eight additions to the carousel, for every slider and not only `homepage-hero`.
+The defaults are the old behaviour, so a slider nobody touches renders what it
+did. The new columns are on `slides` (`kicker`, `link2_url`, `link2_label`,
+`mobile_media_path`, `text_tone`, `overlay`, `fit`, `duration_ms`) and on
+`sliders` (`media_effect`, `navigation`, `height`, `height_mobile`,
+`height_desktop`). Every enum is an `App\Enums\Slide*` or `Slider*` class with
+`label()`, `blurb()` and `options()`, sent on `meta` (`media_effects`,
+`navigations`, `heights`, `height_steps`, `text_tones`, `overlays`, `fits`) so
+the console lists none of them. A value outside its list is refused.
+
+**Which layout draws what.** The screen-height cap, per-slide timing, kicker,
+second button and text colour work wherever a slider draws a caption or runs
+on its own, because they live in `slide-caption.tsx`, `useAutoplay` and the
+shared `.slider-frame`. The slow zoom, the phone picture, the progress line
+and thumbnails are `full` (`Slider`) only: Split, Cards, Fan, Cylinder and
+Ripple move in their own way, and the console says so.
+
+- **Kicker and a second button.** A small uppercase line above the heading
+  (`kicker`, 60) and a second link (`link2_url` + `link2_label`, the first
+  button's `LinkPattern` rule). The second needs both halves or neither: a 422
+  on whichever is missing. The stagger counts the lines actually drawn, so a
+  missing kicker leaves no gap in it. The second button is outlined,
+  `onDarkOutline` on the dark shade and `secondary` on the light one, and wraps
+  below `sm`. Its colours are spelled out rather than left to the variant:
+  inside a section painted in a custom colour the variant's tokens were
+  re-derived and the button lost its edge.
+- **Text colour and shade.** `text_tone` is `light` (white words on
+  `--color-scrim`, what every caption did) or `dark` (near-black words on the
+  new `--color-scrim-light`, ink `--color-scrim-light-ink`). Both are
+  non-inverting tokens set beside `--color-scrim` in `globals.css` and
+  re-derived in `lib/themes.ts`, so a section background does not turn them.
+  `overlay` is `soft`, `standard` or `strong`. **Strength moves where the
+  opaque stop ends and never its alpha**: `strong` holds the opaque colour a
+  third of the way in (`via-35%`), `soft` finishes fading sooner (`to-70%`), and
+  the middle-row panel keeps its opaque ground and only changes its padding. The
+  audit cannot see through a translucent stop (the caption rule in CLAUDE.md),
+  so a shade that faded by alpha would leave it nothing to grade. The class
+  names are literal tables in `slide-caption.tsx`, and an unknown value falls
+  back to the old look.
+- **A separate picture for phones.** `mobile_media_path` is a library *image*
+  (`media.mime like image/%`, not in the bin); the resource adds `mobile_url`,
+  `mobile_alt`, `mobile_focus` and `mobile_blur` exactly as `url` is built.
+  `slide-media.tsx` draws one `<picture>` from `getImageProps`: a
+  `<source media="(max-width: 767px)">` for the phone file and the `<img>` for
+  the wide one, so a visitor downloads one file. A `<source>` carries no style,
+  so each focal point is a custom property on the `<picture>` and the `<img>`
+  picks between them with a media query; the blur preview does the same. Video
+  and YouTube slides ignore it. The crop-before-upload spec is `slide-mobile`
+  in `lib/image-specs.ts`, portrait 1080x1350.
+- **The slow zoom.** `media_effect` is `none`, `zoom_in`, `zoom_out` or `drift`.
+  The keyframes animate the CSS **`scale`** and **`translate`** properties
+  (never `transform`, the v4 trap) in `globals.css`, over the slide's own delay
+  (`--media-effect-ms`), holding the last frame, inside the no-preference query.
+  `data-media-effect` is on the inner span of `ZoomBox` only while the slide is
+  active, so taking it off resets the animation and putting it back restarts it
+  **without remounting the `<img>`**; the outer span clips, so the document
+  never widens. Images only. **On the native scroll track the index changes
+  halfway through a swipe**, which would reset the zoom of the slide still on
+  screen: `leaving` holds the slide being scrolled away from until the scroll
+  has been quiet for 200ms, and a slide counts as active while it is the index
+  or the leaving one.
+- **Per-slide timing.** `duration_ms` is 2000-60000 or null (the slider's
+  `interval_ms`). `slideDelay(slide, slider)` in `lib/hooks/use-carousel.ts` is
+  the one calculation, floored at 2000 and 6000 when neither is set; the
+  autoplay clock, the zoom and the progress line all read it. **`useAutoplay`
+  is a `setTimeout` re-armed per slide, not a `setInterval`**, and takes the
+  current index as `at`: a caller whose `tick` is stable (a functional state
+  update) would otherwise never be re-armed after the first tick. Every
+  carousel, the gallery included, moved onto it; with no `duration_ms` the
+  timing is what it was.
+- **Navigation.** `navigation` is `dots` (default), `progress`, `thumbnails` or
+  `none` (the arrows and the pause button remain). The progress line is a 3px
+  bar along the foot whose fill animates `scale` over the slide's delay; it is
+  mounted **only while the autoplay clock is running**, so hover, focus, a
+  hidden tab or the Pause button removes it and the resume restarts it from
+  empty, the same restart the timer makes, and it is absent under reduced
+  motion. **Thumbnails sit below the picture**, in flow: drawn inside the frame
+  they covered the caption, because the frame is capped and clipped. So
+  `Slider` returns an outer section holding the capped frame and the strip,
+  with the hover and focus pause on the outer box. The strip scrolls inside its
+  own `w-0 min-w-full` box so it never widens the page, each thumbnail is a 24px
+  or larger target named "Slide N: heading" with `aria-current`, and its active
+  ring has `p-1` around it or the scroll box clips it.
+- **Never taller than the screen.** `.slider-frame` (on the box every layout
+  draws, and the shop hero's picture) carries
+  `max-height: calc(100svh - var(--h-site-header) - var(--h-info-bar))`, always
+  on, so Atelier's and Launch's portrait heroes stop pushing the page below the
+  fold with no setting changed. `svh`, so a phone's collapsing address bar does
+  not make it jump; `--h-info-bar` exists only under Vantage and defaults to
+  nothing. The theme's `aspect-*` still sets the shape and the picture crops
+  around its focal point. `--slider-cap` is the ceiling, and the stacked layouts
+  size their cards from it with `min()` because their `min-height` would
+  otherwise beat the cap. `[data-slider-stage]` carries it too, or an
+  aspect-ratio slide overflows its clipped frame instead of being shortened.
+  Vantage's hero keeps the full window and takes the info bar into every cap.
+  `scripts/probes/slider-height.mjs` fails a theme whose frame is taller than
+  the screen at five sizes.
+- **Height.** `height` is `theme` (default: the theme's shape, capped),
+  `screen` (exactly the visible screen below the header, aspect off, a 22rem
+  floor so a landscape phone stays usable) or `fixed`, which needs
+  `height_mobile` and `height_desktop`, each `short`, `medium` or `tall`
+  (16/22/28rem on phones, 24/34/44rem from `lg`, each under the screen cap). The
+  steps are required only for `fixed` (`required_if`) and the controller stores
+  null for them under any other height. `lib/slider-frame.ts` emits
+  `data-height`, `data-h-mobile` and `data-h-desktop` (nothing for `theme`) and
+  one `globals.css` block reads them.
+- **Fit.** `fit` is per slide: `cover` (fill and crop, the default) or
+  `contain` (the whole picture, centred over a blurred, enlarged copy of itself
+  so there are no bare bars; the slide's `blur` preview stands in as that
+  background where there is one). The slow zoom runs on the sharp picture only.
+
+Console: Site > Sliders gains Picture motion, Navigation and Height (with the
+two steps when Fixed) on the slider, and per slide the kicker, second button,
+phone picture, Text colour, Shade, Picture fit and Show for (seconds). All go
+through the repeater's draft and restore like the existing fields.
+`scripts/probes/hero-features.mjs` drives the lot on `homepage-hero` and puts
+it back; `slider-height.mjs` is the cap.
