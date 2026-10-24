@@ -64,7 +64,7 @@ const TONE = {
   light: {
     from: "from-scrim", via: "via-scrim", panel: "bg-scrim",
     heading: "text-white", body: "text-[rgba(255,255,255,.85)]", kicker: "text-[rgba(255,255,255,.85)]",
-    primary: "bg-card text-ink hover:bg-brand-50", second: "onDarkOutline" as const, secondClass: "border-dark-muted",
+    primary: "bg-card text-ink hover:bg-brand-50", second: "onDarkOutline" as const, secondClass: "text-white border-[rgba(255,255,255,.55)] hover:border-white",
   },
   dark: {
     from: "from-scrim-light", via: "via-scrim-light", panel: "bg-scrim-light",
