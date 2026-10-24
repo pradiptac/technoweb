@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type FocusEvent } from "react";
 import { cn } from "@/lib/utils";
 import { slideDelay, useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
@@ -245,26 +245,28 @@ export function Slider({
     return [...roles.entries()].sort((a, b) => order[a[1]] - order[b[1]]);
   })();
 
-  return (
-    <section
-      aria-roledescription="carousel"
-      aria-label={slider.name}
-      // `bg-card`, not `bg-surface` (2026-09-20): the shell has to be opaque
-      // so a fade never flashes the page, and it also has to be a *ground* —
-      // on Classic's hero `bg-surface` computed the same colour as the
-      // section behind it, which is the "card without a ground" the audit
-      // fails, and `bg-card` is what carries the card gradient that rule
-      // expects. Under dark the two were always distinct; in light they were
-      // both white until this.
-      className={cn("slider-frame group relative min-w-0 overflow-hidden rounded-xl border border-line-strong bg-card", className)}
-      {...sliderFrameAttrs(slider)}
-      onPointerEnter={() => setPaused(true)}
-      onPointerLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) setPaused(false);
-      }}
-    >
+  // Thumbnails sit in flow below the picture, outside the frame that is capped
+  // and clipped, so they never cover a caption; every other mode draws inside.
+  const below = navigation === "thumbnails" && slides.length > 1;
+  const pauseOnPresence = {
+    onPointerEnter: () => setPaused(true),
+    onPointerLeave: () => setPaused(false),
+    onFocusCapture: () => setPaused(true),
+    onBlurCapture: (e: FocusEvent<HTMLElement>) => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node)) setPaused(false);
+    },
+  };
+  // `bg-card`, not `bg-surface` (2026-09-20): the shell has to be opaque
+  // so a fade never flashes the page, and it also has to be a *ground* —
+  // on Classic's hero `bg-surface` computed the same colour as the
+  // section behind it, which is the "card without a ground" the audit
+  // fails, and `bg-card` is what carries the card gradient that rule
+  // expects. Under dark the two were always distinct; in light they were
+  // both white until this.
+  const frameClass = cn("slider-frame group relative min-w-0 overflow-hidden rounded-xl border border-line-strong bg-card", below && "min-h-0 grow", className);
+
+  const frameBody = (
+    <>
       {isNative ? (
         <div
           ref={track}
@@ -381,9 +383,7 @@ export function Slider({
             <Chevron />
           </button>
 
-          {navigation === "thumbnails" ? (
-            <SlideThumbs slides={slides} index={index} onGo={goTo} smooth={motionOk} />
-          ) : navigation !== "none" && (
+          {navigation !== "none" && navigation !== "thumbnails" && (
             <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
               {slides.map((slide, i) => (
                 <button
@@ -437,6 +437,19 @@ export function Slider({
           </p>
         </>
       )}
+    </>
+  );
+
+  return below ? (
+    // The carousel is the outer box, so the callers' height still lands on the
+    // frame inside it; `h-full` only matters where a parent gives it a height.
+    <section aria-roledescription="carousel" aria-label={slider.name} className="flex h-full min-w-0 flex-col gap-2" {...pauseOnPresence}>
+      <div className={frameClass} {...sliderFrameAttrs(slider)}>{frameBody}</div>
+      <SlideThumbs slides={slides} index={index} onGo={goTo} smooth={motionOk} />
+    </section>
+  ) : (
+    <section aria-roledescription="carousel" aria-label={slider.name} className={frameClass} {...sliderFrameAttrs(slider)} {...pauseOnPresence}>
+      {frameBody}
     </section>
   );
 }

@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 import type { Slide } from "@/types/api";
 
 /**
- * The `thumbnails` navigation: a strip of small pictures in place of the dots.
+ * The `thumbnails` navigation: a strip of small pictures under the slider, in
+ * place of the dots.
  *
  * It scrolls inside its own box (`w-0 min-w-full`, so a long strip contributes
  * nothing to the width of whatever holds it) and follows the current slide by
@@ -28,10 +29,11 @@ export function SlideThumbs({ slides, index, onGo, smooth }: {
   }, [index, smooth]);
 
   return (
-    // `inset-x-12` keeps it clear of the Pause button in the corner.
-    <div className="absolute inset-x-12 bottom-2 z-10">
+    // In flow under the picture, on the page's own ground (not over the scrim).
+    <div className="shrink-0">
       <div ref={strip} className="relative w-0 min-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="mx-auto flex w-max gap-1.5">
+        {/* `p-1` leaves room for the active ring, which the scroll box would otherwise clip. */}
+        <div className="mx-auto flex w-max gap-1.5 p-1">
           {slides.map((slide, i) => {
             const src = slide.kind === "image" ? slide.url : slide.poster_url;
             const label = slide.heading || slide.alt;
@@ -45,7 +47,7 @@ export function SlideThumbs({ slides, index, onGo, smooth }: {
                 className={cn(
                   "relative block h-10 w-16 shrink-0 overflow-hidden rounded-md bg-surface-2 sm:h-12 sm:w-20",
                   "ring-2 transition-opacity duration-(--duration-fast)",
-                  i === index ? "opacity-100 ring-card" : "opacity-70 ring-transparent hover:opacity-100",
+                  i === index ? "opacity-100 ring-brand-500" : "opacity-70 ring-transparent hover:opacity-100",
                 )}
               >
                 {src && <Image src={src} alt="" fill sizes="96px" className="object-cover" />}
