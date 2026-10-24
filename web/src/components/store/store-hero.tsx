@@ -6,7 +6,7 @@ import { focalStyle } from "@/lib/focal";
 import { blurProps } from "@/lib/blur";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { useAutoplay, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
+import { slideDelay, useAutoplay, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import { Slider } from "@/components/ui/slider";
 import { IconArrowRight } from "@/components/icons-ui";
 import { sliderFrameAttrs } from "@/lib/slider-frame";
@@ -55,7 +55,7 @@ export function StoreHero({ slider }: { slider: SliderRecord }) {
 
   const autoplay = slider.autoplay && motionOk && !taken && count > 1;
   const advance = useCallback(() => setIndex((i) => (i + 1) % count), [count]);
-  useAutoplay(autoplay, slider.interval_ms, advance);
+  useAutoplay(autoplay, slideDelay(slides[index], slider), advance, index);
 
   if (count === 0) return null;
   if (slides.some((s) => s.kind !== "image")) {

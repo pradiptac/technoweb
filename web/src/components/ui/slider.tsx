@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
-import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
+import { slideDelay, useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
 import { SlideMedia } from "@/components/ui/slide-media";
 import { SlideCaption, captionAnimationFor } from "@/components/ui/slide-caption";
@@ -190,7 +190,7 @@ export function Slider({
   const wantsPlay = override ?? slider.autoplay;
   const autoplay = wantsPlay && motionOk && !paused && !hidden && slides.length > 1;
   const advance = useCallback(() => goTo(index + 1), [goTo, index]);
-  useAutoplay(autoplay, slider.interval_ms, advance);
+  useAutoplay(autoplay, slideDelay(slides[index], slider), advance, index);
 
   if (slides.length === 0) return null;
 

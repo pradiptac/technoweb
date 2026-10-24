@@ -39,18 +39,32 @@ export function useDocumentHidden(): boolean {
 }
 
 /**
- * Runs `tick` every `intervalMs` while `active`, floored at two seconds —
- * a slide that changes faster than that cannot be read. The interval is
- * re-armed whenever `tick` changes, which every caller relies on: their
- * `tick` closes over the current index, so a manual press restarts the
- * clock rather than advancing again a moment later.
+ * How long a slide stays: its own `duration_ms`, else the slider's
+ * `interval_ms`, floored at two seconds (a slide that changes faster cannot
+ * be read) and 6000 when neither is set. The one calculation — the autoplay
+ * clock, the slow zoom and the progress bar all read it.
  */
-export function useAutoplay(active: boolean, intervalMs: number | null | undefined, tick: () => void): void {
+export function slideDelay(
+  slide: { duration_ms?: number | null } | null | undefined,
+  slider: { interval_ms?: number | null },
+): number {
+  return Math.max(2000, slide?.duration_ms || slider.interval_ms || 6000);
+}
+
+/**
+ * Calls `tick` once `delayMs` after the current slide `at` appeared, while
+ * `active`, and is re-armed by any change of `at`, `delayMs` or `tick` — so a
+ * slide can stay longer or shorter than its neighbour, and a manual press
+ * (which changes `at`) restarts the clock rather than advancing again a moment
+ * later. `at` is needed because a caller whose `tick` is stable (a functional
+ * state update) would otherwise never be re-armed after the first tick.
+ */
+export function useAutoplay(active: boolean, delayMs: number, tick: () => void, at: number): void {
   useEffect(() => {
     if (!active) return;
-    const id = setInterval(tick, Math.max(2000, intervalMs || 6000));
-    return () => clearInterval(id);
-  }, [active, intervalMs, tick]);
+    const id = setTimeout(tick, Math.max(2000, delayMs));
+    return () => clearTimeout(id);
+  }, [active, delayMs, tick, at]);
 }
 
 /** `next` wrapped into `[0, count)` in both directions, so -1 is the last slide. */

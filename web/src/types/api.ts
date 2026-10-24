@@ -2857,6 +2857,8 @@ export type Slide = {
   caption_position?: string | null;
   /** `cover` (fill and crop) or `contain` (the whole picture over a blurred copy). The API's list. */
   fit?: string | null;
+  /** How long this slide stays, in ms (2000–60000); null means the slider's `interval_ms`. */
+  duration_ms?: number | null;
 };
 
 /**

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconZoomIn } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
-import { useAutoplay, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
+import { slideDelay, useAutoplay, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Gallery as GalleryData, GalleryItem } from "@/types/api";
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
@@ -454,7 +454,7 @@ export function Lightbox({
   }, [zoomTo]);
 
   const advance = useCallback(() => go(index + 1), [go, index]);
-  useAutoplay(playing && count > 1, intervalMs, advance);
+  useAutoplay(playing && count > 1, slideDelay(null, { interval_ms: intervalMs }), advance, index);
 
   // A hidden tab is not somebody watching a slideshow — and unlike the
   // sliders this does not resume when the tab comes back: the lightbox's
