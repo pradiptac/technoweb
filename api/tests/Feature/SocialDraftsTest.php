@@ -212,4 +212,58 @@ class SocialDraftsTest extends TestCase
         $this->blog(['slug' => 'after']); // and drafting resumes outside it
         $this->assertSame(2, SocialPost::query()->count());
     }
+
+    public function test_deleting_a_record_removes_its_unsent_drafts_and_keeps_what_was_sent(): void
+    {
+        $post = $this->blog();
+        [$li, $x] = SocialPost::query()->orderBy('id')->get()->all();
+        $x->update(['status' => 'shared_manually']);
+        $other = $this->blog(['slug' => 'other']);
+
+        $post->delete();
+
+        $this->assertNull(SocialPost::query()->find($li->id));
+        $this->assertSame('shared_manually', SocialPost::query()->find($x->id)?->status->value);
+        $this->assertSame(2, SocialPost::query()->where('subject_id', $other->id)->count());
+    }
+
+    public function test_the_sweep_drafts_a_press_release_that_came_due(): void
+    {
+        $type = ContentType::create(['name' => 'News', 'plural' => 'News', 'slug' => 'news', 'is_active' => true, 'preset' => 'newsroom_releases']);
+        Entry::create(['content_type_id' => $type->id, 'title' => 'Launch', 'status' => 'published', 'published_at' => now()->addDay()]);
+        $this->assertSame(0, SocialPost::query()->count());
+
+        $this->travel(2)->days();
+        $this->assertSame(1, SocialDrafts::sweep());
+        $this->assertSame(2, SocialPost::query()->count());
+    }
+
+    public function test_the_sweep_ignores_anything_older_than_thirty_days(): void
+    {
+        $this->blog(['published_at' => now()->addDay()]);
+
+        $this->travel(32)->days();
+        $this->assertSame(0, SocialDrafts::sweep());
+    }
+
+    public function test_an_imported_recent_post_is_not_swept(): void
+    {
+        SocialDrafts::suppressed(fn () => $this->blog(['published_at' => now()->subDays(3)]));
+
+        $this->assertSame(0, SocialDrafts::sweep());
+        $this->assertSame(0, SocialPost::query()->count());
+    }
+
+    public function test_a_scheduled_post_edited_after_going_live_but_before_the_sweep_gets_one_pair(): void
+    {
+        $post = $this->blog(['published_at' => now()->addHour()]);
+
+        $this->travel(2)->hours();
+        $post->update(['title' => 'New switches, faster']);
+        $this->assertSame(2, SocialPost::query()->count());
+
+        SocialDrafts::sweep();
+        $post->update(['title' => 'New switches, fastest']);
+        $this->assertSame(2, SocialPost::query()->count());
+    }
 }

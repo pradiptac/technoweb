@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\Role as RoleEnum;
 use App\Enums\SocialNetwork;
 use App\Enums\SocialPostStatus;
+use App\Models\Activity;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\ContentType;
@@ -300,5 +301,47 @@ class SocialPostApiTest extends TestCase
         Setting::put('social_linkedin_oauth_expires_at', now()->addDays(30)->toIso8601String());
         Setting::put('social_linkedin_oauth_account', 'LinkedIn');
         Setting::put('social_linkedin_organization_id', '12345');
+    }
+
+    public function test_approving_is_written_to_the_activity_log_without_the_text(): void
+    {
+        $post = $this->makePost(SocialNetwork::X, text: 'Secret wording');
+        $this->actAs(RoleEnum::ContentManager);
+
+        $this->postJson("/api/v1/admin/social-posts/{$post->id}/approve", ['text' => 'Secret wording'])->assertOk();
+
+        $row = Activity::query()->where('action', 'approve')->firstOrFail();
+        $this->assertSame('Content_manager', $row->actor_name);
+        $this->assertSame('social_post', $row->subject_type);
+        $this->assertSame($post->id, (int) $row->subject_id);
+        $this->assertSame('x', $row->context['network']);
+        $this->assertSame('shared_manually', $row->context['status']);
+        $this->assertStringNotContainsString('Secret wording', json_encode($row->context));
+
+        $this->postJson("/api/v1/admin/social-posts/{$this->makePost()->id}/discard")->assertOk();
+        $this->assertSame(1, Activity::query()->where('action', 'discard')->count());
+    }
+
+    public function test_manual_approval_of_a_failed_linkedin_post_opens_the_share_page(): void
+    {
+        $this->seedConnection();
+        Http::fake();
+        $post = $this->makePost(status: SocialPostStatus::Failed);
+        $this->actAs(RoleEnum::ContentManager);
+
+        $this->postJson("/api/v1/admin/social-posts/{$post->id}/approve", ['text' => 'By hand', 'manual' => true])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'shared_manually')
+            ->assertJsonPath('meta.open_url', 'https://www.linkedin.com/sharing/share-offsite/?url='.urlencode('https://www.example.test/blog/new-switches'));
+        Http::assertNothingSent();
+    }
+
+    public function test_an_edit_cannot_land_on_a_post_that_is_being_sent(): void
+    {
+        $post = $this->makePost(status: SocialPostStatus::Sending);
+        $this->actAs(RoleEnum::ContentManager);
+
+        $this->patchJson("/api/v1/admin/social-posts/{$post->id}", ['text' => 'Late'])->assertStatus(422)->assertJsonValidationErrors('text');
+        $this->assertSame('Draft text', $post->fresh()->text);
     }
 }

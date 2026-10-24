@@ -80,7 +80,7 @@ export function SocialAccountsPanel({ status, rows }: { status?: SocialAccountsS
 
       <div className="mb-4">
         <MailboxConnection
-          account={li.account}
+          account={li.account ?? "LinkedIn"}
           connectedAt={null}
           isConnected={li.connected}
           providerLabel="LinkedIn"

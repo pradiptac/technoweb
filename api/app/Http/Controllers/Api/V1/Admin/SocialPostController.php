@@ -72,11 +72,14 @@ class SocialPostController extends Controller
     {
         $data = $request->validate(['text' => ['required', 'string', 'max:20000']]);
 
-        if (! in_array($socialPost->status, [Status::Draft, Status::Failed, Status::Unconfirmed], true)) {
+        // One conditional update, so an edit cannot land on a post that is being sent.
+        $changed = SocialPost::query()->whereKey($socialPost->id)
+            ->whereIn('status', [Status::Draft->value, Status::Failed->value, Status::Unconfirmed->value])
+            ->update(['text' => $data['text']]);
+        if ($changed === 0) {
             throw ValidationException::withMessages(['text' => ['This post can no longer be edited.']]);
         }
-
-        $socialPost->update(['text' => $data['text']]);
+        $socialPost->refresh();
 
         return new SocialPostResource($this->loaded($socialPost));
     }
@@ -112,9 +115,10 @@ class SocialPostController extends Controller
         $data = $request->validate([
             'text' => ['required', 'string', 'max:20000'],
             'confirm' => ['sometimes', 'boolean'],
+            'manual' => ['sometimes', 'boolean'],
         ]);
 
-        $outcome = $sender->approve($socialPost, $data['text'], $request->user(), (bool) ($data['confirm'] ?? false));
+        $outcome = $sender->approve($socialPost, $data['text'], $request->user(), (bool) ($data['confirm'] ?? false), (bool) ($data['manual'] ?? false));
         $resource = new SocialPostResource($this->loaded($outcome->post));
 
         if ($outcome->refusal !== null) {

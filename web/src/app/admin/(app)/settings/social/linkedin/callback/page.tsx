@@ -49,7 +49,7 @@ export default async function LinkedInCallbackPage({
         <Alert tone="err" title="That did not complete">{result.error}</Alert>
       ) : result?.ok ? (
         <Alert tone="ok" title="LinkedIn connected">
-          Signed in as <strong>{result.ok}</strong>. Choose which LinkedIn page posts go to from Social accounts.
+          {result.ok === "LinkedIn" ? "Your account is connected." : <>Signed in as <strong>{result.ok}</strong>.</>} Choose which LinkedIn page posts go to from Social accounts.
         </Alert>
       ) : (
         <Alert tone="warn" title="Nothing to do">

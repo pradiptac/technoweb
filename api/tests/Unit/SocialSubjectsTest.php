@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Enums\PublishStatus;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\ContentType;
@@ -65,5 +66,27 @@ class SocialSubjectsTest extends TestCase
         $this->assertSame('Blog post', SocialSubjects::kindLabel($post));
         $this->assertSame('Press release', SocialSubjects::kindLabel($entry));
         $this->assertSame('Hello', SocialSubjects::title($post));
+    }
+
+    public function test_an_entrys_visibility_follows_its_own_public_rule(): void
+    {
+        $entry = $this->entry('newsroom_releases', 'releases');
+        $this->assertTrue(SocialSubjects::isVisible($entry), 'no date counts as live');
+
+        $entry->published_at = now()->addDay();
+        $this->assertFalse(SocialSubjects::isVisible($entry));
+
+        $entry->published_at = now()->subHour();
+        $this->assertTrue(SocialSubjects::isVisible($entry));
+
+        $entry->status = PublishStatus::Draft;
+        $this->assertFalse(SocialSubjects::isVisible($entry));
+
+        $entry->status = PublishStatus::Published;
+        ContentType::query()->whereKey($entry->content_type_id)->update(['is_active' => false]);
+        $this->assertFalse(SocialSubjects::isVisible($entry->fresh()), 'an inactive type is not public');
+
+        $coverage = $this->entry('newsroom_coverage', 'coverage');
+        $this->assertFalse(SocialSubjects::isVisible($coverage));
     }
 }

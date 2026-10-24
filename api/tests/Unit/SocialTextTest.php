@@ -54,10 +54,10 @@ class SocialTextTest extends TestCase
         }
     }
 
-    public function test_linkedin_fallback_carries_title_summary_and_link(): void
+    public function test_linkedin_fallback_carries_title_and_summary_but_no_link(): void
     {
         $text = SocialText::fallback(SocialNetwork::LinkedIn, 'Title', 'A summary.', 'https://example.com/p');
 
-        $this->assertSame("Title\n\nA summary.\n\nhttps://example.com/p", $text);
+        $this->assertSame("Title\n\nA summary.", $text);
     }
 }

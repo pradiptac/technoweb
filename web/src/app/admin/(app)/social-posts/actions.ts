@@ -36,9 +36,9 @@ function reason(error: unknown, fallback: string): string {
  * No `revalidatePath` here: the console renders on every request, and a
  * revalidation in the action re-rendered the whole page a second time.
  */
-export async function approveSocialPostAction(id: number, text: string, confirm: boolean): Promise<ApproveResult> {
+export async function approveSocialPostAction(id: number, text: string, confirm: boolean, manual = false): Promise<ApproveResult> {
   try {
-    const { post, open_url } = await approveSocialPost(id, text, confirm);
+    const { post, open_url } = await approveSocialPost(id, text, confirm, manual);
 
     return {
       status: post.status,

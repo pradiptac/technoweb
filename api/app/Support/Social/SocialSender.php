@@ -11,6 +11,7 @@ use App\Models\Event;
 use App\Models\SocialPost;
 use App\Models\User;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Approving and discarding a post. X is never sent by API: the person gets
@@ -20,9 +21,13 @@ use Illuminate\Http\Client\ConnectionException;
  */
 class SocialSender
 {
+    /** What a post says when we cannot tell whether LinkedIn took it. */
+    public const UNCONFIRMED = "We couldn't confirm LinkedIn received this. Check the page before trying again.";
+
     public function __construct(private LinkedInPoster $linkedin) {}
 
-    public function approve(SocialPost $p, string $text, User $by, bool $confirm = false): SendOutcome
+    /** `$manual`: skip the API and open the share page even when LinkedIn is connected. */
+    public function approve(SocialPost $p, string $text, User $by, bool $confirm = false, bool $manual = false): SendOutcome
     {
         $network = $p->network;
 
@@ -45,6 +50,7 @@ class SocialSender
             });
         }
 
+        $was = $p->status;
         $claimed = SocialPost::query()->whereKey($p->id)
             ->whereIn('status', array_map(fn (Status $s) => $s->value, $allowed))
             ->update(['status' => Status::Sending->value, 'text' => $text]);
@@ -53,10 +59,23 @@ class SocialSender
         }
         $p->refresh();
 
+        // Past the claim the post is `sending`; whatever goes wrong, it must not stay there.
+        try {
+            return $this->deliver($p, $was, $text, $by, $manual);
+        } catch (\Throwable $e) {
+            Log::warning('Social posts: send failed', ['id' => $p->id, 'error' => $e::class]);
+
+            return $this->unconfirmed($p);
+        }
+    }
+
+    private function deliver(SocialPost $p, Status $was, string $text, User $by, bool $manual): SendOutcome
+    {
+        $network = $p->network;
         $subject = SocialSubjects::find((string) $p->subject_type, (int) $p->subject_id);
         if (! ($subject instanceof BlogPost || $subject instanceof CaseStudy || $subject instanceof Event || $subject instanceof Entry)
             || ! SocialSubjects::isVisible($subject)) {
-            $p->update(['status' => Status::Draft]);
+            $p->update(['status' => $was]); // an unconfirmed post must stay one
 
             return $this->refuse($p, 'That page is no longer published.');
         }
@@ -71,7 +90,7 @@ class SocialSender
             return new SendOutcome($p, 'https://x.com/intent/post?text='.urlencode($text).'&url='.urlencode($url));
         }
 
-        if (! $this->linkedin->ready()) {
+        if ($manual || ! $this->linkedin->ready()) {
             $p->update(['status' => Status::SharedManually, 'error' => null] + $approved);
 
             return new SendOutcome($p, 'https://www.linkedin.com/sharing/share-offsite/?url='.urlencode($url));
@@ -83,13 +102,15 @@ class SocialSender
             if ($e->status === 401) {
                 $this->linkedin->connection()->fail($e->getMessage());
             }
+            // A 5xx may have made the post before failing; only a 4xx is a plain refusal.
+            if ($e->status >= 500) {
+                return $this->unconfirmed($p);
+            }
             $p->update(['status' => Status::Failed, 'error' => $e->getMessage()]);
 
             return new SendOutcome($p, null, $e->getMessage());
         } catch (ConnectionException) {
-            $p->update(['status' => Status::Unconfirmed, 'error' => "We couldn't confirm LinkedIn received this. Check the page before trying again."]);
-
-            return new SendOutcome($p);
+            return $this->unconfirmed($p);
         }
 
         $p->update([
@@ -109,6 +130,13 @@ class SocialSender
         $p->refresh();
 
         return $done === 0 ? 'Only a post that has not been sent can be discarded.' : null;
+    }
+
+    private function unconfirmed(SocialPost $p): SendOutcome
+    {
+        $p->update(['status' => Status::Unconfirmed, 'error' => self::UNCONFIRMED]);
+
+        return new SendOutcome($p);
     }
 
     private function refuse(SocialPost $p, string $message): SendOutcome

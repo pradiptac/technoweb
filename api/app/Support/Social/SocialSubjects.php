@@ -38,8 +38,12 @@ class SocialSubjects
             return false;
         }
 
-        return ! ($m instanceof BlogPost || $m instanceof Entry)
-            || ($m->published_at !== null && $m->published_at->lte(now()));
+        // An entry is public by its own rule (no date counts as live) and only while its type is on.
+        if ($m instanceof Entry) {
+            return $m->isPublic() && ContentType::query()->whereKey($m->content_type_id)->where('is_active', true)->exists();
+        }
+
+        return ! ($m instanceof BlogPost) || ($m->published_at !== null && $m->published_at->lte(now()));
     }
 
     public static function find(string $alias, int $id): ?Model

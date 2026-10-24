@@ -296,4 +296,111 @@ class SocialSenderTest extends TestCase
 
         $this->assertSame([['id' => '12345', 'name' => 'Acme Networks']], app(LinkedInPoster::class)->organizations());
     }
+
+    public function test_a_5xx_is_unconfirmed_not_failed_and_cannot_be_retried_without_confirmation(): void
+    {
+        $this->connect();
+        Http::fake(['api.linkedin.com/rest/posts' => Http::response(['message' => 'Service unavailable'], 503)]);
+        $post = $this->draft();
+
+        $out = $this->sender()->approve($post, 'Fresh news', $this->user);
+
+        $this->assertNull($out->refusal);
+        $fresh = $post->fresh();
+        $this->assertSame(SocialPostStatus::Unconfirmed, $fresh->status);
+        $this->assertSame(SocialSender::UNCONFIRMED, $fresh->error);
+
+        $blocked = $this->sender()->approve($fresh, 'Fresh news', $this->user);
+        $this->assertSame('Check LinkedIn first — confirm to send it again.', $blocked->refusal);
+        Http::assertSentCount(1);
+    }
+
+    public function test_a_throw_after_the_claim_leaves_the_post_unconfirmed_not_sending(): void
+    {
+        $this->connect();
+        Http::fake();
+        $post = $this->draft();
+        // The token ends between ready() and post(): accessToken() throws.
+        $this->mock(LinkedInPoster::class, function ($mock) {
+            $mock->shouldReceive('ready')->andReturn(true);
+            $mock->shouldReceive('post')->andThrow(new \RuntimeException('secret detail li-token'));
+        });
+
+        $out = $this->app->make(SocialSender::class)->approve($post, 'Fresh news', $this->user);
+
+        $this->assertNull($out->refusal);
+        $fresh = $post->fresh();
+        $this->assertSame(SocialPostStatus::Unconfirmed, $fresh->status);
+        $this->assertSame(SocialSender::UNCONFIRMED, $fresh->error);
+        $this->assertStringNotContainsString('li-token', (string) $fresh->error);
+    }
+
+    public function test_the_sweep_moves_a_stale_sending_post_to_unconfirmed(): void
+    {
+        $stale = $this->draft();
+        $stale->update(['status' => SocialPostStatus::Sending]);
+        SocialPost::query()->whereKey($stale->id)->toBase()->update(['updated_at' => now()->subMinutes(6)]);
+        $fresh = $this->draft();
+        $fresh->update(['status' => SocialPostStatus::Sending]);
+
+        SocialDrafts::sweep();
+
+        $this->assertSame(SocialPostStatus::Unconfirmed, $stale->fresh()->status);
+        $this->assertSame(SocialSender::UNCONFIRMED, $stale->fresh()->error);
+        $this->assertSame(SocialPostStatus::Sending, $fresh->fresh()->status);
+    }
+
+    public function test_an_unpublished_subject_keeps_an_unconfirmed_post_unconfirmed(): void
+    {
+        $this->connect();
+        Http::fake();
+        $post = $this->draft();
+        $post->update(['status' => SocialPostStatus::Unconfirmed, 'error' => SocialSender::UNCONFIRMED]);
+        SocialDrafts::suppressed(fn () => $this->blog->update(['status' => 'draft']));
+
+        $out = $this->sender()->approve($post->fresh(), 'Words', $this->user, confirm: true);
+
+        $this->assertSame('That page is no longer published.', $out->refusal);
+        $this->assertSame(SocialPostStatus::Unconfirmed, $post->fresh()->status);
+        Http::assertNothingSent();
+    }
+
+    public function test_manual_opens_the_share_page_even_when_linkedin_is_connected(): void
+    {
+        $this->connect();
+        Http::fake();
+        $post = $this->draft();
+        $post->update(['status' => SocialPostStatus::Failed, 'error' => 'Nope']);
+
+        $out = $this->sender()->approve($post->fresh(), 'Words', $this->user, manual: true);
+
+        $this->assertSame('https://www.linkedin.com/sharing/share-offsite/?url='.urlencode('https://www.example.test/blog/new-switches'), $out->openUrl);
+        $this->assertSame(SocialPostStatus::SharedManually, $post->fresh()->status);
+        $this->assertNull($post->fresh()->error);
+        Http::assertNothingSent();
+    }
+
+    public function test_a_linkedin_connection_stores_no_account_name(): void
+    {
+        Setting::put('social_linkedin_oauth_client_id', 'client');
+        Setting::put('social_linkedin_oauth_client_secret', 'secret');
+        Http::fake(['www.linkedin.com/oauth/v2/accessToken' => Http::response(['access_token' => 'li-token', 'expires_in' => 5184000], 200)]);
+
+        OAuthConnection::linkedIn()->exchange('the-code', 'http://localhost:3000/cb');
+
+        $this->assertTrue(blank(Setting::get('social_linkedin_oauth_account')));
+    }
+
+    public function test_the_page_list_is_capped_at_ten(): void
+    {
+        $this->connect();
+        $elements = array_map(fn ($i) => ['organization' => 'urn:li:organization:'.(100 + $i)], range(1, 14));
+        Http::fake([
+            'api.linkedin.com/rest/organizationAcls*' => Http::response(['elements' => $elements], 200),
+            'api.linkedin.com/rest/organizations/*' => Http::response(['localizedName' => 'Page'], 200),
+        ]);
+
+        $this->assertCount(10, app(LinkedInPoster::class)->organizations());
+        Http::assertSentCount(11);
+    }
 }

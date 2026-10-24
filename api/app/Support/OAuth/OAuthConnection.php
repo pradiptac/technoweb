@@ -483,7 +483,8 @@ final class OAuthConnection
 
         Setting::put($this->key('access_token'), $body['access_token']);
         Setting::put($this->key('expires_at'), now()->addSeconds((int) ($body['expires_in'] ?? 5184000))->toIso8601String());
-        Setting::put($this->key('account'), $email);
+        // LinkedIn's token names nobody (no openid scope), so there is no account to show.
+        Setting::put($this->key('account'), $this->provider === OAuthProvider::LinkedIn ? null : $email);
         Setting::put($this->key('connected_at'), now()->toIso8601String());
         Setting::put($this->errorKey, null);
 

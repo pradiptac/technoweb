@@ -2352,7 +2352,7 @@ function socialPair(subjectType, subject, source = 'publish') {
   const id = Math.max(0, ...socialPosts.map((p) => p.id)) + 1;
   const created_at = new Date().toISOString();
   const pair = [
-    { ...base, id, network: 'linkedin', status: 'draft', created_at, text: `${subject.title}\n\n${subject.summary}\n\n${subject.url}` },
+    { ...base, id, network: 'linkedin', status: 'draft', created_at, text: `${subject.title}\n\n${subject.summary}` },
     { ...base, id: id + 1, network: 'x', status: 'draft', created_at, ai_pending: true, text: `${subject.title} — ${subject.summary}`.slice(0, 200) },
   ];
   socialPosts.unshift(...pair);
@@ -4059,7 +4059,7 @@ createServer(async (req, res) => {
           const open_url = `https://x.com/intent/post?text=${encodeURIComponent(body.text)}&url=${encodeURIComponent(post.url)}`;
           return json(res, 200, { data: adminSocialPost(post), meta: { open_url } });
         }
-        if (!socialLinkedIn.connected || !socialLinkedIn.organization) {
+        if (body.manual || !socialLinkedIn.connected || !socialLinkedIn.organization) {
           post.status = 'shared_manually';
           const open_url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(post.url)}`;
           return json(res, 200, { data: adminSocialPost(post), meta: { open_url } });
@@ -4080,8 +4080,8 @@ createServer(async (req, res) => {
       return json(res, 422, { message: 'Save the client ID and secret first.', errors: { redirect_uri: ['Save the client ID and secret first.'] } });
     }
     if (p === '/admin/settings/social/linkedin/callback' && req.method === 'POST') {
-      Object.assign(socialLinkedIn, { connected: true, account: 'Priya Nair' });
-      return json(res, 200, { data: { account: 'Priya Nair', organization_id: socialLinkedIn.organization?.id ?? null } });
+      Object.assign(socialLinkedIn, { connected: true, account: null });
+      return json(res, 200, { data: { account: null, organization_id: socialLinkedIn.organization?.id ?? null } });
     }
     if (p === '/admin/settings/social/linkedin/disconnect' && req.method === 'POST') {
       Object.assign(socialLinkedIn, { connected: false, account: null });

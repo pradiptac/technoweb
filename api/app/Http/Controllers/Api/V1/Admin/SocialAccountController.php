@@ -69,7 +69,7 @@ class SocialAccountController extends Controller
         try {
             $oauth = OAuthConnection::linkedIn();
             $stored = $oauth->consumeState($data['state']);
-            $account = $oauth->exchange($data['code'], $stored['redirect']);
+            $oauth->exchange($data['code'], $stored['redirect']);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -85,7 +85,7 @@ class SocialAccountController extends Controller
             }
         }
 
-        return response()->json(['data' => ['account' => $account, 'organization_id' => Setting::get('social_linkedin_organization_id')]]);
+        return response()->json(['data' => ['account' => Setting::get('social_linkedin_oauth_account'), 'organization_id' => Setting::get('social_linkedin_organization_id')]]);
     }
 
     /** POST admin/settings/social/linkedin/disconnect. The chosen page is kept for a reconnection. */

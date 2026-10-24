@@ -67,6 +67,8 @@ export function ReviewPanel({
   const [text, setText] = useState(post.text);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // "Copy and open instead": skip the API even though LinkedIn is connected.
+  const [manual, setManual] = useState(false);
   const [done, setDone] = useState<Done | null>(null);
   const [busy, start] = useTransition();
   const router = useRouter();
@@ -77,10 +79,10 @@ export function ReviewPanel({
   const direct = !isX && connected;
   const unconfirmed = post.status === "unconfirmed";
 
-  const approve = (confirm: boolean) => {
+  const approve = (confirm: boolean, asManual = false) => {
     setError(null);
     start(async () => {
-      const out = await approveSocialPostAction(post.id, text, confirm);
+      const out = await approveSocialPostAction(post.id, text, confirm, asManual);
 
       if (out.error && !out.status) {
         setError(out.error);
@@ -226,19 +228,27 @@ export function ReviewPanel({
               <div className="flex flex-wrap items-center gap-2">
                 {confirming ? (
                   <>
-                    <Button type="button" size="sm" pending={busy} disabled={over || text.trim() === ""} onClick={() => approve(true)}>
-                      {busy ? "Sending…" : "It isn't there, send again"}
+                    <Button type="button" size="sm" pending={busy} disabled={over || text.trim() === ""} onClick={() => approve(true, manual)}>
+                      {busy ? (manual ? "Opening…" : "Sending…") : manual ? "It isn't there, copy and open" : "It isn't there, send again"}
                     </Button>
-                    <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => setConfirming(false)}>Cancel</Button>
+                    <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => { setConfirming(false); setManual(false); }}>Cancel</Button>
                   </>
                 ) : (
                   <>
                     <Button
                       type="button" size="sm" pending={busy} disabled={over || text.trim() === ""}
-                      onClick={() => (unconfirmed ? setConfirming(true) : approve(false))}
+                      onClick={() => { setManual(false); if (unconfirmed) setConfirming(true); else approve(false); }}
                     >
                       {busy ? (direct ? "Sending…" : "Opening…") : direct ? "Approve and send" : isX ? "Open in X" : "Copy and open"}
                     </Button>
+                    {direct && (post.status === "failed" || unconfirmed) && (
+                      <Button
+                        type="button" size="sm" variant="secondary" disabled={busy || over || text.trim() === ""}
+                        onClick={() => { setManual(true); if (unconfirmed) setConfirming(true); else approve(false, true); }}
+                      >
+                        Copy and open instead
+                      </Button>
+                    )}
                     <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={discard}>Discard</Button>
                   </>
                 )}

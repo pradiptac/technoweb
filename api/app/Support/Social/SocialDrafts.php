@@ -63,8 +63,10 @@ class SocialDrafts
         try {
             // In a saved listener the originals are still the pre-save values (a new model holds only its defaults).
             $status = $m->getOriginal('status');
+            // A post or entry that came due after its last save was not visible "before": its first edit drafts it.
             $before = ($status instanceof \BackedEnum ? $status->value : $status) === PublishStatus::Published->value
-                && (! ($m instanceof BlogPost || $m instanceof Entry) || ($m->getOriginal('published_at') !== null && Carbon::parse($m->getOriginal('published_at'))->lte(now())));
+                && (! ($m instanceof BlogPost || $m instanceof Entry)
+                    || self::datedLive($m instanceof Entry, $m->getOriginal('published_at'), $m->getOriginal('updated_at')));
             $stale = ($m instanceof BlogPost || $m instanceof Entry)
                 && $m->published_at !== null && $m->published_at->lt(now()->subDays(self::SWEEP_DAYS));
 
@@ -74,6 +76,17 @@ class SocialDrafts
         } catch (\Throwable $e) {
             Log::warning('Social posts: could not draft', ['type' => $m->getMorphClass(), 'id' => $m->getKey(), 'error' => $e->getMessage()]);
         }
+    }
+
+    /** Dated no later than now and no later than the save that stored it; no date counts as live only for an entry. */
+    private static function datedLive(bool $nullIsLive, mixed $at, mixed $saved): bool
+    {
+        if ($at === null) {
+            return $nullIsLive;
+        }
+        $at = Carbon::parse($at);
+
+        return $at->lte(now()) && ($saved === null || $at->lte(Carbon::parse($saved)));
     }
 
     /**
@@ -124,16 +137,23 @@ class SocialDrafts
         return [$posts[0], $posts[1]];
     }
 
-    /** Posts and press releases that came due after their save (a future date), published in the last 30 days. */
+    /**
+     * Posts and press releases that came due after their save (a future date), published in the last 30 days.
+     * Also the backstop for a send whose process died: a post stuck in `sending` for five minutes is
+     * moved to `unconfirmed`, so it can be checked and discarded or confirmed.
+     */
     public static function sweep(): int
     {
+        SocialPost::query()->where('status', SocialPostStatus::Sending->value)->where('updated_at', '<', now()->subMinutes(5))
+            ->update(['status' => SocialPostStatus::Unconfirmed->value, 'error' => SocialSender::UNCONFIRMED]);
+
         $window = [now()->subDays(self::SWEEP_DAYS), now()];
         $without = fn (string $alias) => SocialPost::query()->where('subject_type', $alias)->where('source', 'publish')->select('subject_id');
         $drafted = 0;
 
-        $records = BlogPost::query()->where('status', PublishStatus::Published)->whereBetween('published_at', $window)
+        $records = BlogPost::query()->where('status', PublishStatus::Published)->whereBetween('published_at', $window)->whereColumn('published_at', '>', 'updated_at')
             ->whereNotIn('id', $without('blog_post'))->get()
-            ->concat(Entry::query()->where('status', PublishStatus::Published)->whereBetween('published_at', $window)
+            ->concat(Entry::query()->where('status', PublishStatus::Published)->whereBetween('published_at', $window)->whereColumn('published_at', '>', 'updated_at')
                 ->whereIn('content_type_id', ContentType::query()->where('preset', SocialSubjects::PRESET)->select('id'))
                 ->whereNotIn('id', $without('entry'))->get());
 

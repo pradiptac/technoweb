@@ -25,13 +25,14 @@ class SocialText
         return self::xLength($text) + ($url === '' ? 0 : 1 + self::X_URL) <= self::X_LIMIT;
     }
 
+    /** LinkedIn gets no link in the text: the post attaches it as the article card. */
     public static function fallback(SocialNetwork $network, string $title, string $summary, string $url): string
     {
         $title = trim($title);
         $summary = trim($summary);
 
         if ($network === SocialNetwork::LinkedIn) {
-            return implode("\n\n", array_filter([$title, $summary, $url], fn ($p) => $p !== ''));
+            return implode("\n\n", array_filter([$title, $summary], fn ($p) => $p !== ''));
         }
 
         $text = $summary === '' ? $title : $title.' — '.$summary;

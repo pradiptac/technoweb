@@ -19,6 +19,8 @@ class LinkedInPoster
      */
     public const LINKEDIN_VERSION = '202610';
 
+    private const MAX_PAGES = 10;
+
     private const API = 'https://api.linkedin.com/rest';
 
     public function connection(): OAuthConnection
@@ -63,7 +65,8 @@ class LinkedInPoster
         $this->check($acls);
 
         $out = [];
-        foreach ((array) $acls->json('elements', []) as $element) {
+        // Each page costs a request of up to 15 s, so the list is bounded.
+        foreach (array_slice((array) $acls->json('elements', []), 0, self::MAX_PAGES) as $element) {
             $id = preg_replace('/^urn:li:organization:/', '', (string) ($element['organization'] ?? ''));
             if ($id === '' || ! ctype_digit($id)) {
                 continue;

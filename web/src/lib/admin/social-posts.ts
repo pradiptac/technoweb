@@ -19,9 +19,9 @@ export async function getSocialPosts(params: { status?: string; network?: string
  * Edit and approve are one request, so what goes out is exactly what was on
  * screen. `open_url` is where a person finishes the share themselves.
  */
-export async function approveSocialPost(id: number, text: string, confirm: boolean): Promise<{ post: SocialPost; open_url: string | null }> {
+export async function approveSocialPost(id: number, text: string, confirm: boolean, manual = false): Promise<{ post: SocialPost; open_url: string | null }> {
   const res = await apiFetch<{ data: SocialPost; meta: { open_url: string | null } }>(`/admin/social-posts/${id}/approve`, {
-    method: "POST", body: { text, ...(confirm ? { confirm: true } : {}) }, token: await token(),
+    method: "POST", body: { text, ...(confirm ? { confirm: true } : {}), ...(manual ? { manual: true } : {}) }, token: await token(),
   });
 
   return { post: res.data, open_url: res.meta?.open_url ?? null };

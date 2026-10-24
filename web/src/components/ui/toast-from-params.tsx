@@ -49,7 +49,7 @@ const OUTCOMES: Record<string, Message> = {
     tone: "ok",
     title: "Opened for posting",
     // The honest half: nothing has been posted until the person presses Post over there.
-    body: "Finish posting it on the network; the text is filled in or on your clipboard. It is marked as shared by hand.",
+    body: "Finish posting it on the network. It is marked as shared by hand.",
   },
   "social-discarded": { tone: "ok", title: "Post discarded", body: "It will not be sent." },
   "social-drafted": { tone: "ok", title: "Drafts made", body: "A LinkedIn post and an X post are waiting for you to check." },
