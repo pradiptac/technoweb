@@ -145,7 +145,7 @@ Content → **Social posts** (`/admin/social-posts`, `role:content_manager`): a
 list filtered by status (waiting by default, with the count) and network, a
 review panel per post with the text, a live count, the page's title and link, and
 Approve. **Draft a social post** sits in the header row of a published blog
-post, case study, event and press-release entry. Settings → **Social accounts**
+post, case study, event and press-release entry. System → **Social accounts**
 (`/admin/settings/social`, `role:admin`) holds the client ID and secret, Connect,
 the page choice and the expiry warning. The sidebar rows and `ScreenAccess` are
 one change (`AdminNavRolesTest` compares them). The mock (`web/mock-api.mjs`)
