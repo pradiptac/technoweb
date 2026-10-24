@@ -21,6 +21,16 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.190.0 — 2026-10-24
+
+**LinkedIn and X posts: drafts for what you publish, approved by a person.**
+
+- When a blog post, case study, event or press release goes live, the site prepares a LinkedIn post and an X post about it, once; Content → Social posts lists them, and Draft a social post on a published record makes another pair whenever asked. The writing assistant improves the plain first draft unless an editor has already changed it; it never writes the link. Imports make no drafts.
+- Nothing is posted without Approve. X opens x.com with the text and link filled in (posting to X directly needs a paid X developer plan, so it is not offered); its text is held to 256 characters plus the link, which X counts as 23. LinkedIn posts to the company page through its API once an administrator has connected it, or copies the text and opens LinkedIn's share page when it is not connected, the connection has ended, or the approver prefers it.
+- A LinkedIn send that cannot be confirmed (a timeout, or a server error) is marked Couldn't confirm and needs a second press after checking the page, so a post is not made twice; a refusal shows LinkedIn's words. Approving, discarding and drafting are written to the activity log. Deleting a record deletes its unsent drafts.
+- System → Social accounts (administrators) holds the LinkedIn app's client ID and secret, Connect, and the choice of page. LinkedIn issues ordinary apps no refresh token, so the connection runs out after about sixty days and the screen warns a week ahead.
+- New manual chapter 40 (including how to create the LinkedIn app and what its review asks), `docs/social-posts.md`, and an Admin — social posts section of `API.md`.
+
 ## 0.189.0 — 2026-10-23
 
 **API keys: another system can ask the site for its records.**

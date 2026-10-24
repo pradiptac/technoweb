@@ -82,6 +82,7 @@ use App\Models\ServiceCategory;
 use App\Models\ShippingZone;
 use App\Models\SiteImport;
 use App\Models\Slider;
+use App\Models\SocialPost;
 use App\Models\Solution;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
@@ -116,6 +117,7 @@ use App\Support\QueueHealth;
 use App\Support\Search\Indexable;
 use App\Support\Search\Indexer;
 use App\Support\Search\SemanticSettings;
+use App\Support\Social\SocialDrafts;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Mail\Markdown;
@@ -280,6 +282,7 @@ class AppServiceProvider extends ServiceProvider
             // and custom field values, all polymorphic; a type is bound in an
             // admin route and a menu item may point at it.
             'entry' => Entry::class,
+            'social_post' => SocialPost::class,
             'content_type' => ContentType::class,
             'form' => Form::class,
             'faq' => Faq::class,
@@ -494,6 +497,20 @@ class AppServiceProvider extends ServiceProvider
             };
             $class::saved($reindexOwner);
             $class::deleted($reindexOwner);
+        }
+
+        // LinkedIn and X drafts for a record that is published (C7); onSaved is guarded and never fails a save.
+        foreach ([BlogPost::class, CaseStudy::class, Event::class, Entry::class] as $class) {
+            $class::saved(fn ($model) => SocialDrafts::onSaved($model));
+            // A deleted record leaves nothing unsendable behind; what was sent or shared stays as history.
+            $class::deleted(function ($model) {
+                try {
+                    SocialPost::query()->where('subject_type', $model->getMorphClass())->where('subject_id', $model->getKey())
+                        ->whereIn('status', ['draft', 'failed', 'unconfirmed', 'discarded'])->delete();
+                } catch (\Throwable $e) {
+                    Log::warning('Social posts: could not remove the drafts of a deleted record', ['type' => $model->getMorphClass(), 'id' => $model->getKey(), 'error' => $e->getMessage()]);
+                }
+            });
         }
     }
 }

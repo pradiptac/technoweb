@@ -37,17 +37,19 @@ import { MessagingPanel } from "./messaging-panel";
 import { MediaCdnTest } from "./media-cdn-test";
 import { BackupDestinationPanel } from "./backup-destination-panel";
 import { MeetingsGooglePanel } from "./meetings-google-panel";
+import { SocialAccountsPanel } from "./social-accounts-panel";
 import { GoogleLoginNote } from "./google-login-note";
 import type { MeetingsGoogleStatus } from "@/types/meetings";
 import { ZohoBooksPanel } from "./zoho-books-panel";
 import { ShiprocketPanel } from "./shiprocket-panel";
 import type { ShiprocketStatus } from "@/types/courier";
 import type { ZohoBooksStatus } from "@/types/zoho";
+import type { SocialAccountsStatus } from "@/types/social-posts";
 
 const initial: SettingsFormState = {};
 
 export function SettingsForm({
-  screen, groups, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle, zoho, shiprocket,
+  screen, groups, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle, zoho, shiprocket, social,
 }: {
   screen: SettingsScreen;
   groups: SettingGroups;
@@ -67,6 +69,8 @@ export function SettingsForm({
   zoho?: ZohoBooksStatus;
   /** Only Store settings draws the Shiprocket connection. */
   shiprocket?: ShiprocketStatus;
+  /** Only Social accounts draws the LinkedIn connection. */
+  social?: SocialAccountsStatus;
 }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
 
@@ -85,7 +89,7 @@ export function SettingsForm({
   }
 
   const panel = (group: string) => (
-    <GroupPanel key={group} group={group} rows={groups[group]} uploads={uploads} payments={payments} mail={mail} inbound={inbound} messaging={messaging} drive={drive} meetingsGoogle={meetingsGoogle} zoho={zoho} shiprocket={shiprocket} />
+    <GroupPanel key={group} group={group} rows={groups[group]} uploads={uploads} payments={payments} mail={mail} inbound={inbound} messaging={messaging} drive={drive} meetingsGoogle={meetingsGoogle} zoho={zoho} shiprocket={shiprocket} social={social} />
   );
 
   return (
@@ -143,7 +147,7 @@ export function SettingsForm({
  * can draw a group the same way.
  */
 function GroupPanel({
-  group, rows, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle, zoho, shiprocket,
+  group, rows, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle, zoho, shiprocket, social,
 }: {
   group: string;
   rows: SettingGroups[string];
@@ -156,6 +160,7 @@ function GroupPanel({
   meetingsGoogle?: MeetingsGoogleStatus;
   zoho?: ZohoBooksStatus;
   shiprocket?: ShiprocketStatus;
+  social?: SocialAccountsStatus;
 }) {
   const meta = GROUP_TITLES[group] ?? { title: group, blurb: "" };
 
@@ -546,6 +551,9 @@ function GroupPanel({
 
         {/* The Workspace calendar every meeting is organised on: its consent, a test, the last refusal. */}
         {group === "meetings_google" && <MeetingsGooglePanel status={meetingsGoogle} rows={rows} />}
+
+        {/* LinkedIn: the company page posts go to, its consent, the last refusal. */}
+        {group === "social_accounts" && <SocialAccountsPanel status={social} rows={rows} />}
 
         {/* Zoho Books: its consent, the organisation and taxes only Zoho can list, a test, where things stand. */}
         {group === "zoho_books" && <ZohoBooksPanel status={zoho} rows={rows} />}

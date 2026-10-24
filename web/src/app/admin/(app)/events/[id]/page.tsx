@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { RevisionPanel } from "@/components/admin/revision-panel";
 import { RecordNotesPanel } from "@/components/admin/record-notes-panel";
+import { DraftSocialButton } from "@/components/admin/draft-social-button";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
 import { getEventWithMeta, getPageBuilderOptions, type AdminEvent, type EventMeta } from "@/lib/admin";
@@ -46,6 +47,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
           <RecordNotesPanel type="event" id={event.id} />
           <RevisionPanel type="event" id={event.id} />
           <PreviewLinkPanel type="event" id={event.id} />
+          {event.status === "published" && <DraftSocialButton type="event" id={event.id} />}
           {(event.registration_mode === "open" || held > 0) && (
             <Link href={`/admin/events/${event.id}/registrations`} className="py-1 text-13-5 font-semibold text-brand-ink hover:underline">
               Registrations{held > 0 ? ` (${held})` : ""}

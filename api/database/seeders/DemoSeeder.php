@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\Social\SocialDrafts;
 use App\Support\Store\Tags;
 use Illuminate\Database\Seeder;
 
@@ -22,7 +23,7 @@ class DemoSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([
+        SocialDrafts::suppressed(fn () => $this->call([
             BlogPostSeeder::class,
             KnowledgeBaseSeeder::class,
             CaseStudySeeder::class,
@@ -61,7 +62,7 @@ class DemoSeeder extends Seeder
             // A worked support desk: a portal login, tickets across every
             // status and a couple of enquiries.
             DemoSupportSeeder::class,
-        ]);
+        ]));
 
         // The shop's tag row (0.141.0): tag whatever shop products now exist
         // by the automatic rule, so a demo install shows the row. Once per

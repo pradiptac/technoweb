@@ -451,6 +451,24 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'meetings_google', 'key' => 'meetings_google_error', 'value' => null, 'type' => 'string'],
 
             /*
+             * The LinkedIn page social posts go out through (C7). A group of
+             * its own and private — `social` is the public profile-URL group
+             * the footer reads, and none of this may reach /settings. LinkedIn
+             * issues no refresh token, so the access token itself is kept
+             * (encrypted) with its end date, beside the page chosen after
+             * connecting and LinkedIn's last refusal in its own words.
+             */
+            ['group' => 'social_accounts', 'key' => 'social_linkedin_oauth_client_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'social_accounts', 'key' => 'social_linkedin_oauth_client_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'social_accounts', 'key' => 'social_linkedin_oauth_access_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'social_accounts', 'key' => 'social_linkedin_oauth_expires_at', 'value' => null, 'type' => 'string'],
+            ['group' => 'social_accounts', 'key' => 'social_linkedin_oauth_account', 'value' => null, 'type' => 'string'],
+            ['group' => 'social_accounts', 'key' => 'social_linkedin_oauth_connected_at', 'value' => null, 'type' => 'string'],
+            ['group' => 'social_accounts', 'key' => 'social_linkedin_organization_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'social_accounts', 'key' => 'social_linkedin_organization_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'social_accounts', 'key' => 'social_linkedin_error', 'value' => null, 'type' => 'string'],
+
+            /*
              * Zoho Books (0.134.0, docs/store.md "Zoho Books invoices"): an
              * order's invoice made in the company's own books. Private —
              * a client secret and a refresh token live here — and off until

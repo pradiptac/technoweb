@@ -4,6 +4,7 @@ namespace App\Support\WordPress;
 
 use App\Models\WordPressImport;
 use App\Support\IndexNow;
+use App\Support\Social\SocialDrafts;
 use App\Support\WordPress\Steps\Step;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -94,7 +95,7 @@ final class Importer
     /** One slice of the commit. */
     public function commit(WordPressImport $import, CarbonImmutable $deadline): string
     {
-        return IndexNow::suppressed(fn () => $this->run($import, $deadline, dryRun: false));
+        return IndexNow::suppressed(fn () => SocialDrafts::suppressed(fn () => $this->run($import, $deadline, dryRun: false)));
     }
 
     private function run(WordPressImport $import, CarbonImmutable $deadline, bool $dryRun): string

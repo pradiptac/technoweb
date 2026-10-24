@@ -18,6 +18,8 @@ enum OAuthProvider: string
     case Microsoft = 'microsoft';
     /** Zoho, for Zoho Books (0.134.0). `$tenant` is its data centre: `in` or `com`. */
     case Zoho = 'zoho';
+    /** LinkedIn, for company-page posts (C7). It issues no refresh token to ordinary apps. */
+    case LinkedIn = 'linkedin';
 
     public function label(): string
     {
@@ -25,7 +27,18 @@ enum OAuthProvider: string
             self::Google => 'Google',
             self::Microsoft => 'Microsoft',
             self::Zoho => 'Zoho',
+            self::LinkedIn => 'LinkedIn',
         };
+    }
+
+    /**
+     * Whether a token response is expected to carry a refresh token. LinkedIn's
+     * does not for an ordinary app: the access token lasts about sixty days and
+     * the connection is made again when it ends.
+     */
+    public function issuesRefreshToken(): bool
+    {
+        return $this !== self::LinkedIn;
     }
 
     /**
@@ -50,6 +63,11 @@ enum OAuthProvider: string
                 'auth' => 'https://accounts.zoho.'.self::zohoDomain($tenant).'/oauth/v2/auth',
                 'token' => 'https://accounts.zoho.'.self::zohoDomain($tenant).'/oauth/v2/token',
                 'revoke' => 'https://accounts.zoho.'.self::zohoDomain($tenant).'/oauth/v2/token/revoke',
+            ],
+            self::LinkedIn => [
+                'auth' => 'https://www.linkedin.com/oauth/v2/authorization',
+                'token' => 'https://www.linkedin.com/oauth/v2/accessToken',
+                'revoke' => 'https://www.linkedin.com/oauth/v2/revoke',
             ],
         };
     }
@@ -83,6 +101,7 @@ enum OAuthProvider: string
                 'access_type' => 'offline',
                 'prompt' => 'consent',
             ],
+            self::LinkedIn => [],
         };
     }
 

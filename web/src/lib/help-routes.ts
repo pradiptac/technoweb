@@ -101,6 +101,8 @@ export const HELP_ROUTES: { prefix: string; sections: string[] }[] = [
   { prefix: "/admin/settings/email-templates", sections: ["18-settings#email-templates"] },
   { prefix: "/admin/webhooks", sections: ["18-settings#webhooks"] },
   { prefix: "/admin/api-keys", sections: ["39-api-keys#making-a-key", "39-api-keys#choosing-what-it-may-do", "39-api-keys#giving-it-to-a-developer", "39-api-keys#changing-revoking-rolling-and-deleting"] },
+  { prefix: "/admin/settings/social", sections: ["40-social-posts#connecting-linkedin-administrators", "40-social-posts#things-to-know"] },
+  { prefix: "/admin/social-posts", sections: ["40-social-posts#what-gets-a-draft", "40-social-posts#reviewing-and-approving", "40-social-posts#what-approving-does", "40-social-posts#we-couldn-t-confirm"] },
   { prefix: "/admin/users", sections: ["17-users-and-roles#managing-staff", "17-users-and-roles#the-roles"] },
   { prefix: "/admin/activity", sections: ["17-users-and-roles#the-activity-log"] },
   { prefix: "/admin/client-errors", sections: ["17-users-and-roles#javascript-errors"] },

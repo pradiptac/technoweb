@@ -5,6 +5,7 @@ namespace App\Support\OAuth;
 use App\Enums\InboundMailProvider;
 use App\Enums\MailTransport;
 use App\Models\Setting;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -108,7 +109,7 @@ final class OAuthConnection
         return match ($provider) {
             OAuthProvider::Google => 'https://mail.google.com/ openid email',
             OAuthProvider::Microsoft => 'https://outlook.office365.com/IMAP.AccessAsUser.All offline_access openid email',
-            OAuthProvider::Zoho => throw new RuntimeException('Zoho does not connect a mailbox.'),
+            OAuthProvider::Zoho, OAuthProvider::LinkedIn => throw new RuntimeException("{$provider->label()} does not connect a mailbox."),
         };
     }
 
@@ -214,6 +215,27 @@ final class OAuthConnection
         );
     }
 
+    /**
+     * The LinkedIn company page social posts are made on (C7).
+     *
+     * LinkedIn gives an ordinary app no refresh token: the access token lasts
+     * about sixty days and is stored here with its expiry, and the connection
+     * is made again when it ends. `w_organization_social` posts as the page;
+     * `r_organization_admin` lets the settings screen list the pages the
+     * signed-in person administers. Its own client id and secret, as every slot.
+     */
+    public static function linkedIn(): self
+    {
+        return new self(
+            provider: OAuthProvider::LinkedIn,
+            scope: 'w_organization_social r_organization_admin',
+            prefix: 'social_linkedin_oauth_',
+            slot: 'social-linkedin',
+            errorKey: 'social_linkedin_error',
+            noun: 'LinkedIn',
+        );
+    }
+
     /** @return array{auth: string, token: string, revoke: ?string} */
     public function endpoints(): array
     {
@@ -290,6 +312,10 @@ final class OAuthConnection
 
         $body = $response->json() ?? [];
 
+        if (! $this->provider->issuesRefreshToken()) {
+            return $this->storeAccessToken($body, $response->failed(), $response->status());
+        }
+
         if ($response->failed() || ! isset($body['refresh_token'])) {
             throw new RuntimeException($this->describe(
                 $body,
@@ -297,6 +323,7 @@ final class OAuthConnection
                 match ($this->provider) {
                     OAuthProvider::Google => 'No refresh token came back. Google sends one only on a fresh consent — remove this app under your Google account\'s third-party access and connect again.',
                     OAuthProvider::Microsoft => 'No refresh token came back. Check that offline_access is among the permissions granted to the app registration.',
+                    OAuthProvider::LinkedIn => 'LinkedIn did not accept that.',
                     OAuthProvider::Zoho => 'Zoho did not accept that. Check that the client is a "Server-based Application", that its redirect address is this site\'s, and that the data centre chosen here is the one your Zoho account is in.',
                 },
             ));
@@ -324,6 +351,10 @@ final class OAuthConnection
      */
     public function accessToken(): string
     {
+        if (! $this->provider->issuesRefreshToken()) {
+            return $this->storedToken();
+        }
+
         $cached = $this->usableToken(Cache::get($this->tokenKey()));
 
         if ($cached !== null) {
@@ -378,12 +409,21 @@ final class OAuthConnection
 
     public function isConnected(): bool
     {
-        return filled(Setting::get($this->key('refresh_token')));
+        return filled(Setting::get($this->key($this->provider->issuesRefreshToken() ? 'refresh_token' : 'access_token')));
+    }
+
+    /** When a stored access token ends; null for a slot that refreshes, or one never connected. */
+    public function expiresAt(): ?CarbonImmutable
+    {
+        $at = (string) Setting::get($this->key('expires_at'));
+
+        return $at === '' ? null : CarbonImmutable::parse($at);
     }
 
     public function disconnect(): void
     {
-        $refreshToken = (string) Setting::get($this->key('refresh_token'));
+        $stored = ! $this->provider->issuesRefreshToken();
+        $refreshToken = (string) Setting::get($this->key($stored ? 'access_token' : 'refresh_token'));
 
         // Best effort. A revoke that fails must not stop us forgetting the
         // token locally, or the screen will refuse to let go of a credential
@@ -392,13 +432,19 @@ final class OAuthConnection
 
         if ($revoke !== null && $refreshToken !== '') {
             try {
-                Http::asForm()->timeout(10)->post($revoke, ['token' => $refreshToken]);
+                Http::asForm()->timeout(10)->post($revoke, ['token' => $refreshToken] + ($stored ? [
+                    'client_id' => trim((string) Setting::get($this->credential('client_id'))),
+                    'client_secret' => (string) Setting::get($this->credential('client_secret')),
+                ] : []));
             } catch (\Throwable $e) {
                 Log::warning('Could not revoke the mail token upstream', ['slot' => $this->slot, 'error' => $e->getMessage()]);
             }
         }
 
-        Setting::put($this->key('refresh_token'), null);
+        Setting::put($this->key($stored ? 'access_token' : 'refresh_token'), null);
+        if ($stored) {
+            Setting::put($this->key('expires_at'), null);
+        }
         Setting::put($this->key('account'), null);
         Setting::put($this->key('connected_at'), null);
         Setting::put($this->errorKey, null);
@@ -419,6 +465,45 @@ final class OAuthConnection
     {
         Setting::put($this->errorKey, trim($message).' — '.now()->toDayDateTimeString());
         Cache::forget($this->tokenKey());
+    }
+
+    /**
+     * A provider that issues no refresh token: keep the access token and its
+     * end date, since there is nothing to renew it with.
+     *
+     * @param  array<string, mixed>  $body
+     */
+    private function storeAccessToken(array $body, bool $failed, int $status): string
+    {
+        if ($failed || ! is_string($body['access_token'] ?? null) || $body['access_token'] === '') {
+            throw new RuntimeException($this->describe($body, $status, "{$this->noun} did not accept that. Check the client ID and secret, and that the redirect address is this site's."));
+        }
+
+        $email = $this->identify($body);
+
+        Setting::put($this->key('access_token'), $body['access_token']);
+        Setting::put($this->key('expires_at'), now()->addSeconds((int) ($body['expires_in'] ?? 5184000))->toIso8601String());
+        // LinkedIn's token names nobody (no openid scope), so there is no account to show.
+        Setting::put($this->key('account'), $this->provider === OAuthProvider::LinkedIn ? null : $email);
+        Setting::put($this->key('connected_at'), now()->toIso8601String());
+        Setting::put($this->errorKey, null);
+
+        return $email;
+    }
+
+    private function storedToken(): string
+    {
+        $token = (string) Setting::get($this->key('access_token'));
+
+        if ($token === '') {
+            throw new RuntimeException("{$this->noun} is not connected.");
+        }
+
+        if ($this->expiresAt()?->isPast()) {
+            throw new RuntimeException("The {$this->noun} connection has ended. Connect again from Settings.");
+        }
+
+        return $token;
     }
 
     private function key(string $suffix): string

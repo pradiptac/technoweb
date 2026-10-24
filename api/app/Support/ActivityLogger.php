@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Activity;
+use App\Models\SocialPost;
 use App\Models\User;
 use App\Support\PageSections\CustomCodeGuard;
 use Illuminate\Database\Eloquent\Model;
@@ -217,6 +218,11 @@ class ActivityLogger
             return true;
         }
 
+        // Who approved, discarded or asked for a social post is the point of the review screen.
+        if (self::isSocialPostAction($request)) {
+            return true;
+        }
+
         // A new record. `store` is the route's own name, so this covers an
         // entity nobody has written yet.
         if (self::actionOf($request) === 'store') {
@@ -224,6 +230,12 @@ class ActivityLogger
         }
 
         return in_array(self::groupOf($request), self::SENSITIVE_GROUPS, true);
+    }
+
+    private static function isSocialPostAction(Request $request): bool
+    {
+        return self::groupOf($request) === 'social-posts'
+            && in_array(self::actionOf($request), ['approve', 'discard', 'draft'], true);
     }
 
     /**
@@ -362,6 +374,17 @@ class ActivityLogger
 
         if ($request->attributes->get(CustomCodeGuard::REQUEST_FLAG)) {
             $context['custom_code'] = true;
+        }
+
+        // A social post: the network and where it ended up, never its text.
+        if (self::isSocialPostAction($request)) {
+            $post = self::subjectOf($request);
+            if ($post instanceof SocialPost) {
+                $context['network'] = $post->network->value;
+                $context['status'] = $post->status->value;
+            } elseif (is_string($request->input('type')) && is_numeric($request->input('id'))) {
+                $context['subject'] = $request->input('type').':'.(int) $request->input('id');
+            }
         }
 
         foreach (self::CONTEXT_ALLOWLIST as $key) {

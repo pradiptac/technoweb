@@ -398,6 +398,11 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "A Web application client in the company's Google Cloud project, with the Calendar API switched on, the consent screen set to Internal, and the callback below registered.",
   },
   meetings_google_oauth_client_secret: { label: "OAuth client secret" },
+  social_linkedin_oauth_client_id: {
+    label: "LinkedIn client ID",
+    hint: "From the LinkedIn developer app that has the Community Management API product, with the callback below registered as an authorised redirect URL.",
+  },
+  social_linkedin_oauth_client_secret: { label: "LinkedIn client secret" },
   meetings_google_calendar_id: {
     label: "Calendar",
     hint: "Blank uses the connected account's own calendar. Or a calendar's ID from its settings in Google Calendar.",
@@ -1152,6 +1157,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Google Calendar",
     blurb: "The Workspace account every meeting is organised on — meetings@, say. Each booking becomes an event on its calendar with a Meet link, and the host and the customer are both invited. Save the client ID and secret, then connect.",
   },
+  social_accounts: {
+    title: "LinkedIn",
+    blurb: "Connect the company's LinkedIn page so approved posts are published to it. Until it is connected, approving a post copies the text and opens LinkedIn for you to post by hand. Save the client ID and secret, then connect.",
+  },
   ticket_survey: {
     title: "Satisfaction survey",
     blurb: "A few seconds' rating asked of the customer when their ticket is closed. The wording of the email is under System → Settings → Email templates (Satisfaction survey — to the customer).",
@@ -1393,6 +1402,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
              "meeting_holidays", "meeting_reminders", "meeting_block_google_busy", "meetings_email",
              "meeting_change_cutoff_hours", "meeting_max_reschedules", "meeting_max_open_per_contact", "meeting_daily_ip_cap"],
   ticket_survey: ["ticket_survey_enabled"],
+  social_accounts: ["social_linkedin_oauth_client_id", "social_linkedin_oauth_client_secret"],
   meetings_google: ["meetings_google_oauth_client_id", "meetings_google_oauth_client_secret", "meetings_google_calendar_id"],
   visits: ["visits_enabled", "visit_windows", "visit_days", "visit_min_notice_days", "visit_max_days", "visit_holidays",
            "visits_email", "visit_default_minutes"],
@@ -1442,6 +1452,10 @@ export const HIDDEN = new Set([
   "backup_gdrive_oauth_refresh_token", "backup_gdrive_oauth_account", "backup_gdrive_oauth_connected_at", "backup_ftp_sftp_fingerprint",
   // Meetings: the Google consent and its last refusal, shown by the connection panel.
   "meetings_google_oauth_refresh_token", "meetings_google_oauth_account", "meetings_google_oauth_connected_at", "meetings_google_error",
+  // Social accounts: the LinkedIn token and who it belongs to, the chosen page and the last refusal — written by the
+  // connection endpoints and drawn by the panel, never edited as text.
+  "social_linkedin_oauth_access_token", "social_linkedin_oauth_expires_at", "social_linkedin_oauth_account", "social_linkedin_oauth_connected_at",
+  "social_linkedin_organization_id", "social_linkedin_organization_name", "social_linkedin_error",
   // Zoho Books: the consent and its last refusal — and the organisation and the two taxes, which the
   // connection panel draws as selects of Zoho's own lists under these same names.
   "zoho_books_oauth_refresh_token", "zoho_books_oauth_account", "zoho_books_oauth_connected_at", "zoho_books_error",
@@ -1507,7 +1521,7 @@ export type SettingsScreen = {
   lede: string;
   saveLabel: string;
   /** Status reads beyond `getSettings()` that a panel on this screen needs. */
-  needs?: ("mail" | "inbound" | "messaging" | "backups" | "meetings" | "zoho" | "shiprocket")[];
+  needs?: ("mail" | "inbound" | "messaging" | "backups" | "meetings" | "zoho" | "shiprocket" | "social")[];
   /** The groups drawn, in order. A `label` puts a heading over those tabs. */
   sections: { label?: string; groups: string[] }[];
 };
@@ -1623,6 +1637,15 @@ export const SCREENS: SettingsScreen[] = [
     saveLabel: "Save meeting settings",
     needs: ["meetings"],
     sections: [{ groups: ["meetings", "meetings_google"] }],
+  },
+  {
+    path: "/admin/settings/social",
+    title: "Social accounts",
+    area: "System",
+    lede: "The company's LinkedIn page, so approved posts are published to it. X posts are not sent from here: approving one opens X with the text filled in.",
+    saveLabel: "Save social account settings",
+    needs: ["social"],
+    sections: [{ groups: ["social_accounts"] }],
   },
   {
     path: "/admin/visits/settings",
