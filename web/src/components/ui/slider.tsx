@@ -105,6 +105,8 @@ export function Slider({
   const captionAnimation = captionAnimationFor(slider);
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
+  // The slide the native track is scrolling away from, until the scroll settles.
+  const [leaving, setLeaving] = useState<number | null>(null);
   // Paused under the pointer and while anything inside has focus — a
   // courtesy, not a control; the Pause button is the control.
   const [paused, setPaused] = useState(false);
@@ -168,14 +170,21 @@ export function Slider({
     const el = track.current;
     if (!el) return;
     let frame = 0;
+    let settle = 0;
+    let last = el.clientWidth ? Math.round(el.scrollLeft / el.clientWidth) : 0;
     const onScroll = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        if (el.clientWidth) setIndex(Math.round(el.scrollLeft / el.clientWidth));
+        if (!el.clientWidth) return;
+        const next = Math.round(el.scrollLeft / el.clientWidth);
+        // The slide being left stays "leaving" (its slow zoom keeps running) until the scroll settles.
+        if (next !== last) { setLeaving(last); last = next; setIndex(next); }
       });
+      clearTimeout(settle);
+      settle = window.setTimeout(() => setLeaving(null), 200);
     };
     el.addEventListener("scroll", onScroll, { passive: true });
-    return () => { el.removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); };
+    return () => { el.removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); clearTimeout(settle); };
   }, [isNative]);
 
   // Drops the outgoing slide once the incoming one has fully covered it.
@@ -286,7 +295,7 @@ export function Slider({
                 painted={Boolean(painted[i])}
                 onPaint={() => markPainted(i)}
                 effect={slider.media_effect}
-                active={i === index}
+                active={i === index || i === leaving}
                 delayMs={slideDelay(slide, slider)}
               />
               {/*
