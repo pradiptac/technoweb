@@ -125,7 +125,7 @@ class MotionSettingsTest extends TestCase
 
         $this->assertArrayHasKey('motion', $groups);
         $this->assertEqualsCanonicalizing(
-            ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_splash', 'motion_hero', 'motion_cards', 'motion_progress', 'motion_headline', 'motion_micro'],
+            ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_splash', 'motion_hero', 'motion_cards', 'motion_progress', 'motion_headline', 'motion_micro', 'motion_feel', 'motion_text'],
             collect($groups['motion'])->pluck('key')->all(),
         );
     }
