@@ -5,6 +5,7 @@ import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
 import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
+import { sliderFrameAttrs } from "@/lib/slider-frame";
 import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
 import { Slider } from "@/components/ui/slider";
@@ -81,8 +82,9 @@ export function FanSlider({
       <section
         aria-roledescription="carousel"
         aria-label={slider.name}
+        {...sliderFrameAttrs(slider)}
         className={cn(
-          "group relative flex w-full min-w-0 flex-col overflow-clip rounded-xl border border-line-strong bg-card",
+          "slider-frame group relative flex w-full min-w-0 flex-col overflow-clip rounded-xl border border-line-strong bg-card",
           aspect,
           // The counter, the card, two lines of words and the pill, whatever
           // the ratio asks for — `min-height` beats `aspect-ratio`.
@@ -91,7 +93,7 @@ export function FanSlider({
         style={{
           // 42% of the well: the fan of five then spans ~90% of it. Measured
           // at 30% the current picture was 160px in a 533px hero column.
-          "--card-w": "clamp(120px, 42cqw, 360px)",
+          "--card-w": "min(clamp(120px, 42cqw, 360px), max(72px, calc((var(--slider-cap) - 11.5rem) / 1.15)))",
           "--card-h": "calc(var(--card-w) * 1.15)",
         } as CSSProperties}
         onPointerEnter={() => setPaused(true)}

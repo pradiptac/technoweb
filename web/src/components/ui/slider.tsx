@@ -7,6 +7,7 @@ import type { Slider as SliderData } from "@/types/api";
 import { SlideMedia } from "@/components/ui/slide-media";
 import { SlideCaption, captionAnimationFor } from "@/components/ui/slide-caption";
 import { Chevron, PlayPause, arrow } from "@/components/ui/slider-controls";
+import { sliderFrameAttrs } from "@/lib/slider-frame";
 
 /**
  * A carousel built on CSS scroll-snap rather than a carousel library.
@@ -244,7 +245,8 @@ export function Slider({
       // fails, and `bg-card` is what carries the card gradient that rule
       // expects. Under dark the two were always distinct; in light they were
       // both white until this.
-      className={cn("group relative min-w-0 overflow-hidden rounded-xl border border-line-strong bg-card", className)}
+      className={cn("slider-frame group relative min-w-0 overflow-hidden rounded-xl border border-line-strong bg-card", className)}
+      {...sliderFrameAttrs(slider)}
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -272,6 +274,7 @@ export function Slider({
               role="group"
               aria-roledescription="slide"
               aria-label={`${i + 1} of ${slides.length}`}
+              data-slider-stage
               className={cn("relative w-full shrink-0 snap-start", aspect)}
             >
               <SlideMedia
@@ -309,6 +312,7 @@ export function Slider({
           fade over white reads as a flash.
         */
         <div
+          data-slider-stage
           className={cn("relative w-full bg-dark", aspect)}
           style={{ "--slider-transition-ms": `${TRANSITION_MS}ms` } as CSSProperties}
         >

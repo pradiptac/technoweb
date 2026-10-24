@@ -5,6 +5,7 @@ import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
 import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
+import { sliderFrameAttrs } from "@/lib/slider-frame";
 import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
 import { Slider } from "@/components/ui/slider";
@@ -175,6 +176,7 @@ export function CardsSlider({
       ref={well}
       aria-roledescription="carousel"
       aria-label={slider.name}
+      {...sliderFrameAttrs(slider)}
       className={cn(
         // `w-full` is load-bearing beside the `min-height` below. With the
         // width left `auto`, CSS transfers a minimum height *through* the
@@ -182,7 +184,7 @@ export function CardsSlider({
         // 450px-wide well inside a 288px column, with the card row off the
         // right of a 320px screen. An explicit width stops the transfer, and
         // the ratio then only ever derives the height.
-        "group relative w-full min-w-0 overflow-clip rounded-xl border border-line-strong bg-dark",
+        "slider-frame group relative w-full min-w-0 overflow-clip rounded-xl border border-line-strong bg-dark",
         aspect,
         // Below `@md` the row sits under the words, and a 16:9 well 288px wide
         // is 162px tall — the row and its inset take 101 of them and the

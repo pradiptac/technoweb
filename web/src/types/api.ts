@@ -2855,6 +2855,8 @@ export type Slide = {
    * copy of it here would be drift nothing type-checks across the wire.
    */
   caption_position?: string | null;
+  /** `cover` (fill and crop) or `contain` (the whole picture over a blurred copy). The API's list. */
+  fit?: string | null;
 };
 
 /**
@@ -2971,6 +2973,10 @@ export type Slider = {
   interval_ms: number;
   slides?: Slide[];
   slides_count?: number;
+  /** `theme` (the caller's aspect), `screen` or `fixed`; the fixed steps are `short`/`medium`/`tall`, null otherwise. */
+  height?: string | null;
+  height_mobile?: string | null;
+  height_desktop?: string | null;
   /**
    * Admin only. True for a slider a page reads by slug (`homepage-hero`,
    * `store-hero`); `reserved_for` says which, in the API's words, so the

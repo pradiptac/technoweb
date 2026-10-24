@@ -5,6 +5,7 @@ import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
 import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
+import { sliderFrameAttrs } from "@/lib/slider-frame";
 import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
 import { Slider } from "@/components/ui/slider";
@@ -92,13 +93,14 @@ export function CylinderSlider({
       <section
         aria-roledescription="carousel"
         aria-label={slider.name}
+        {...sliderFrameAttrs(slider)}
         className={cn(
-          "group relative flex w-full min-w-0 flex-col overflow-clip rounded-xl border border-line-strong bg-card",
+          "slider-frame group relative flex w-full min-w-0 flex-col overflow-clip rounded-xl border border-line-strong bg-card",
           aspect,
           "min-h-[calc(var(--card-h)_+_10rem)]",
         )}
         style={{
-          "--card-w": "clamp(120px, 26cqw, 280px)",
+          "--card-w": "min(clamp(120px, 26cqw, 280px), max(72px, calc((var(--slider-cap) - 10rem) / 1.25)))",
           "--card-h": "calc(var(--card-w) * 1.25)",
           "--r": `calc(var(--card-w) * ${radiusFactor.toFixed(4)})`,
         } as CSSProperties}

@@ -33,6 +33,8 @@ export function SlideMedia({
   /** Whether to draw the skeleton under an unpainted slide at all. */
   placeholder?: boolean;
 }) {
+  // `contain` shows the whole picture; the bars it leaves are filled by a blurred, enlarged copy of the same picture.
+  const contain = slide.fit === "contain";
   return (
     <>
       {/*
@@ -68,9 +70,25 @@ export function SlideMedia({
           onLoadedData={onPaint}
           onError={onPaint}
           aria-label={slide.alt ?? undefined}
-          className={cn("absolute inset-0 h-full w-full object-cover", className)}
+          className={cn("absolute inset-0 h-full w-full", contain ? "bg-dark object-contain" : "object-cover", className)}
         />
       ) : slide.url ? (
+        <>
+        {contain && (
+          /*
+            Clipped in its own box: the copy is scaled past the edges so its blurred
+            rim is out of sight, and the native track would otherwise show that
+            overflow over the neighbouring slide. The placeholder data URL is the
+            background where there is one — no second download.
+          */
+          <span aria-hidden className="absolute inset-0 overflow-hidden">
+            {slide.blur ? (
+              <span className="absolute inset-0 scale-125 bg-cover bg-center blur-2xl" style={{ backgroundImage: `url("${slide.blur}")` }} />
+            ) : (
+              <Image src={slide.url} alt="" fill sizes={sizes} loading={eager ? "eager" : undefined} className="scale-125 object-cover blur-2xl" style={focalStyle(slide.focus)} />
+            )}
+          </span>
+        )}
         <Image
           src={slide.url}
           alt={slide.alt ?? ""}
@@ -93,12 +111,13 @@ export function SlideMedia({
           // A broken image must not pulse forever. It leaves the alt text
           // and the empty box, which is what a broken image is.
           onError={onPaint}
-          className={cn("object-cover", className)}
+          className={cn(contain ? "object-contain" : "object-cover", className)}
           // The file's focal point: a slide is the most cropped picture on
           // the site (a 2400px photograph in a 16:9 strip, then a 4:3 card
           // on a phone), and the point says which part to keep.
           style={focalStyle(slide.focus)} {...blurProps(slide.blur)}
         />
+        </>
       ) : null}
     </>
   );

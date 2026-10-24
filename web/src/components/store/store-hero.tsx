@@ -9,6 +9,7 @@ import { Container } from "@/components/ui/container";
 import { useAutoplay, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import { Slider } from "@/components/ui/slider";
 import { IconArrowRight } from "@/components/icons-ui";
+import { sliderFrameAttrs } from "@/lib/slider-frame";
 import type { Slider as SliderRecord } from "@/types/api";
 
 /**
@@ -133,7 +134,7 @@ export function StoreHero({ slider }: { slider: SliderRecord }) {
               change the height of the hero between slides — which would move
               everything below it as the carousel ran.
             */}
-            <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-surface shadow-2 sm:aspect-[16/10]">
+            <div {...sliderFrameAttrs(slider)} className="slider-frame relative aspect-[4/3] overflow-hidden rounded-xl bg-surface shadow-2 sm:aspect-[16/10]">
               {/*
                 Every slide is mounted and stacked; only the current one is
                 opaque. Rendering just the active slide and keying it on its id

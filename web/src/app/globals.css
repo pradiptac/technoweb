@@ -5509,3 +5509,45 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
   height: 1.15em;
   vertical-align: -0.2em;
 }
+
+/*
+ * Slider frames: never taller than the screen (0.191.0).
+ *
+ * `.slider-frame` is on the box every slider layout draws — the carousel
+ * section, the cards/fan/cylinder/ripple well, the shop hero's picture. The cap
+ * is always on; a theme's `aspect-*` still sets the shape and the media crops
+ * around its focal point when that shape would be taller than the screen.
+ * `svh`, so a phone's collapsing address bar does not make it jump;
+ * `--h-info-bar` exists only under Vantage, so it defaults to nothing.
+ *
+ * `--slider-cap` is the frame's own ceiling, and the stacked layouts size their
+ * cards from it (`min()` in their inline `--card-w`) because their `min-height`
+ * would otherwise beat the cap. Fixed heights re-define it, so the cap, the
+ * height and the cards all follow one number. Unlayered, so it beats the
+ * `aspect-*` and `lg:h-full` utilities a theme passes.
+ *
+ * `[data-slider-stage]` is the slide box inside a carousel: it carries the same
+ * ceiling, or an aspect-ratio slide would overflow its (clipped) frame instead
+ * of being shortened.
+ */
+.slider-frame {
+  --slider-max: calc(100svh - var(--h-site-header, 0px) - var(--h-info-bar, 0px));
+  --slider-cap: var(--slider-max);
+  max-height: var(--slider-cap);
+}
+[data-slider-stage] { max-height: var(--slider-cap); }
+
+.slider-frame[data-h-mobile="short"]  { --slider-cap: min(16rem, var(--slider-max)); }
+.slider-frame[data-h-mobile="medium"] { --slider-cap: min(22rem, var(--slider-max)); }
+.slider-frame[data-h-mobile="tall"]   { --slider-cap: min(28rem, var(--slider-max)); }
+@media (width >= 64rem) {
+  .slider-frame[data-h-desktop="short"]  { --slider-cap: min(24rem, var(--slider-max)); }
+  .slider-frame[data-h-desktop="medium"] { --slider-cap: min(34rem, var(--slider-max)); }
+  .slider-frame[data-h-desktop="tall"]   { --slider-cap: min(44rem, var(--slider-max)); }
+}
+
+/* Screen and Fixed set the height itself and switch the aspect ratio off. */
+.slider-frame:is([data-height="screen"], [data-height="fixed"]) { height: var(--slider-cap); aspect-ratio: auto; }
+.slider-frame:is([data-height="screen"], [data-height="fixed"]) [data-slider-stage] { height: 100%; aspect-ratio: auto; }
+/* A floor, so a landscape phone still shows a usable banner. */
+.slider-frame[data-height="screen"] { min-height: 22rem; }

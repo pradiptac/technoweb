@@ -5,6 +5,7 @@ import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
 import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
+import { sliderFrameAttrs } from "@/lib/slider-frame";
 import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
 import { Slider } from "@/components/ui/slider";
@@ -237,7 +238,8 @@ export function RippleSlider({
     <section
       aria-roledescription="carousel"
       aria-label={slider.name}
-      className={cn("group relative w-full min-w-0 overflow-clip rounded-xl bg-scrim", aspect, className)}
+      {...sliderFrameAttrs(slider)}
+      className={cn("slider-frame group relative w-full min-w-0 overflow-clip rounded-xl bg-scrim", aspect, className)}
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
