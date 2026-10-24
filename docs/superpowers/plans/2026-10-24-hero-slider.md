@@ -83,3 +83,13 @@
 - [ ] Write; `node scripts/build-help.mjs --check`, `node scripts/help-routes.check.mjs`.
 - [ ] Full API suite alone, Larastan "No errors", pint; production build + light, dark and mobile audits with a throwaway admin; the height probe again on the build.
 - [ ] Commit `"0.191.0: hero slider features"`.
+
+### Task 9: Footer social styles (runs before Task 8)
+
+**Spec:** `docs/superpowers/specs/2026-10-24-footer-social-styles-design.md` — four more `social_style` values (circles, outline, pills, minimal), one setting for every theme.
+
+**Files:** `api/app/Http/Controllers/Api/V1/Admin/SettingController.php` (`SOCIAL_STYLES`), `api/tests/Feature/SocialStyleSettingsTest.php`, `web/src/components/layout/social-links.tsx`, `web/src/app/globals.css` (`--color-social-<net>-fill` tokens + the four styles' rules), `web/src/app/admin/(app)/settings/settings-copy.ts` (hints). Probe: `web/scripts/probes/social-styles.mjs`.
+
+- [ ] API options + test; the four server-rendered styles with email included, tokens only, motion in the reduced-motion guard on `scale`/`translate`, ≥24px targets; graded white-on-fill tokens (≥3:1 each, table in the report); console hints.
+- [ ] Probe all 14 themes × 360/1280 × light/dark × six styles (restore the original style after).
+- [ ] tsc, eslint, `--filter=SocialStyleSettingsTest`, phpstan/pint on the controller. Commit `"Footer: four more ways to show the social links"`.
