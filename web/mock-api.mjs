@@ -1161,6 +1161,18 @@ const sliders = [
   },
 ];
 
+/* The 0.191.0 slider fields, at the API's defaults (the mock has no admin slider
+   endpoint, so there is no meta to carry): a fixture without them would let a
+   renderer that assumed the keys exist pass CI. */
+for (const sl of sliders) {
+  Object.assign(sl, { media_effect: 'none', navigation: 'dots', height: 'theme', height_mobile: null, height_desktop: null, ...sl });
+  sl.slides = sl.slides.map((s) => ({
+    kicker: null, link2_url: null, link2_label: null,
+    mobile_url: null, mobile_alt: null, mobile_focus: null, mobile_blur: null,
+    text_tone: 'light', overlay: 'standard', duration_ms: null, fit: 'cover', ...s,
+  }));
+}
+
 /* The lead pipeline. Two rows so the queue shows a scored lead and a
    backfilled one that was never scored — the console renders those
    differently, and a fixture with only the first hides that. */

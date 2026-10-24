@@ -7,22 +7,17 @@ import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
 import { SlideRepeater } from "./slide-repeater";
 import { createSliderAction, updateSliderAction, type SliderState } from "./actions";
-import type { SlideCaptionPositionOption, SliderTransitionOption } from "@/lib/admin";
+import type { SliderMeta } from "@/lib/admin";
 import type { Slider } from "@/types/api";
 import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: SliderState = {};
 
-export function SliderForm({
-  slider, transitions, captionAnimations = [], layouts = [], captionPositions = [], saved,
-}: {
-  slider?: Slider;
-  transitions: SliderTransitionOption[];
-  captionAnimations?: SliderTransitionOption[];
-  layouts?: SliderTransitionOption[];
-  captionPositions?: SlideCaptionPositionOption[];
-  saved?: boolean;
-}) {
+export function SliderForm({ slider, meta, saved }: { slider?: Slider; meta: SliderMeta; saved?: boolean }) {
+  const {
+    transitions = [], caption_animations: captionAnimations = [], layouts = [],
+    media_effects: mediaEffects = [], navigations = [], heights = [], height_steps: heightSteps = [],
+  } = meta;
   const action = slider
     ? updateSliderAction.bind(null, slider.id)
     : createSliderAction;
@@ -31,6 +26,11 @@ export function SliderForm({
   const [transition, setTransition] = useState(slider?.transition ?? "slide");
   const [captionAnimation, setCaptionAnimation] = useState(slider?.caption_animation ?? "none");
   const [layout, setLayout] = useState(slider?.layout ?? "full");
+  const [mediaEffect, setMediaEffect] = useState(slider?.media_effect ?? "none");
+  const [navigation, setNavigation] = useState(slider?.navigation ?? "dots");
+  const [height, setHeight] = useState(slider?.height ?? "theme");
+  const [heightMobile, setHeightMobile] = useState(slider?.height_mobile ?? "medium");
+  const [heightDesktop, setHeightDesktop] = useState(slider?.height_desktop ?? "medium");
 
   const err = (field: string) => state.fieldErrors?.[field]?.[0];
 
@@ -132,6 +132,71 @@ export function SliderForm({
             </Select>
           </Field>
         )}
+
+        {/* The slow zoom, the way a visitor moves between slides, and how tall the banner stands: all per slider. */}
+        {mediaEffects.length > 0 && (
+          <Field
+            label="Picture motion"
+            htmlFor="media_effect"
+            variant="float-static"
+            error={err("media_effect")}
+            hint={mediaEffects.find((o) => o.value === mediaEffect)?.blurb}
+          >
+            <Select id="media_effect" name="media_effect" value={mediaEffect} onChange={(e) => setMediaEffect(e.target.value)}>
+              {mediaEffects.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+          </Field>
+        )}
+        {navigations.length > 0 && (
+          <Field
+            label="Navigation"
+            htmlFor="navigation"
+            variant="float-static"
+            error={err("navigation")}
+            hint={navigations.find((o) => o.value === navigation)?.blurb}
+          >
+            <Select id="navigation" name="navigation" value={navigation} onChange={(e) => setNavigation(e.target.value)}>
+              {navigations.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+          </Field>
+        )}
+        {heights.length > 0 && (
+          <Field
+            label="Height"
+            htmlFor="height"
+            variant="float-static"
+            error={err("height")}
+            hint={heights.find((o) => o.value === height)?.blurb}
+          >
+            <Select id="height" name="height" value={height} onChange={(e) => setHeight(e.target.value)}>
+              {heights.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+          </Field>
+        )}
+        {height === "fixed" && heightSteps.length > 0 && (
+          <>
+            <Field label="On phones" htmlFor="height_mobile" variant="float-static" error={err("height_mobile")}>
+              <Select id="height_mobile" name="height_mobile" value={heightMobile} onChange={(e) => setHeightMobile(e.target.value)}>
+                {heightSteps.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="On larger screens" htmlFor="height_desktop" variant="float-static" error={err("height_desktop")}>
+              <Select id="height_desktop" name="height_desktop" value={heightDesktop} onChange={(e) => setHeightDesktop(e.target.value)}>
+                {heightSteps.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </Select>
+            </Field>
+          </>
+        )}
       </div>
 
       <RecordSwitch className="mb-6" name="autoplay" defaultChecked={slider?.autoplay ?? true} label="Advance slides automatically"
@@ -150,7 +215,11 @@ export function SliderForm({
       </div>
 
       <h2 className="admin-title mb-3 text-17">Slides</h2>
-      <SlideRepeater slides={slider?.slides ?? []} captionPositions={captionPositions} />
+      <SlideRepeater
+        slides={slider?.slides ?? []}
+        meta={meta}
+        errors={state.fieldErrors}
+      />
 
       <FormActions>
         <Button type="submit" pending={pending}>

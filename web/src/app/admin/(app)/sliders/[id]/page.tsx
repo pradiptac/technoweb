@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getSlider, type SlideCaptionPositionOption, type SliderTransitionOption } from "@/lib/admin";
+import { getSlider, type SliderMeta } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { Alert } from "@/components/ui/input";
@@ -24,17 +24,11 @@ export default async function EditSliderPage({
   const { saved, kept } = await searchParams;
 
   let slider: Slider;
-  let transitions: SliderTransitionOption[] = [];
-  let captionAnimations: SliderTransitionOption[] = [];
-  let layouts: SliderTransitionOption[] = [];
-  let captionPositions: SlideCaptionPositionOption[] = [];
+  let meta: SliderMeta = {};
   try {
     const res = await getSlider(Number(id));
     slider = res.data;
-    transitions = res.meta.transitions ?? [];
-    captionAnimations = res.meta.caption_animations ?? [];
-    layouts = res.meta.layouts ?? [];
-    captionPositions = res.meta.caption_positions ?? [];
+    meta = res.meta;
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
@@ -49,10 +43,7 @@ export default async function EditSliderPage({
       </PageHeader>
       <SliderForm
         slider={slider}
-        transitions={transitions}
-        captionAnimations={captionAnimations}
-        layouts={layouts}
-        captionPositions={captionPositions}
+        meta={meta}
         saved={Boolean(saved)}
       />
 
