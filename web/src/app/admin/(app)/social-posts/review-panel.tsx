@@ -17,6 +17,20 @@ import { statusTone } from "./social-tones";
 /** The three states in which the wording can still be changed and sent. */
 export const EDITABLE = ["draft", "failed", "unconfirmed"];
 
+/**
+ * Whether the text reached the clipboard. `navigator.clipboard` is undefined off a secure origin
+ * (plain http, a fresh install before SSL) and the write throws synchronously there, so a
+ * `.catch` on the promise is not enough.
+ */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function host(url: string): string {
   try {
     return new URL(url).host;
@@ -80,7 +94,7 @@ export function ReviewPanel({
       let copied = false;
       if (out.openUrl) {
         // LinkedIn's share page takes only the address, so the text rides on the clipboard.
-        if (!isX) copied = await navigator.clipboard.writeText(text).then(() => true, () => false);
+        if (!isX) copied = await copyText(text);
         window.open(out.openUrl, "_blank", "noopener");
       }
 
@@ -260,7 +274,7 @@ function DoneNote({ done, isX }: { done: Done; isX: boolean }) {
         <Textarea aria-label="Approved text" readOnly rows={8} value={done.text} className="mt-2" onFocus={(e) => e.currentTarget.select()} />
         <Button
           type="button" size="sm" variant="secondary" className="mt-2"
-          onClick={() => navigator.clipboard.writeText(done.text).then(() => setCopiedNow(true), () => undefined)}
+          onClick={async () => { if (await copyText(done.text)) setCopiedNow(true); }}
         >
           {copiedNow ? "Copied" : "Copy"}
         </Button>
