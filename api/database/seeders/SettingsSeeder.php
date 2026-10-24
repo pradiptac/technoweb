@@ -934,6 +934,11 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             // Small interactions (0.171.0): Lively by default — the client's deliberate
             // exception to "the site as it moved before"; each effect is a few pixels.
             ['group' => 'motion', 'key' => 'motion_micro', 'value' => 'lively', 'type' => 'string'],
+            // Fluid motion (0.192.0, docs/motion.md): `standard` is the site as it moved;
+            // `fluid` swaps the easing tokens for springs. `motion_text` is how section
+            // headings arrive: none, rise, blur or wave.
+            ['group' => 'motion', 'key' => 'motion_feel', 'value' => 'standard', 'type' => 'string'],
+            ['group' => 'motion', 'key' => 'motion_text', 'value' => 'none', 'type' => 'string'],
 
             /*
              * The site theme: which folder under `web/src/themes/` builds the
