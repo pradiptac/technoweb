@@ -1782,6 +1782,9 @@ export type AdminStoreProduct = AdminCustomFields & import("./page-sections").Ad
    */
   notices_waiting?: number;
   returnable: boolean;
+  /** Own window in days; null is the shop's. */
+  return_days?: number | null;
+  return_days_effective?: number;
   status: PublishStatus;
   status_label?: string;
   is_featured?: boolean;
@@ -1947,6 +1950,8 @@ export type StoreProduct = PublicCustomFields & AnswerContent & import("./page-s
   availability?: "in_stock" | "backorder" | "out_of_stock";
   handling_days?: number;
   returnable: boolean;
+  /** The window in days, the product's own or the shop's. */
+  return_days?: number;
   /**
    * Said on the page, because a term of the sale disclosed only on the receipt
    * is not a term anybody agreed to. `new` is the ordinary answer and is not
@@ -2213,6 +2218,7 @@ export type OrderLine = {
   unit_price_paise: number;
   line_total_paise: number;
   returnable: boolean;
+  return_days?: number | null;
   slug?: string | null;
   /**
    * Whether a code has been issued for this line — never the code itself.
@@ -2503,6 +2509,7 @@ export type AdminOrderLine = {
   unit_price_paise: number;
   line_total_paise: number;
   returnable: boolean;
+  return_days?: number | null;
   store_product_id?: number | null;
   needs_codes: boolean;
   codes_issued: number;
@@ -2587,6 +2594,7 @@ export type CartLine = {
   shown_line_total_paise?: number;
   /** A term of the sale, carried on the line so the cart can say it. */
   returnable: boolean;
+  return_days?: number;
   shipped: boolean;
   /** What is wrong with this line, if anything. Reported, never fixed silently. */
   problem?: string | null;

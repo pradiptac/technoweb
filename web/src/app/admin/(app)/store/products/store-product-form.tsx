@@ -57,7 +57,7 @@ const GROUPS: TabGroup[] = [
   // Sections in place of the written body (0.130.0) — the choice and the builder.
   SECTIONS_TAB,
   { id: "selling", label: "Selling",
-    fields: ["price_paise", "compare_at_paise", "gst_percent", "hsn", "track_stock", "stock", "returnable", "variations"] },
+    fields: ["price_paise", "compare_at_paise", "gst_percent", "hsn", "track_stock", "stock", "returnable", "return_days", "variations"] },
   // Every field here, or its 422 is charged to the Content tab in silence.
   { id: "shopping", label: "Shopping",
     fields: ["gtin", "mpn", "condition", "google_product_category", "weight_grams", "feed_include"] },
@@ -460,6 +460,12 @@ export function StoreProductForm({
 
             <RecordSwitch className="mb-[18px]" name="returnable" defaultChecked={product?.returnable !== false} label="Returnable"
               hint="“This product is non-returnable” is shown on the page, in the cart and at the checkout — before anybody pays." />
+
+            <Field label="Return window (days)" htmlFor="return_days" error={err("return_days")}
+              hint="Blank uses the shop's return window. Shown on the product page.">
+              <Input id="return_days" name="return_days" type="number" min={1} max={365} inputMode="numeric"
+                placeholder={String(product?.return_days_effective ?? "Shop default")} defaultValue={product?.return_days ?? ""} className="max-w-[200px]" />
+            </Field>
           </aside>
         </div>
 

@@ -20,9 +20,9 @@ use Carbon\CarbonInterface;
  * offered) and by the console. Three questions:
  *
  *   - **Is it offered at all?** `store_returns_enabled`, a switch on Store →
- *     Settings. The window's length is `store_return_days`, the figure the
- *     product pages and the Google feed already state — a second number here
- *     would be a second promise.
+ *     Settings. The window's length is the product's own `return_days`, else
+ *     `store_return_days`, frozen on each order line at checkout — the figure
+ *     the product page states, so there is no second promise.
  *   - **Is this order inside its window?** The window opens when the order
  *     is dispatched and is counted from the day it was *delivered*:
  *     `completed_at` when the desk has marked it complete, otherwise the
@@ -40,8 +40,12 @@ final class ReturnPolicy
         return (bool) Setting::get('store_returns_enabled', true);
     }
 
-    /** The last moment a return may be asked for, or null before the order has left. */
-    public static function deadline(Order $order): ?CarbonInterface
+    /**
+     * The last moment a return may be asked for at the shop's own window
+     * (or `$days`), or null before the order has left. A line has its own
+     * window: see `lineDeadline()`.
+     */
+    public static function deadline(Order $order, ?int $days = null): ?CarbonInterface
     {
         // `delivered_at` is the courier's own word (0.143.0, docs/store.md
         // "Shiprocket") and wins; `completed_at` is the desk's.
@@ -53,7 +57,54 @@ final class ReturnPolicy
             return null;
         }
 
-        return $delivered->copy()->addDays(Fulfilment::returnDays())->endOfDay();
+        return $delivered->copy()->addDays($days ?? Fulfilment::returnDays())->endOfDay();
+    }
+
+    /**
+     * The window a line was sold with: its frozen snapshot, else the
+     * product's current figure (orders placed before the snapshot), else the
+     * shop's.
+     */
+    public static function lineDays(OrderItem $item): int
+    {
+        return $item->return_days !== null
+            ? max(1, (int) $item->return_days)
+            : ($item->product?->returnDays() ?? Fulfilment::returnDays());
+    }
+
+    /** The last moment a return of this line may be asked for. */
+    public static function lineDeadline(Order $order, OrderItem $item): ?CarbonInterface
+    {
+        return self::deadline($order, self::lineDays($item));
+    }
+
+    /** A line that can come back by type and whose own window has not closed. */
+    public static function lineOpen(Order $order, OrderItem $item): bool
+    {
+        $deadline = self::lineDeadline($order, $item);
+
+        return self::lineReturns($item) && $deadline !== null && ! now()->greaterThan($deadline);
+    }
+
+    /**
+     * The latest any returnable line closes — the order's own deadline when
+     * it has no returnable line to speak for it.
+     */
+    private static function latestLine(Order $order): ?OrderItem
+    {
+        $order->loadMissing('items.product');
+
+        return $order->items
+            ->filter(fn (OrderItem $i) => self::lineReturns($i) && self::lineDeadline($order, $i) !== null)
+            ->sortByDesc(fn (OrderItem $i) => self::lineDeadline($order, $i)->getTimestamp())
+            ->first();
+    }
+
+    private static function latestDeadline(Order $order): ?CarbonInterface
+    {
+        $line = self::latestLine($order);
+
+        return $line ? self::lineDeadline($order, $line) : self::deadline($order);
     }
 
     /** Why this order cannot send anything back, in a sentence — or null when it can. */
@@ -67,7 +118,7 @@ final class ReturnPolicy
             return 'This order was '.strtolower($order->status->label()).', so there is nothing to return.';
         }
 
-        $deadline = self::deadline($order);
+        $deadline = self::latestDeadline($order);
 
         if ($deadline === null || ! in_array($order->status, [OrderStatus::Dispatched, OrderStatus::Completed], true)) {
             return 'A return can be asked for once the order has been dispatched.';
@@ -88,7 +139,7 @@ final class ReturnPolicy
      */
     public static function returnable(Order $order): array
     {
-        $order->loadMissing('items');
+        $order->loadMissing('items.product');
 
         $held = [];
         foreach (OrderReturn::query()->where('order_id', $order->id)->with('items')->get() as $return) {
@@ -102,7 +153,7 @@ final class ReturnPolicy
 
         $out = [];
         foreach ($order->items as $item) {
-            $out[$item->id] = self::lineReturns($item)
+            $out[$item->id] = self::lineOpen($order, $item)
                 ? max(0, (int) $item->quantity - ($held[$item->id] ?? 0))
                 : 0;
         }
@@ -126,7 +177,8 @@ final class ReturnPolicy
     {
         $refusal = self::refusal($order);
         $returnable = self::returnable($order);
-        $deadline = self::deadline($order);
+        $line = self::latestLine($order);
+        $deadline = $line ? self::lineDeadline($order, $line) : self::deadline($order);
         $anything = array_sum($returnable) > 0;
 
         return [
@@ -136,8 +188,17 @@ final class ReturnPolicy
             'message' => $refusal ?? ($anything ? null : 'Nothing on this order is left to return.'),
             'closes_on' => $deadline?->toDateString(),
             'closes_label' => $deadline?->format('j F Y'),
-            'days' => Fulfilment::returnDays(),
-            'items' => collect($returnable)->map(fn (int $n, int $id) => ['order_item_id' => $id, 'returnable' => $n])->values()->all(),
+            'days' => $line ? self::lineDays($line) : Fulfilment::returnDays(),
+            'items' => $order->items->map(function (OrderItem $item) use ($order, $returnable) {
+                $closes = self::lineReturns($item) ? self::lineDeadline($order, $item) : null;
+
+                return [
+                    'order_item_id' => $item->id,
+                    'returnable' => $returnable[$item->id] ?? 0,
+                    'closes_on' => $closes?->toDateString(),
+                    'closes_label' => $closes?->format('j F Y'),
+                ];
+            })->values()->all(),
             'reasons' => ReturnReason::options(),
             'max_photos' => ReturnPhotos::MAX_PHOTOS,
             'max_photo_kb' => ReturnPhotos::MAX_KB,

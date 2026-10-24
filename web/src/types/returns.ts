@@ -41,7 +41,7 @@ export type ReturnPolicy = {
   /** The API's words for the last day — "12 October 2026". */
   closes_label: string | null;
   days: number;
-  items: { order_item_id: number; returnable: number }[];
+  items: { order_item_id: number; returnable: number; closes_on?: string | null; closes_label?: string | null }[];
   reasons: ReturnOption[];
   max_photos: number;
   max_photo_kb: number;

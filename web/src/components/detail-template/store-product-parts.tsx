@@ -104,7 +104,7 @@ export function StoreBuyGrid({ product, settings, children }: { product: StorePr
   const discounted = product.compare_at_paise && product.compare_at_paise > product.price_paise;
 
   const shippingPaise = Math.max(0, parseInt(settings.store_shipping_paise ?? "0", 10) || 0);
-  const returnDays = Math.max(1, parseInt(settings.store_return_days ?? "7", 10) || 7);
+  const returnDays = product.return_days ?? Math.max(1, parseInt(settings.store_return_days ?? "7", 10) || 7);
   // In zones mode the charge depends on where it goes and what it weighs, so the
   // page says so rather than quoting one figure (0.142.0, docs/store.md).
   const delivery = settings.store_shipping_mode === "zones"
@@ -175,9 +175,10 @@ export function StoreBuyGrid({ product, settings, children }: { product: StorePr
                     Save {percentOff(product.price_paise, product.compare_at_paise)}%
                   </span>
                 )}
-                {!product.returnable && (
-                  <span className="text-12-5 font-medium text-warn">Non-returnable</span>
-                )}
+                {/* The return window, highlighted beside the stock: a term of the sale. */}
+                {product.returnable
+                  ? <span className="rounded-full bg-info-soft px-2.5 py-1 text-12 font-semibold text-info">{returnDays}-day returns</span>
+                  : <span className="rounded-full bg-warn-soft px-2.5 py-1 text-12 font-semibold text-warn">Non-returnable</span>}
                 {/*
                   A term of the sale, said before somebody pays. New is the
                   ordinary case and is not called out; the other two are — an

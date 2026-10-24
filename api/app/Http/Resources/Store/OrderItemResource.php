@@ -35,6 +35,7 @@ class OrderItemResource extends JsonResource
             'unit_price_paise' => $this->unit_price_paise,
             'line_total_paise' => $this->line_total_paise,
             'returnable' => (bool) $this->returnable,
+            'return_days' => $this->return_days,
 
             /*
              * Whether there is a code to ask for — never the code itself.

@@ -148,8 +148,8 @@ class ReturnsTest extends TestCase
         $this->assertSame(7, $data['return_policy']['days']);
         // The switches may come back; a licence key cannot.
         $this->assertEqualsCanonicalizing([
-            ['order_item_id' => $switches->id, 'returnable' => 2],
-            ['order_item_id' => $licence->id, 'returnable' => 0],
+            ['order_item_id' => $switches->id, 'returnable' => 2, 'closes_on' => '2026-10-12', 'closes_label' => '12 October 2026'],
+            ['order_item_id' => $licence->id, 'returnable' => 0, 'closes_on' => null, 'closes_label' => null],
         ], $data['return_policy']['items']);
         $this->assertSame('damaged', $data['return_policy']['reasons'][0]['value']);
         $this->assertSame(4, $data['return_policy']['max_photos']);

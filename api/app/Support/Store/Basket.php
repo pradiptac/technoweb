@@ -319,6 +319,7 @@ class Basket
              * which is to say everywhere before somebody pays.
              */
             'returnable' => (bool) $product->returnable,
+            'return_days' => $product->returnDays(),
             'shipped' => (bool) $product->type?->isShipped(),
             'problem' => $problem,
         ];

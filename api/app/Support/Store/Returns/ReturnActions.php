@@ -80,9 +80,11 @@ class ReturnActions
                     $errors["items.{$i}.order_item_id"] = 'That item is listed twice.';
                 } elseif ($returnable[$id] === 0) {
                     $item = $locked->items->firstWhere('id', $id);
-                    $errors["items.{$i}.quantity"] = $item !== null && ReturnPolicy::lineReturns($item)
-                        ? 'A return has already been asked for all of that item.'
-                        : 'That item cannot be returned.';
+                    $errors["items.{$i}.quantity"] = match (true) {
+                        $item === null || ! ReturnPolicy::lineReturns($item) => 'That item cannot be returned.',
+                        ! ReturnPolicy::lineOpen($locked, $item) => 'The return window for that item has closed.',
+                        default => 'A return has already been asked for all of that item.',
+                    };
                 } elseif ($quantity > $returnable[$id]) {
                     $errors["items.{$i}.quantity"] = $returnable[$id] === 1
                         ? 'Only 1 of that item can be returned.'

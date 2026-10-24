@@ -131,6 +131,9 @@ class ProductResource extends JsonResource
                 fn () => (int) $this->resource->getAttribute('notices_waiting'),
             ),
             'returnable' => (bool) $this->returnable,
+            // Own value or null; `return_days_effective` is what the page shows.
+            'return_days' => $this->return_days,
+            'return_days_effective' => $this->returnDays(),
 
             'status' => $this->status->value,
             'status_label' => $this->status->label(),

@@ -426,7 +426,7 @@ class StructuredData
 
         return $policy + [
             'returnPolicyCategory' => 'https://schema.org/MerchantReturnFiniteReturnWindow',
-            'merchantReturnDays' => Fulfilment::returnDays(),
+            'merchantReturnDays' => $product->returnDays(),
             'returnMethod' => 'https://schema.org/ReturnByMail',
             'returnFees' => 'https://schema.org/FreeReturn',
         ];

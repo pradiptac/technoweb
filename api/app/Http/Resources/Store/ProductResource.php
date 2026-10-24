@@ -148,6 +148,7 @@ class ProductResource extends JsonResource
              * disclosed only on the receipt is not a term anybody agreed to.
              */
             'returnable' => (bool) $this->returnable,
+            'return_days' => $this->returnDays(),
 
             'is_featured' => (bool) $this->is_featured,
             /*

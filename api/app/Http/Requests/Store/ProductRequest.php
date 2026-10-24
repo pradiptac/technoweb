@@ -168,6 +168,8 @@ class ProductRequest extends FormRequest
              */
             'allow_oversell' => ['sometimes', 'boolean'],
             'returnable' => ['sometimes', 'boolean'],
+            // Null (blank) is the shop's `store_return_days`.
+            'return_days' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:365'],
 
             'status' => [$required, Rule::enum(PublishStatus::class)],
             'is_featured' => ['sometimes', 'boolean'],

@@ -76,7 +76,10 @@ export function ReturnForm({
   });
 
   const lines = (order.items ?? [])
-    .map((line) => ({ line, max: policy.items.find((i) => i.order_item_id === line.id)?.returnable ?? 0 }))
+    .map((line) => {
+      const row = policy.items.find((i) => i.order_item_id === line.id);
+      return { line, max: row?.returnable ?? 0, closes: row?.closes_label ?? null };
+    })
     .filter(({ max }) => max > 0);
 
   if (state.ok && !state.error) {
@@ -97,11 +100,12 @@ export function ReturnForm({
       <fieldset className="mb-[18px]">
         <legend className="mb-2 text-13-5 font-semibold">What are you returning?</legend>
         <ul className="grid gap-2">
-          {lines.map(({ line, max }) => (
+          {lines.map(({ line, max, closes }) => (
             <li key={line.id} className="flex items-center gap-3 rounded-md border border-line-strong px-3 py-2">
               <label htmlFor={`qty_${line.id}`} className="min-w-0 flex-1 text-14">
                 <span className="block font-medium text-ink [overflow-wrap:anywhere]">{line.name}</span>
                 {line.variation_name && <span className="block text-13 text-muted">{line.variation_name}</span>}
+                {closes && closes !== policy.closes_label && <span className="block text-13 text-muted">Return by {closes}</span>}
               </label>
               <Select
                 id={`qty_${line.id}`}

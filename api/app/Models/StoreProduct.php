@@ -16,6 +16,7 @@ use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
 use App\Support\MediaUrl;
+use App\Support\Store\Fulfilment;
 use App\Support\Store\SpecIndex;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -49,7 +50,7 @@ class StoreProduct extends Model implements Answerable, Faqable
         'short_description', 'description', 'images', 'videos', 'specifications', 'features',
         'warranty', 'applications',
         'activation_procedure', 'activation_pdf_path',
-        'price_paise', 'compare_at_paise', 'track_stock', 'stock', 'allow_oversell', 'returnable',
+        'price_paise', 'compare_at_paise', 'track_stock', 'stock', 'allow_oversell', 'returnable', 'return_days',
         'condition', 'google_product_category', 'weight_grams', 'feed_include',
         'status', 'is_featured', 'sort_order',
         'body_layout', 'blocks',
@@ -81,6 +82,12 @@ class StoreProduct extends Model implements Answerable, Faqable
         'body_layout' => 'body',
     ];
 
+    /** The return window in days: this product's own, else the shop's. */
+    public function returnDays(): int
+    {
+        return $this->return_days !== null ? max(1, (int) $this->return_days) : Fulfilment::returnDays();
+    }
+
     protected function casts(): array
     {
         return [
@@ -104,6 +111,7 @@ class StoreProduct extends Model implements Answerable, Faqable
             'stock' => 'integer',
             'allow_oversell' => 'boolean',
             'returnable' => 'boolean',
+            'return_days' => 'integer',
             'is_featured' => 'boolean',
             // Written only by `ReviewSummary`; read by every card.
             'rating_average' => 'decimal:1',

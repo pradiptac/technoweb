@@ -514,7 +514,7 @@ const storeProducts = [
     features: ['Layer 3 lite static routing', 'Fanless', 'Limited lifetime warranty'],
     images: [], image_alts: [], image_focuses: [],
     price_paise: 4720000, compare_at_paise: 5310000,
-    in_stock: true, availability: 'in_stock', handling_days: 2, returnable: true, is_featured: true,
+    in_stock: true, availability: 'in_stock', handling_days: 2, returnable: true, return_days: 7, is_featured: true,
     price_includes_gst: true, gst_rate: '18%',
     created_at: '2026-01-15T00:00:00Z',
     category: storeCategories[0], brand: { id: 1, name: 'Cisco', slug: 'cisco', logo: null },
@@ -527,7 +527,7 @@ const storeProducts = [
     short_description: 'Eight Gigabit ports, no configuration, metal case.',
     description: null, specifications: {}, features: [],
     images: [], image_alts: [], image_focuses: [],
-    price_paise: 129900, in_stock: false, returnable: true, price_includes_gst: true, gst_rate: '18%',
+    price_paise: 129900, in_stock: false, returnable: true, return_days: 14, price_includes_gst: true, gst_rate: '18%',
     created_at: '2026-01-15T00:00:00Z',
     category: storeCategories[0], brand: null, variations: [] },
   { id: 3, name: 'Endpoint Security 1 Year', slug: 'endpoint-security-1-year', sku: 'EPS-1Y',
@@ -535,7 +535,7 @@ const storeProducts = [
     short_description: 'One year of endpoint protection, delivered as an activation code.',
     description: null, specifications: {}, features: [],
     images: [], image_alts: [], image_focuses: [],
-    price_paise: 236000, in_stock: true, returnable: false, price_includes_gst: true, gst_rate: '18%',
+    price_paise: 236000, in_stock: true, returnable: false, return_days: 7, price_includes_gst: true, gst_rate: '18%',
     // Deliberately recent, computed rather than a fixed date, so the "New"
     // ribbon (isNewProduct, 30-day window) has something to render against
     // under `npm run mock` however long the fixture has existed.
@@ -876,7 +876,7 @@ const summarise = (token, lines) => {
       quantity: l.quantity, unit_price_paise: unit, line_total_paise: unit * l.quantity,
       // As the website shows prices (0.178.0); the mock shows them with GST.
       shown_unit_price_paise: unit, shown_line_total_paise: unit * l.quantity,
-      returnable: product?.returnable ?? true,
+      returnable: product?.returnable ?? true, return_days: product?.return_days ?? 7,
       shipped: (product?.type ?? 'physical') === 'physical',
       problem: product?.in_stock === false ? `"${product.name}" is out of stock.` : null,
     };
@@ -7349,7 +7349,7 @@ createServer(async (req, res) => {
         enabled: true, open: false,
         message: 'A return can be asked for once the order has been dispatched.',
         closes_on: null, closes_label: null, days: 7,
-        items: summary.items.map((i) => ({ order_item_id: i.id, returnable: 0 })),
+        items: summary.items.map((i) => ({ order_item_id: i.id, returnable: 0, closes_on: null, closes_label: null })),
         reasons: RETURN_REASONS, max_photos: 4, max_photo_kb: 5120,
       },
     };

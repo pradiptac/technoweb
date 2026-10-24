@@ -1673,11 +1673,20 @@ all read from what the shop already records:
 - the switch — `store_returns_enabled`, on by default. Off, the order page
   says to get in touch and the endpoint refuses;
 - the order — dispatched or completed, not cancelled or refunded;
-- the window — `store_return_days` (the setting the Merchant Center feed and
-  the product page already read, so the promise made before the sale is the
-  one kept after it) counted from `completed_at`, or from `dispatched_at`
-  plus the longest transit time while nobody has marked it delivered, to the
-  **end of that day**;
+- the window — **per product** (0.192.0): `store_products.return_days`, blank
+  meaning the shop's `store_return_days`. The product page states it as a
+  highlighted chip beside the stock badge, and checkout **freezes it on the
+  order line** (`order_items.return_days`, a term of the sale like
+  `returnable`), so changing it later moves no order already placed. It is
+  counted from `completed_at`, or from `dispatched_at` plus the longest
+  transit time while nobody has marked it delivered, to the **end of that
+  day**, and **it closes line by line**: a line whose own window has passed
+  returns 0 ("The return window for that item has closed.") while a longer
+  one beside it stays open. A line with no snapshot (an order from before
+  0.192.0) uses the product's current figure, then the shop's. `describe()`'s
+  `closes_on`/`days` are the latest-closing returnable line's, and each
+  `items[]` entry carries its own `closes_on`/`closes_label`. The Merchant
+  Center `MerchantReturnPolicy` reads the product's own `returnDays()`;
 - the line — shipped (a licence key or a service has nothing to send back)
   and `returnable` on the order line, less what other returns of the order
   already hold. A **rejected** return holds nothing, so the customer may ask

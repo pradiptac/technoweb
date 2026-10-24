@@ -6953,11 +6953,14 @@ work once.
 **What may come back is decided by the API.** A request is a **422 on
 `return`**, one sentence, when returns are switched off
 (`store_returns_enabled`), the order was cancelled or refunded, it has not
-been dispatched, or the window has closed — `store_return_days` counted from
-`completed_at`, or from `dispatched_at` plus the longest transit time while
+been dispatched, or the window has closed — the line's own window (the
+product's `return_days`, else `store_return_days`, frozen on the order line at
+checkout as `order_items.return_days`; an older line falls back to the
+product's, then the shop's) counted from `completed_at`, or from `dispatched_at` plus the longest transit time while
 the order is not marked completed, to the end of that day. A line is refused
 on `items.N.order_item_id` (not on this order, or listed twice) or
-`items.N.quantity` ("That item cannot be returned." for a digital, service
+`items.N.quantity` ("The return window for that item has closed." when that
+line's own window has passed while others stay open; "That item cannot be returned." for a digital, service
 or non-returnable line; "A return has already been asked for all of that
 item."; "Only 1 of that item can be returned."). A line's ceiling is its
 quantity less what the order's other returns hold; a rejected return holds
@@ -6974,8 +6977,10 @@ and `GET /my/orders/{number}` add:
   note, no photograph's address, no engineer's name.
 - `return_policy` — `enabled`, `open` (whether the form may be offered now),
   `message` (the one sentence when it may not; null when it may),
-  `closes_on`, `closes_label` ("13 October 2026"), `days`,
-  `items[{order_item_id, returnable}]`, `reasons[{value, label}]`,
+  `closes_on`, `closes_label` ("13 October 2026") and `days` (the
+  latest-closing returnable line's), `items[{order_item_id, returnable,
+  closes_on, closes_label}]` (each line's own last day, null for a line that
+  cannot be returned), `reasons[{value, label}]`,
   `max_photos`, `max_photo_kb`.
 
 **The admin resource**: `id`, `reference`, `status`, `status_label`,

@@ -255,8 +255,11 @@ their order email, or from **Orders** in the customer portal. You decide each
 one under **Store → Returns**.
 
 **What a customer can return.** The order must have been dispatched, and the
-request must arrive within your return window: the number of days under
-**Store → Settings** (*Return window, in days*), counted from the day you marked the
+request must arrive within the item's return window: the number of days set on the
+product (*Return window (days)* on its form), or, when that is blank, under
+**Store → Settings** (*Return window, in days*). The window is shown on the product
+page and fixed on the order when it is placed, so changing it later does not
+affect orders already made. Each item closes on its own date, and it is counted from the day you marked the
 order **Completed**. If you never mark it completed, the window is counted
 from dispatch plus your longest delivery time. Licence keys and services
 cannot be returned, and neither can a product you have marked as
@@ -298,8 +301,9 @@ The customer follows the return on their order page: *Requested*,
 - **How to send goods back** — plain text added to every approval email: the
   address to send to, or that you will arrange a collection. If it is blank,
   say where to send the goods in your message when you approve.
-- **Return window, in days** — it is the same figure your product
-  pages and Google listing already show.
+- **Return window, in days** — the shop's window, used by every product that
+  has none of its own. It is the figure your product pages and Google listing
+  show for those products.
 
 Return numbers look like `RMA-2026-00001`. An administrator can change the
 prefix under **System → Settings → Reference numbers**.

@@ -183,6 +183,8 @@ class Checkout
                     // delivery have been apportioned across every line.
                     'gst_basis_points' => Tax::rateFor($product),
                     'returnable' => (bool) $product->returnable,
+                    // The window is a term of the sale too.
+                    'return_days' => $product->returnDays(),
                 ];
 
                 $subtotal += $unit * $item->quantity;
